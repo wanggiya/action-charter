@@ -1,0 +1,5 @@
+{"id":"D-001","timestamp":"2026-07-26T00:00:00-04:00","decision":"Use one shared Qwen-compatible model endpoint for logical agents.","status":"accepted"}
+{"id":"D-002","timestamp":"2026-07-26T00:00:00-04:00","decision":"Never expose unrestricted shell or unrestricted SQL as tools.","status":"accepted"}
+{"id":"D-003","timestamp":"2026-07-26T00:00:00-04:00","decision":"Use deterministic verification as the success gate.","status":"accepted"}
+{"id":"D-004","timestamp":"2026-07-26T00:00:00-04:00","decision":"Implement inspect_vector as the only executable skill in Checkpoint 1.","status":"accepted"}
+

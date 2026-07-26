@@ -1,0 +1,85 @@
+name: geoagent-skill-harness
+
+x-agent: &agent
+  build:
+    context: .
+    dockerfile: docker/agent/Dockerfile
+  image: ${AGENT_IMAGE:-geoagent-agent:local}
+  restart: "no"
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment: &model-environment
+    MODEL_PROVIDER: ${MODEL_PROVIDER:-ollama}
+    MODEL_BASE_URL: ${MODEL_BASE_URL:-http://host.docker.internal:11434/v1}
+    MODEL_NAME: ${MODEL_NAME:-qwen3:8b}
+    MODEL_TIMEOUT_SECONDS: ${MODEL_TIMEOUT_SECONDS:-120}
+  networks: [model]
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+
+services:
+  planner:
+    <<: *agent
+    command: ["agent-info", "planner"]
+    volumes:
+      - ./agents/planner:/app/agents/planner:ro
+      - ./context:/workspace/context:ro
+    profiles: [agents]
+
+  executor:
+    <<: *agent
+    command: ["agent-info", "executor"]
+    networks: [model, control]
+    volumes:
+      - ./agents/executor:/app/agents/executor:ro
+      - ./context:/workspace/context:ro
+    profiles: [agents]
+
+  critic:
+    <<: *agent
+    command: ["agent-info", "critic"]
+    volumes:
+      - ./agents/critic:/app/agents/critic:ro
+      - ./context:/workspace/context:ro
+    profiles: [agents]
+
+  mcp-gis:
+    build:
+      context: .
+      dockerfile: docker/gis-tools/Dockerfile
+    image: ${GIS_IMAGE:-geoagent-gis-tools:local}
+    working_dir: /workspace
+    command: ["geoagent", "inspect-vector", "data/input/sample_points.geojson"]
+    environment:
+      GEOAGENT_WORKSPACE: /workspace
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgis}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-geoagent}
+      POSTGRES_USER: ${POSTGRES_USER:-geoagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - ./data/input:/workspace/data/input:ro
+      - ./data/output:/workspace/data/output:rw
+      - ./traces:/workspace/traces:rw
+      - ./reports:/workspace/reports:rw
+    networks:
+      - control
+      - backend
+    profiles: [tools]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  control:
+    internal: true
+  model:
+  backend:
+    external: true
+    name: ${GEOAGENT_BACKEND_NETWORK:-geoagent-backend}

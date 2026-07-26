@@ -1,0 +1,15 @@
+id: executor
+model_ref: shared_ollama_runtime
+purpose: Invoke only approved, typed MCP tools and return artifacts and logs.
+permissions:
+  tools: [inspect_vector]
+  arbitrary_shell: false
+  unrestricted_sql: false
+  filesystem_write: false
+  database_write: false
+  input_mount: read_only
+  output_root: data/output
+instructions:
+  - Reject tool calls outside the allowlist.
+  - Never expose secrets in arguments, logs, or results.
+  - Never overwrite without a recorded approval.

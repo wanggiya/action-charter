@@ -1,0 +1,15 @@
+schema_version: "1.0"
+skills:
+  - id: inspect_vector
+    version: "0.1.0"
+    status: implemented
+    entrypoint: geoagent_harness.skills.inspect_vector.service:inspect_vector
+  - id: convert_vector
+    status: planned
+  - id: load_vector_to_postgis
+    status: planned
+  - id: validate_postgis_layer
+    status: planned
+  - id: generate_report
+    status: planned
+

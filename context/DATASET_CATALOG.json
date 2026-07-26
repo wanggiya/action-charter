@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "datasets": [
+    {
+      "id": "sample_points",
+      "path": "data/input/sample_points.geojson",
+      "format": "GeoJSON",
+      "purpose": "Checkpoint 1 inspection fixture",
+      "read_only": true
+    }
+  ]
+}
+
