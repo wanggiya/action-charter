@@ -1,25 +1,35 @@
 # Current Status
 
-## Checkpoint 1 — scaffold and inspect_vector
+## Checkpoint 2 — read-only MCP interface
 
-Status: implementation prepared; runtime verification awaits user execution.
+Status: implemented; final acceptance depends on user-provided test and
+container-build output.
 
-Prepared:
+Completed:
 
-- package, CLI, schemas, and bounded vector inspection;
-- sample GeoJSON and pytest cases;
-- Compose scaffold for external PostGIS connectivity and GIS tools;
-- independent agent-container definitions and validated manifests;
-- external PostGIS network configuration;
-- shared host-Ollama configuration without model calls;
-- GIS tools image, context records, and future skill placeholders.
+- fail-closed ENABLE_WRITE_TOOLS and ALLOW_OVERWRITE settings;
+- schema and PostgreSQL identifier validation;
+- health_check MCP tool;
+- inspect_vector_dataset MCP tool;
+- plan-only plan_load_vector_to_postgis MCP tool;
+- fixed three-tool allowlist;
+- STDIO MCP protocol smoke test;
+- security and tool tests;
+- read-only MCP container;
+- no database credentials, database network, or writable project mounts;
+- no Ollama integration or model calls.
 
-Not started:
+Not implemented:
 
-- shared model adapter and context-pack builder;
-- live MCP server and allowlisted tool dispatch;
-- conversion, PostGIS loading, deterministic PostGIS verifier;
-- approvals, redaction, traces, and Markdown reporting.
+- PostGIS loading;
+- PostGIS deterministic validation;
+- approvals and overwrite workflow;
+- trace persistence;
+- Markdown reports;
+- agent-to-MCP integration;
+- Ollama integration.
 
-Next checkpoint candidate: expose `inspect_vector` as a typed, allowlisted MCP
-tool and persist a redacted trace while keeping the CLI behavior stable.
+Next checkpoint candidate:
+
+Checkpoint 3 should add a controlled PostGIS connection and deterministic
+read-only database validation before any database loading is enabled.

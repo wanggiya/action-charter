@@ -8,7 +8,10 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN python3 -m pip install --break-system-packages --no-cache-dir ".[gis]"
+# RUN python3 -m pip install --break-system-packages --no-cache-dir ".[gis]"
+RUN python3 -m pip install \
+    --break-system-packages \
+    --no-cache-dir ".[gis,mcp]"
 
 RUN useradd --create-home --uid 10001 geoagent
 USER geoagent

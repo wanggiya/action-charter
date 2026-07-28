@@ -51,30 +51,41 @@ services:
     build:
       context: .
       dockerfile: docker/gis-tools/Dockerfile
+
     image: ${GIS_IMAGE:-geoagent-gis-tools:local}
+
     working_dir: /workspace
-    command: ["geoagent", "inspect-vector", "data/input/sample_points.geojson"]
+
+    command: ["geoagent-mcp"]
+
     environment:
       GEOAGENT_WORKSPACE: /workspace
-      POSTGRES_HOST: ${POSTGRES_HOST:-postgis}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      POSTGRES_DB: ${POSTGRES_DB:-geoagent}
-      POSTGRES_USER: ${POSTGRES_USER:-geoagent}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      GEOAGENT_INPUT_ROOT: /workspace/data/input
+      # GEOAGENT_OUTPUT_ROOT: /workspace/data/output
+
+      ENABLE_WRITE_TOOLS: ${ENABLE_WRITE_TOOLS:-false}
+      ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
+      ALLOWED_SCHEMAS: ${ALLOWED_SCHEMAS:-agent_sandbox}
+
     volumes:
       - ./data/input:/workspace/data/input:ro
-      - ./data/output:/workspace/data/output:rw
-      - ./traces:/workspace/traces:rw
-      - ./reports:/workspace/reports:rw
+
     networks:
       - control
-      - backend
-    profiles: [tools]
+
+    profiles:
+      - tools
+
     security_opt:
       - no-new-privileges:true
-    cap_drop: [ALL]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+
+    cap_drop:
+      - ALL
+
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=64m,mode=1777
 
 networks:
   control:

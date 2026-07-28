@@ -26,5 +26,9 @@ def test_only_executor_has_tool_access() -> None:
     critic = load_agent_manifest("critic", AGENTS_ROOT)
 
     assert planner.permissions.tools == []
-    assert executor.permissions.tools == ["inspect_vector"]
+    assert executor.permissions.tools == [
+        "health_check",
+        "inspect_vector_dataset",
+        "plan_load_vector_to_postgis",
+    ]
     assert critic.permissions.tools == []

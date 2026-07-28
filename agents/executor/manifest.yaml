@@ -2,7 +2,11 @@ id: executor
 model_ref: shared_ollama_runtime
 purpose: Invoke only approved, typed MCP tools and return artifacts and logs.
 permissions:
-  tools: [inspect_vector]
+  tools:
+    - health_check
+    - inspect_vector_dataset
+    - plan_load_vector_to_postgis
+
   arbitrary_shell: false
   unrestricted_sql: false
   filesystem_write: false
