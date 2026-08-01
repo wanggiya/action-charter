@@ -67,11 +67,21 @@ services:
       ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
       ALLOWED_SCHEMAS: ${ALLOWED_SCHEMAS:-agent_sandbox}
 
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgis}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-geoagent}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgis_password
+
     volumes:
       - ./data/input:/workspace/data/input:ro
 
     networks:
       - control
+      - backend
+    
+    secrets:
+      - postgis_password
 
     profiles:
       - tools
@@ -94,3 +104,7 @@ networks:
   backend:
     external: true
     name: ${GEOAGENT_BACKEND_NETWORK:-geoagent-backend}
+
+secrets:
+  postgis_password:
+    file: ./.secrets/postgis_password

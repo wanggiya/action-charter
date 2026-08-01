@@ -1,4 +1,4 @@
-"""Fail-closed configuration for the read-only MCP boundary."""
+"""Fail-closed configuration for the MCP and skill boundaries."""
 
 from __future__ import annotations
 
@@ -27,7 +27,6 @@ def parse_flag(value: str | None, *, default: bool = False) -> bool:
     if normalized in _FALSE_VALUES:
         return False
 
-    # Misspelled or unexpected values fail closed.
     return False
 
 
@@ -43,16 +42,28 @@ def validate_identifier(value: str, *, label: str) -> str:
 
 
 class MCPSettings(BaseModel):
-    """Non-secret settings available to MCP tools."""
+    """Non-secret configuration available to controlled tools."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     input_root: Path
     output_root: Path
+
     enable_write_tools: bool = False
     allow_overwrite: bool = False
+
     allowed_schemas: frozenset[str] = Field(
         default_factory=lambda: frozenset({"agent_sandbox"})
+    )
+
+    postgres_host: str = "postgis"
+    postgres_port: int = Field(default=5432, ge=1, le=65535)
+    postgres_database: str = "postgres"
+    postgres_user: str = "geoagent"
+
+    # The password itself is never stored in settings.
+    postgres_password_file: Path = Path(
+        "/run/secrets/postgis_password"
     )
 
     @field_validator("allowed_schemas")
@@ -69,11 +80,27 @@ class MCPSettings(BaseModel):
 
         return value
 
+    @field_validator("postgres_database")
+    @classmethod
+    def database_name_is_safe(cls, value: str) -> str:
+        return validate_identifier(
+            value,
+            label="postgres_database",
+        )
+
+    @field_validator("postgres_user")
+    @classmethod
+    def database_user_is_safe(cls, value: str) -> str:
+        return validate_identifier(
+            value,
+            label="postgres_user",
+        )
+
 
 def load_settings(
     environ: Mapping[str, str] | None = None,
 ) -> MCPSettings:
-    """Load settings from a mapping or the process environment."""
+    """Load non-secret settings from a trusted environment."""
     source = os.environ if environ is None else environ
 
     raw_schemas = source.get(
@@ -109,4 +136,28 @@ def load_settings(
             default=False,
         ),
         allowed_schemas=schemas,
+        postgres_host=source.get(
+            "POSTGRES_HOST",
+            "postgis",
+        ),
+        postgres_port=int(
+            source.get(
+                "POSTGRES_PORT",
+                "5432",
+            )
+        ),
+        postgres_database=source.get(
+            "POSTGRES_DB",
+            "postgres",
+        ),
+        postgres_user=source.get(
+            "POSTGRES_USER",
+            "geoagent",
+        ),
+        postgres_password_file=Path(
+            source.get(
+                "POSTGRES_PASSWORD_FILE",
+                "/run/secrets/postgis_password",
+            )
+        ),
     )

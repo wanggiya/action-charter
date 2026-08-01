@@ -83,6 +83,61 @@ def inspect_vector_command(
         )
     )
 
+@app.command("load-vector-to-postgis")
+def load_vector_to_postgis_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Vector dataset beneath the approved input root."
+        ),
+    ],
+    target_schema: Annotated[
+        str,
+        typer.Option("--schema", help="Approved target schema."),
+    ] = "agent_sandbox",
+    target_table: Annotated[
+        str,
+        typer.Option("--table", help="New target table name."),
+    ] = "loaded_vector",
+    source_layer: Annotated[
+        str | None,
+        typer.Option(
+            "--layer",
+            help="Required when the source has multiple layers.",
+        ),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty", help="Indent the JSON response."),
+    ] = False,
+) -> None:
+    """Load one approved vector layer into a new PostGIS table."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.skills.load_vector_to_postgis.service import (
+        LoadVectorError,
+        load_vector_to_postgis,
+    )
+
+    try:
+        result = load_vector_to_postgis(
+            path=path,
+            target_schema=target_schema,
+            target_table=target_table,
+            source_layer=source_layer,
+            settings=load_settings(),
+        )
+    except (LoadVectorError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
 
 if __name__ == "__main__":
     app()

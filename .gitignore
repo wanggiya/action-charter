@@ -9,6 +9,7 @@ htmlcov/
 *.py[cod]
 *.pem
 *.key
+.secrets/
 secrets/
 models/
 ollama-models/
