@@ -1,5 +1,37 @@
 # Current Status
 
+### Checkpoint 3C: deterministic PostGIS validation
+
+The `validate-postgis-layer` CLI command performs read-only,
+deterministic checks against an allowlisted PostGIS schema.
+
+Checks include:
+
+- table existence;
+- registered geometry column;
+- row count;
+- SRID;
+- declared and actual geometry type;
+- invalid geometry count;
+- null geometry count;
+- spatial extent.
+
+Database identifiers are validated and quoted. SQL statements are fixed;
+users and agents cannot submit arbitrary SQL. The database connection is
+read-only, and connection errors are returned with credentials redacted.
+
+Example:
+
+```bash
+docker compose --profile tools run --rm mcp-gis \
+  geoagent validate-postgis-layer \
+  --schema agent_sandbox \
+  --table checkpoint3b_sample_points \
+  --expected-row-count 2 \
+  --expected-srid 4326 \
+  --expected-geometry-type POINT \
+  --pretty
+
 ## Checkpoint 2 — read-only MCP interface
 
 Status: implemented; final acceptance depends on user-provided test and

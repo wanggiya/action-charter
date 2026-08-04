@@ -2,4 +2,6 @@
 {"id":"D-002","timestamp":"2026-07-26T00:00:00-04:00","decision":"Never expose unrestricted shell or unrestricted SQL as tools.","status":"accepted"}
 {"id":"D-003","timestamp":"2026-07-26T00:00:00-04:00","decision":"Use deterministic verification as the success gate.","status":"accepted"}
 {"id":"D-004","timestamp":"2026-07-26T00:00:00-04:00","decision":"Implement inspect_vector as the only executable skill in Checkpoint 1.","status":"accepted"}
+{"date":"2026-08-04","decision":"Use an external Docker-managed named volume for PostGIS and attach PostGIS declaratively to both GeoServer and GeoAgent networks.","reason":"The prior WSL bind-mounted database did not reliably preserve the expected cluster across full laptop shutdowns. The named volume provides stable Docker-managed persistence, while explicit dual-network membership supports both GeoServer and mcp-gis.","status":"accepted"}
+{"date":"2026-08-04","decision":"PostGIS validation is deterministic, read-only, and separate from LLM agents.","reason":"Final success must depend on database facts including table existence, geometry metadata, row count, SRID, geometry type, validity, null count, and extent.","status":"accepted"}
 

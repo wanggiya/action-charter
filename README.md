@@ -1,3 +1,42 @@
+
+## 4. Update `context/CURRENT_STATUS.md`
+
+Add:
+
+```markdown
+## Checkpoint 3C
+
+Status: complete.
+
+Implemented:
+
+- deterministic read-only PostGIS verifier;
+- table and geometry-column existence checks;
+- row count, SRID, and geometry-type checks;
+- invalid and null geometry counts;
+- spatial extent calculation;
+- optional expected-value comparisons;
+- identifier validation and safe SQL composition;
+- redacted connection failures;
+- CLI success and failure exit codes;
+- automated verifier tests;
+- real validation against `agent_sandbox.checkpoint3b_sample_points`.
+
+Infrastructure correction:
+
+- PostGIS storage migrated from a WSL bind mount to the external
+  `geoserver-postgis-data` Docker volume;
+- PostGIS attached persistently to both `geoserver-postgis_default`
+  and `geoagent-backend`.
+
+Not yet implemented:
+
+- MCP exposure for loading and validation;
+- harness-level approval records;
+- structured execution traces;
+- Markdown final reports;
+- planner/executor/critic runtime loops.
+
 # GeoAgent Skill Harness
 
 A CLI-first, local-first scaffold for containerized geospatial agent workflows.

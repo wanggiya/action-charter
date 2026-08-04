@@ -138,6 +138,64 @@ def load_vector_to_postgis_command(
         )
     )
 
+@app.command("validate-postgis-layer")
+def validate_postgis_layer_command(
+    target_schema: Annotated[
+        str,
+        typer.Option("--schema", help="Approved PostGIS schema."),
+    ] = "agent_sandbox",
+    target_table: Annotated[
+        str,
+        typer.Option("--table", help="PostGIS table to validate."),
+    ] = "checkpoint3b_sample_points",
+    expected_row_count: Annotated[
+        int | None,
+        typer.Option("--expected-row-count"),
+    ] = None,
+    expected_srid: Annotated[
+        int | None,
+        typer.Option("--expected-srid"),
+    ] = None,
+    expected_geometry_type: Annotated[
+        str | None,
+        typer.Option("--expected-geometry-type"),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty", help="Indent the JSON response."),
+    ] = False,
+) -> None:
+    """Deterministically validate one approved PostGIS layer."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.verifier.postgis import (
+        PostGISVerificationError,
+        validate_postgis_layer,
+    )
+
+    try:
+        result = validate_postgis_layer(
+            target_schema=target_schema,
+            target_table=target_table,
+            expected_row_count=expected_row_count,
+            expected_srid=expected_srid,
+            expected_geometry_type=expected_geometry_type,
+            settings=load_settings(),
+        )
+    except (PostGISVerificationError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+    if not result.passed:
+        raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     app()
