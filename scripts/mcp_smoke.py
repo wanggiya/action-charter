@@ -15,6 +15,8 @@ EXPECTED_TOOLS = {
     "health_check",
     "inspect_vector_dataset",
     "plan_load_vector_to_postgis",
+    "load_vector_to_postgis",
+    "validate_postgis_layer",
 }
 
 

@@ -63,6 +63,10 @@ services:
       GEOAGENT_INPUT_ROOT: /workspace/data/input
       # GEOAGENT_OUTPUT_ROOT: /workspace/data/output
 
+      GEOAGENT_TRACE_ROOT: /workspace/traces
+      GEOAGENT_REPORT_ROOT: /workspace/reports
+      GEOAGENT_CONTAINER_IMAGE: ${GIS_IMAGE:-geoagent-gis-tools:local}
+
       ENABLE_WRITE_TOOLS: ${ENABLE_WRITE_TOOLS:-false}
       ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
       ALLOWED_SCHEMAS: ${ALLOWED_SCHEMAS:-agent_sandbox}
@@ -75,6 +79,8 @@ services:
 
     volumes:
       - ./data/input:/workspace/data/input:ro
+      - ./traces:/workspace/traces
+      - ./reports:/workspace/reports
 
     networks:
       - control

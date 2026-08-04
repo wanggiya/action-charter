@@ -2,6 +2,8 @@
 {"id":"D-002","timestamp":"2026-07-26T00:00:00-04:00","decision":"Never expose unrestricted shell or unrestricted SQL as tools.","status":"accepted"}
 {"id":"D-003","timestamp":"2026-07-26T00:00:00-04:00","decision":"Use deterministic verification as the success gate.","status":"accepted"}
 {"id":"D-004","timestamp":"2026-07-26T00:00:00-04:00","decision":"Implement inspect_vector as the only executable skill in Checkpoint 1.","status":"accepted"}
-{"date":"2026-08-04","decision":"Use an external Docker-managed named volume for PostGIS and attach PostGIS declaratively to both GeoServer and GeoAgent networks.","reason":"The prior WSL bind-mounted database did not reliably preserve the expected cluster across full laptop shutdowns. The named volume provides stable Docker-managed persistence, while explicit dual-network membership supports both GeoServer and mcp-gis.","status":"accepted"}
-{"date":"2026-08-04","decision":"PostGIS validation is deterministic, read-only, and separate from LLM agents.","reason":"Final success must depend on database facts including table existence, geometry metadata, row count, SRID, geometry type, validity, null count, and extent.","status":"accepted"}
+{"id":"D-005","timestamp":"2026-08-04T00:00:00-04:00","decision":"Use an external Docker-managed named volume for persistent PostGIS storage and attach PostGIS declaratively to both the GeoServer default network and geoagent-backend.","status":"accepted"}
+{"id":"D-006","timestamp":"2026-08-04T00:00:00-04:00","decision":"Implement PostGIS validation as a deterministic read-only verifier, separate from LLM agents, using fixed SQL and validated identifiers.","status":"accepted"}
+{"id":"D-007","timestamp":"2026-08-04T00:00:00-04:00","decision":"Derive final workflow success exclusively from deterministic PostGIS validation and generate a secret-redacted JSON trace and Markdown report for every completed workflow.","status":"accepted"}
+{"id":"D-008","timestamp":"2026-08-04T00:00:00-04:00","decision":"Verify report and trace roots are writable before any database execution and block all artifact overwrites.","status":"accepted"}
 

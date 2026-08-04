@@ -1,4 +1,4 @@
-"""MCP server with a fixed read-only GIS tool allowlist."""
+"""MCP server exposing a fixed GIS tool allowlist."""
 
 from mcp.server.fastmcp import FastMCP
 
@@ -13,9 +13,7 @@ mcp = FastMCP(
 @mcp.tool()
 def health_check() -> dict:
     """Return redacted readiness and security state."""
-    return tools.health_check().model_dump(
-        mode="json"
-    )
+    return tools.health_check().model_dump(mode="json")
 
 
 @mcp.tool()
@@ -37,6 +35,40 @@ def plan_load_vector_to_postgis(
         path=path,
         target_schema=target_schema,
         target_table=target_table,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def load_vector_to_postgis(
+    path: str,
+    target_schema: str,
+    target_table: str,
+    source_layer: str | None = None,
+) -> dict:
+    """Load one approved vector layer into a new PostGIS table."""
+    return tools.load_vector_to_postgis(
+        path=path,
+        source_layer=source_layer,
+        target_schema=target_schema,
+        target_table=target_table,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def validate_postgis_layer(
+    target_schema: str,
+    target_table: str,
+    expected_row_count: int | None = None,
+    expected_srid: int | None = None,
+    expected_geometry_type: str | None = None,
+) -> dict:
+    """Deterministically validate one PostGIS layer."""
+    return tools.validate_postgis_layer(
+        target_schema=target_schema,
+        target_table=target_table,
+        expected_row_count=expected_row_count,
+        expected_srid=expected_srid,
+        expected_geometry_type=expected_geometry_type,
     ).model_dump(mode="json")
 
 

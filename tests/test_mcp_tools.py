@@ -10,9 +10,18 @@ from geoagent_harness.mcp_server.tools import (
     health_check,
     inspect_vector_dataset,
     plan_load_vector_to_postgis,
+    load_vector_to_postgis,
+    validate_postgis_layer,
 )
 from geoagent_harness.skills.inspect_vector.service import (
     InspectVectorError,
+)
+
+from geoagent_harness.skills.load_vector_to_postgis.service import (
+    LoadVectorError,
+)
+from geoagent_harness.verifier.postgis import (
+    PostGISVerificationError,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -143,5 +152,33 @@ def test_plan_rejects_unsafe_table_names(
             path=str(SAMPLE),
             target_schema="agent_sandbox",
             target_table=identifier,
+            settings=settings,
+        )
+        
+def test_mcp_load_fails_closed_when_writes_disabled(
+    settings: MCPSettings,
+) -> None:
+    with pytest.raises(
+        LoadVectorError,
+        match="write tools are disabled",
+    ):
+        load_vector_to_postgis(
+            path=str(SAMPLE),
+            target_schema="agent_sandbox",
+            target_table="mcp_sample_points",
+            settings=settings,
+        )
+
+
+def test_mcp_validation_rejects_unapproved_schema(
+    settings: MCPSettings,
+) -> None:
+    with pytest.raises(
+        PostGISVerificationError,
+        match="not allowed",
+    ):
+        validate_postgis_layer(
+            target_schema="public",
+            target_table="sample_points",
             settings=settings,
         )

@@ -1,4 +1,4 @@
-"""Plain deterministic functions for read-only MCP tools."""
+"""Plain deterministic functions exposed through the MCP boundary."""
 
 from pathlib import Path
 
@@ -15,11 +15,21 @@ from geoagent_harness.mcp_server.settings import (
 from geoagent_harness.skills.inspect_vector.service import (
     inspect_vector,
 )
+from geoagent_harness.skills.load_vector_to_postgis.service import (
+    LoadVectorResult,
+    load_vector_to_postgis as execute_vector_load,
+)
+from geoagent_harness.verifier.postgis import (
+    PostGISValidationResult,
+    validate_postgis_layer as execute_validation,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "plan_load_vector_to_postgis",
+    "load_vector_to_postgis",
+    "validate_postgis_layer",
 ]
 
 
@@ -58,7 +68,7 @@ def plan_load_vector_to_postgis(
     target_table: str,
     settings: MCPSettings | None = None,
 ) -> LoadVectorPlan:
-    """Validate and describe a load without connecting to PostGIS."""
+    """Validate and describe a load without executing it."""
     active = settings or load_settings()
 
     validate_identifier(
@@ -102,8 +112,48 @@ def plan_load_vector_to_postgis(
                 "SQL execution occurred."
             ),
             (
-                "A later write checkpoint requires explicit "
-                "approval and deterministic validation."
+                "Execution requires ENABLE_WRITE_TOOLS=true "
+                "and deterministic validation afterward."
             ),
         ],
+    )
+
+
+def load_vector_to_postgis(
+    path: str,
+    target_schema: str,
+    target_table: str,
+    source_layer: str | None = None,
+    settings: MCPSettings | None = None,
+) -> LoadVectorResult:
+    """Run the controlled loader when writes are enabled."""
+    active = settings or load_settings()
+
+    return execute_vector_load(
+        path=Path(path),
+        source_layer=source_layer,
+        target_schema=target_schema,
+        target_table=target_table,
+        settings=active,
+    )
+
+
+def validate_postgis_layer(
+    target_schema: str,
+    target_table: str,
+    expected_row_count: int | None = None,
+    expected_srid: int | None = None,
+    expected_geometry_type: str | None = None,
+    settings: MCPSettings | None = None,
+) -> PostGISValidationResult:
+    """Run deterministic read-only PostGIS validation."""
+    active = settings or load_settings()
+
+    return execute_validation(
+        target_schema=target_schema,
+        target_table=target_table,
+        expected_row_count=expected_row_count,
+        expected_srid=expected_srid,
+        expected_geometry_type=expected_geometry_type,
+        settings=active,
     )

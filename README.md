@@ -1,4 +1,86 @@
 
+## 7. Update `context/CURRENT_STATUS.md`
+
+Add or replace the Checkpoint 3E section:
+
+```markdown
+## Checkpoint 3E
+
+Status: complete.
+
+Completed vertical slice:
+
+- inspect approved GeoJSON, GeoPackage, or Shapefile input;
+- create a structured non-executing PostGIS load plan;
+- execute new-table loading only when write tools are enabled;
+- deterministically validate the resulting PostGIS layer;
+- generate a secret-redacted structured JSON trace;
+- generate a deterministic Markdown report;
+- derive final status exclusively from validation results.
+
+Infrastructure:
+
+- external PostGIS container on `geoagent-backend`;
+- persistent external `geoserver-postgis-data` volume;
+- read-only GIS tools container root;
+- read-only vector input mount;
+- explicitly writable report and trace mounts;
+- file-mounted PostGIS credential.
+
+Remaining future work:
+
+- shared Ollama/Qwen model integration;
+- planner runtime and task-specific context-pack generation;
+- independent planner, executor, and critic containers;
+- approval store with human correction recording;
+- timeout and retry policies;
+- report/trace indexing;
+- additional conversion and raster skills.
+
+### Checkpoint 3E: validated end-to-end workflow
+
+The `run-vector-postgis-workflow` command executes the initial vertical
+slice:
+
+1. inspect an approved vector dataset;
+2. create a non-executing load plan;
+3. load into a new table in an approved PostGIS schema;
+4. run deterministic PostGIS validation;
+5. write a secret-redacted JSON trace;
+6. generate a Markdown report.
+
+Final workflow success is reported only when every deterministic
+validation check passes. A completed database load alone remains
+`loaded_pending_validation`.
+
+Security controls include:
+
+- writes disabled by default;
+- read-only input mounts;
+- fixed MCP allowlist;
+- no arbitrary shell or SQL;
+- allowlisted PostgreSQL schemas;
+- validated and quoted identifiers;
+- no table replacement or deletion;
+- file-mounted database credentials;
+- writable artifact roots checked before database execution;
+- artifact overwrite protection;
+- recursive secret redaction;
+- read-only deterministic validation.
+
+Example:
+
+```bash
+docker compose --profile tools run --rm mcp-gis \
+  geoagent run-vector-postgis-workflow \
+  /workspace/data/input/sample_points.geojson \
+  --schema agent_sandbox \
+  --table example_points \
+  --task-id example-points \
+  --request "Inspect, load, validate, trace, and report the dataset." \
+  --pretty
+
+
 ## 4. Update `context/CURRENT_STATUS.md`
 
 Add:

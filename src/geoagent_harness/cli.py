@@ -196,6 +196,86 @@ def validate_postgis_layer_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+@app.command("run-vector-postgis-workflow")
+def run_vector_postgis_workflow_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Vector dataset beneath the approved input root."
+        ),
+    ],
+    target_table: Annotated[
+        str,
+        typer.Option(
+            "--table",
+            help="New PostGIS target table.",
+        ),
+    ],
+    target_schema: Annotated[
+        str,
+        typer.Option(
+            "--schema",
+            help="Approved PostGIS schema.",
+        ),
+    ] = "agent_sandbox",
+    source_layer: Annotated[
+        str | None,
+        typer.Option(
+            "--layer",
+            help="Required for multi-layer datasets.",
+        ),
+    ] = None,
+    original_request: Annotated[
+        str,
+        typer.Option(
+            "--request",
+            help="Original task request stored in redacted form.",
+        ),
+    ] = "Load and validate an approved vector dataset.",
+    task_id: Annotated[
+        str | None,
+        typer.Option(
+            "--task-id",
+            help="Optional lowercase reproducible task ID.",
+        ),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Run the complete validated vector-to-PostGIS workflow."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.orchestrator.workflow import (
+        WorkflowError,
+        run_vector_postgis_workflow,
+    )
+
+    try:
+        result = run_vector_postgis_workflow(
+            path=path,
+            source_layer=source_layer,
+            target_schema=target_schema,
+            target_table=target_table,
+            original_request=original_request,
+            task_id=task_id,
+            settings=load_settings(),
+        )
+    except (WorkflowError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+    if result.final_status != "validated_success":
+        raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     app()

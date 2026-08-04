@@ -48,6 +48,9 @@ class MCPSettings(BaseModel):
 
     input_root: Path
     output_root: Path
+    trace_root: Path = Path("traces")
+    report_root: Path = Path("reports")
+    container_image: str = "geoagent-gis-tools:local"
 
     enable_write_tools: bool = False
     allow_overwrite: bool = False
@@ -126,6 +129,22 @@ def load_settings(
                 "GEOAGENT_OUTPUT_ROOT",
                 "data/output",
             )
+        ),
+        trace_root=Path(
+            source.get(
+                "GEOAGENT_TRACE_ROOT",
+                "traces",
+            )
+        ),
+        report_root=Path(
+            source.get(
+                "GEOAGENT_REPORT_ROOT",
+                "reports",
+            )
+        ),
+        container_image=source.get(
+            "GEOAGENT_CONTAINER_IMAGE",
+            "geoagent-gis-tools:local",
         ),
         enable_write_tools=parse_flag(
             source.get("ENABLE_WRITE_TOOLS"),
