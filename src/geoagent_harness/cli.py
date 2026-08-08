@@ -277,5 +277,82 @@ def run_vector_postgis_workflow_command(
         raise typer.Exit(code=1)
 
 
+@app.command("plan-task")
+def plan_task_command(
+    original_request: Annotated[
+        str,
+        typer.Option(
+            "--request",
+            help="Task request to plan without executing.",
+        ),
+    ],
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help="Root containing trusted context files.",
+        ),
+    ] = Path("."),
+    agents_root: Annotated[
+        Path,
+        typer.Option(
+            "--agents-root",
+            help="Root containing trusted agent manifests.",
+        ),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Create and validate a plan without executing it."""
+
+    from geoagent_harness.context_pack import (
+        ContextPackError,
+    )
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+    from geoagent_harness.planner import (
+        PlannerAgentError,
+        plan_task,
+    )
+
+    try:
+        result = plan_task(
+            original_request=original_request,
+            project_root=project_root,
+            agents_root=agents_root,
+        )
+    except (
+        ContextPackError,
+        ModelClientError,
+        ModelSettingsError,
+        PlannerAgentError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

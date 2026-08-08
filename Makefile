@@ -1,5 +1,5 @@
-.PHONY: help install test inspect config build agent-info
-.PHONY: help install test inspect config build agent-info mcp-smoke
+.PHONY: help install test inspect config build
+.PHONY: agent-info mcp-smoke planner-smoke
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -9,6 +9,7 @@ help:
 	@echo "make build       Build agent and GIS images"
 	@echo "make agent-info  Exercise all three independent agent images"
 	@echo "make mcp-smoke   Run the read-only MCP protocol test"
+	@echo "make planner-smoke Run the Planner Agent container"
 
 install:
 	python3 -m venv .venv
@@ -28,9 +29,12 @@ build:
 	docker compose --profile agents --profile tools build
 
 agent-info:
-	docker compose --profile agents run --rm planner
+	docker compose --profile agents run --rm planner agent-info planner
 	docker compose --profile agents run --rm executor
 	docker compose --profile agents run --rm critic
 
 mcp-smoke:
 	.venv/bin/python scripts/mcp_smoke.py
+
+planner-smoke:
+	docker compose --profile agents run --rm planner

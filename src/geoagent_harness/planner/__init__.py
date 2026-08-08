@@ -1,4 +1,5 @@
 """Structured, non-executing Planner Agent."""
+from geoagent_harness.planner.service import plan_task
 
 from geoagent_harness.planner.agent import (
     PlannerAgentError,
@@ -22,4 +23,5 @@ __all__ = [
     "WorkflowPlan",
     "run_planner_agent",
     "validate_plan_policy",
+    "plan_task",
 ]

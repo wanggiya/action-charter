@@ -13,6 +13,24 @@ ALLOWED = {
     "generate_report",
 }
 
+SAFE_ARGUMENTS = {
+    "inspect_vector": {
+        "path": "data/input/sample_points.geojson",
+    },
+    "load_vector_to_postgis": {
+        "path": "data/input/sample_points.geojson",
+        "target_schema": "agent_sandbox",
+        "target_table": "sample_points",
+    },
+    "validate_postgis_layer": {
+        "target_schema": "agent_sandbox",
+        "target_table": "sample_points",
+    },
+    "generate_report": {
+        "task_id": "sample-points",
+    },
+}
+
 
 def make_plan(
     steps: list[dict],
@@ -43,7 +61,11 @@ def step(
         "step_id": f"step_{number}",
         "skill": skill,
         "purpose": f"Use {skill}.",
-        "arguments": arguments or {},
+        "arguments": (
+            arguments
+            if arguments is not None
+            else SAFE_ARGUMENTS.get(skill, {})
+        ),
         "requires_approval": approval,
         "expected_artifacts": [],
         "validation_required": validation,
@@ -102,6 +124,9 @@ def test_rejects_sql_argument() -> None:
                 1,
                 "inspect_vector",
                 arguments={
+                    "path": (
+                        "data/input/sample_points.geojson"
+                    ),
                     "sql": "select * from users",
                 },
             ),

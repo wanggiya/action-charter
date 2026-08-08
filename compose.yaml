@@ -25,7 +25,18 @@ x-agent: &agent
 services:
   planner:
     <<: *agent
-    command: ["agent-info", "planner"]
+    command:
+      - plan-task
+      - --request
+      - >-
+        Inspect data/input/sample_points.geojson, plan loading it into
+        the agent_sandbox PostGIS schema, deterministically validate it,
+        and generate a Markdown report. Plan only; do not execute.
+      - --project-root
+      - /workspace
+      - --agents-root
+      - /app/agents
+      - --pretty
     volumes:
       - ./agents/planner:/app/agents/planner:ro
       - ./context:/workspace/context:ro

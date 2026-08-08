@@ -37,6 +37,23 @@ WRITE_SKILLS = {
     "generate_report",
 }
 
+REQUIRED_SKILL_ARGUMENTS = {
+    "inspect_vector": {
+        "path",
+    },
+    "load_vector_to_postgis": {
+        "path",
+        "target_schema",
+        "target_table",
+    },
+    "validate_postgis_layer": {
+        "target_schema",
+        "target_table",
+    },
+    "generate_report": {
+        "task_id",
+    },
+}
 
 class PlannerPolicyError(ValueError):
     """Raised when a model-generated plan violates policy."""
@@ -71,6 +88,37 @@ def validate_plan_policy(
             raise PlannerPolicyError(
                 f"skill is not implemented and approved: "
                 f"{step.skill}"
+            )
+        required_arguments = (
+            REQUIRED_SKILL_ARGUMENTS.get(
+                step.skill,
+                set(),
+            )
+        )
+
+        missing_arguments = {
+            name
+            for name in required_arguments
+            if (
+                name not in step.arguments
+                or step.arguments[name] is None
+                or (
+                    isinstance(
+                        step.arguments[name],
+                        str,
+                    )
+                    and not step.arguments[name].strip()
+                )
+            )
+        }
+
+        if missing_arguments:
+            names = ", ".join(
+                sorted(missing_arguments)
+            )
+            raise PlannerPolicyError(
+                f"{step.skill} is missing required "
+                f"arguments: {names}"
             )
 
         unsafe_keys = (

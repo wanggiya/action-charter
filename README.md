@@ -1,343 +1,318 @@
+# GeoAgent Skill Harness
 
-## 7. Update `context/CURRENT_STATUS.md`
+GeoAgent Skill Harness is a CLI-first, local-first, containerized platform for planning controlled geospatial workflows, executing allowlisted GIS tools, deterministically validating results, and saving reproducible reports and traces.
 
-Add or replace the Checkpoint 3E section:
+The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared Ollama/Qwen model runtime on the laptop rather than placing a large model in every agent container.
 
-```markdown
-## Checkpoint 3E
+## Current implementation
 
-Status: complete.
-
-Completed vertical slice:
-
-- inspect approved GeoJSON, GeoPackage, or Shapefile input;
-- create a structured non-executing PostGIS load plan;
-- execute new-table loading only when write tools are enabled;
-- deterministically validate the resulting PostGIS layer;
-- generate a secret-redacted structured JSON trace;
-- generate a deterministic Markdown report;
-- derive final status exclusively from validation results.
-
-Infrastructure:
-
-- external PostGIS container on `geoagent-backend`;
-- persistent external `geoserver-postgis-data` volume;
-- read-only GIS tools container root;
-- read-only vector input mount;
-- explicitly writable report and trace mounts;
-- file-mounted PostGIS credential.
-
-Remaining future work:
-
-- shared Ollama/Qwen model integration;
-- planner runtime and task-specific context-pack generation;
-- independent planner, executor, and critic containers;
-- approval store with human correction recording;
-- timeout and retry policies;
-- report/trace indexing;
-- additional conversion and raster skills.
-
-### Checkpoint 3E: validated end-to-end workflow
-
-The `run-vector-postgis-workflow` command executes the initial vertical
-slice:
-
-1. inspect an approved vector dataset;
-2. create a non-executing load plan;
-3. load into a new table in an approved PostGIS schema;
-4. run deterministic PostGIS validation;
-5. write a secret-redacted JSON trace;
-6. generate a Markdown report.
-
-Final workflow success is reported only when every deterministic
-validation check passes. A completed database load alone remains
-`loaded_pending_validation`.
-
-Security controls include:
-
-- writes disabled by default;
-- read-only input mounts;
-- fixed MCP allowlist;
-- no arbitrary shell or SQL;
-- allowlisted PostgreSQL schemas;
-- validated and quoted identifiers;
-- no table replacement or deletion;
-- file-mounted database credentials;
-- writable artifact roots checked before database execution;
-- artifact overwrite protection;
-- recursive secret redaction;
-- read-only deterministic validation.
-
-Example:
-
-```bash
-docker compose --profile tools run --rm mcp-gis \
-  geoagent run-vector-postgis-workflow \
-  /workspace/data/input/sample_points.geojson \
-  --schema agent_sandbox \
-  --table example_points \
-  --task-id example-points \
-  --request "Inspect, load, validate, trace, and report the dataset." \
-  --pretty
-
-
-## 4. Update `context/CURRENT_STATUS.md`
-
-Add:
-
-```markdown
-## Checkpoint 3C
-
-Status: complete.
+Checkpoints 1–4 are complete.
 
 Implemented:
 
-- deterministic read-only PostGIS verifier;
-- table and geometry-column existence checks;
-- row count, SRID, and geometry-type checks;
-- invalid and null geometry counts;
-- spatial extent calculation;
-- optional expected-value comparisons;
-- identifier validation and safe SQL composition;
-- redacted connection failures;
-- CLI success and failure exit codes;
-- automated verifier tests;
-- real validation against `agent_sandbox.checkpoint3b_sample_points`.
-
-Infrastructure correction:
-
-- PostGIS storage migrated from a WSL bind mount to the external
-  `geoserver-postgis-data` Docker volume;
-- PostGIS attached persistently to both `geoserver-postgis_default`
-  and `geoagent-backend`.
+- deterministic vector inspection;
+- controlled vector loading into PostGIS;
+- deterministic PostGIS validation;
+- Markdown workflow reports;
+- structured, secret-redacted traces;
+- read-only MCP inspection and planning tools;
+- controlled MCP loading and validation tools;
+- shared Ollama OpenAI-compatible client;
+- deterministic task-specific context packs;
+- structured, policy-validated Planner Agent;
+- independent hardened planner container.
 
 Not yet implemented:
 
-- MCP exposure for loading and validation;
-- harness-level approval records;
-- structured execution traces;
-- Markdown final reports;
-- planner/executor/critic runtime loops.
+- Executor Agent runtime loop;
+- persistent human approval records;
+- Critic/Report Agent model integration;
+- vector conversion;
+- raster processing;
+- generalized retries and task queues.
 
-# GeoAgent Skill Harness
-
-A CLI-first, local-first scaffold for containerized geospatial agent workflows.
-It targets Ubuntu WSL development with:
-
-- one Ollama runtime on the laptop;
-- three independent logical-agent containers;
-- one isolated GIS/MCP-tools container; and
-- one existing, separately managed PostGIS container.
-
-Checkpoint 1 implements only the deterministic `inspect_vector` skill. It does
-not yet call Ollama, expose MCP transport, load PostGIS, or generate reports.
-
-## Checkpoint 1 boundary
-
-Implemented:
-
-- GeoJSON, GeoPackage, and Shapefile inspection;
-- canonical path enforcement beneath `data/input`;
-- typed JSON output with driver, layers, CRS, geometry type, feature count,
-  fields, and extent;
-- Typer CLI, sample data, and pytest coverage;
-- independent planner, executor, and critic container definitions;
-- a shared lightweight agent image without GIS libraries or model weights;
-- external-network configuration for an existing PostGIS container;
-- host Ollama endpoint configuration;
-- an isolated GIS-tools image;
-- GitHub Actions, Makefile, `.dockerignore`, and security policy.
-
-Not implemented: Ollama calls, agent loop, live MCP server, conversion, database
-loading, database validation, approvals, trace writing, and report generation.
-Unimplemented modules fail closed rather than pretending those features exist.
-
-## Repository tree
+## Architecture
 
 ```text
-.github/workflows/      tests and container build checks
-agents/                 role and permission manifests
-context/                concise project state and decisions
-data/input/             read-only source datasets
-data/output/            generated artifacts only
-docker/agent/           one image used by three independent containers
-docker/gis-tools/       isolated GDAL/Python/MCP runtime
-skills/                 human-readable skill contracts
-src/geoagent_harness/   installable Python package
-tests/                  automated tests
-traces/                 future JSONL execution traces
-reports/                future Markdown reports
+                           Shared Ollama/Qwen
+                                   ↑
+                                   │ model network
+                                   │
+                         ┌───────────────────┐
+                         │ Planner container │
+                         │ plan only         │
+                         │ no GIS tools      │
+                         │ no PostGIS access │
+                         └───────────────────┘
+                                   │
+                          structured plan
+                                   ↓
+                     Future approval/orchestrator
+                                   │
+                                   ↓
+                         ┌───────────────────┐
+                         │ Executor container│
+                         │ approved MCP only │
+                         └───────────────────┘
+                                   │
+                           internal control
+                                   ↓
+                         ┌───────────────────┐
+                         │ GIS/MCP container │
+                         │ GDAL/GeoPandas    │
+                         │ fixed SQL/tools   │
+                         └───────────────────┘
+                                   │
+                          geoagent-backend
+                                   ↓
+                         External PostGIS
 ```
 
-## Install under Ubuntu WSL
+Planner, executor, and critic are independent logical agents. They share one model runtime but have separate manifests, instructions, mounts, networks, and permissions.
 
-Keep the repository in the Linux filesystem, such as `~/projects`, rather than
-developing directly under `/mnt/c` or `/mnt/e`.
+The deterministic verifier is ordinary Python and SQL code, not an LLM agent. A workflow cannot report success until deterministic validation passes.
+
+## Repository structure
+
+```text
+agents/                         agent manifests and permissions
+context/                        concise trusted project context
+data/input/                     read-only source datasets
+data/output/                    approved generated data
+docker/agent/                   lightweight agent image
+docker/gis-tools/               isolated GIS and MCP image
+reports/                        generated Markdown reports
+scripts/                        protocol and model smoke tests
+skills/                         human-readable skill contracts
+src/geoagent_harness/           installable Python package
+  context_pack/                 deterministic context selection
+  mcp_server/                   allowlisted MCP interface
+  model/                        shared Ollama-compatible client
+  orchestrator/                 deterministic workflow orchestration
+  planner/                      structured Planner Agent
+  skills/                       executable GIS skill implementations
+  verifier/                     deterministic correctness checks
+tests/                          automated tests
+traces/                         structured execution traces
+```
+
+The `src/` layout separates importable package code from repository tooling. After installation, imports use `geoagent_harness`, not `src.geoagent_harness`.
+
+## Requirements
+
+Development environment:
+
+- Ubuntu WSL;
+- Python 3.11 or newer;
+- Docker Desktop with WSL integration;
+- an existing PostGIS container;
+- Ollama running on the laptop;
+- an installed local model such as `qwen3:4b-instruct`.
+
+Recommended Ubuntu packages:
 
 ```bash
 sudo apt update
-sudo apt install -y git make curl jq unzip python3 python3-venv python3-pip
-
-mkdir -p ~/projects
-cd ~/projects
+sudo apt install -y git make curl jq python3 python3-venv python3-pip
 ```
 
-If your browser saves the archive in Windows Downloads:
+Keep the repository in the WSL Linux filesystem, for example:
 
-```bash
-unzip /mnt/c/Users/YOUR_WINDOWS_USERNAME/Downloads/geoagent-skill-harness-wsl-checkpoint-1.zip
-cd geoagent-skill-harness
+```text
+~/projects/geoagent-skill-harness
 ```
 
-If you copied the archive into `~/Downloads`:
-
-```bash
-unzip ~/Downloads/geoagent-skill-harness-wsl-checkpoint-1.zip
-cd geoagent-skill-harness
-```
-
-## Local Python verification
-
-```bash
-make install
-make inspect
-make test
-```
-
-Direct equivalent:
+## Installation
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e ".[dev]"
-.venv/bin/geoagent inspect-vector data/input/sample_points.geojson --pretty
-.venv/bin/pytest
 ```
 
-## Existing PostGIS container
-
-This repository does not create, stop, or own PostGIS. Create a shared network
-and attach the existing PostGIS container once:
+Equivalent Make target:
 
 ```bash
-docker network create geoagent-backend
-
-docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Networks}}"
-
-docker network connect \
-  --alias postgis \
-  geoagent-backend \
-  YOUR_EXISTING_POSTGIS_CONTAINER
+make install
 ```
 
-If Docker reports that the network or connection already exists, inspect it:
+## Environment configuration
+
+Create the local configuration:
 
 ```bash
-docker network inspect geoagent-backend
-```
-
-## Ollama and containers
-
-Ollama runs once on the laptop. The future agents will use its
-OpenAI-compatible endpoint at `host.docker.internal`; model weights are never
-copied into agent images.
-
-```bash
-curl http://localhost:11434/api/tags
-
 cp .env.example .env
-# Edit POSTGRES_* and MODEL_NAME. Never commit .env.
+```
 
+Example shared-model settings:
+
+```dotenv
+MODEL_PROVIDER=ollama
+MODEL_BASE_URL=http://host.docker.internal:11434/v1
+MODEL_NAME=qwen3:4b-instruct
+MODEL_TIMEOUT_SECONDS=120
+MODEL_MAX_TOKENS=1024
+```
+
+`host.docker.internal` is used by containers. A command running directly in WSL can temporarily override it with:
+
+```bash
+MODEL_BASE_URL=http://127.0.0.1:11434/v1
+```
+
+Database write controls remain fail-closed:
+
+```dotenv
+ENABLE_WRITE_TOOLS=false
+ALLOW_OVERWRITE=false
+ALLOWED_SCHEMAS=agent_sandbox
+```
+
+The PostGIS password must remain in:
+
+```text
+.secrets/postgis_password
+```
+
+It must not be placed in prompts, source files, reports, traces, Git, or `.env.example`.
+
+## External PostGIS
+
+This repository does not create, stop, delete, or own PostGIS.
+
+The existing PostGIS container must be attached to the external Docker network:
+
+```text
+geoagent-backend
+```
+
+The network name is configured with:
+
+```dotenv
+GEOAGENT_BACKEND_NETWORK=geoagent-backend
+```
+
+PostGIS data persistence belongs to the separately managed PostGIS/GeoServer Compose project.
+
+## Tests and commands
+
+Run the complete automated suite:
+
+```bash
+make test
+```
+
+Inspect the sample vector:
+
+```bash
+make inspect
+```
+
+Validate Compose configuration:
+
+```bash
 make config
+```
+
+Build container images:
+
+```bash
 make build
+```
+
+Validate the three agent manifests:
+
+```bash
 make agent-info
 ```
 
-`make agent-info` starts each independent agent image, validates its manifest,
-prints a redacted description, and exits. It intentionally reports
-`agent-loop-not-implemented`.
-
-Run the implemented GIS skill inside its container:
+Run the MCP protocol smoke test:
 
 ```bash
-docker compose --profile tools run --rm mcp-gis \
-  geoagent inspect-vector data/input/sample_points.geojson --pretty
+make mcp-smoke
 ```
 
-Checkpoint 1 does not connect to PostGIS. Database configuration is included
-for the later loader and verifier and must never enter model prompts or traces.
-
-## Expected inspection result
-
-The exact CRS text and field dtypes can vary slightly by GDAL version:
-
-```json
-{
-  "source": "data/input/sample_points.geojson",
-  "driver": "GeoJSON",
-  "layers": [{
-    "name": "sample_points",
-    "crs": "EPSG:4326",
-    "geometry_type": "Point",
-    "feature_count": 2,
-    "fields": [
-      {"name": "id", "type": "int32"},
-      {"name": "name", "type": "object"}
-    ],
-    "extent": {
-      "min_x": -71.0589,
-      "min_y": 42.3601,
-      "max_x": -71.0567,
-      "max_y": 42.3612
-    }
-  }]
-}
-```
-
-## Manual verification before GitHub
-
-1. Run `make inspect`; confirm it finds two Point features.
-2. Run `.venv/bin/geoagent inspect-vector README.md`; confirm rejection because
-   the file is outside `data/input`.
-3. Put a text file under `data/input`; confirm its extension is rejected.
-4. Run `make test`.
-5. Run `make config`, `make build`, and `make agent-info`.
-6. Optionally compare with
-   `ogrinfo -so -al data/input/sample_points.geojson`.
-7. Run `git status --ignored`; ensure `.env`, real data, outputs, traces,
-   reports, models, and database storage will not be committed.
-
-## First GitHub commit
+Run the independent Planner Agent container:
 
 ```bash
-git init
-git branch -M main
-git add .
-git status
-git diff --cached --check
-git commit -m "feat: scaffold GeoAgent skill harness"
+make planner-smoke
 ```
 
-Review `git status` carefully. Choose and add a license before making the
-repository public; this scaffold intentionally does not choose one for you.
+The planner smoke test creates a plan only. It does not load PostGIS, invoke MCP execution tools, write reports, or modify datasets.
 
-## Security
+## Planner Agent security boundary
 
-No skill accepts a command string or invokes a shell. Canonical path checks
-reject traversal and symlink escapes. Compose uses read-only agent filesystems,
-read-only inputs, narrow output mounts, dropped Linux capabilities, and
-`no-new-privileges`.
+The planner container:
 
-See `SECURITY.md` for trust boundaries and prototype limitations.
+- runs as the non-root `geoagent` user;
+- has a read-only root filesystem;
+- drops all Linux capabilities;
+- enables `no-new-privileges`;
+- joins only the model network;
+- receives no PostGIS variables or password;
+- receives no GIS data, report, trace, output, or Docker socket mounts;
+- mounts its manifest and project context read-only;
+- has no executable tools in its manifest.
+
+Model output is untrusted. A plan is accepted only after:
+
+1. JSON parsing;
+2. Pydantic schema validation;
+3. implemented-skill allowlist validation;
+4. required-argument validation;
+5. shell, SQL, secret, and destructive-operation rejection;
+6. approval-policy validation;
+7. workflow-order validation;
+8. deterministic-validation requirement checks;
+9. rejection of execution or validation claims.
+
+## Implemented vector-to-PostGIS workflow
+
+The controlled deterministic workflow can:
+
+1. inspect an approved GeoJSON, GeoPackage, or Shapefile;
+2. load a selected vector layer into a new table in an approved schema;
+3. validate the resulting PostGIS layer;
+4. generate a Markdown report;
+5. save a structured, redacted trace.
+
+PostGIS validation checks:
+
+- table existence;
+- geometry column existence;
+- row count;
+- SRID;
+- declared and actual geometry type;
+- invalid geometry count;
+- null geometry count;
+- extent;
+- optional expected values.
+
+Writes are disabled by default. Existing tables and artifacts cannot be overwritten without an approval design that is not yet implemented. Deletion is blocked in the MVP.
+
+## Security rules
+
+- No unrestricted shell tool.
+- No unrestricted SQL tool.
+- Source inputs are read-only.
+- Output writes are limited to designated roots.
+- Database credentials are file-mounted and redacted.
+- Model output never determines success.
+- Destructive file, table, schema, and database deletion is unavailable.
+- Existing artifacts are not silently overwritten.
+- Network access is limited by container role.
+- PostGIS validation is deterministic and read-only.
+
+See `SECURITY.md` for additional trust-boundary information.
 
 ## Known limitations
 
-- Shapefile inspection needs its sidecar files and reports one layer.
-- Driver-specific field dtypes are not normalized to a universal ontology.
-- Encoding, Z/M dimensions, and per-feature validity are not checked.
-- Agent containers validate manifests only and do not call Ollama.
-- MCP transport and PostGIS access are not implemented.
-- Compose isolation is not a complete host egress firewall.
-- The existing PostGIS lifecycle remains outside this repository.
-- No command is claimed to have run on the user's WSL installation.
-
+- The Planner Agent can create plans but cannot execute them.
+- The Executor and Critic runtime loops are not implemented.
+- Human approvals are not yet stored as structured records.
+- Planner skill selection is based on deterministic keyword relevance.
+- The local model may vary its wording even at temperature zero.
+- Docker Compose network isolation is not a complete host firewall.
+- Shapefiles require their related sidecar files.
+- The external PostGIS lifecycle remains outside this repository.
+- The prototype currently targets one local user and one active workflow.

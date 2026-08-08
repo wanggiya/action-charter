@@ -54,11 +54,38 @@ def build_planner_request(
                 "validate_postgis_layer must set "
                 "validation_required to true."
             ),
+            (
+                "Every step must include all required arguments "
+                "listed in required_skill_arguments."
+            ),
+            (
+                "The Planner Agent itself has no dataset mount, "
+                "database connection, credentials, MCP tools, or "
+                "write access. Describe these only as future "
+                "Executor requirements."
+            ),
             "Step IDs must be step_1, step_2, and so on.",
         ],
         "required_json_schema": (
             WorkflowPlan.model_json_schema()
         ),
+        "required_skill_arguments": {
+            "inspect_vector": [
+                "path",
+            ],
+            "load_vector_to_postgis": [
+                "path",
+                "target_schema",
+                "target_table",
+            ],
+            "validate_postgis_layer": [
+                "target_schema",
+                "target_table",
+            ],
+            "generate_report": [
+                "task_id",
+            ],
+        },
     }
 
     user_payload = {
