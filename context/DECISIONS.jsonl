@@ -6,4 +6,5 @@
 {"id":"D-006","timestamp":"2026-08-04T00:00:00-04:00","decision":"Implement PostGIS validation as a deterministic read-only verifier, separate from LLM agents, using fixed SQL and validated identifiers.","status":"accepted"}
 {"id":"D-007","timestamp":"2026-08-04T00:00:00-04:00","decision":"Derive final workflow success exclusively from deterministic PostGIS validation and generate a secret-redacted JSON trace and Markdown report for every completed workflow.","status":"accepted"}
 {"id":"D-008","timestamp":"2026-08-04T00:00:00-04:00","decision":"Verify report and trace roots are writable before any database execution and block all artifact overwrites.","status":"accepted"}
-
+{"id":"D-009","timestamp":"2026-08-07T00:00:00-04:00","decision":"Build Planner Agent context deterministically from fixed trusted project files, include only implemented skills, bound context size, record source hashes, and redact secrets before model access.","status":"accepted"}
+{"id":"D-010","timestamp":"2026-08-07T00:00:00-04:00","decision":"Treat Planner Agent model output as untrusted JSON and require Pydantic schema validation plus deterministic skill, approval, ordering, validation, and no-execution policy checks before accepting a plan.","status":"accepted"}

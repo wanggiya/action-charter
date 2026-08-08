@@ -4,12 +4,21 @@ skills:
     version: "0.1.0"
     status: implemented
     entrypoint: geoagent_harness.skills.inspect_vector.service:inspect_vector
+
   - id: convert_vector
     status: planned
-  - id: load_vector_to_postgis
-    status: planned
-  - id: validate_postgis_layer
-    status: planned
-  - id: generate_report
-    status: planned
 
+  - id: load_vector_to_postgis
+    version: "0.1.0"
+    status: implemented
+    entrypoint: geoagent_harness.skills.load_vector_to_postgis.service:load_vector_to_postgis
+
+  - id: validate_postgis_layer
+    version: "0.1.0"
+    status: implemented
+    entrypoint: geoagent_harness.verifier.postgis:validate_postgis_layer
+
+  - id: generate_report
+    version: "0.1.0"
+    status: implemented
+    entrypoint: geoagent_harness.reporting:write_report

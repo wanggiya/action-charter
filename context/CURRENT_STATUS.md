@@ -1,67 +1,80 @@
 # Current Status
 
-### Checkpoint 3C: deterministic PostGIS validation
+## Checkpoint 1 — Repository and vector inspection
 
-The `validate-postgis-layer` CLI command performs read-only,
-deterministic checks against an allowlisted PostGIS schema.
+Status: completed.
 
-Checks include:
+Implemented:
 
-- table existence;
-- registered geometry column;
-- row count;
-- SRID;
-- declared and actual geometry type;
-- invalid geometry count;
-- null geometry count;
-- spatial extent.
+- repository and container scaffold;
+- independent planner, executor, and critic manifests;
+- `inspect_vector` skill;
+- trusted input-root path enforcement;
+- structured vector metadata;
+- CLI command, sample data, and tests.
 
-Database identifiers are validated and quoted. SQL statements are fixed;
-users and agents cannot submit arbitrary SQL. The database connection is
-read-only, and connection errors are returned with credentials redacted.
+## Checkpoint 2 — Read-only MCP interface
 
-Example:
+Status: completed.
 
-```bash
-docker compose --profile tools run --rm mcp-gis \
-  geoagent validate-postgis-layer \
-  --schema agent_sandbox \
-  --table checkpoint3b_sample_points \
-  --expected-row-count 2 \
-  --expected-srid 4326 \
-  --expected-geometry-type POINT \
-  --pretty
+Implemented:
 
-## Checkpoint 2 — read-only MCP interface
+- fail-closed write and overwrite settings;
+- fixed MCP tool allowlist;
+- MCP health check;
+- vector inspection tool;
+- plan-only PostGIS-load tool;
+- STDIO MCP smoke test;
+- read-only MCP container;
+- no arbitrary shell or unrestricted SQL.
 
-Status: implemented; final acceptance depends on user-provided test and
-container-build output.
+## Checkpoint 3 — Controlled PostGIS workflow
+
+Status: completed.
+
+Implemented:
+
+- connection to externally managed PostGIS;
+- password supplied through a mounted secret file;
+- allowlisted target schemas;
+- controlled vector loading;
+- deterministic PostGIS validation;
+- table, geometry column, row count, SRID, geometry type,
+  invalid geometry, null geometry, and extent checks;
+- Markdown report generation;
+- structured, secret-redacted trace generation;
+- artifact overwrite protection;
+- final success derived only from deterministic validation.
+
+## Checkpoint 4 — Shared model and Planner Agent
+
+Status: in progress.
 
 Completed:
 
-- fail-closed ENABLE_WRITE_TOOLS and ALLOW_OVERWRITE settings;
-- schema and PostgreSQL identifier validation;
-- health_check MCP tool;
-- inspect_vector_dataset MCP tool;
-- plan-only plan_load_vector_to_postgis MCP tool;
-- fixed three-tool allowlist;
-- STDIO MCP protocol smoke test;
-- security and tool tests;
-- read-only MCP container;
-- no database credentials, database network, or writable project mounts;
-- no Ollama integration or model calls.
+- shared Ollama connectivity;
+- OpenAI-compatible shared model client;
+- Pydantic request and response validation;
+- model client unit tests;
+- real Ollama smoke test using `qwen3:4b-instruct`.
+- deterministic task-specific context-pack construction;
+- fixed trusted context sources with SHA-256 references;
+- context and request secret redaction;
+- structured Planner Agent schemas;
+- deterministic planner policy enforcement;
+- JSON-only Ollama planning requests;
+- rejection of unimplemented skills, arbitrary shell, unrestricted SQL,
+  destructive operations, and false execution claims;
+- real Planner Agent smoke test using `qwen3:4b-instruct`.
 
-Not implemented:
+Current work:
 
-- PostGIS loading;
-- PostGIS deterministic validation;
-- approvals and overwrite workflow;
-- trace persistence;
-- Markdown reports;
-- agent-to-MCP integration;
-- Ollama integration.
+- independent read-only planner container.
 
-Next checkpoint candidate:
+Not yet implemented:
 
-Checkpoint 3 should add a controlled PostGIS connection and deterministic
-read-only database validation before any database loading is enabled.
+- structured Planner Agent;
+- independent operational planner container;
+- Executor Agent loop;
+- approval workflow;
+- Critic/Report Agent model integration.

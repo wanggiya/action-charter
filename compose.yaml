@@ -11,8 +11,9 @@ x-agent: &agent
   environment: &model-environment
     MODEL_PROVIDER: ${MODEL_PROVIDER:-ollama}
     MODEL_BASE_URL: ${MODEL_BASE_URL:-http://host.docker.internal:11434/v1}
-    MODEL_NAME: ${MODEL_NAME:-qwen3:8b}
+    MODEL_NAME: ${MODEL_NAME:-qwen3:4b-instruct}
     MODEL_TIMEOUT_SECONDS: ${MODEL_TIMEOUT_SECONDS:-120}
+    MODEL_MAX_TOKENS: ${MODEL_MAX_TOKENS:-1024}
   networks: [model]
   security_opt:
     - no-new-privileges:true
