@@ -739,5 +739,171 @@ def build_execution_envelope_command(
         )
     )
 
+@app.command("mcp-http-smoke")
+def mcp_http_smoke_command(
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Test internal MCP using only health_check."""
+
+    import asyncio
+
+    from geoagent_harness.mcp_client import (
+        MCPClientError,
+        MCPClientSettingsError,
+        MCPReadOnlyClient,
+        load_mcp_client_settings,
+    )
+
+    async def run_smoke() -> dict:
+        client = MCPReadOnlyClient(
+            load_mcp_client_settings()
+        )
+
+        available_tools = await client.list_tools()
+
+        health = await client.call_tool(
+            "health_check"
+        )
+
+        return {
+            "status": "ok",
+            "transport": "streamable-http",
+            "available_tools": available_tools,
+            "called_tool": health.tool_name,
+            "health": health.result,
+        }
+
+    try:
+        payload = asyncio.run(run_smoke())
+    except (
+        MCPClientError,
+        MCPClientSettingsError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            payload,
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+    
+@app.command("execute-approved-plan")
+def execute_approved_plan_command(
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Planner result JSON beneath the plan root.",
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Approval JSON beneath the approval root.",
+        ),
+    ],
+    plan_root: Annotated[
+        Path,
+        typer.Option("--plan-root"),
+    ] = Path("plans"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    allowed_schemas: Annotated[
+        str,
+        typer.Option("--allowed-schemas"),
+    ] = "agent_sandbox",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Execute one exact approved plan through MCP."""
+
+    import asyncio
+
+    from geoagent_harness.approvals import (
+        ApprovalError,
+    )
+    from geoagent_harness.executor import (
+        ExecutorPolicyError,
+    )
+    from geoagent_harness.executor.service import (
+        ExecutorServiceError,
+        execute_approved_plan,
+    )
+    from geoagent_harness.mcp_client import (
+        MCPClientError,
+        MCPClientSettingsError,
+    )
+
+    schemas = {
+        value.strip()
+        for value in allowed_schemas.split(",")
+        if value.strip()
+    }
+
+    if not schemas:
+        typer.echo(
+            "Error: at least one allowed schema is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        result = asyncio.run(
+            execute_approved_plan(
+                plan_file=plan_file,
+                approval_file=approval_file,
+                plan_root=plan_root,
+                approval_root=approval_root,
+                agents_root=agents_root,
+                allowed_schemas=schemas,
+            )
+        )
+    except (
+        ApprovalError,
+        ExecutorPolicyError,
+        ExecutorServiceError,
+        MCPClientError,
+        MCPClientSettingsError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if (
+        result.workflow.final_status
+        != "validated_success"
+    ):
+        raise typer.Exit(code=1)
+
 if __name__ == "__main__":
     app()

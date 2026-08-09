@@ -359,6 +359,41 @@ geoagent verify-plan-approval \
   approvals/approval-example.json \
   --pretty
 
+## Executor Agent and approved execution
+
+The Executor runs independently from the Planner and GIS containers.
+
+It receives read-only access to:
+
+- one saved Planner result;
+- one append-only approval record;
+- its own agent manifest.
+
+It has access only to Docker’s internal control network. It receives no
+Ollama configuration, PostGIS network, database credentials, GIS data,
+artifact mounts, or Docker socket.
+
+Before execution, both Executor and MCP independently verify:
+
+- the exact plan digest;
+- approval decision and expiration;
+- approved step scope;
+- fixed skill order;
+- tool and argument allowlists;
+- input path and schema policy;
+- consistent loading and validation targets;
+- the complete execution envelope.
+
+Raw `load_vector_to_postgis` is not exposed through MCP. The only write-capable
+network tool is:
+
+```text
+run_approved_vector_postgis_workflow
+It remains unavailable while ENABLE_WRITE_TOOLS=false.
+
+A completed load is not success. Success requires deterministic PostGIS
+validation and the final status validated_success.
+
 ## Known limitations
 
 - The Planner Agent can create plans but cannot execute them.

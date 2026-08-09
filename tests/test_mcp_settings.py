@@ -43,6 +43,10 @@ def test_settings_default_to_read_only() -> None:
     assert settings.allowed_schemas == frozenset(
         {"agent_sandbox"}
     )
+    assert settings.plan_root == Path("plans")
+    assert settings.approval_root == Path(
+        "approvals"
+    )
 
 
 def test_invalid_allowed_schema_is_rejected() -> None:

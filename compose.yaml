@@ -45,11 +45,23 @@ services:
   executor:
     <<: *agent
     command: ["agent-info", "executor"]
-    networks: [model, control]
+
+    environment:
+      GEOAGENT_MCP_URL: http://mcp-gis:8000/mcp
+      GEOAGENT_MCP_TIMEOUT_SECONDS: 30
+
+    extra_hosts: []
+
+    networks:
+      - control
+
     volumes:
       - ./agents/executor:/app/agents/executor:ro
-      - ./context:/workspace/context:ro
-    profiles: [agents]
+      - ./plans:/workspace/plans:ro
+      - ./approvals:/workspace/approvals:ro
+
+    profiles:
+      - agents
 
   critic:
     <<: *agent
@@ -75,9 +87,16 @@ services:
       GEOAGENT_INPUT_ROOT: /workspace/data/input
       # GEOAGENT_OUTPUT_ROOT: /workspace/data/output
 
+      GEOAGENT_PLAN_ROOT: /workspace/plans
+      GEOAGENT_APPROVAL_ROOT: /workspace/approvals
       GEOAGENT_TRACE_ROOT: /workspace/traces
       GEOAGENT_REPORT_ROOT: /workspace/reports
       GEOAGENT_CONTAINER_IMAGE: ${GIS_IMAGE:-geoagent-gis-tools:local}
+
+      GEOAGENT_MCP_TRANSPORT: streamable-http
+      GEOAGENT_MCP_HOST: 0.0.0.0
+      GEOAGENT_MCP_PORT: 8000
+      GEOAGENT_MCP_PATH: /mcp
 
       ENABLE_WRITE_TOOLS: ${ENABLE_WRITE_TOOLS:-false}
       ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
@@ -93,6 +112,8 @@ services:
       - ./data/input:/workspace/data/input:ro
       - ./traces:/workspace/traces
       - ./reports:/workspace/reports
+      - ./plans:/workspace/plans:ro
+      - ./approvals:/workspace/approvals:ro
 
     networks:
       - control
@@ -114,6 +135,9 @@ services:
 
     tmpfs:
       - /tmp:size=64m,mode=1777
+
+    expose:
+      - "8000"
 
 networks:
   control:

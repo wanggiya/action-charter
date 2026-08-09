@@ -60,6 +60,36 @@ def render_report(trace: WorkflowTrace) -> str:
 
     for skill in payload["selected_skills"]:
         lines.append(f"- `{_markdown(skill)}`")
+    
+    lines.extend(
+        [
+            "",
+            "## Approval evidence",
+            "",
+            (
+                "- Plan SHA-256: "
+                f"`{_markdown(payload.get('plan_sha256'))}`"
+            ),
+            (
+                "- Approval ID: "
+                f"`{_markdown(payload.get('approval_id'))}`"
+            ),
+            "- Approved steps:",
+        ]
+    )
+
+    approved_steps = payload.get(
+        "approved_step_ids",
+        [],
+    )
+
+    if approved_steps:
+        for step_id in approved_steps:
+            lines.append(
+                f"  - `{_markdown(step_id)}`"
+            )
+    else:
+        lines.append("  - None recorded")
 
     lines.extend(
         [

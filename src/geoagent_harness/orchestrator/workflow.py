@@ -83,6 +83,7 @@ def _versions(settings: MCPSettings) -> dict[str, str]:
         "pyogrio": _package_version("pyogrio"),
         "sqlalchemy": _package_version("sqlalchemy"),
         "container_image": settings.container_image,
+        "mcp": _package_version("mcp"),
     }
 
 
@@ -149,6 +150,9 @@ def run_vector_postgis_workflow(
     task_id: str | None = None,
     context_references: list[str] | None = None,
     human_corrections: list[str] | None = None,
+    plan_sha256: str | None = None,
+    approval_id: str | None = None,
+    approved_step_ids: list[str] | None = None,
 ) -> WorkflowRunResult:
     """Run inspect, plan, load, validate, report, and trace."""
     active_task_id = task_id or _generate_task_id()
@@ -281,6 +285,11 @@ def run_vector_postgis_workflow(
         original_request=original_request,
         context_references=references,
         selected_skills=selected_skills,
+        plan_sha256=plan_sha256,
+        approval_id=approval_id,
+        approved_step_ids=(
+            approved_step_ids or []
+        ),
         tool_arguments=tool_arguments,
         tool_results=tool_results,
         validation_results=validation_results,

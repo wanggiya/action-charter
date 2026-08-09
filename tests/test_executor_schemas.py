@@ -9,6 +9,33 @@ from geoagent_harness.executor.schemas import (
     ExecutionEnvelope,
 )
 
+from geoagent_harness.executor.schemas import (
+    ExecutorRunResult,
+)
+
+def test_executor_result_requires_real_execution() -> None:
+    payload = {
+        "agent_id": "executor",
+        "plan_sha256": "a" * 64,
+        "approval_id": (
+            "approval-20260809t200000z-1234abcd"
+        ),
+        "tool_name": (
+            "run_approved_vector_postgis_workflow"
+        ),
+        "execution_performed": False,
+        "workflow": {
+            "task_id": "test-task",
+            "final_status": "validated_success",
+            "validation_passed": True,
+            "report_path": "reports/test-task.md",
+            "trace_path": "traces/test-task.json",
+            "warnings": [],
+        },
+    }
+
+    with pytest.raises(ValidationError):
+        ExecutorRunResult.model_validate(payload)
 
 def valid_envelope() -> dict:
     return {

@@ -50,6 +50,8 @@ class MCPSettings(BaseModel):
     output_root: Path
     trace_root: Path = Path("traces")
     report_root: Path = Path("reports")
+    plan_root: Path = Path("plans")
+    approval_root: Path = Path("approvals")
     container_image: str = "geoagent-gis-tools:local"
 
     enable_write_tools: bool = False
@@ -140,6 +142,18 @@ def load_settings(
             source.get(
                 "GEOAGENT_REPORT_ROOT",
                 "reports",
+            )
+        ),
+        plan_root=Path(
+            source.get(
+                "GEOAGENT_PLAN_ROOT",
+                "plans",
+            )
+        ),
+        approval_root=Path(
+            source.get(
+                "GEOAGENT_APPROVAL_ROOT",
+                "approvals",
             )
         ),
         container_image=source.get(

@@ -5,13 +5,7 @@ from geoagent_harness.mcp_server import tools
 from geoagent_harness.mcp_server.server import mcp
 from geoagent_harness.verifier import postgis
 
-EXPECTED_TOOLS = [
-    "health_check",
-    "inspect_vector_dataset",
-    "plan_load_vector_to_postgis",
-    "load_vector_to_postgis",
-    "validate_postgis_layer",
-]
+EXPECTED_TOOLS = tools.TOOL_ALLOWLIST
 
 
 def test_server_registers_only_allowlisted_tools() -> None:
@@ -68,6 +62,30 @@ def test_allowlist_contains_no_delete_tool() -> None:
     )
 
 
-def test_write_tool_is_explicitly_named() -> None:
-    assert "load_vector_to_postgis" in tools.TOOL_ALLOWLIST
-    assert "validate_postgis_layer" in tools.TOOL_ALLOWLIST
+def test_only_approval_gated_write_tool_is_exposed() -> None:
+    assert (
+        "load_vector_to_postgis"
+        not in tools.TOOL_ALLOWLIST
+    )
+
+    assert (
+        "run_approved_vector_postgis_workflow"
+        in tools.TOOL_ALLOWLIST
+    )
+    
+def test_raw_load_is_not_registered_over_mcp() -> None:
+    import asyncio
+
+    from geoagent_harness.mcp_server.server import mcp
+
+    registered = asyncio.run(mcp.list_tools())
+    names = {
+        tool.name
+        for tool in registered
+    }
+
+    assert "load_vector_to_postgis" not in names
+    assert (
+        "run_approved_vector_postgis_workflow"
+        in names
+    )

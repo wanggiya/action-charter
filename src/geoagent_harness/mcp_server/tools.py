@@ -28,8 +28,8 @@ TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "plan_load_vector_to_postgis",
-    "load_vector_to_postgis",
     "validate_postgis_layer",
+    "run_approved_vector_postgis_workflow",
 ]
 
 

@@ -28,7 +28,18 @@ def test_only_executor_has_tool_access() -> None:
     assert planner.permissions.tools == []
     assert executor.permissions.tools == [
         "health_check",
-        "inspect_vector_dataset",
-        "plan_load_vector_to_postgis",
+        "run_approved_vector_postgis_workflow",
     ]
+    assert (
+        "load_vector_to_postgis"
+        not in executor.permissions.tools
+    )
+    assert (
+        "inspect_vector_dataset"
+        not in executor.permissions.tools
+    )
+    assert (
+        "plan_load_vector_to_postgis"
+        not in executor.permissions.tools
+    )
     assert critic.permissions.tools == []

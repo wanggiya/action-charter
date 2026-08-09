@@ -54,3 +54,36 @@ class ExecutionEnvelope(BaseModel):
     ] = "run_vector_postgis_workflow"
     tool_arguments: WorkflowToolArguments
     execution_performed: Literal[False] = False
+    
+class WorkflowExecutionResult(BaseModel):
+    """Validated result returned by the composite MCP tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str
+    final_status: Literal[
+        "validated_success",
+        "validation_failed",
+        "execution_failed",
+    ]
+    validation_passed: bool
+    report_path: str
+    trace_path: str
+    warnings: list[str]
+
+
+class ExecutorRunResult(BaseModel):
+    """Result returned by the independent Executor Agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    agent_id: Literal["executor"] = "executor"
+    plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    approval_id: str
+    tool_name: Literal[
+        "run_approved_vector_postgis_workflow"
+    ]
+    execution_performed: Literal[True] = True
+    workflow: WorkflowExecutionResult
