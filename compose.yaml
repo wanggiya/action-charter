@@ -65,11 +65,21 @@ services:
 
   critic:
     <<: *agent
-    command: ["agent-info", "critic"]
+
+    command:
+      - agent-info
+      - critic
+
+    working_dir: /workspace
+
     volumes:
       - ./agents/critic:/app/agents/critic:ro
       - ./context:/workspace/context:ro
-    profiles: [agents]
+      - ./traces:/workspace/traces:ro
+      - ./reports:/workspace/reports:ro
+
+    profiles:
+      - agents
 
   mcp-gis:
     build:

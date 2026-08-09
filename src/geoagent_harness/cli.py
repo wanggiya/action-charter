@@ -43,7 +43,7 @@ def agent_info_command(
                 "model_ref": manifest.model_ref,
                 "purpose": manifest.purpose,
                 "allowed_tools": manifest.permissions.tools,
-                "checkpoint_status": "manifest-valid; agent-loop-not-implemented",
+                "checkpoint_status": "manifest-valid; role-runtime-implemented",
             },
             separators=(",", ":"),
         )
@@ -963,6 +963,86 @@ def build_critic_evidence_command(
             separators=None if pretty else (",", ":"),
         )
     )
+
+@app.command("critique-task")
+def critique_task_command(
+    trace_path: Annotated[
+        Path,
+        typer.Argument(
+            help="JSON trace beneath the approved trace root.",
+        ),
+    ],
+    report_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Markdown report beneath the approved report root.",
+        ),
+    ],
+    trace_root: Annotated[
+        Path,
+        typer.Option("--trace-root"),
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path,
+        typer.Option("--report-root"),
+    ] = Path("reports"),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Critique deterministic workflow evidence using Ollama."""
+
+    from geoagent_harness.critic import (
+        CriticAgentError,
+        CriticEvidenceError,
+        critique_task,
+    )
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+
+    try:
+        result = critique_task(
+            trace_path=trace_path,
+            report_path=report_path,
+            trace_root=trace_root,
+            report_root=report_root,
+            agents_root=agents_root,
+        )
+    except (
+        CriticAgentError,
+        CriticEvidenceError,
+        ModelClientError,
+        ModelSettingsError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if result.deterministic_status != "validated_success":
+        raise typer.Exit(code=1)
 
 if __name__ == "__main__":
     app()

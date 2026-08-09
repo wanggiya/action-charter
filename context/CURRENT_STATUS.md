@@ -48,7 +48,7 @@ Implemented:
 
 ## Checkpoint 4 — Shared model and Planner Agent
 
-Status: in progress.
+Status: completed.
 
 Completed:
 
@@ -67,7 +67,7 @@ Completed:
   destructive operations, and false execution claims;
 - real Planner Agent smoke test using `qwen3:4b-instruct`.
 
-Current work:
+Not yet implemented::
 
 - independent read-only planner container.
 
@@ -152,15 +152,77 @@ Implemented:
 - write tools returned to disabled state after execution;
 - automated, container, and manual acceptance checks.
 
-## Next checkpoint
+## Checkpoint 6 — Critic/Report Agent
 
-Checkpoint 6 should implement the read-only Critic/Report Agent.
+Status: completed.
 
-Planned scope:
+### Checkpoint 6A — Deterministic evidence pack
 
-- read completed traces and reports;
-- independently assess unresolved risks;
-- identify failed or incomplete checks;
-- generate a structured critique;
-- prevent file and database edits;
-- prevent success claims that conflict with deterministic validation.
+Implemented:
+
+- trusted trace and report roots;
+- path-containment and file-size enforcement;
+- WorkflowTrace schema validation;
+- secret redaction for structured and textual evidence;
+- deterministic approval and validation consistency checks;
+- SHA-256 evidence references;
+- concise evidence supplied instead of raw project history;
+- incomplete and contradictory evidence handling.
+
+### Checkpoint 6B — Structured Critic Agent
+
+Implemented:
+
+- schema-constrained JSON-only Ollama response;
+- shared local Qwen model runtime;
+- strict Critic manifest validation;
+- deterministic status preservation;
+- success-claim consistency enforcement;
+- model-output redaction;
+- no tools, SQL, shell, execution, or writes;
+- unit tests using a fake model client;
+- real local Ollama verification.
+
+### Checkpoint 6C — Independent Critic container
+
+Implemented:
+
+- independent non-root Critic service;
+- read-only container filesystem;
+- read-only trace, report, context, and manifest mounts;
+- model-network-only connectivity;
+- no MCP control network;
+- no PostGIS backend network;
+- no database credentials or Docker socket;
+- all Linux capabilities dropped;
+- `no-new-privileges` enabled;
+- containerized Ollama assessment;
+- artifact hash verification before and after critique.
+
+### Checkpoint 6D — Acceptance and documentation
+
+Implemented:
+
+- repeatable Checkpoint 6 acceptance target;
+- complete automated test suite;
+- Compose validation;
+- live containerized Critic policy check;
+- evidence integrity verification;
+- architecture, status, README, and decision updates.
+
+## MVP status
+
+The initial vector-to-PostGIS vertical slice is implemented:
+
+```text
+task-specific context
+→ structured plan
+→ deterministic plan policy
+→ exact-plan human approval
+→ typed execution envelope
+→ approval-gated MCP execution
+→ vector inspection and PostGIS load
+→ deterministic PostGIS validation
+→ Markdown report and structured trace
+→ deterministic critic evidence
+→ read-only structured critique

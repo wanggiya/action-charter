@@ -6,7 +6,7 @@ The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared Olla
 
 ## Current implementation
 
-Checkpoints 1–4 are complete.
+Checkpoints 1–6 are complete for the initial vector-to-PostGIS MVP.
 
 Implemented:
 
@@ -21,15 +21,22 @@ Implemented:
 - deterministic task-specific context packs;
 - structured, policy-validated Planner Agent;
 - independent hardened planner container.
+- exact-plan human approvals and approval records;
+- typed deterministic execution envelopes;
+- internal Streamable HTTP MCP transport;
+- independent approval-gated Executor Agent;
+- deterministic Critic evidence packs;
+- structured Critic Agent using the shared Ollama runtime;
+- independent read-only Critic container;
 
 Not yet implemented:
 
-- Executor Agent runtime loop;
-- persistent human approval records;
-- Critic/Report Agent model integration;
-- vector conversion;
-- raster processing;
-- generalized retries and task queues.
+- vector-format conversion;
+- raster workflows;
+- generalized retries, cancellation, and task queues;
+- multi-workflow scheduling;
+- production authentication and remote deployment;
+- strict Docker-level egress filtering to only the Ollama endpoint;
 
 ## Architecture
 
@@ -75,7 +82,10 @@ The deterministic verifier is ordinary Python and SQL code, not an LLM agent. A 
 ## Repository structure
 
 ```text
-approvals/                      ignored append-only approval records
+approvals/                      exact-plan approval policy and records
+critic/                         evidence builder and Critic Agent
+executor/                       approved execution handoff and runtime
+planner/                        structured Planner Agent
 plans/                          ignored structured Planner results
 agents/                         agent manifests and permissions
 context/                        concise trusted project context
@@ -87,13 +97,13 @@ reports/                        generated Markdown reports
 scripts/                        protocol and model smoke tests
 skills/                         human-readable skill contracts
 src/geoagent_harness/           installable Python package
-  context_pack/                 deterministic context selection
-  mcp_server/                   allowlisted MCP interface
-  model/                        shared Ollama-compatible client
-  orchestrator/                 deterministic workflow orchestration
-  planner/                      structured Planner Agent
-  skills/                       executable GIS skill implementations
-  verifier/                     deterministic correctness checks
+context_pack/                   deterministic context selection
+mcp_server/                     allowlisted MCP interface
+model/                          shared Ollama-compatible client
+orchestrator/                   deterministic workflow orchestration
+planner/                        structured Planner Agent
+skills/                         executable GIS skill implementations
+verifier/                       deterministic correctness checks
 tests/                          automated tests
 traces/                         structured execution traces
 ```
@@ -405,3 +415,27 @@ validation and the final status validated_success.
 - Shapefiles require their related sidecar files.
 - The external PostGIS lifecycle remains outside this repository.
 - The prototype currently targets one local user and one active workflow.
+
+```markdown
+## Critic Agent
+
+The Critic Agent reviews completed workflow evidence. It does not validate
+PostGIS directly and cannot change the deterministic workflow status.
+
+The deterministic evidence builder:
+
+- accepts only JSON traces beneath the approved trace root;
+- accepts only Markdown reports beneath the approved report root;
+- rejects path traversal and oversized files;
+- validates the trace schema;
+- redacts secrets;
+- checks approval and validation consistency;
+- records SHA-256 references to its source evidence;
+- produces a concise task-specific evidence pack.
+
+The Critic model response must conform to a strict Pydantic schema. A
+deterministic policy rejects any response that changes the status, contradicts
+the required conclusion, or incorrectly claims success.
+
+```bash
+make critic-container

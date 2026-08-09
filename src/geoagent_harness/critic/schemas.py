@@ -6,6 +6,71 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+class CriticAssessment(BaseModel):
+    """Schema-constrained assessment produced by the model."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    deterministic_status: Literal[
+        "validated_success",
+        "validation_failed",
+        "execution_failed",
+        "incomplete_evidence",
+    ]
+
+    conclusion: Literal[
+        "supported",
+        "not_supported",
+        "incomplete",
+    ]
+
+    success_claimed: bool
+
+    summary: str = Field(
+        min_length=1,
+        max_length=3000,
+    )
+    validation_basis: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    additional_risks: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    recommendations: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+
+    edits_performed: Literal[False] = False
+    database_actions_performed: Literal[False] = False
+
+
+class CriticResult(BaseModel):
+    """Validated in-memory result returned by the Critic Agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    agent_id: Literal["critic"] = "critic"
+    model: str
+    task_id: str
+
+    deterministic_status: Literal[
+        "validated_success",
+        "validation_failed",
+        "execution_failed",
+        "incomplete_evidence",
+    ]
+
+    evidence_references: list[EvidenceReference]
+    evidence_gaps: list[str]
+    workflow_warnings: list[str]
+    human_corrections: list[str]
+
+    assessment: CriticAssessment
 
 class EvidenceReference(BaseModel):
     """Cryptographic reference to one trusted evidence file."""
