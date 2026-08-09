@@ -25,8 +25,17 @@ _SECRET_KEYS = frozenset(
 )
 
 _ASSIGNMENT_PATTERN = re.compile(
-    r"(?i)\b(password|token|api[_-]?key|secret)"
-    r"\s*[:=]\s*[^\s,;]+"
+    r"(?i)\b("
+    r"(?:postgres_)?password"
+    r"|database_url"
+    r"|connection_string"
+    r"|(?:ollama_)?api[_-]?key"
+    r"|(?:access|auth)[_-]?token"
+    r"|token"
+    r"|secret"
+    r")"
+    r"\s*[:=]\s*"
+    r"[^\s,;]+"
 )
 
 _DATABASE_URL_PATTERN = re.compile(

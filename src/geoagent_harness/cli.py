@@ -905,5 +905,64 @@ def execute_approved_plan_command(
     ):
         raise typer.Exit(code=1)
 
+@app.command("build-critic-evidence")
+def build_critic_evidence_command(
+    trace_path: Annotated[
+        Path,
+        typer.Argument(
+            help="JSON trace beneath the approved trace root.",
+        ),
+    ],
+    report_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Markdown report beneath the approved report root.",
+        ),
+    ],
+    trace_root: Annotated[
+        Path,
+        typer.Option(
+            "--trace-root",
+            help="Trusted trace directory.",
+        ),
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path,
+        typer.Option(
+            "--report-root",
+            help="Trusted report directory.",
+        ),
+    ] = Path("reports"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Build redacted deterministic evidence for the Critic Agent."""
+
+    from geoagent_harness.critic.evidence import (
+        CriticEvidenceError,
+        build_critic_evidence,
+    )
+
+    try:
+        evidence = build_critic_evidence(
+            trace_path=trace_path,
+            report_path=report_path,
+            trace_root=trace_root,
+            report_root=report_root,
+        )
+    except CriticEvidenceError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            evidence.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
 if __name__ == "__main__":
     app()
