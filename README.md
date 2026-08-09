@@ -75,6 +75,8 @@ The deterministic verifier is ordinary Python and SQL code, not an LLM agent. A 
 ## Repository structure
 
 ```text
+approvals/                      ignored append-only approval records
+plans/                          ignored structured Planner results
 agents/                         agent manifests and permissions
 context/                        concise trusted project context
 data/input/                     read-only source datasets
@@ -304,6 +306,45 @@ Writes are disabled by default. Existing tables and artifacts cannot be overwrit
 - PostGIS validation is deterministic and read-only.
 
 See `SECURITY.md` for additional trust-boundary information.
+
+
+## Human approval boundary
+
+Validated plans can be saved beneath `plans/`. Approval records are stored
+beneath `approvals/`. Runtime JSON files in both directories are ignored by
+Git.
+
+An approval contains:
+
+- the SHA-256 digest of the exact canonical plan;
+- approved step IDs;
+- approved or denied decision;
+- approver and reason;
+- optional expiration;
+- redacted human corrections.
+
+An approval does not execute a plan or enable write tools. If any plan field,
+argument, target table, step, or policy value changes, the digest changes and
+the previous approval becomes invalid.
+
+Approval commands:
+
+```bash
+geoagent plan-digest plans/example-plan.json --pretty
+
+geoagent approve-plan \
+  plans/example-plan.json \
+  --step step_2 \
+  --step step_4 \
+  --approver local-user \
+  --reason "Approved controlled writes." \
+  --valid-for-minutes 60 \
+  --pretty
+
+geoagent verify-plan-approval \
+  plans/example-plan.json \
+  approvals/approval-example.json \
+  --pretty
 
 ## Known limitations
 

@@ -78,3 +78,39 @@ Not yet implemented:
 - Executor Agent loop;
 - approval workflow;
 - Critic/Report Agent model integration.
+
+## Checkpoint 5 — Executor and approval boundary
+
+Status: in progress.
+
+### Checkpoint 5A — Exact-plan approval records
+
+Status: completed.
+
+Implemented:
+
+- canonical JSON representation of validated workflow plans;
+- SHA-256 plan identity;
+- append-only JSON approval records;
+- exact approved-step scope;
+- approved and denied decisions;
+- approver, reason, expiration, and human-correction fields;
+- recursive redaction of approval text;
+- trusted plan and approval roots;
+- approval-record overwrite blocking;
+- deterministic approval verification;
+- automatic invalidation when a plan changes;
+- CLI commands for plan digest, approval creation, and verification.
+
+Security boundary:
+
+- approvals contain a plan digest rather than complete tool arguments;
+- approval does not execute any tool;
+- approval does not enable PostGIS writes by itself;
+- changed and expired plans fail verification;
+- runtime plan and approval files are ignored by Git.
+
+Next:
+
+- Checkpoint 5B will transform an approved plan into a deterministic,
+  typed execution request without executing it.

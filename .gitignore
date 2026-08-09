@@ -31,3 +31,10 @@ data/input/*
 *.prj
 *.tif
 *.tiff
+
+# Runtime plans and approval records
+plans/*
+!plans/.gitkeep
+
+approvals/*
+!approvals/.gitkeep
