@@ -644,5 +644,100 @@ def verify_plan_approval_command(
     if not verification.approved:
         raise typer.Exit(code=1)
 
+@app.command("build-execution-envelope")
+def build_execution_envelope_command(
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Planner result JSON beneath the plan root.",
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Approval JSON beneath the approval root.",
+        ),
+    ],
+    plan_root: Annotated[
+        Path,
+        typer.Option("--plan-root"),
+    ] = Path("plans"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    allowed_schemas: Annotated[
+        str,
+        typer.Option(
+            "--allowed-schemas",
+            help="Comma-separated approved PostGIS schemas.",
+        ),
+    ] = "agent_sandbox",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Build an approved envelope without executing it."""
+
+    from geoagent_harness.approvals import (
+        ApprovalError,
+        load_approval,
+        load_planner_result,
+    )
+    from geoagent_harness.executor import (
+        ExecutorPolicyError,
+        build_execution_envelope,
+    )
+
+    schemas = {
+        value.strip()
+        for value in allowed_schemas.split(",")
+        if value.strip()
+    }
+
+    if not schemas:
+        typer.echo(
+            "Error: at least one allowed schema is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        planner_result = load_planner_result(
+            path=plan_file,
+            plan_root=plan_root,
+        )
+
+        approval = load_approval(
+            path=approval_file,
+            approval_root=approval_root,
+        )
+
+        envelope = build_execution_envelope(
+            planner_result=planner_result,
+            approval=approval,
+            allowed_schemas=schemas,
+        )
+    except (
+        ApprovalError,
+        ExecutorPolicyError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            envelope.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

@@ -135,6 +135,10 @@ def planner_result() -> PlannerResult:
     return PlannerResult(
         agent_id="planner",
         model="qwen-test",
+        original_request=(
+            "Inspect, load, validate, and report "
+            "sample_points."
+        ),
         context_references=[
             "context/PROJECT_SUMMARY.md",
             "context/SKILLS_INDEX.yaml",

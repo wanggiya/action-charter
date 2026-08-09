@@ -114,3 +114,32 @@ Next:
 
 - Checkpoint 5B will transform an approved plan into a deterministic,
   typed execution request without executing it.
+
+  ### Checkpoint 5B — Deterministic execution envelope
+
+Status: completed.
+
+Implemented:
+
+- original redacted request preserved in Planner results;
+- typed execution-envelope schema;
+- one fixed composite workflow tool;
+- exact four-skill vertical-slice enforcement;
+- consistent inspection and loading paths;
+- consistent loading and validation targets;
+- input paths restricted beneath `data/input`;
+- allowlisted target schemas;
+- validated database identifiers and task IDs;
+- unsupported tool arguments rejected;
+- exact-plan approval verification before handoff;
+- arbitrary tool names unrepresentable;
+- explicit `execution_performed=false`;
+- CLI command for building an execution envelope.
+
+The envelope does not call MCP, connect to PostGIS, or execute the workflow.
+
+Next:
+
+- Checkpoint 5C will expose the existing composite workflow through
+  authenticated-by-network, internal MCP transport while keeping execution
+  disabled by default.

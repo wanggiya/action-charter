@@ -154,6 +154,9 @@ def test_agent_accepts_valid_model_plan(
     assert len(result.plan.steps) == 4
     assert client.request is not None
     assert client.request.json_mode is True
+    assert result.original_request == (
+        context_pack.original_request
+    )
 
 
 def test_agent_returns_context_references(

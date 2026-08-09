@@ -308,6 +308,19 @@ Writes are disabled by default. Existing tables and artifacts cannot be overwrit
 See `SECURITY.md` for additional trust-boundary information.
 
 
+## Deterministic execution handoff
+
+An approved plan is converted into a typed execution envelope before any MCP
+tool can be called.
+
+The current envelope supports only:
+
+```text
+inspect_vector
+→ load_vector_to_postgis
+→ validate_postgis_layer
+→ generate_report
+
 ## Human approval boundary
 
 Validated plans can be saved beneath `plans/`. Approval records are stored

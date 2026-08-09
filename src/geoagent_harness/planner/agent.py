@@ -124,6 +124,9 @@ def run_planner_agent(
 
     return PlannerResult(
         model=model_result.model,
+        original_request=(
+            context_pack.original_request
+        ),
         context_references=[
             reference.path
             for reference in context_pack.context_references

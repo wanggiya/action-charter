@@ -1,9 +1,23 @@
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.planner.schemas import WorkflowPlan
+from geoagent_harness.planner.schemas import (
+    PlannerResult,
+    WorkflowPlan,
+)
 
+def test_planner_result_requires_original_request() -> None:
+    plan = WorkflowPlan.model_validate(
+        valid_plan_payload()
+    )
 
+    with pytest.raises(ValidationError):
+        PlannerResult(
+            model="qwen-test",
+            context_references=[],
+            plan=plan,
+        )
+        
 def valid_plan_payload() -> dict:
     return {
         "schema_version": "1.0",

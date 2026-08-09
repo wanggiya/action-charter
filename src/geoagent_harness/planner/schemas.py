@@ -72,6 +72,10 @@ class PlannerResult(BaseModel):
 
     agent_id: Literal["planner"] = "planner"
     model: str
+    original_request: str = Field(
+        min_length=1,
+        max_length=8000,
+    )
     context_references: list[str]
     plan: WorkflowPlan
     warnings: list[str] = Field(default_factory=list)
