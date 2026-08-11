@@ -1,5 +1,6 @@
-"""Tests for MCP HTTP smoke command registration."""
+"""Tests for MCP HTTP smoke-test CLI registration."""
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
@@ -15,6 +16,7 @@ def test_mcp_http_smoke_is_registered() -> None:
             "--help",
         ],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--pretty" in result.stdout
+    assert "--pretty" in output

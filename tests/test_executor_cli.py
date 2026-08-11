@@ -1,5 +1,6 @@
-"""Tests for Executor handoff CLI registration."""
+"""Tests for deterministic Executor CLI registration."""
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
@@ -15,8 +16,9 @@ def test_build_execution_envelope_is_registered() -> None:
             "--help",
         ],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--plan-root" in result.stdout
-    assert "--approval-root" in result.stdout
-    assert "--allowed-schemas" in result.stdout
+    assert "--plan-root" in output
+    assert "--approval-root" in output
+    assert "--allowed-schemas" in output
