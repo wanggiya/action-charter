@@ -66,18 +66,9 @@ Completed:
 - rejection of unimplemented skills, arbitrary shell, unrestricted SQL,
   destructive operations, and false execution claims;
 - real Planner Agent smoke test using `qwen3:4b-instruct`.
-
-Not yet implemented::
-
-- independent read-only planner container.
-
-Not yet implemented:
-
-- structured Planner Agent;
-- independent operational planner container;
-- Executor Agent loop;
-- approval workflow;
-- Critic/Report Agent model integration.
+- independent non-root, read-only Planner container;
+- model-network-only access;
+- no MCP, PostGIS, database credential, artifact-write, or Docker-socket access.
 
 ## Checkpoint 5 — Executor and approval boundary
 
@@ -209,6 +200,53 @@ Implemented:
 - live containerized Critic policy check;
 - evidence integrity verification;
 - architecture, status, README, and decision updates.
+
+## Checkpoint 7 — CI and structured failure handling
+
+Status: completed.
+
+### Checkpoint 7A — GitHub-hosted CI
+
+Implemented:
+
+- secret-free offline test workflow on Ubuntu 24.04 and Python 3.12;
+- separate agent and GIS-tools container-build jobs;
+- modern GitHub Actions runtimes;
+- pip dependency validation;
+- ANSI-portable Typer CLI help tests;
+- non-root container-user checks;
+- container CLI smoke tests;
+- no Ollama, PostGIS, database credentials, or write-enabled integration
+  execution in GitHub-hosted CI.
+
+### Checkpoint 7B — Structured failure handling
+
+Implemented:
+
+- stable failure categories and machine-readable failure codes;
+- failure stages covering configuration, planning, approval, execution,
+  validation, reporting, critique, model, MCP, and artifacts;
+- stable CLI exit codes;
+- secret-redacted structured failure records;
+- retry classification as `never`, `safe_read_only`, or `manual_review`;
+- read-only model and MCP retry safety classification;
+- manual-review policy for interrupted or uncertain database writes;
+- timeout, unavailable dependency, invalid response, execution failure,
+  validation failure, cancellation, and internal-error classification;
+- operator cancellation mapped to exit code 130;
+- structured failure evidence stored in workflow traces;
+- deterministic failure evidence included in Markdown reports;
+- successful traces explicitly record `failure: null`;
+- shared redaction utilities used by traces and failure records;
+- automated tests for model, MCP, CLI, cancellation, trace, and report
+  failure behavior.
+
+Safety rules:
+
+- database writes are never automatically retried;
+- an interrupted write requires manual database inspection;
+- model and MCP error text is redacted before logging or persistence;
+- deterministic validation remains the only success gate.
 
 ## MVP status
 

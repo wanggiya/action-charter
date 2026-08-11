@@ -21,15 +21,21 @@ from geoagent_harness.mcp_server.tools import (
     validate_postgis_layer,
 )
 from geoagent_harness.reporting import write_report
+from geoagent_harness.failures import (
+    FailureCategory,
+    FailureRecord,
+    FailureStage,
+    GeoAgentError,
+    RetryDisposition,
+    failure_from_exception,
+)
 from geoagent_harness.trace import (
     TraceError,
     TraceTimestamps,
     WorkflowTrace,
     artifact_path,
-    redact_text,
     write_trace,
 )
-
 
 class WorkflowError(RuntimeError):
     """Raised when a workflow cannot safely begin or finish."""
@@ -201,6 +207,8 @@ def run_vector_postgis_workflow(
 
     tool_results: dict[str, object] = {}
     validation_results: dict[str, object] | None = None
+    failure_record: FailureRecord | None = None
+    active_stage = FailureStage.EXECUTION
     warnings: list[str] = []
     validation_passed = False
     final_status: Literal[
@@ -241,6 +249,8 @@ def run_vector_postgis_workflow(
         tool_results["load_vector_to_postgis"] = (
             loaded.model_dump(mode="json")
         )
+        
+        active_stage = FailureStage.VALIDATION
 
         validation = validate_postgis_layer(
             target_schema=target_schema,
@@ -269,13 +279,48 @@ def run_vector_postgis_workflow(
             final_status = "validation_failed"
             warnings.extend(validation.warnings)
 
+            failure_record = failure_from_exception(
+                GeoAgentError(
+                    (
+                        "Deterministic PostGIS validation "
+                        "did not pass"
+                    ),
+                    code="postgis_validation_failed",
+                    category=(
+                        FailureCategory.VALIDATION_FAILED
+                    ),
+                    retry=RetryDisposition.MANUAL_REVIEW,
+                ),
+                stage=FailureStage.VALIDATION,
+            )
+
     except Exception as exc:
         final_status = "execution_failed"
-        warnings.append(
-            redact_text(
-                "Workflow execution failed: "
-                f"{type(exc).__name__}: {exc}"
+
+        failure_record = failure_from_exception(
+            exc,
+            stage=active_stage,
+        )
+
+        if (
+            failure_record.category
+            == FailureCategory.INTERNAL_ERROR
+        ):
+            failure_record = failure_record.model_copy(
+                update={
+                    "category": (
+                        FailureCategory.EXECUTION_FAILED
+                    ),
+                    "code": "workflow_execution_failed",
+                    "retry": (
+                        RetryDisposition.MANUAL_REVIEW
+                    ),
+                    "exit_code": 4,
+                }
             )
+
+        warnings.append(
+            failure_record.message
         )
 
     finished_at = _now()
@@ -293,6 +338,7 @@ def run_vector_postgis_workflow(
         tool_arguments=tool_arguments,
         tool_results=tool_results,
         validation_results=validation_results,
+        failure=failure_record,
         artifacts=[
             report_path.as_posix(),
             trace_path.as_posix(),

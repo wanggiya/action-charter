@@ -4,44 +4,51 @@ from __future__ import annotations
 
 import json
 import re
+from typing import Any, Literal
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from geoagent_harness.failures import FailureRecord
+from geoagent_harness.redaction import (
+    redact_text,
+    redact_value,
+)
+
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,80}$")
 
-_SECRET_KEYS = frozenset(
-    {
-        "password",
-        "postgres_password",
-        "database_url",
-        "connection_string",
-        "token",
-        "api_key",
-        "secret",
-    }
-)
+# _SECRET_KEYS = frozenset(
+#     {
+#         "password",
+#         "postgres_password",
+#         "database_url",
+#         "connection_string",
+#         "token",
+#         "api_key",
+#         "secret",
+#     }
+# )
 
-_ASSIGNMENT_PATTERN = re.compile(
-    r"(?i)\b("
-    r"(?:postgres_)?password"
-    r"|database_url"
-    r"|connection_string"
-    r"|(?:ollama_)?api[_-]?key"
-    r"|(?:access|auth)[_-]?token"
-    r"|token"
-    r"|secret"
-    r")"
-    r"\s*[:=]\s*"
-    r"[^\s,;]+"
-)
+# _ASSIGNMENT_PATTERN = re.compile(
+#     r"(?i)\b("
+#     r"(?:postgres_)?password"
+#     r"|database_url"
+#     r"|connection_string"
+#     r"|(?:ollama_)?api[_-]?key"
+#     r"|(?:access|auth)[_-]?token"
+#     r"|token"
+#     r"|secret"
+#     r")"
+#     r"\s*[:=]\s*"
+#     r"[^\s,;]+"
+# )
 
-_DATABASE_URL_PATTERN = re.compile(
-    r"(?i)(postgres(?:ql)?(?:\+\w+)?://[^:\s/]+:)"
-    r"[^@\s/]+(@)"
-)
+# _DATABASE_URL_PATTERN = re.compile(
+#     r"(?i)(postgres(?:ql)?(?:\+\w+)?://[^:\s/]+:)"
+#     r"[^@\s/]+(@)"
+# )
 
 
 class TraceError(RuntimeError):
@@ -78,6 +85,7 @@ class WorkflowTrace(BaseModel):
     tool_arguments: dict[str, dict[str, Any]]
     tool_results: dict[str, Any]
     validation_results: dict[str, Any] | None
+    failure: FailureRecord | None = None
 
     artifacts: list[str]
     warnings: list[str]
@@ -108,53 +116,6 @@ def validate_task_id(task_id: str) -> str:
 
     return task_id
 
-
-def redact_text(value: str) -> str:
-    """Redact common secret forms from free text."""
-    redacted = _ASSIGNMENT_PATTERN.sub(
-        lambda match: (
-            f"{match.group(1)}=[REDACTED]"
-        ),
-        value,
-    )
-
-    return _DATABASE_URL_PATTERN.sub(
-        r"\1[REDACTED]\2",
-        redacted,
-    )
-
-
-def redact_value(value: Any) -> Any:
-    """Recursively redact sensitive structured values."""
-    if isinstance(value, str):
-        return redact_text(value)
-
-    if isinstance(value, list):
-        return [
-            redact_value(item)
-            for item in value
-        ]
-
-    if isinstance(value, tuple):
-        return [
-            redact_value(item)
-            for item in value
-        ]
-
-    if isinstance(value, dict):
-        redacted: dict[str, Any] = {}
-
-        for key, item in value.items():
-            normalized = str(key).lower()
-
-            if normalized in _SECRET_KEYS:
-                redacted[str(key)] = "[REDACTED]"
-            else:
-                redacted[str(key)] = redact_value(item)
-
-        return redacted
-
-    return value
 
 
 def artifact_path(

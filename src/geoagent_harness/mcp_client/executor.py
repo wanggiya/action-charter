@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import httpx
 from mcp import ClientSession
@@ -42,14 +43,16 @@ def _plain_json_filename(
         or path.suffix != ".json"
         or value in {".json", ".."}
     ):
-        raise MCPClientError(
-            f"{label} must be a plain JSON filename"
+        raise MCPClientError.invalid_filename(
+            label=label
         )
 
     return value
 
 
-def _structured_result(response) -> dict:
+def _structured_result(
+    response: Any,
+) -> dict:
     if isinstance(
         response.structuredContent,
         dict,
@@ -66,7 +69,7 @@ def _structured_result(response) -> dict:
             if isinstance(value, dict):
                 return value
 
-    raise MCPClientError(
+    raise MCPClientError.invalid_response(
         "Approved workflow returned no structured result"
     )
 
@@ -130,9 +133,9 @@ class MCPExecutorClient:
                         )
 
                         if response.isError:
-                            raise MCPClientError(
-                                "Approved workflow MCP tool "
-                                "returned an error"
+                            raise (
+                                MCPClientError
+                                .execution_tool_error()
                             )
 
                         return MCPToolCallResult(
@@ -145,7 +148,14 @@ class MCPExecutorClient:
                         )
         except MCPClientError:
             raise
+        except (
+            httpx.TimeoutException,
+            TimeoutError,
+        ) as exc:
+            raise (
+                MCPClientError.execution_timeout()
+            ) from exc
         except Exception as exc:
-            raise MCPClientError(
-                "Internal MCP service is unavailable"
+            raise (
+                MCPClientError.execution_unavailable()
             ) from exc

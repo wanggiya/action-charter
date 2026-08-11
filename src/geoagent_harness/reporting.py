@@ -35,6 +35,7 @@ def render_report(trace: WorkflowTrace) -> str:
         payload.get("validation_results")
         or {}
     )
+    failure = payload.get("failure")
 
     lines = [
         f"# GeoAgent Task Report: {payload['task_id']}",
@@ -155,6 +156,60 @@ def render_report(trace: WorkflowTrace) -> str:
             f"{_markdown(check.get('expected'))} | "
             f"{_markdown(check.get('actual'))} |"
         )
+    lines.extend(
+        [
+            "",
+            "## Failure evidence",
+            "",
+        ]
+    )
+
+    if failure:
+        lines.extend(
+            [
+                "| Fact | Value |",
+                "|---|---|",
+                (
+                    "| Category | "
+                    f"{_markdown(failure['category'])} |"
+                ),
+                (
+                    "| Code | "
+                    f"{_markdown(failure['code'])} |"
+                ),
+                (
+                    "| Stage | "
+                    f"{_markdown(failure['stage'])} |"
+                ),
+                (
+                    "| Message | "
+                    f"{_markdown(failure['message'])} |"
+                ),
+                (
+                    "| Retry | "
+                    f"{_markdown(failure['retry'])} |"
+                ),
+                (
+                    "| Exit code | "
+                    f"{_markdown(failure['exit_code'])} |"
+                ),
+                (
+                    "| Cause type | "
+                    f"{_markdown(failure['cause_type'])} |"
+                ),
+                "| Secrets redacted | true |",
+            ]
+        )
+    else:
+        lines.append("- None")
+
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            "",
+        ]
+    )
 
     lines.extend(
         [

@@ -2,11 +2,16 @@
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import typer
 
 from geoagent_harness.agent_manifest import load_agent_manifest
+
+from geoagent_harness.failures import (
+    FailureStage,
+    failure_from_exception,
+)
 
 
 app = typer.Typer(
@@ -15,6 +20,29 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+def _raise_typed_failure(
+    exception: BaseException,
+    *,
+    stage: FailureStage,
+) -> NoReturn:
+    """Render one redacted typed failure and exit."""
+
+    failure = failure_from_exception(
+        exception,
+        stage=stage,
+    )
+
+    typer.echo(
+        (
+            f"Error [{failure.code}]: "
+            f"{failure.message}"
+        ),
+        err=True,
+    )
+
+    raise typer.Exit(
+        code=failure.exit_code
+    ) from exception
 
 @app.command("agent-info")
 def agent_info_command(
@@ -328,9 +356,18 @@ def plan_task_command(
             project_root=project_root,
             agents_root=agents_root,
         )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.PLANNING,
+        )
+    except ModelClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MODEL,
+        )
     except (
         ContextPackError,
-        ModelClientError,
         ModelSettingsError,
         PlannerAgentError,
         OSError,
@@ -778,11 +815,21 @@ def mcp_http_smoke_command(
 
     try:
         payload = asyncio.run(run_smoke())
-    except (
-        MCPClientError,
-        MCPClientSettingsError,
-    ) as exc:
-        typer.echo(f"Error: {exc}", err=True)
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MCP,
+        )
+    except MCPClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MCP,
+        )
+    except MCPClientSettingsError as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
         raise typer.Exit(code=2) from exc
 
     typer.echo(
@@ -875,11 +922,20 @@ def execute_approved_plan_command(
                 allowed_schemas=schemas,
             )
         )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.EXECUTION,
+        )
+    except MCPClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MCP,
+        )
     except (
         ApprovalError,
         ExecutorPolicyError,
         ExecutorServiceError,
-        MCPClientError,
         MCPClientSettingsError,
         OSError,
         ValueError,
@@ -1015,10 +1071,19 @@ def critique_task_command(
             report_root=report_root,
             agents_root=agents_root,
         )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.CRITIQUE,
+        )
+    except ModelClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MODEL,
+        )
     except (
         CriticAgentError,
         CriticEvidenceError,
-        ModelClientError,
         ModelSettingsError,
         OSError,
         ValueError,

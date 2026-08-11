@@ -6,7 +6,7 @@ The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared loca
 
 ## Current status
 
-Checkpoints 1–6 and Checkpoint 7A are complete for the initial vector-to-PostGIS vertical slice.
+Checkpoints 1–7 are complete for the initial vector-to-PostGIS vertical slice.
 
 The implemented workflow is:
 
@@ -1164,18 +1164,46 @@ Every checkpoint should include:
 
 ### Checkpoint 7B — Structured failure handling
 
-Planned:
+Status: implemented; final acceptance is documented in
+`context/CURRENT_STATUS.md`.
 
-- stable failure categories;
-- retryable versus permanent classification;
-- bounded execution timeouts;
-- model and MCP timeout policy;
-- cancellation;
-- retry budgets;
-- failure-state traces;
+Implemented:
+
+- stable failure categories and codes;
+- explicit failure stages;
 - stable CLI exit codes;
-- safe interruption recovery;
-- no automatic retry of database writes without idempotency guarantees.
+- secret-redacted structured failure records;
+- retry dispositions of `never`, `safe_read_only`, and `manual_review`;
+- safe retry classification for read-only model and MCP calls;
+- no automatic retry of database writes;
+- manual review after uncertain or interrupted execution;
+- operator cancellation with exit code 130;
+- structured failure evidence in traces;
+- failure summaries in Markdown reports;
+- successful traces with `failure: null`.
+
+Exit-code policy:
+
+| Exit code | Meaning |
+|---:|---|
+| `1` | Deterministic validation failed |
+| `2` | Invalid input, configuration, policy, approval, conflict, or not found |
+| `3` | Timeout or dependency unavailable |
+| `4` | Invalid external response or execution failure |
+| `5` | Unclassified internal error |
+| `130` | Operator cancellation |
+
+Retry policy:
+
+| Disposition | Meaning |
+|---|---|
+| `never` | Do not retry automatically |
+| `safe_read_only` | A bounded retry may be added for an explicitly read-only operation |
+| `manual_review` | Inspect state before retrying, especially after database execution |
+
+The current harness classifies retry safety but does not yet implement an
+automatic retry loop. That work belongs to Checkpoint 7C together with durable
+workflow state and resumption.
 
 ### Checkpoint 7C — Workflow state and resumption
 

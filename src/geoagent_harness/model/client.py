@@ -7,6 +7,11 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
+from geoagent_harness.failures import (
+    FailureCategory,
+    GeoAgentError,
+    RetryDisposition,
+)
 from geoagent_harness.model.schemas import (
     ModelRequest,
     ModelResult,
@@ -14,8 +19,81 @@ from geoagent_harness.model.schemas import (
 from geoagent_harness.model.settings import ModelSettings
 
 
-class ModelClientError(RuntimeError):
-    """Raised when the shared model cannot return a valid response."""
+class ModelClientError(GeoAgentError):
+    """Structured failure from the shared model client."""
+
+    @classmethod
+    def timeout(cls) -> ModelClientError:
+        return cls(
+            "Shared model request timed out",
+            code="model_timeout",
+            category=FailureCategory.TIMEOUT,
+            retry=RetryDisposition.SAFE_READ_ONLY,
+        )
+
+    @classmethod
+    def unavailable(cls) -> ModelClientError:
+        return cls(
+            "Shared model endpoint is unavailable",
+            code="model_unavailable",
+            category=(
+                FailureCategory.DEPENDENCY_UNAVAILABLE
+            ),
+            retry=RetryDisposition.SAFE_READ_ONLY,
+        )
+
+    @classmethod
+    def http_status(
+        cls,
+        status_code: int,
+    ) -> ModelClientError:
+        if status_code in {401, 403}:
+            return cls(
+                (
+                    "Shared model authentication or "
+                    "authorization failed"
+                ),
+                code="model_authentication_failed",
+                category=FailureCategory.CONFIGURATION,
+                retry=RetryDisposition.NEVER,
+            )
+
+        if (
+            status_code in {408, 429}
+            or status_code >= 500
+        ):
+            return cls(
+                (
+                    "Shared model is temporarily unavailable "
+                    f"(HTTP {status_code})"
+                ),
+                code="model_http_unavailable",
+                category=(
+                    FailureCategory.DEPENDENCY_UNAVAILABLE
+                ),
+                retry=RetryDisposition.SAFE_READ_ONLY,
+            )
+
+        return cls(
+            f"Shared model rejected the request "
+            f"(HTTP {status_code})",
+            code="model_http_error",
+            category=(
+                FailureCategory.EXTERNAL_RESPONSE_INVALID
+            ),
+            retry=RetryDisposition.NEVER,
+        )
+
+    @classmethod
+    def invalid_response(cls) -> ModelClientError:
+        return cls(
+            "Shared model returned an invalid response",
+            code="model_invalid_response",
+            category=(
+                FailureCategory.EXTERNAL_RESPONSE_INVALID
+            ),
+            retry=RetryDisposition.NEVER,
+        )
 
 
 class SharedModelClient:
@@ -43,7 +121,7 @@ class SharedModelClient:
             "max_tokens": self._settings.max_tokens,
             "stream": False,
         }
-        
+
         if request.json_mode:
             payload["response_format"] = {
                 "type": "json_object",
@@ -55,22 +133,21 @@ class SharedModelClient:
                 transport=self._transport,
             ) as client:
                 response = client.post(
-                    f"{self._settings.base_url}/chat/completions",
+                    (
+                        f"{self._settings.base_url}"
+                        "/chat/completions"
+                    ),
                     json=payload,
                 )
                 response.raise_for_status()
         except httpx.TimeoutException as exc:
-            raise ModelClientError(
-                "Shared model request timed out"
-            ) from exc
+            raise ModelClientError.timeout() from exc
         except httpx.HTTPStatusError as exc:
-            raise ModelClientError(
-                f"Shared model returned HTTP {exc.response.status_code}"
+            raise ModelClientError.http_status(
+                exc.response.status_code
             ) from exc
         except httpx.RequestError as exc:
-            raise ModelClientError(
-                "Shared model endpoint is unavailable"
-            ) from exc
+            raise ModelClientError.unavailable() from exc
 
         try:
             body: dict[str, Any] = response.json()
@@ -78,15 +155,31 @@ class SharedModelClient:
             content = choice["message"]["content"]
             usage = body.get("usage", {})
 
-            if not isinstance(content, str) or not content.strip():
-                raise ValueError("model content is empty")
+            if (
+                not isinstance(content, str)
+                or not content.strip()
+            ):
+                raise ValueError(
+                    "model content is empty"
+                )
 
             return ModelResult(
-                model=str(body.get("model", self._settings.model)),
+                model=str(
+                    body.get(
+                        "model",
+                        self._settings.model,
+                    )
+                ),
                 content=content.strip(),
-                finish_reason=choice.get("finish_reason"),
-                prompt_tokens=usage.get("prompt_tokens"),
-                completion_tokens=usage.get("completion_tokens"),
+                finish_reason=choice.get(
+                    "finish_reason"
+                ),
+                prompt_tokens=usage.get(
+                    "prompt_tokens"
+                ),
+                completion_tokens=usage.get(
+                    "completion_tokens"
+                ),
             )
         except (
             KeyError,
@@ -95,6 +188,4 @@ class SharedModelClient:
             ValueError,
             ValidationError,
         ) as exc:
-            raise ModelClientError(
-                "Shared model returned an invalid response"
-            ) from exc
+            raise ModelClientError.invalid_response() from exc
