@@ -1,114 +1,433 @@
 # GeoAgent Skill Harness
 
-GeoAgent Skill Harness is a CLI-first, local-first, containerized platform for planning controlled geospatial workflows, executing allowlisted GIS tools, deterministically validating results, and saving reproducible reports and traces.
+GeoAgent Skill Harness is a CLI-first, local-first, containerized platform for planning controlled geospatial workflows, executing allowlisted GIS operations, deterministically validating results, and recording reproducible reports and traces.
 
-The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared Ollama/Qwen model runtime on the laptop rather than placing a large model in every agent container.
+The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared local Ollama/Qwen runtime instead of placing a large model inside every agent container.
 
-## Current implementation
+## Current status
 
-Checkpoints 1–6 are complete for the initial vector-to-PostGIS MVP.
+Checkpoints 1–6 and Checkpoint 7A are complete for the initial vector-to-PostGIS vertical slice.
 
-Implemented:
+The implemented workflow is:
 
-- deterministic vector inspection;
+```text
+task request
+→ concise task-specific context
+→ structured Planner plan
+→ deterministic plan policy
+→ exact-plan human approval
+→ typed execution envelope
+→ approval-gated Executor
+→ internal MCP workflow
+→ vector inspection
+→ controlled PostGIS loading
+→ deterministic PostGIS validation
+→ Markdown report and structured trace
+→ deterministic critic evidence
+→ read-only Critic assessment
+```
+
+The system does not allow an LLM to determine whether execution succeeded. Final success is derived only from deterministic validation.
+
+## Implemented capabilities
+
+- GeoJSON, GeoPackage, and Shapefile inspection;
+- trusted input-root path enforcement;
+- structured vector metadata;
 - controlled vector loading into PostGIS;
+- allowlisted database schemas and validated identifiers;
 - deterministic PostGIS validation;
 - Markdown workflow reports;
 - structured, secret-redacted traces;
-- read-only MCP inspection and planning tools;
-- controlled MCP loading and validation tools;
-- shared Ollama OpenAI-compatible client;
+- exact-plan human approval records;
+- SHA-256 plan identity;
+- typed execution envelopes;
+- internal MCP Streamable HTTP transport;
+- approval-gated composite MCP execution;
+- shared Ollama OpenAI-compatible model client;
 - deterministic task-specific context packs;
 - structured, policy-validated Planner Agent;
-- independent hardened planner container.
-- exact-plan human approvals and approval records;
-- typed deterministic execution envelopes;
-- internal Streamable HTTP MCP transport;
-- independent approval-gated Executor Agent;
+- independent Planner container;
+- independent Executor container;
 - deterministic Critic evidence packs;
-- structured Critic Agent using the shared Ollama runtime;
+- schema-constrained Critic Agent;
 - independent read-only Critic container;
+- secret-free GitHub-hosted Python tests;
+- independent GitHub container builds.
 
 Not yet implemented:
 
-- vector-format conversion;
+- `convert_vector`;
 - raster workflows;
-- generalized retries, cancellation, and task queues;
-- multi-workflow scheduling;
-- production authentication and remote deployment;
-- strict Docker-level egress filtering to only the Ollama endpoint;
+- generalized retries and cancellation;
+- resumable workflow state;
+- task queues and scheduling;
+- trace-schema migration;
+- production authentication;
+- multi-user deployment;
+- strict network egress proxying;
+- remote production orchestration.
 
 ## Architecture
 
 ```text
-                           Shared Ollama/Qwen
-                                   ↑
-                                   │ model network
-                                   │
-                         ┌───────────────────┐
-                         │ Planner container │
-                         │ plan only         │
-                         │ no GIS tools      │
-                         │ no PostGIS access │
-                         └───────────────────┘
-                                   │
-                          structured plan
-                                   ↓
-                     Future approval/orchestrator
-                                   │
-                                   ↓
-                         ┌───────────────────┐
-                         │ Executor container│
-                         │ approved MCP only │
-                         └───────────────────┘
-                                   │
-                           internal control
-                                   ↓
-                         ┌───────────────────┐
-                         │ GIS/MCP container │
-                         │ GDAL/GeoPandas    │
-                         │ fixed SQL/tools   │
-                         └───────────────────┘
-                                   │
-                          geoagent-backend
-                                   ↓
-                         External PostGIS
+                              Shared Ollama/Qwen
+                              ↑                 ↑
+                              │ model network   │ model network
+                              │                 │
+                    ┌─────────┴─────────┐ ┌─────┴────────────┐
+                    │  Planner Agent    │ │  Critic Agent    │
+                    │                   │ │                   │
+                    │  context → plan   │ │ evidence → review│
+                    │  no tools         │ │ no tools         │
+                    │  no writes        │ │ no writes        │
+                    │  no PostGIS       │ │ no PostGIS       │
+                    └─────────┬─────────┘ └──────────────────┘
+                              │
+                        structured plan
+                              │
+                    deterministic policy
+                              │
+                      exact-plan approval
+                              │
+                    ┌─────────▼─────────┐
+                    │  Executor Agent   │
+                    │                   │
+                    │ approved composite│
+                    │ MCP workflow only │
+                    │ no direct PostGIS │
+                    │ no Ollama         │
+                    └─────────┬─────────┘
+                              │
+                     internal control network
+                              │
+                    ┌─────────▼─────────┐
+                    │  GIS/MCP service  │
+                    │                   │
+                    │ GDAL / GeoPandas  │
+                    │ allowlisted tools │
+                    │ deterministic     │
+                    │ verifier          │
+                    └─────────┬─────────┘
+                              │
+                    external backend network
+                              │
+                    ┌─────────▼─────────┐
+                    │ External PostGIS  │
+                    │                   │
+                    │ separately managed│
+                    │ persistent storage│
+                    └───────────────────┘
 ```
 
-Planner, executor, and critic are independent logical agents. They share one model runtime but have separate manifests, instructions, mounts, networks, and permissions.
+## Core design
 
-The deterministic verifier is ordinary Python and SQL code, not an LLM agent. A workflow cannot report success until deterministic validation passes.
+### Model
+
+One shared Ollama/Qwen endpoint serves the model-enabled agents.
+
+The Planner and Critic use the same runtime but receive different:
+
+- manifests;
+- instructions;
+- context;
+- schemas;
+- permissions;
+- container mounts.
+
+The Executor and GIS/MCP service do not require direct model access.
+
+### Agent
+
+An agent is a constrained role consisting of:
+
+- manifest;
+- purpose;
+- instructions;
+- trusted context;
+- allowed capabilities;
+- model access where required;
+- deterministic response policy.
+
+An agent is not equivalent to a model. Multiple agents can share one model endpoint.
+
+### Loop
+
+The controlled loop is:
+
+```text
+plan
+→ approve
+→ execute
+→ validate
+→ report
+→ critique
+```
+
+### Harness
+
+The harness owns:
+
+- structured schemas;
+- task context;
+- permissions;
+- plan policy;
+- approval identity;
+- MCP boundaries;
+- redaction;
+- timeouts;
+- errors;
+- reports;
+- traces;
+- deterministic final status.
+
+### Container
+
+Containers isolate role-specific dependencies and permissions.
+
+Planner, Executor, Critic, and GIS/MCP run as separate services.
+
+### Skill
+
+A skill is a reusable, typed, tested GIS workflow with:
+
+- controlled arguments;
+- path policy;
+- permission classification;
+- structured output;
+- deterministic verification;
+- automated tests.
+
+### Verifier
+
+The verifier is deterministic Python and fixed SQL. It is not an LLM agent.
+
+### Trace
+
+A trace is structured evidence about a workflow. It is not a substitute for validation.
+
+## Agent boundaries
+
+### Planner Agent
+
+The Planner:
+
+- receives a concise task-specific context pack;
+- selects only implemented skills;
+- returns structured JSON;
+- describes assumptions and risks;
+- performs no execution.
+
+The Planner has:
+
+- no MCP tools;
+- no shell;
+- no unrestricted SQL;
+- no filesystem writes;
+- no database writes;
+- no PostGIS credentials;
+- no GIS-data mounts;
+- no report or trace mounts.
+
+Planner output is accepted only after:
+
+1. JSON parsing;
+2. Pydantic schema validation;
+3. implemented-skill allowlist validation;
+4. required-argument validation;
+5. path-policy validation;
+6. schema and identifier validation;
+7. shell, SQL, secret, and destructive-operation rejection;
+8. workflow-order validation;
+9. approval-policy validation;
+10. deterministic-validation requirement checks;
+11. rejection of execution or validation claims.
+
+### Executor Agent
+
+The Executor:
+
+- loads a saved Planner result;
+- loads a human approval record;
+- verifies the exact plan digest;
+- verifies the approved step scope;
+- builds a typed execution envelope;
+- calls one composite approval-gated MCP tool.
+
+The Executor has:
+
+- no Ollama access;
+- no arbitrary shell;
+- no unrestricted SQL;
+- no direct PostGIS connection;
+- no PostGIS password;
+- no GIS-data mount;
+- no report or trace write mount;
+- no raw PostGIS loader tool.
+
+The Executor cannot modify the approved plan or add new tool arguments.
+
+### Critic Agent
+
+The Critic:
+
+- reads a deterministic evidence pack;
+- identifies unresolved risks;
+- explains failed or incomplete checks;
+- returns schema-constrained JSON;
+- performs no execution.
+
+The Critic has:
+
+- no MCP access;
+- no PostGIS access;
+- no shell;
+- no unrestricted SQL;
+- no filesystem writes;
+- no database writes;
+- read-only trace and report mounts;
+- model-network access only.
+
+The Critic cannot change `deterministic_status`.
+
+For `validated_success`, it must return:
+
+```json
+{
+  "conclusion": "supported",
+  "success_claimed": true,
+  "edits_performed": false,
+  "database_actions_performed": false
+}
+```
+
+For failed or incomplete evidence, it cannot claim success.
+
+## Network boundaries
+
+| Component | Model network | Control network | PostGIS backend |
+|---|---:|---:|---:|
+| Planner | Yes | No | No |
+| Executor | No | Yes | No |
+| Critic | Yes | No | No |
+| GIS/MCP | No | Yes | Yes |
+| External PostGIS | No | No | Yes |
+
+The MCP HTTP endpoint is available only on the internal Docker control network and is not published to the host.
+
+## Filesystem boundaries
+
+| Component | Filesystem access |
+|---|---|
+| Planner | Manifest and context read-only |
+| Executor | Manifest, plan, and approval read-only |
+| Critic | Manifest, context, traces, and reports read-only |
+| GIS/MCP | Inputs read-only; approved report and trace roots writable |
+| PostGIS | Separately managed persistent storage |
+
+Project-owned containers:
+
+- run as the non-root `geoagent` user;
+- use read-only root filesystems where applicable;
+- drop all Linux capabilities;
+- enable `no-new-privileges`;
+- do not mount the Docker socket.
 
 ## Repository structure
 
 ```text
-approvals/                      exact-plan approval policy and records
-critic/                         evidence builder and Critic Agent
-executor/                       approved execution handoff and runtime
-planner/                        structured Planner Agent
-plans/                          ignored structured Planner results
-agents/                         agent manifests and permissions
-context/                        concise trusted project context
-data/input/                     read-only source datasets
-data/output/                    approved generated data
-docker/agent/                   lightweight agent image
-docker/gis-tools/               isolated GIS and MCP image
-reports/                        generated Markdown reports
-scripts/                        protocol and model smoke tests
-skills/                         human-readable skill contracts
-src/geoagent_harness/           installable Python package
-context_pack/                   deterministic context selection
-mcp_server/                     allowlisted MCP interface
-model/                          shared Ollama-compatible client
-orchestrator/                   deterministic workflow orchestration
-planner/                        structured Planner Agent
-skills/                         executable GIS skill implementations
-verifier/                       deterministic correctness checks
-tests/                          automated tests
-traces/                         structured execution traces
+geoagent-skill-harness/
+├── .github/
+│   └── workflows/
+│       ├── test.yaml
+│       └── container-build.yaml
+│
+├── agents/
+│   ├── planner/
+│   │   └── manifest.yaml
+│   ├── executor/
+│   │   └── manifest.yaml
+│   └── critic/
+│       └── manifest.yaml
+│
+├── approvals/
+│   └── local runtime approval records
+│
+├── context/
+│   ├── PROJECT_SUMMARY.md
+│   ├── ARCHITECTURE.md
+│   ├── CURRENT_STATUS.md
+│   ├── DATASET_CATALOG.json
+│   ├── SKILLS_INDEX.yaml
+│   └── DECISIONS.jsonl
+│
+├── data/
+│   ├── input/
+│   └── output/
+│
+├── docker/
+│   ├── agent/
+│   │   └── Dockerfile
+│   └── gis-tools/
+│       └── Dockerfile
+│
+├── plans/
+│   └── local structured Planner results
+│
+├── reports/
+│   └── generated Markdown reports
+│
+├── scripts/
+│   ├── mcp_smoke.py
+│   ├── ollama_smoke.py
+│   └── related protocol checks
+│
+├── skills/
+│   └── human-readable skill contracts
+│
+├── src/
+│   └── geoagent_harness/
+│       ├── approvals/
+│       ├── context_pack/
+│       ├── critic/
+│       ├── executor/
+│       ├── mcp_client/
+│       ├── mcp_server/
+│       ├── model/
+│       ├── orchestrator/
+│       ├── planner/
+│       ├── skills/
+│       ├── verifier/
+│       ├── agent_manifest.py
+│       ├── cli.py
+│       ├── reporting.py
+│       ├── schemas.py
+│       └── trace.py
+│
+├── tests/
+├── traces/
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── compose.yaml
+├── Makefile
+├── pyproject.toml
+└── README.md
 ```
 
-The `src/` layout separates importable package code from repository tooling. After installation, imports use `geoagent_harness`, not `src.geoagent_harness`.
+The `src/` layout separates importable package code from repository configuration and tooling.
+
+After installation, imports use:
+
+```python
+from geoagent_harness...
+```
+
+not:
+
+```python
+from src.geoagent_harness...
+```
 
 ## Requirements
 
@@ -116,47 +435,84 @@ Development environment:
 
 - Ubuntu WSL;
 - Python 3.11 or newer;
+- Python 3.12 recommended for parity with CI;
 - Docker Desktop with WSL integration;
-- an existing PostGIS container;
+- an externally managed PostGIS container;
 - Ollama running on the laptop;
-- an installed local model such as `qwen3:4b-instruct`.
+- a local Qwen model such as `qwen3:4b-instruct`.
 
 Recommended Ubuntu packages:
 
 ```bash
 sudo apt update
-sudo apt install -y git make curl jq python3 python3-venv python3-pip
+
+sudo apt install -y \
+  git \
+  make \
+  curl \
+  jq \
+  ripgrep \
+  python3 \
+  python3-pip \
+  python3-venv \
+  gh
 ```
 
-Keep the repository in the WSL Linux filesystem, for example:
+Keep the repository in the WSL Linux filesystem:
 
 ```text
 ~/projects/geoagent-skill-harness
 ```
 
-## Installation
+Using the Linux filesystem generally performs better and avoids Windows-mounted filesystem permission differences.
+
+## Local installation
+
+Create the virtual environment:
 
 ```bash
 python3 -m venv .venv
+```
+
+Upgrade pip:
+
+```bash
 .venv/bin/python -m pip install --upgrade pip
+```
+
+Install development dependencies:
+
+```bash
 .venv/bin/python -m pip install -e ".[dev]"
 ```
 
-Equivalent Make target:
+Equivalent Make command:
 
 ```bash
 make install
 ```
 
+Verify dependency consistency:
+
+```bash
+.venv/bin/python -m pip check
+```
+
+Run tests:
+
+```bash
+.venv/bin/pytest
+```
+
 ## Environment configuration
 
-Create the local configuration:
+Create local configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-Example shared-model settings:
+Recommended model configuration for Docker containers:
 
 ```dotenv
 MODEL_PROVIDER=ollama
@@ -166,13 +522,42 @@ MODEL_TIMEOUT_SECONDS=120
 MODEL_MAX_TOKENS=1024
 ```
 
-`host.docker.internal` is used by containers. A command running directly in WSL can temporarily override it with:
+Keep `/v1` because the shared client uses Ollama’s OpenAI-compatible endpoint.
 
-```bash
-MODEL_BASE_URL=http://127.0.0.1:11434/v1
+### WSL versus Docker model URL
+
+A process running directly in WSL normally uses:
+
+```text
+http://127.0.0.1:11434/v1
 ```
 
-Database write controls remain fail-closed:
+A Docker container uses:
+
+```text
+http://host.docker.internal:11434/v1
+```
+
+Use a one-command override for WSL:
+
+```bash
+MODEL_BASE_URL=http://127.0.0.1:11434/v1 \
+  .venv/bin/geoagent plan-task \
+  --request "Inspect the approved sample dataset." \
+  --pretty
+```
+
+Do not permanently export the WSL URL before running Docker Compose. Shell variables override `.env`, and `127.0.0.1` inside a container refers to the container itself.
+
+Remove a temporary exported override with:
+
+```bash
+unset MODEL_BASE_URL
+```
+
+### Write policy
+
+Writes remain disabled by default:
 
 ```dotenv
 ENABLE_WRITE_TOOLS=false
@@ -180,118 +565,111 @@ ALLOW_OVERWRITE=false
 ALLOWED_SCHEMAS=agent_sandbox
 ```
 
-The PostGIS password must remain in:
+Write enablement does not replace human approval. Controlled execution requires both:
+
+```text
+valid exact-plan approval
+AND
+ENABLE_WRITE_TOOLS=true
+```
+
+Return write tools to disabled after a controlled execution.
+
+### PostGIS secret
+
+The PostGIS password belongs in:
 
 ```text
 .secrets/postgis_password
 ```
 
-It must not be placed in prompts, source files, reports, traces, Git, or `.env.example`.
+It must not be placed in:
+
+- `.env.example`;
+- source code;
+- model prompts;
+- plans;
+- approval records;
+- reports;
+- traces;
+- Git;
+- GitHub Actions secrets for offline CI.
 
 ## External PostGIS
 
 This repository does not create, stop, delete, or own PostGIS.
 
-The existing PostGIS container must be attached to the external Docker network:
+The external container must join:
 
 ```text
 geoagent-backend
 ```
 
-The network name is configured with:
+Configure the network name with:
 
 ```dotenv
 GEOAGENT_BACKEND_NETWORK=geoagent-backend
 ```
 
-PostGIS data persistence belongs to the separately managed PostGIS/GeoServer Compose project.
+The PostGIS service and storage belong to the separately managed PostGIS/GeoServer Compose project.
 
-## Tests and commands
-
-Run the complete automated suite:
+Verify the external network:
 
 ```bash
-make test
+docker network inspect geoagent-backend
 ```
 
-Inspect the sample vector:
+Verify the PostGIS container:
 
 ```bash
-make inspect
+docker ps --filter name=postgis
 ```
 
-Validate Compose configuration:
+Database persistence, backup, restore, roles, databases, and PostGIS extension initialization remain responsibilities of the external PostGIS deployment.
 
-```bash
-make config
-```
+## Implemented skills
 
-Build container images:
+### `inspect_vector`
 
-```bash
-make build
-```
+Supported inputs:
 
-Validate the three agent manifests:
+- GeoJSON;
+- GeoPackage;
+- Shapefile.
 
-```bash
-make agent-info
-```
+Returned metadata:
 
-Run the MCP protocol smoke test:
+- driver;
+- layer names;
+- CRS;
+- geometry type;
+- feature count;
+- fields;
+- extent.
 
-```bash
-make mcp-smoke
-```
+The skill rejects paths outside the trusted input root and does not execute arbitrary shell commands.
 
-Run the independent Planner Agent container:
+### `load_vector_to_postgis`
 
-```bash
-make planner-smoke
-```
+The loader:
 
-The planner smoke test creates a plan only. It does not load PostGIS, invoke MCP execution tools, write reports, or modify datasets.
+- accepts an approved source path;
+- accepts a selected source layer;
+- validates schema and table identifiers;
+- restricts targets to allowlisted schemas;
+- creates a new table;
+- uses controlled library and database operations;
+- rejects disabled writes;
+- exposes no arbitrary SQL.
 
-## Planner Agent security boundary
+Existing tables are not silently overwritten.
 
-The planner container:
+### `validate_postgis_layer`
 
-- runs as the non-root `geoagent` user;
-- has a read-only root filesystem;
-- drops all Linux capabilities;
-- enables `no-new-privileges`;
-- joins only the model network;
-- receives no PostGIS variables or password;
-- receives no GIS data, report, trace, output, or Docker socket mounts;
-- mounts its manifest and project context read-only;
-- has no executable tools in its manifest.
-
-Model output is untrusted. A plan is accepted only after:
-
-1. JSON parsing;
-2. Pydantic schema validation;
-3. implemented-skill allowlist validation;
-4. required-argument validation;
-5. shell, SQL, secret, and destructive-operation rejection;
-6. approval-policy validation;
-7. workflow-order validation;
-8. deterministic-validation requirement checks;
-9. rejection of execution or validation claims.
-
-## Implemented vector-to-PostGIS workflow
-
-The controlled deterministic workflow can:
-
-1. inspect an approved GeoJSON, GeoPackage, or Shapefile;
-2. load a selected vector layer into a new table in an approved schema;
-3. validate the resulting PostGIS layer;
-4. generate a Markdown report;
-5. save a structured, redacted trace.
-
-PostGIS validation checks:
+The deterministic verifier checks:
 
 - table existence;
-- geometry column existence;
+- geometry-column existence;
 - row count;
 - SRID;
 - declared and actual geometry type;
@@ -300,61 +678,63 @@ PostGIS validation checks:
 - extent;
 - optional expected values.
 
-Writes are disabled by default. Existing tables and artifacts cannot be overwritten without an approval design that is not yet implemented. Deletion is blocked in the MVP.
+Validation uses fixed SQL and validated identifiers.
 
-## Security rules
+### `generate_report`
 
-- No unrestricted shell tool.
-- No unrestricted SQL tool.
-- Source inputs are read-only.
-- Output writes are limited to designated roots.
-- Database credentials are file-mounted and redacted.
-- Model output never determines success.
-- Destructive file, table, schema, and database deletion is unavailable.
-- Existing artifacts are not silently overwritten.
-- Network access is limited by container role.
-- PostGIS validation is deterministic and read-only.
+Reports are generated deterministically from structured workflow evidence.
 
-See `SECURITY.md` for additional trust-boundary information.
+### `convert_vector`
 
+Status: planned.
 
-## Deterministic execution handoff
-
-An approved plan is converted into a typed execution envelope before any MCP
-tool can be called.
-
-The current envelope supports only:
-
-```text
-inspect_vector
-→ load_vector_to_postgis
-→ validate_postgis_layer
-→ generate_report
+It should eventually support controlled conversion among GeoJSON, GeoPackage, and Shapefile while preserving path, CRS, overwrite, and verification policy.
 
 ## Human approval boundary
 
-Validated plans can be saved beneath `plans/`. Approval records are stored
-beneath `approvals/`. Runtime JSON files in both directories are ignored by
-Git.
+Validated plans can be saved beneath:
 
-An approval contains:
+```text
+plans/
+```
+
+Approval records are stored beneath:
+
+```text
+approvals/
+```
+
+Runtime files in these directories are ignored by Git.
+
+An approval records:
 
 - the SHA-256 digest of the exact canonical plan;
-- approved step IDs;
+- explicitly approved step IDs;
 - approved or denied decision;
-- approver and reason;
+- approver;
+- reason;
 - optional expiration;
 - redacted human corrections.
 
-An approval does not execute a plan or enable write tools. If any plan field,
-argument, target table, step, or policy value changes, the digest changes and
-the previous approval becomes invalid.
+Any plan change changes the digest and invalidates the previous approval.
 
-Approval commands:
+An approval does not:
+
+- execute a plan;
+- enable write tools;
+- permit overwrite;
+- permit deletion;
+- authorize additional arguments.
+
+Example commands:
 
 ```bash
-geoagent plan-digest plans/example-plan.json --pretty
+geoagent plan-digest \
+  plans/example-plan.json \
+  --pretty
+```
 
+```bash
 geoagent approve-plan \
   plans/example-plan.json \
   --step step_2 \
@@ -363,79 +743,524 @@ geoagent approve-plan \
   --reason "Approved controlled writes." \
   --valid-for-minutes 60 \
   --pretty
+```
 
+```bash
 geoagent verify-plan-approval \
   plans/example-plan.json \
-  approvals/approval-example.json \
+  approvals/example-approval.json \
   --pretty
+```
 
-## Executor Agent and approved execution
+## Execution boundary
 
-The Executor runs independently from the Planner and GIS containers.
+An approved plan is translated into a typed execution envelope before MCP execution.
 
-It receives read-only access to:
+The current envelope accepts only this sequence:
 
-- one saved Planner result;
-- one append-only approval record;
-- its own agent manifest.
+```text
+inspect_vector
+→ load_vector_to_postgis
+→ validate_postgis_layer
+→ generate_report
+```
 
-It has access only to Docker’s internal control network. It receives no
-Ollama configuration, PostGIS network, database credentials, GIS data,
-artifact mounts, or Docker socket.
+The envelope rejects:
 
-Before execution, both Executor and MCP independently verify:
+- changed paths;
+- changed source layers;
+- changed schemas;
+- changed target tables;
+- unapproved arguments;
+- unsafe identifiers;
+- changed task IDs;
+- missing required steps;
+- changed step order;
+- incomplete approval;
+- expired approval;
+- denied approval;
+- preexisting execution claims.
 
-- the exact plan digest;
-- approval decision and expiration;
-- approved step scope;
-- fixed skill order;
-- tool and argument allowlists;
-- input path and schema policy;
-- consistent loading and validation targets;
-- the complete execution envelope.
-
-Raw `load_vector_to_postgis` is not exposed through MCP. The only write-capable
-network tool is:
+The Executor calls only:
 
 ```text
 run_approved_vector_postgis_workflow
-It remains unavailable while ENABLE_WRITE_TOOLS=false.
+```
 
-A completed load is not success. Success requires deterministic PostGIS
-validation and the final status validated_success.
+The GIS/MCP service independently reloads and verifies the plan, approval, digest, schema, step scope, and execution envelope before database execution.
 
-## Known limitations
+## MCP boundary
 
-- The Planner Agent can create plans but cannot execute them.
-- The Executor and Critic runtime loops are not implemented.
-- Human approvals are not yet stored as structured records.
-- Planner skill selection is based on deterministic keyword relevance.
-- The local model may vary its wording even at temperature zero.
-- Docker Compose network isolation is not a complete host firewall.
-- Shapefiles require their related sidecar files.
-- The external PostGIS lifecycle remains outside this repository.
-- The prototype currently targets one local user and one active workflow.
+The MCP server supports:
 
-```markdown
-## Critic Agent
+- STDIO for local protocol tests;
+- Streamable HTTP for internal container communication.
 
-The Critic Agent reviews completed workflow evidence. It does not validate
-PostGIS directly and cannot change the deterministic workflow status.
+The network-visible allowlist is:
 
-The deterministic evidence builder:
+```text
+health_check
+inspect_vector_dataset
+plan_load_vector_to_postgis
+validate_postgis_layer
+run_approved_vector_postgis_workflow
+```
 
-- accepts only JSON traces beneath the approved trace root;
-- accepts only Markdown reports beneath the approved report root;
-- rejects path traversal and oversized files;
+The raw PostGIS loader is not exposed through the Executor-facing MCP boundary.
+
+The Streamable HTTP endpoint:
+
+- uses the internal Docker control network;
+- publishes no host port;
+- validates expected Host and Origin values;
+- returns stateless JSON responses;
+- retains STDIO compatibility for local tests.
+
+## Deterministic final status
+
+Possible workflow outcomes include:
+
+```text
+validated_success
+validation_failed
+execution_failed
+```
+
+A workflow can return `validated_success` only when deterministic validation passes.
+
+The Planner, Executor, Critic, reports, and model responses cannot override that decision.
+
+## Reports and traces
+
+A completed workflow records:
+
+- task ID;
+- original request;
+- context references;
+- selected skills;
+- plan SHA-256;
+- approval ID;
+- approved step IDs;
+- redacted tool arguments;
+- tool results;
+- deterministic validation results;
+- artifacts;
+- warnings;
+- final status;
+- human corrections;
+- timestamps;
+- software and container versions.
+
+Reports and traces:
+
+- use trusted output roots;
+- redact secrets;
+- reject unsafe task IDs;
+- cannot be silently overwritten;
+- are generated only from structured data.
+
+## Critic evidence
+
+Before calling the Critic model, the harness builds a deterministic evidence pack.
+
+It:
+
+- accepts only JSON traces beneath the trusted trace root;
+- accepts only Markdown reports beneath the trusted report root;
+- rejects path traversal;
+- rejects oversized files;
 - validates the trace schema;
-- redacts secrets;
-- checks approval and validation consistency;
-- records SHA-256 references to its source evidence;
-- produces a concise task-specific evidence pack.
+- checks status and validation consistency;
+- checks approval completeness;
+- redacts structured and textual secrets;
+- records source SHA-256 hashes;
+- identifies missing or inconsistent evidence.
 
-The Critic model response must conform to a strict Pydantic schema. A
-deterministic policy rejects any response that changes the status, contradicts
-the required conclusion, or incorrectly claims success.
+The model receives this concise evidence pack rather than unrestricted project files or complete project history.
+
+## Common commands
+
+Install dependencies:
+
+```bash
+make install
+```
+
+Run the complete local test suite:
+
+```bash
+make test
+```
+
+Inspect sample data:
+
+```bash
+make inspect
+```
+
+Validate Compose:
+
+```bash
+make config
+```
+
+Build all project images:
+
+```bash
+make build
+```
+
+Validate agent manifests:
+
+```bash
+make agent-info
+```
+
+Run the local MCP protocol smoke test:
+
+```bash
+make mcp-smoke
+```
+
+Run the Planner container:
+
+```bash
+make planner-smoke
+```
+
+Run the Critic container using the default accepted evidence:
 
 ```bash
 make critic-container
+```
+
+Run the Critic for another existing task:
+
+```bash
+make critic-container \
+  CRITIC_TASK_ID=actual-task-id
+```
+
+Run complete Checkpoint 6 acceptance:
+
+```bash
+make checkpoint6-accept \
+  CRITIC_TASK_ID=checkpoint5e-points-20260809a
+```
+
+## Continuous integration
+
+GitHub Actions separates offline verification from laptop-dependent integration.
+
+### Offline Python tests
+
+`.github/workflows/test.yaml` runs on:
+
+```text
+Ubuntu 24.04
+Python 3.12
+```
+
+It:
+
+- installs `.[dev]`;
+- runs `pip check`;
+- prints diagnostic dependency versions;
+- runs all offline pytest tests;
+- supplies no secrets;
+- does not call Ollama;
+- does not connect to PostGIS;
+- creates no external Docker networks.
+
+Typer/Rich help tests call `click.unstyle()` before asserting option names so terminal color formatting does not make tests environment-dependent.
+
+### Container builds
+
+`.github/workflows/container-build.yaml` independently builds:
+
+```text
+docker/agent/Dockerfile
+docker/gis-tools/Dockerfile
+```
+
+It:
+
+- uses BuildKit caching;
+- does not push images;
+- loads each image for validation;
+- verifies the configured runtime user is `geoagent`;
+- runs the installed CLI;
+- supplies no PostGIS secret;
+- makes no Ollama request;
+- makes no PostGIS connection.
+
+### Local integration
+
+These commands intentionally remain outside GitHub-hosted CI:
+
+```bash
+make planner-smoke
+make critic-container
+make checkpoint6-accept
+```
+
+They may require:
+
+- Ollama;
+- the selected Qwen model;
+- Docker Desktop;
+- external PostGIS;
+- `geoagent-backend`;
+- local secret files;
+- existing plans, approvals, traces, and reports.
+
+A future secured self-hosted runner may run integration tests. Normal GitHub-hosted CI remains secret-free and independent of the developer laptop.
+
+## GitHub CLI
+
+Authenticate interactively from WSL:
+
+```bash
+gh auth login \
+  --hostname github.com \
+  --git-protocol https \
+  --web
+```
+
+Check authentication:
+
+```bash
+gh auth status
+```
+
+List recent workflow runs:
+
+```bash
+gh run list --limit 10
+```
+
+Watch the newest test workflow:
+
+```bash
+GEOAGENT_RUN_ID="$(
+  gh run list \
+    --workflow test.yaml \
+    --limit 1 \
+    --json databaseId \
+    --jq '.[0].databaseId'
+)"
+
+gh run watch "$GEOAGENT_RUN_ID" \
+  --compact \
+  --exit-status
+```
+
+View a failed workflow:
+
+```bash
+gh run view RUN_ID --log-failed
+```
+
+Never place GitHub tokens in commands, documentation, `.env`, or chat messages.
+
+## Security rules
+
+- No unrestricted shell tool.
+- No unrestricted SQL tool.
+- Model output is untrusted.
+- Planner and Critic have no executable tools.
+- Executor calls only the approved composite MCP workflow.
+- Inputs are read-only.
+- Writes are restricted to designated roots.
+- PostGIS schemas and identifiers are validated.
+- Credentials are mounted from secret files.
+- Credentials are redacted from prompts, logs, reports, and traces.
+- Existing tables and artifacts are not silently overwritten.
+- File, table, schema, and database deletion is blocked.
+- Human approval is bound to an exact plan digest.
+- MCP HTTP is internal and has no host port.
+- Containers run as non-root.
+- Containers drop all Linux capabilities.
+- Containers do not mount the Docker socket.
+- Deterministic validation exclusively determines success.
+
+## Automated tests
+
+The test suite covers:
+
+- agent manifests;
+- context selection and redaction;
+- model settings and client behavior;
+- Planner schema and policy;
+- approval identity and expiration;
+- execution-envelope translation;
+- Executor policy and runtime;
+- MCP tool allowlists;
+- MCP transport security;
+- vector inspection;
+- controlled loading;
+- PostGIS validation;
+- report generation;
+- trace generation and redaction;
+- Critic evidence;
+- Critic model policy;
+- container security;
+- CLI registration;
+- path and identifier rejection.
+
+Run:
+
+```bash
+.venv/bin/pytest
+```
+
+Current verified local and GitHub baseline:
+
+```text
+234 passed
+```
+
+The exact count may increase as new tests are added. Zero failures is the acceptance requirement.
+
+## Development process
+
+Work through one checkpoint at a time.
+
+Every checkpoint should include:
+
+1. immediate goal;
+2. files created or modified;
+3. complete code;
+4. exact commands;
+5. expected output;
+6. automated tests;
+7. manual verification;
+8. README and `CURRENT_STATUS.md` updates;
+9. known limitations;
+10. Git review and commit;
+11. no claim that commands passed until their output is provided.
+
+## Known limitations
+
+- Only the vector-to-PostGIS vertical slice is complete.
+- `convert_vector` is not implemented.
+- Raster processing is not implemented.
+- Critic output is returned in memory rather than saved separately.
+- Plans and approvals are local runtime files.
+- PostGIS is externally managed.
+- Ollama is externally managed.
+- Write enablement is controlled operationally through environment settings.
+- Existing tables and artifacts cannot be overwritten.
+- Deletion is unavailable.
+- General retries and cancellation are not implemented.
+- Interrupted workflows are not yet resumable through a state machine.
+- No task queue exists.
+- No production authentication exists.
+- No multi-user deployment exists.
+- Docker model-network egress is not restricted through a dedicated proxy.
+- Real integration tests depend on the local development environment.
+
+## Roadmap
+
+### Checkpoint 7B — Structured failure handling
+
+Planned:
+
+- stable failure categories;
+- retryable versus permanent classification;
+- bounded execution timeouts;
+- model and MCP timeout policy;
+- cancellation;
+- retry budgets;
+- failure-state traces;
+- stable CLI exit codes;
+- safe interruption recovery;
+- no automatic retry of database writes without idempotency guarantees.
+
+### Checkpoint 7C — Workflow state and resumption
+
+Planned states:
+
+```text
+context_built
+planned
+awaiting_approval
+approved
+executing
+validating
+reporting
+critic_review
+completed
+failed
+```
+
+The workflow must not skip approval or repeat a completed write after restart.
+
+### Checkpoint 7D — Schema versioning
+
+Planned:
+
+- plan schema version;
+- approval schema version;
+- execution-envelope schema version;
+- trace schema version;
+- critic-evidence schema version;
+- migration policy;
+- compatibility tests;
+- unsupported-version rejection.
+
+### Checkpoint 8 — `convert_vector`
+
+Planned:
+
+- controlled format conversion;
+- trusted input and output roots;
+- explicit target format;
+- CRS preservation or explicit transformation;
+- safe multi-layer handling;
+- deterministic output inspection;
+- trace integration;
+- overwrite approval policy;
+- no arbitrary GDAL command strings.
+
+### Later GIS skills
+
+Potential additions:
+
+- vector reprojection;
+- geometry repair;
+- clip;
+- dissolve;
+- spatial join;
+- buffer;
+- simplify;
+- area and length calculations;
+- raster inspection;
+- raster reprojection;
+- raster clipping;
+- zonal statistics;
+- vector-to-raster;
+- raster-to-vector.
+
+Every new skill must include typed schemas, path policies, permissions, deterministic verification, sample data, automated tests, and trace integration.
+
+## Decision principles
+
+When extending the project:
+
+- preserve the three-agent separation;
+- continue using one shared model runtime;
+- keep PostGIS externally managed;
+- keep execution behind typed MCP tools;
+- keep approval bound to exact plan identity;
+- keep model output untrusted;
+- keep deterministic validation as the success gate;
+- keep hosted CI secret-free;
+- avoid adding broad capabilities merely for convenience;
+- prefer small, tested vertical checkpoints.
+
+## License
+
+A license has not yet been selected.
+
+Before accepting external contributions or distributing the project broadly, add an explicit open-source or proprietary license.
