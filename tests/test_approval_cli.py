@@ -1,5 +1,6 @@
 """Tests for approval CLI registration."""
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
@@ -12,9 +13,10 @@ def test_plan_digest_command_is_registered() -> None:
         app,
         ["plan-digest", "--help"],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--plan-root" in result.stdout
+    assert "--plan-root" in output
 
 
 def test_approve_plan_command_is_registered() -> None:
@@ -22,11 +24,12 @@ def test_approve_plan_command_is_registered() -> None:
         app,
         ["approve-plan", "--help"],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--step" in result.stdout
-    assert "--approver" in result.stdout
-    assert "--reason" in result.stdout
+    assert "--step" in output
+    assert "--approver" in output
+    assert "--reason" in output
 
 
 def test_verify_approval_command_is_registered() -> None:
@@ -34,6 +37,7 @@ def test_verify_approval_command_is_registered() -> None:
         app,
         ["verify-plan-approval", "--help"],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--approval-root" in result.stdout
+    assert "--approval-root" in output

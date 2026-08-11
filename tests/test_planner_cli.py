@@ -1,5 +1,6 @@
 """Tests for Planner Agent CLI registration."""
 
+from click import unstyle
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
@@ -15,8 +16,9 @@ def test_plan_task_command_is_registered() -> None:
             "--help",
         ],
     )
+    output = unstyle(result.stdout)
 
     assert result.exit_code == 0
-    assert "--request" in result.stdout
-    assert "--project-root" in result.stdout
-    assert "--agents-root" in result.stdout
+    assert "--request" in output
+    assert "--project-root" in output
+    assert "--agents-root" in output
