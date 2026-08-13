@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Literal
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -18,38 +17,6 @@ from geoagent_harness.redaction import (
 )
 
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,80}$")
-
-# _SECRET_KEYS = frozenset(
-#     {
-#         "password",
-#         "postgres_password",
-#         "database_url",
-#         "connection_string",
-#         "token",
-#         "api_key",
-#         "secret",
-#     }
-# )
-
-# _ASSIGNMENT_PATTERN = re.compile(
-#     r"(?i)\b("
-#     r"(?:postgres_)?password"
-#     r"|database_url"
-#     r"|connection_string"
-#     r"|(?:ollama_)?api[_-]?key"
-#     r"|(?:access|auth)[_-]?token"
-#     r"|token"
-#     r"|secret"
-#     r")"
-#     r"\s*[:=]\s*"
-#     r"[^\s,;]+"
-# )
-
-# _DATABASE_URL_PATTERN = re.compile(
-#     r"(?i)(postgres(?:ql)?(?:\+\w+)?://[^:\s/]+:)"
-#     r"[^@\s/]+(@)"
-# )
-
 
 class TraceError(RuntimeError):
     """Raised when a trace cannot be safely written."""
@@ -66,6 +33,8 @@ class WorkflowTrace(BaseModel):
     """Complete structured execution record."""
 
     model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
 
     task_id: str
     original_request: str

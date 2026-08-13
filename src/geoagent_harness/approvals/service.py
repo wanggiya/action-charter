@@ -25,6 +25,12 @@ from geoagent_harness.planner.schemas import (
 )
 from geoagent_harness.trace import redact_text
 
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    SchemaVersionError,
+    require_supported_schema,
+)
+
 MAX_PLAN_FILE_BYTES = 1_000_000
 
 
@@ -99,10 +105,21 @@ def load_planner_result(
         payload: dict[str, Any] = json.loads(
             safe_path.read_text(encoding="utf-8")
         )
+
+        require_supported_schema(
+            payload,
+            artifact_type=ArtifactType.WORKFLOW_PLAN,
+            version_path=(
+                "plan",
+                "schema_version",
+            ),
+        )
+
         return PlannerResult.model_validate(payload)
     except (
         json.JSONDecodeError,
         OSError,
+        SchemaVersionError,
         ValidationError,
     ) as exc:
         raise ApprovalError(
@@ -278,11 +295,20 @@ def load_approval(
     )
 
     try:
-        return ApprovalRecord.model_validate_json(
+        payload: dict[str, Any] = json.loads(
             safe_path.read_text(encoding="utf-8")
         )
+
+        require_supported_schema(
+            payload,
+            artifact_type=ArtifactType.APPROVAL_RECORD,
+        )
+
+        return ApprovalRecord.model_validate(payload)
     except (
+        json.JSONDecodeError,
         OSError,
+        SchemaVersionError,
         ValidationError,
     ) as exc:
         raise ApprovalError(

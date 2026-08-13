@@ -6,7 +6,7 @@ The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared loca
 
 ## Current status
 
-Checkpoints 1–7C are complete for the initial vector-to-PostGIS vertical slice.
+Checkpoints 1–7D are complete for the initial vector-to-PostGIS vertical slice.
 
 The implemented workflow is:
 
@@ -1393,18 +1393,175 @@ sha256sum \
 - The production Planner, approval, Executor, and verifier flow does not yet update durable state automatically at every boundary.
 - Recovery after manual review requires creating an explicitly approved follow-up action.
 
-### Checkpoint 7D — Schema versioning
+### Checkpoint 7D — Schema versioning and compatibility
 
-Planned:
+Status: implemented.
 
-- plan schema version;
-- approval schema version;
-- execution-envelope schema version;
-- trace schema version;
-- critic-evidence schema version;
-- migration policy;
-- compatibility tests;
-- unsupported-version rejection.
+GeoAgent artifacts use explicit schema versions governed by one central registry. Artifact loaders check compatibility before performing full Pydantic validation.
+
+#### Registered artifact types
+
+The registry currently covers:
+
+- `context_pack`;
+- `workflow_plan`;
+- `approval_record`;
+- `execution_envelope`;
+- `failure_record`;
+- `workflow_trace`;
+- `critic_assessment`;
+- `critic_evidence_pack`;
+- `workflow_state`;
+- `resume_assessment`.
+
+All registered artifacts currently use:
+
+```text
+current version: 1.0
+writable version: 1.0
+supported read versions: 1.0
+registered migration sources: none
+```
+
+#### Compatibility dispositions
+
+| Disposition | Meaning |
+|---|---|
+| `current` | The artifact uses the current readable and writable version |
+| `supported_read` | The artifact can be read, but new writes use another version |
+| `migration_required` | A registered explicit migration is required |
+| `unsupported_older` | The older version is not readable and has no registered migration |
+| `unsupported_future` | The artifact was created by a newer unsupported schema |
+| `invalid_version` | The version does not use the required `major.minor` format |
+
+#### Version-aware loading
+
+Persisted artifact loading follows this order:
+
+```text
+read bounded input
+→ parse JSON
+→ require explicit schema_version
+→ consult central registry
+→ reject unreadable version
+→ validate with the artifact Pydantic schema
+```
+
+For Planner results, the version is nested at:
+
+```text
+plan.schema_version
+```
+
+Other registered persisted artifacts currently use a top-level field:
+
+```json
+{
+  "schema_version": "1.0"
+}
+```
+
+Protected boundaries include:
+
+- saved Planner results;
+- approval records;
+- workflow traces used by the Critic;
+- durable workflow-state files;
+- incoming execution envelopes;
+- structured Critic model responses.
+
+Missing versions do not receive an implicit default when loading external or persisted artifacts. They fail closed before normal schema validation.
+
+#### Inspect schema policies
+
+```bash
+geoagent schema-policies --pretty
+```
+
+This command displays the registry without modifying it.
+
+#### Assess compatibility
+
+```bash
+geoagent assess-schema-compatibility \
+  workflow_trace \
+  1.0 \
+  --pretty
+```
+
+A current version returns exit code `0`:
+
+```json
+{
+  "artifact_type": "workflow_trace",
+  "artifact_version": "1.0",
+  "disposition": "current",
+  "readable": true,
+  "writable": true,
+  "migration_required": false,
+  "artifact_modified": false
+}
+```
+
+An unsupported version returns exit code `1` while still emitting a structured assessment:
+
+```bash
+geoagent assess-schema-compatibility \
+  workflow_trace \
+  2.0 \
+  --pretty
+```
+
+An unknown artifact type returns exit code `2`.
+
+#### Assess migration requirements
+
+```bash
+geoagent assess-schema-migration \
+  workflow_state \
+  2.0 \
+  --pretty
+```
+
+The assessment is read-only and reports:
+
+```json
+{
+  "source_version": "2.0",
+  "target_version": "1.0",
+  "compatibility": "unsupported_future",
+  "migration_available": false,
+  "manual_review_required": true,
+  "artifact_modified": false,
+  "migration_performed": false
+}
+```
+
+An exit code of `1` is expected when manual review is required.
+
+#### Security and compatibility rules
+
+- Every persisted versioned artifact must declare its schema version.
+- Artifact versions must use `major.minor` format.
+- Unknown future versions fail closed.
+- Unsupported older versions fail closed.
+- Missing versions fail closed.
+- Invalid versions fail closed.
+- Only the registered writable version may be produced by current code.
+- No loader silently adds a version to external input.
+- No loader silently upgrades an artifact.
+- No compatibility command modifies an artifact.
+- No migration command currently exists.
+- Original unsupported artifacts must be preserved for review.
+- Model-generated structured responses are treated as untrusted and version checked.
+
+#### Current limitations
+
+- Only schema version `1.0` is implemented.
+- No migration function is registered.
+- No real backward-compatible read version exists yet.
+- `supported_read` and `migration_required` policies are implemented but cannot occur under the current all-`1.0` registry.
+- Future schema evolution must include fixtures, migration tests, rollback guidance, and explicit operator approval before migration is enabled.
 
 ### Checkpoint 8 — `convert_vector`
 

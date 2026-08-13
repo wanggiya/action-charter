@@ -1,0 +1,129 @@
+"""Schemas for artifact-version compatibility policy."""
+
+from __future__ import annotations
+
+import re
+from enum import Enum
+from typing import Literal
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
+
+
+_VERSION = re.compile(
+    r"^(?:0|[1-9][0-9]*)\.[0-9]+$"
+)
+
+
+class ArtifactType(str, Enum):
+    """Stable identifiers for versioned artifact schemas."""
+
+    CONTEXT_PACK = "context_pack"
+    WORKFLOW_PLAN = "workflow_plan"
+    APPROVAL_RECORD = "approval_record"
+    EXECUTION_ENVELOPE = "execution_envelope"
+    FAILURE_RECORD = "failure_record"
+    WORKFLOW_TRACE = "workflow_trace"
+    CRITIC_ASSESSMENT = "critic_assessment"
+    CRITIC_EVIDENCE_PACK = "critic_evidence_pack"
+    WORKFLOW_STATE = "workflow_state"
+    RESUME_ASSESSMENT = "resume_assessment"
+
+
+class CompatibilityDisposition(str, Enum):
+    """Result of comparing an artifact version with policy."""
+
+    CURRENT = "current"
+    SUPPORTED_READ = "supported_read"
+    MIGRATION_REQUIRED = "migration_required"
+    UNSUPPORTED_OLDER = "unsupported_older"
+    UNSUPPORTED_FUTURE = "unsupported_future"
+    INVALID_VERSION = "invalid_version"
+
+
+class SchemaPolicy(BaseModel):
+    """Version policy for one artifact type."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+    )
+
+    artifact_type: ArtifactType
+    current_version: str
+    writable_version: str
+    supported_read_versions: tuple[str, ...] = Field(
+        min_length=1
+    )
+    migration_sources: tuple[str, ...] = ()
+
+    @field_validator(
+        "current_version",
+        "writable_version",
+    )
+    @classmethod
+    def version_is_valid(
+        cls,
+        value: str,
+    ) -> str:
+        if not _VERSION.fullmatch(value):
+            raise ValueError(
+                "schema version must use major.minor format"
+            )
+
+        return value
+
+    @field_validator(
+        "supported_read_versions",
+        "migration_sources",
+    )
+    @classmethod
+    def versions_are_valid(
+        cls,
+        values: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        if len(values) != len(set(values)):
+            raise ValueError(
+                "schema version lists must not "
+                "contain duplicates"
+            )
+
+        if not all(
+            _VERSION.fullmatch(value)
+            for value in values
+        ):
+            raise ValueError(
+                "schema versions must use "
+                "major.minor format"
+            )
+
+        return values
+
+
+class CompatibilityAssessment(BaseModel):
+    """Read-only assessment of one artifact version."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    artifact_type: ArtifactType
+    artifact_version: str
+    current_version: str
+    writable_version: str
+
+    disposition: CompatibilityDisposition
+    readable: bool
+    writable: bool
+    migration_required: bool
+
+    reason: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
+    artifact_modified: Literal[False] = False

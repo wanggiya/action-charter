@@ -1,5 +1,6 @@
 """Tests for durable workflow-state persistence."""
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -272,3 +273,69 @@ def test_state_file_is_readable_by_container_user(
 
     assert mode == 0o644
     
+def test_loaded_state_rejects_missing_version(
+    tmp_path: Path,
+) -> None:
+    state = create_initial_state(
+        task_id="missing-version",
+        plan_sha256="3" * 64,
+        occurred_at=NOW,
+    )
+
+    path = write_initial_state(
+        state,
+        state_root=tmp_path,
+    )
+
+    payload = json.loads(
+        path.read_text(encoding="utf-8")
+    )
+    payload.pop("schema_version")
+
+    path.write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        WorkflowStateError,
+        match="schema version",
+    ):
+        load_state(
+            path,
+            state_root=tmp_path,
+        )
+
+
+def test_loaded_state_rejects_future_version(
+    tmp_path: Path,
+) -> None:
+    state = create_initial_state(
+        task_id="future-version",
+        plan_sha256="4" * 64,
+        occurred_at=NOW,
+    )
+
+    path = write_initial_state(
+        state,
+        state_root=tmp_path,
+    )
+
+    payload = json.loads(
+        path.read_text(encoding="utf-8")
+    )
+    payload["schema_version"] = "2.0"
+
+    path.write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        WorkflowStateError,
+        match="schema version",
+    ):
+        load_state(
+            path,
+            state_root=tmp_path,
+        )

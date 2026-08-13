@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import hashlib
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,12 @@ from geoagent_harness.trace import (
     WorkflowTrace,
     redact_text,
     redact_value,
+)
+
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    SchemaVersionError,
+    require_supported_schema,
 )
 
 MAX_TRACE_BYTES = 2 * 1024 * 1024
@@ -187,8 +194,21 @@ def build_critic_evidence(
     )
 
     try:
-        trace = WorkflowTrace.model_validate_json(trace_text)
-    except ValidationError as exc:
+        trace_payload = json.loads(trace_text)
+
+        require_supported_schema(
+            trace_payload,
+            artifact_type=ArtifactType.WORKFLOW_TRACE,
+        )
+
+        trace = WorkflowTrace.model_validate(
+            trace_payload
+        )
+    except (
+        json.JSONDecodeError,
+        SchemaVersionError,
+        ValidationError,
+    ) as exc:
         raise CriticEvidenceError(
             "trace does not match the WorkflowTrace schema"
         ) from exc

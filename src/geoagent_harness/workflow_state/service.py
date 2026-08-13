@@ -21,6 +21,12 @@ from geoagent_harness.failures import (
     FailureRecord,
 )
 
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    SchemaVersionError,
+    require_supported_schema,
+)
+
 
 _MAX_STATE_BYTES = 1_000_000
 
@@ -244,6 +250,10 @@ def load_state(
         payload = json.loads(
             resolved.read_text(encoding="utf-8")
         )
+        require_supported_schema(
+            payload,
+            artifact_type=ArtifactType.WORKFLOW_STATE,
+        )
 
         return WorkflowStateRecord.model_validate(
             payload
@@ -255,6 +265,11 @@ def load_state(
     except json.JSONDecodeError as exc:
         raise WorkflowStateError(
             "workflow state is not valid JSON"
+        ) from exc
+    except SchemaVersionError as exc:
+        raise WorkflowStateError(
+            "workflow state schema version is "
+            "unsupported"
         ) from exc
     except ValidationError as exc:
         raise WorkflowStateError(

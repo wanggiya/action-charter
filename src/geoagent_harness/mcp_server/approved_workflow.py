@@ -28,6 +28,10 @@ from geoagent_harness.orchestrator.workflow import (
 from geoagent_harness.skills.load_vector_to_postgis.service import (
     LoadVectorError,
 )
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    require_supported_schema,
+)
 
 
 class ApprovedWorkflowError(RuntimeError):
@@ -95,6 +99,12 @@ def validate_approved_workflow_request(
             approval=approval,
             allowed_schemas=set(
                 settings.allowed_schemas
+            ),
+        )
+        require_supported_schema(
+            execution_envelope,
+            artifact_type=(
+                ArtifactType.EXECUTION_ENVELOPE
             ),
         )
 

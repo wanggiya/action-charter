@@ -21,6 +21,11 @@ from geoagent_harness.model.schemas import (
     ModelResult,
 )
 from geoagent_harness.trace import redact_value
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    SchemaVersionError,
+    require_supported_schema,
+)
 
 
 class ModelClientProtocol(Protocol):
@@ -124,9 +129,18 @@ def run_critic_agent(
 
     try:
         decoded = json.loads(model_result.content)
+        require_supported_schema(
+            decoded,
+            artifact_type=ArtifactType.CRITIC_ASSESSMENT,
+        )
     except json.JSONDecodeError as exc:
         raise CriticAgentError(
             "Critic model returned invalid JSON"
+        ) from exc
+    except SchemaVersionError as exc:
+        raise CriticAgentError(
+            "Critic model returned an unsupported "
+            "schema version"
         ) from exc
 
     if not isinstance(decoded, dict):
@@ -143,6 +157,11 @@ def run_critic_agent(
     except ValidationError as exc:
         raise CriticAgentError(
             "Critic model returned an invalid assessment schema"
+        ) from exc
+    except SchemaVersionError as exc:
+        raise CriticAgentError(
+            "Critic model returned an unsupported "
+            "schema version"
         ) from exc
 
     _validate_assessment_policy(

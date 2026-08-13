@@ -286,6 +286,54 @@ Known limitations:
 - durable state is not yet automatically created and updated by the
   production Planner, approval, Executor, and verifier flow.
 
+### Checkpoint 7D — Schema versioning and compatibility
+
+Status: completed.
+
+Implemented:
+
+- central registry for versioned artifact types;
+- explicit current, writable, and supported-read versions;
+- version policies for context packs, workflow plans, approvals,
+  execution envelopes, failures, traces, Critic artifacts, workflow
+  states, and resume assessments;
+- explicit `schema_version` in workflow traces;
+- pre-validation version checks at persisted artifact boundaries;
+- nested workflow-plan version validation;
+- version-aware approval, trace, and workflow-state loading;
+- version checks for incoming execution envelopes;
+- version checks for Critic model responses;
+- current-version, supported-read, migration-required,
+  unsupported-older, unsupported-future, and invalid-version
+  dispositions;
+- fail-closed handling of missing and unknown versions;
+- rejection of future versions before Pydantic validation;
+- read-only schema-policy inspection;
+- read-only compatibility assessment;
+- read-only migration assessment;
+- stable CLI exit behavior for compatible, incompatible, and invalid
+  requests;
+- automated tests confirming that compatibility assessment never
+  modifies artifacts.
+
+Current policy:
+
+- all registered artifact schemas currently use version `1.0`;
+- only version `1.0` is currently readable and writable;
+- no automatic or manual migration implementation is registered;
+- older unsupported artifacts fail closed;
+- future artifacts fail closed;
+- migration assessment provides guidance but never rewrites an
+  artifact.
+
+Known limitations:
+
+- no schema migrations are implemented;
+- no artifact is rewritten or upgraded automatically;
+- compatibility is checked only at the boundaries currently registered;
+- schema evolution beyond `1.0` has not yet been exercised with a real
+  backward-compatible version.
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:
