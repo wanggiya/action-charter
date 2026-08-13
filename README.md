@@ -6,7 +6,7 @@ The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared loca
 
 ## Current status
 
-Checkpoints 1–7 are complete for the initial vector-to-PostGIS vertical slice.
+Checkpoints 1–7C are complete for the initial vector-to-PostGIS vertical slice.
 
 The implemented workflow is:
 
@@ -1205,24 +1205,193 @@ The current harness classifies retry safety but does not yet implement an
 automatic retry loop. That work belongs to Checkpoint 7C together with durable
 workflow state and resumption.
 
-### Checkpoint 7C — Workflow state and resumption
+### Checkpoint 7C — Durable workflow state and safe resumption
 
-Planned states:
+Status: implemented.
+
+The harness can persist and validate a durable lifecycle record for one exact planned workflow. Every transition records its sequence, previous state, next state, responsible actor, reason, timestamp, and optional structured failure.
+
+#### Workflow lifecycle
 
 ```text
-context_built
 planned
-awaiting_approval
-approved
+  → approved
+  → executing
+  → validating
+      ├──→ validated_success
+      └──→ validation_failed
+
 executing
+  ├──→ execution_failed
+  └──→ cancelled
+
 validating
-reporting
-critic_review
-completed
-failed
+  ├──→ execution_failed
+  └──→ cancelled
 ```
 
-The workflow must not skip approval or repeat a completed write after restart.
+#### Transition policy
+
+- Only a human actor can record approval.
+- Only the Executor can begin execution.
+- Only the deterministic verifier can record validation transitions.
+- Only an operator can cancel a workflow.
+- Terminal states cannot transition again.
+- Transition sequences and revisions must be contiguous.
+- Transition timestamps must be monotonic.
+- Stale revision updates are rejected.
+- Initial state files cannot be overwritten.
+- Failure evidence is required for failed or cancelled states.
+- The plan digest and approval identity remain attached to the workflow state.
+
+#### Durable state storage
+
+Workflow state is stored beneath the configured state root:
+
+```text
+workflow-state/<task-id>.state.json
+```
+
+The default local setting is:
+
+```dotenv
+GEOAGENT_STATE_ROOT=workflow-state
+```
+
+Inside the Executor container, the configured path is:
+
+```dotenv
+GEOAGENT_STATE_ROOT=/workspace/workflow-state
+```
+
+State files are:
+
+- schema validated with Pydantic;
+- secret redacted before persistence;
+- limited to the trusted state root;
+- checked for UTF-8 and JSON validity;
+- limited in file size;
+- created without overwrite;
+- updated atomically;
+- protected by expected revision checks;
+- readable by the non-root Executor container.
+
+Runtime state files are excluded from Git. Only the directory placeholder is tracked:
+
+```text
+workflow-state/.gitkeep
+```
+
+#### Resume assessment
+
+The resume assessment is deterministic and read-only.
+
+| Current evidence | Disposition |
+|---|---|
+| Planned and not executed | `resume_allowed` |
+| Approved and not executed | `resume_allowed` |
+| Executing | `manual_review_required` |
+| Validating | `manual_review_required` |
+| Execution failed | `manual_review_required` |
+| Validation failed | `manual_review_required` |
+| Cancelled after execution may have started | `manual_review_required` |
+| Cancelled before execution | `terminal` |
+| Deterministically validated success | `terminal` |
+
+`resume_allowed` does not authorize immediate or automatic execution. It only means that the state history contains no evidence that a database write started. The exact plan and approval must still be revalidated before the Executor begins work.
+
+`manual_review_required` means that a PostGIS write may have started. The operator must inspect the target table, trace, report, approval, and structured failure before deciding what to do next.
+
+#### Inspect workflow state
+
+```bash
+geoagent inspect-workflow-state \
+  workflow-state/example.state.json \
+  --state-root workflow-state \
+  --pretty
+```
+
+This command:
+
+- loads the file only from the trusted state root;
+- validates it against the workflow-state schema;
+- displays structured JSON;
+- does not change the state file;
+- does not execute any GIS or database operation.
+
+#### Assess safe resumption
+
+```bash
+geoagent assess-workflow-resume \
+  workflow-state/example.state.json \
+  --state-root workflow-state \
+  --pretty
+```
+
+The result includes:
+
+```json
+{
+  "current_state": "planned",
+  "disposition": "resume_allowed",
+  "database_write_may_have_started": false,
+  "automatic_execution_allowed": false,
+  "state_modified": false
+}
+```
+
+The displayed values are expected output, not Bash commands.
+
+#### Container assessment
+
+The Executor receives the workflow-state directory through a read-only mount:
+
+```yaml
+- ./workflow-state:/workspace/workflow-state:ro
+```
+
+Run the containerized assessment with:
+
+```bash
+make state-container \
+  STATE_TASK_ID=checkpoint7c-state-check
+```
+
+Planner and Critic containers do not receive the workflow-state mount.
+
+The container assessment must not modify the state file. This can be verified by comparing hashes before and after execution:
+
+```bash
+sha256sum \
+  workflow-state/checkpoint7c-state-check.state.json
+```
+
+#### Security properties
+
+- State inspection never invokes arbitrary shell commands.
+- State assessment never invokes MCP tools.
+- State assessment never accesses PostGIS.
+- The Executor receives state through a read-only mount.
+- Planner and Critic containers receive no state access.
+- Secrets are redacted before state persistence.
+- Path traversal outside the trusted state root is rejected.
+- State-file overwriting is blocked during initial creation.
+- Stale revisions are rejected during updates.
+- Database writes are never automatically retried.
+- An interrupted or uncertain write requires manual inspection.
+- Assessment never modifies workflow state.
+- Assessment never authorizes automatic execution.
+
+#### Current limitations
+
+- Resume assessment recommends an action but does not perform it.
+- Automatic retry is not implemented.
+- Automatic workflow resumption is not implemented.
+- PostGIS writes are never automatically retried.
+- Process-level locking for concurrent writers is not implemented.
+- Do not run two state writers for the same task simultaneously.
+- The production Planner, approval, Executor, and verifier flow does not yet update durable state automatically at every boundary.
+- Recovery after manual review requires creating an explicitly approved follow-up action.
 
 ### Checkpoint 7D — Schema versioning
 

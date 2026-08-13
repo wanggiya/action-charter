@@ -1,9 +1,11 @@
 CRITIC_TASK_ID ?= checkpoint5e-points-20260809a
+STATE_TASK_ID ?= checkpoint7c-state-check
 
 .PHONY: checkpoint6-accept
 .PHONY: critic-container
 .PHONY: help install test inspect config build
 .PHONY: agent-info mcp-smoke planner-smoke
+.PHONY: state-container
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -16,6 +18,7 @@ help:
 	@echo "make planner-smoke Run the Planner Agent container"
 	@echo "make critic-container  Run the read-only Critic container"
 	@echo "make checkpoint6-accept Run complete Checkpoint 6 acceptance"
+	@echo "make state-container Assess workflow state read-only"
 
 install:
 	python3 -m venv .venv
@@ -79,3 +82,10 @@ checkpoint6-accept:
 		/tmp/geoagent-checkpoint6-before.sha256 \
 		/tmp/geoagent-checkpoint6-after.sha256
 	@jq -e '.agent_id == "critic" and .deterministic_status == "validated_success" and .assessment.deterministic_status == "validated_success" and .assessment.conclusion == "supported" and .assessment.success_claimed == true and .assessment.edits_performed == false and .assessment.database_actions_performed == false and (.evidence_gaps | length) == 0' /tmp/geoagent-checkpoint6-critic.json
+
+state-container:
+	docker compose --profile agents run --rm executor \
+			assess-workflow-resume \
+			/workspace/workflow-state/$(STATE_TASK_ID).state.json \
+			--state-root /workspace/workflow-state \
+			--pretty

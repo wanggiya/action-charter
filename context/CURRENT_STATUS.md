@@ -248,6 +248,44 @@ Safety rules:
 - model and MCP error text is redacted before logging or persistence;
 - deterministic validation remains the only success gate.
 
+### Checkpoint 7C — Durable workflow state and safe resumption
+
+Implemented:
+
+- schema-validated durable workflow-state records;
+- lifecycle states for planned, approved, executing, validating,
+  successful, failed, and cancelled workflows;
+- append-only, contiguous transition history;
+- monotonic revisions and timestamps;
+- deterministic transition allowlist;
+- actor restrictions for human approval, execution, validation, and
+  cancellation;
+- exact plan-digest and approval identity preservation;
+- structured failure evidence in failed and cancelled states;
+- atomic initial-state creation without overwrite;
+- atomic revision updates with stale-revision rejection;
+- trusted state-root path containment;
+- state-file size and UTF-8 validation;
+- secret redaction before persistence;
+- non-root-container-readable state permissions;
+- read-only state inspection CLI;
+- read-only resume-assessment CLI;
+- deterministic classification as `resume_allowed`,
+  `manual_review_required`, or `terminal`;
+- manual review whenever a PostGIS write may have started;
+- read-only workflow-state mount in the Executor container;
+- no workflow-state access for Planner or Critic containers;
+- no automatic execution, retry, or state modification during assessment.
+
+Known limitations:
+
+- resume assessment recommends an action but does not execute it;
+- automatic retry is not implemented;
+- PostGIS writes are never automatically retried;
+- concurrent writers are not protected by an operating-system file lock;
+- durable state is not yet automatically created and updated by the
+  production Planner, approval, Executor, and verifier flow.
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

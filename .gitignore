@@ -38,3 +38,6 @@ plans/*
 
 approvals/*
 !approvals/.gitkeep
+
+workflow-state/*
+!workflow-state/.gitkeep

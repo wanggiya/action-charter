@@ -49,6 +49,7 @@ services:
     environment:
       GEOAGENT_MCP_URL: http://mcp-gis:8000/mcp
       GEOAGENT_MCP_TIMEOUT_SECONDS: 30
+      GEOAGENT_STATE_ROOT: /workspace/workflow-state
 
     extra_hosts: []
 
@@ -59,6 +60,7 @@ services:
       - ./agents/executor:/app/agents/executor:ro
       - ./plans:/workspace/plans:ro
       - ./approvals:/workspace/approvals:ro
+      - ./workflow-state:/workspace/workflow-state:ro
 
     profiles:
       - agents

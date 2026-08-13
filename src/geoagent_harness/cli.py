@@ -961,6 +961,150 @@ def execute_approved_plan_command(
     ):
         raise typer.Exit(code=1)
 
+@app.command("inspect-workflow-state")
+def inspect_workflow_state_command(
+    state_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "State JSON file beneath the trusted "
+                "workflow-state root."
+            ),
+        ),
+    ],
+    state_root: Annotated[
+        Path | None,
+        typer.Option(
+            "--state-root",
+            help=(
+                "Trusted workflow-state directory. "
+                "Defaults to GEOAGENT_STATE_ROOT."
+            ),
+        ),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Load and display validated workflow state."""
+
+    from geoagent_harness.mcp_server.settings import (
+        load_settings,
+    )
+    from geoagent_harness.workflow_state import (
+        WorkflowStateError,
+        load_state,
+    )
+
+    active_root = (
+        state_root
+        if state_root is not None
+        else load_settings().state_root
+    )
+
+    try:
+        state = load_state(
+            state_file,
+            state_root=active_root,
+        )
+    except (
+        WorkflowStateError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            state.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("assess-workflow-resume")
+def assess_workflow_resume_command(
+    state_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "State JSON file beneath the trusted "
+                "workflow-state root."
+            ),
+        ),
+    ],
+    state_root: Annotated[
+        Path | None,
+        typer.Option(
+            "--state-root",
+            help=(
+                "Trusted workflow-state directory. "
+                "Defaults to GEOAGENT_STATE_ROOT."
+            ),
+        ),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Assess safe continuation without modifying state."""
+
+    from geoagent_harness.mcp_server.settings import (
+        load_settings,
+    )
+    from geoagent_harness.workflow_state import (
+        WorkflowStateError,
+        assess_resume,
+        load_state,
+    )
+
+    active_root = (
+        state_root
+        if state_root is not None
+        else load_settings().state_root
+    )
+
+    try:
+        state = load_state(
+            state_file,
+            state_root=active_root,
+        )
+
+        assessment = assess_resume(state)
+    except (
+        WorkflowStateError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            assessment.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 @app.command("build-critic-evidence")
 def build_critic_evidence_command(
     trace_path: Annotated[

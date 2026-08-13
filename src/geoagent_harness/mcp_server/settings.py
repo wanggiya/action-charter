@@ -52,6 +52,7 @@ class MCPSettings(BaseModel):
     report_root: Path = Path("reports")
     plan_root: Path = Path("plans")
     approval_root: Path = Path("approvals")
+    state_root: Path = Path("workflow-state")
     container_image: str = "geoagent-gis-tools:local"
 
     enable_write_tools: bool = False
@@ -154,6 +155,12 @@ def load_settings(
             source.get(
                 "GEOAGENT_APPROVAL_ROOT",
                 "approvals",
+            )
+        ),
+        state_root=Path(
+            source.get(
+                "GEOAGENT_STATE_ROOT",
+                "workflow-state",
             )
         ),
         container_image=source.get(
