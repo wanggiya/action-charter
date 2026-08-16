@@ -41,3 +41,7 @@ approvals/*
 
 workflow-state/*
 !workflow-state/.gitkeep
+
+# Runtime reusable workflow recipes
+workflow-recipes/*
+!workflow-recipes/.gitkeep

@@ -408,6 +408,88 @@ Implemented:
 - final success withheld unless every deterministic check passes.
 
 
+### Checkpoint 8R — Reusable skill and recipe framework
+
+Status: in progress.
+
+#### Checkpoint 8R.1 — Typed skill registry
+
+Status: completed.
+
+Implemented:
+
+- strict skill-registry schemas;
+- implemented and planned skill states;
+- safe entrypoint syntax validation;
+- unique skill identifiers;
+- fixed trusted registry path;
+- bounded YAML loading;
+- fail-closed registry validation.
+
+#### Checkpoint 8R.2 — Shared registry loading
+
+Status: completed.
+
+Implemented:
+
+- one authoritative skill-registry parser;
+- Planner context integration;
+- approval-policy integration;
+- removal of duplicated skill YAML parsing;
+- verifier metadata preserved in Planner context.
+
+#### Checkpoint 8R.3 — Capability metadata
+
+Status: completed.
+
+Implemented:
+
+- inspection, transformation, database-load,
+  validation, and reporting skill categories;
+- read-only, artifact-write, database-write,
+  and evidence-write access classes;
+- approval requirements derived from trusted metadata;
+- deterministic validation requirements;
+- write skills required to declare trusted verifiers;
+- no dynamic execution of registry entrypoint strings.
+
+#### Checkpoint 8R.4 — Reusable recipe policy
+
+Status: completed.
+
+Implemented:
+
+- typed reusable workflow recipes;
+- registered-skill references;
+- deterministic DAG validation;
+- dependency-cycle rejection;
+- topological step ordering;
+- logical output declarations;
+- canonical recipe JSON and SHA-256 identity;
+- calculated write, approval, and validation scope;
+- recipes prohibited from claiming execution.
+
+#### Checkpoint 8R.5 — Immutable recipes and approvals
+
+Status: completed.
+
+Implemented:
+
+- trusted recipe storage root;
+- bounded recipe draft and artifact loading;
+- secret redaction before persistence;
+- immutable digest-named recipe files;
+- overwrite protection;
+- tamper and filename-identity detection;
+- append-only recipe approvals;
+- exact recipe SHA-256 binding;
+- explicit approval-required step scope;
+- approved, denied, incomplete, changed, and expired
+  approval handling;
+- operator CLI commands for saving, approving, and
+  verifying recipes;
+- no recipe execution introduced at this checkpoint.
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

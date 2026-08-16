@@ -4,13 +4,179 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+import re
+from datetime import datetime
+
+
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
     field_validator,
+    model_validator,
 )
 
+_RECIPE_APPROVAL_ID = re.compile(
+    r"^recipe-approval-"
+    r"[0-9]{8}t[0-9]{6}z-"
+    r"[a-f0-9]{8}$"
+)
+
+_SHA256 = re.compile(
+    r"^[a-f0-9]{64}$"
+)
+
+_STEP_ID = re.compile(
+    r"^step_[1-9][0-9]*$"
+)
+
+
+class RecipeApprovalRecord(BaseModel):
+    """Append-only approval for one exact recipe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    approval_id: str
+    recipe_sha256: str
+    decision: Literal["approved", "denied"]
+
+    step_ids: list[str] = Field(
+        min_length=1
+    )
+
+    approver: str = Field(
+        min_length=1,
+        max_length=200,
+    )
+    reason: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
+    human_corrections: list[str] = Field(
+        default_factory=list
+    )
+
+    created_at: datetime
+    expires_at: datetime | None = None
+
+    secrets_redacted: Literal[True] = True
+
+    @field_validator("approval_id")
+    @classmethod
+    def approval_id_is_valid(
+        cls,
+        value: str,
+    ) -> str:
+        if not _RECIPE_APPROVAL_ID.fullmatch(
+            value
+        ):
+            raise ValueError(
+                "recipe approval ID has an "
+                "invalid format"
+            )
+
+        return value
+
+    @field_validator("recipe_sha256")
+    @classmethod
+    def digest_is_valid(
+        cls,
+        value: str,
+    ) -> str:
+        if not _SHA256.fullmatch(value):
+            raise ValueError(
+                "recipe_sha256 must be a "
+                "SHA-256 digest"
+            )
+
+        return value
+
+    @field_validator("step_ids")
+    @classmethod
+    def step_ids_are_valid(
+        cls,
+        values: list[str],
+    ) -> list[str]:
+        if len(values) != len(set(values)):
+            raise ValueError(
+                "approval step IDs must not "
+                "contain duplicates"
+            )
+
+        if not all(
+            _STEP_ID.fullmatch(value)
+            for value in values
+        ):
+            raise ValueError(
+                "approval contains an invalid "
+                "step ID"
+            )
+
+        return values
+
+    @field_validator(
+        "created_at",
+        "expires_at",
+    )
+    @classmethod
+    def timestamps_are_aware(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is None:
+            return None
+
+        if (
+            value.tzinfo is None
+            or value.utcoffset() is None
+        ):
+            raise ValueError(
+                "approval timestamps must include "
+                "a timezone"
+            )
+
+        return value
+
+    @model_validator(mode="after")
+    def expiration_is_valid(
+        self,
+    ) -> "RecipeApprovalRecord":
+        if (
+            self.expires_at is not None
+            and self.expires_at <= self.created_at
+        ):
+            raise ValueError(
+                "expires_at must be later than "
+                "created_at"
+            )
+
+        return self
+
+
+class RecipeApprovalVerification(BaseModel):
+    """Deterministic recipe-approval verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approved: bool
+    approval_id: str | None = None
+    recipe_sha256: str
+
+    required_step_ids: list[str] = Field(
+        default_factory=list
+    )
+    approved_step_ids: list[str] = Field(
+        default_factory=list
+    )
+    missing_step_ids: list[str] = Field(
+        default_factory=list
+    )
+
+    reason: str
+    
 
 class RecipeStep(BaseModel):
     """One non-executed step in a reusable recipe."""

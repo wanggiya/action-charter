@@ -1625,5 +1625,343 @@ def assess_schema_migration_command(
     if assessment.manual_review_required:
         raise typer.Exit(code=1)
 
+@app.command("save-recipe")
+def save_recipe_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="JSON recipe draft to validate and store.",
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Validate and immutably persist a reusable recipe."""
+
+    from geoagent_harness.recipes import (
+        RecipePolicyError,
+        RecipeStorageError,
+        load_recipe_draft,
+        recipe_sha256,
+        save_recipe,
+        validate_recipe_policy,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        draft = load_recipe_draft(
+            recipe_file
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+        validation = validate_recipe_policy(
+            draft,
+            registry=registry,
+        )
+        stored, path = save_recipe(
+            draft,
+            recipe_root=recipe_root,
+        )
+    except (
+        RecipePolicyError,
+        RecipeStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    payload = {
+        "status": "stored",
+        "recipe_id": stored.recipe_id,
+        "recipe_sha256": recipe_sha256(
+            stored
+        ),
+        "recipe_path": path.as_posix(),
+        "policy": validation.model_dump(
+            mode="json"
+        ),
+    }
+
+    typer.echo(
+        json.dumps(
+            payload,
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("approve-recipe")
+def approve_recipe_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Canonical recipe beneath the recipe root.",
+        ),
+    ],
+    step_ids: Annotated[
+        list[str],
+        typer.Option(
+            "--step",
+            help=(
+                "Approval-required recipe step; "
+                "repeat for multiple steps."
+            ),
+        ),
+    ],
+    approver: Annotated[
+        str,
+        typer.Option("--approver"),
+    ],
+    reason: Annotated[
+        str,
+        typer.Option("--reason"),
+    ],
+    decision: Annotated[
+        str,
+        typer.Option("--decision"),
+    ] = "approved",
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    valid_for_minutes: Annotated[
+        int | None,
+        typer.Option("--valid-for-minutes"),
+    ] = None,
+    corrections: Annotated[
+        list[str] | None,
+        typer.Option("--correction"),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Approve explicit write steps in one exact recipe."""
+
+    from datetime import (
+        datetime,
+        timedelta,
+        timezone,
+    )
+
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeStorageError,
+        create_recipe_approval,
+        load_recipe,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    if decision not in {
+        "approved",
+        "denied",
+    }:
+        typer.echo(
+            "Error: decision must be approved or denied",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if (
+        valid_for_minutes is not None
+        and valid_for_minutes <= 0
+    ):
+        typer.echo(
+            "Error: valid-for-minutes must be positive",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    active_now = datetime.now(
+        timezone.utc
+    )
+
+    expires_at = (
+        active_now
+        + timedelta(
+            minutes=valid_for_minutes
+        )
+        if valid_for_minutes is not None
+        else None
+    )
+
+    try:
+        recipe = load_recipe(
+            recipe_file,
+            recipe_root=recipe_root,
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+        record, path = create_recipe_approval(
+            recipe=recipe,
+            registry=registry,
+            step_ids=step_ids,
+            decision=decision,
+            approver=approver,
+            reason=reason,
+            approval_root=approval_root,
+            human_corrections=corrections,
+            expires_at=expires_at,
+            now=active_now,
+        )
+    except (
+        RecipeApprovalError,
+        RecipeStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    payload = {
+        "status": "recorded",
+        "approval_path": path.as_posix(),
+        "approval": record.model_dump(
+            mode="json"
+        ),
+    }
+
+    typer.echo(
+        json.dumps(
+            payload,
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+    
+@app.command("verify-recipe-approval")
+def verify_recipe_approval_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Canonical recipe beneath the recipe root.",
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Recipe approval beneath the approval root.",
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Verify approval against an exact stored recipe."""
+
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeStorageError,
+        load_recipe,
+        load_recipe_approval,
+        verify_recipe_approval,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        recipe = load_recipe(
+            recipe_file,
+            recipe_root=recipe_root,
+        )
+        approval = load_recipe_approval(
+            approval_file,
+            approval_root=approval_root,
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+        result = verify_recipe_approval(
+            approval=approval,
+            recipe=recipe,
+            registry=registry,
+        )
+    except (
+        RecipeApprovalError,
+        RecipeStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.approved:
+        raise typer.Exit(code=1)
+
 if __name__ == "__main__":
     app()

@@ -40,6 +40,7 @@ class ArtifactType(str, Enum):
     )
     RECIPE = "recipe"
     RECIPE_VALIDATION = "recipe_validation"
+    RECIPE_APPROVAL = "recipe_approval"
     
 
 

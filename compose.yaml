@@ -110,6 +110,8 @@ services:
       GEOAGENT_MCP_PORT: 8000
       GEOAGENT_MCP_PATH: /mcp
 
+      GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
+
       ENABLE_WRITE_TOOLS: ${ENABLE_WRITE_TOOLS:-false}
       ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
       ALLOWED_SCHEMAS: ${ALLOWED_SCHEMAS:-agent_sandbox}
@@ -126,6 +128,7 @@ services:
       - ./reports:/workspace/reports
       - ./plans:/workspace/plans:ro
       - ./approvals:/workspace/approvals:ro
+      - ./workflow-recipes:/workspace/workflow-recipes:ro
 
     networks:
       - control
