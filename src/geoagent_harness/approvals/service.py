@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import yaml
+# import yaml
 from pydantic import ValidationError
 
 from geoagent_harness.approvals.schemas import (
@@ -29,6 +29,11 @@ from geoagent_harness.schema_registry import (
     ArtifactType,
     SchemaVersionError,
     require_supported_schema,
+)
+
+from geoagent_harness.skill_registry import (
+    SkillRegistryError,
+    load_skill_registry,
 )
 
 MAX_PLAN_FILE_BYTES = 1_000_000
@@ -130,27 +135,19 @@ def load_planner_result(
 def _implemented_skills(
     project_root: Path,
 ) -> set[str]:
-    path = (
-        project_root.resolve()
-        / "context"
-        / "SKILLS_INDEX.yaml"
-    )
-
     try:
-        payload = yaml.safe_load(
-            path.read_text(encoding="utf-8")
+        registry = load_skill_registry(
+            project_root
         )
-    except (OSError, yaml.YAMLError) as exc:
+    except SkillRegistryError as exc:
         raise ApprovalError(
-            "trusted skill index is unavailable"
+            "trusted skill registry is unavailable"
         ) from exc
 
     return {
-        str(skill["id"])
-        for skill in payload.get("skills", [])
-        if skill.get("status") == "implemented"
+        skill.id
+        for skill in registry.implemented_skills()
     }
-
 
 def _approval_id(
     now: datetime,

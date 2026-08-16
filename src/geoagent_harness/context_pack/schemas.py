@@ -33,6 +33,12 @@ class SkillContext(BaseModel):
     version: str | None = None
     entrypoint: str | None = None
     verifier: str | None = None
+    
+    kind: str | None = None
+    access: str | None = None
+
+    approval_required: bool | None = None
+    validation_required: bool | None = None
 
 
 class DecisionContext(BaseModel):

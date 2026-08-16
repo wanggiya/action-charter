@@ -38,6 +38,9 @@ class ArtifactType(str, Enum):
     VECTOR_CONVERSION_RESULT = (
         "vector_conversion_result"
     )
+    RECIPE = "recipe"
+    RECIPE_VALIDATION = "recipe_validation"
+    
 
 
 class CompatibilityDisposition(str, Enum):

@@ -132,3 +132,34 @@ def test_unknown_artifact_type_is_rejected() -> None:
         match="unknown artifact type",
     ):
         get_schema_policy("unknown_artifact")
+
+@pytest.mark.parametrize(
+    "artifact_type",
+    [
+        ArtifactType.RECIPE,
+        ArtifactType.RECIPE_VALIDATION,
+    ],
+)
+def test_recipe_artifacts_use_current_schema(
+    artifact_type: ArtifactType,
+) -> None:
+    policy = get_schema_policy(
+        artifact_type
+    )
+
+    assert policy.current_version == "1.0"
+    assert policy.writable_version == "1.0"
+    assert policy.supported_read_versions == (
+        "1.0",
+    )
+
+    assessment = assess_schema_compatibility(
+        artifact_type=artifact_type,
+        artifact_version="1.0",
+    )
+
+    assert assessment.disposition == (
+        CompatibilityDisposition.CURRENT
+    )
+    assert assessment.readable is True
+    assert assessment.writable is True

@@ -115,3 +115,27 @@ def test_skill_context_accepts_optional_verifier() -> None:
         "geoagent_harness.skills.convert_vector."
         "validation:validate_vector_conversion"
     )
+
+def test_context_pack_uses_validated_skill_registry() -> None:
+    pack = build_context_pack(
+        "Convert the sample vector dataset.",
+        PROJECT_ROOT,
+    )
+
+    skills = {
+        skill.id: skill
+        for skill in pack.available_skills
+    }
+
+    assert "convert_vector" in skills
+
+    conversion = skills["convert_vector"]
+
+    assert conversion.kind == "transformation"
+    assert conversion.access == "artifact_write"
+    assert conversion.approval_required is True
+    assert conversion.validation_required is True
+    assert conversion.verifier == (
+        "geoagent_harness.skills.convert_vector."
+        "validation:validate_vector_conversion"
+    )

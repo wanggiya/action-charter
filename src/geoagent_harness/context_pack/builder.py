@@ -22,6 +22,11 @@ from geoagent_harness.context_pack.schemas import (
     TaskContextPack,
 )
 
+from geoagent_harness.skill_registry import (
+    SkillRegistryError,
+    parse_skill_registry,
+)
+
 CONTEXT_FILES = (
     "context/PROJECT_SUMMARY.md",
     "context/ARCHITECTURE.md",
@@ -140,20 +145,21 @@ def _load_skills(
     content: str,
     request_tokens: set[str],
 ) -> list[SkillContext]:
-    payload = yaml.safe_load(content)
-    raw_skills = payload.get("skills", [])
+    try:
+        registry = parse_skill_registry(content)
+    except SkillRegistryError as exc:
+        raise ContextPackError(
+            "trusted skill registry is invalid"
+        ) from exc
 
-    implemented: list[SkillContext] = []
-
-    for raw in raw_skills:
-        if raw.get("status") != "implemented":
-            continue
-
-        implemented.append(
-            SkillContext.model_validate(
-                redact_value(raw)
+    implemented = [
+        SkillContext.model_validate(
+            redact_value(
+                skill.model_dump(mode="json")
             )
         )
+        for skill in registry.implemented_skills()
+    ]
 
     relevant = [
         skill
