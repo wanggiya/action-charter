@@ -6,7 +6,10 @@ skills:
     entrypoint: geoagent_harness.skills.inspect_vector.service:inspect_vector
 
   - id: convert_vector
-    status: planned
+    version: "0.1.0"
+    status: implemented
+    entrypoint: geoagent_harness.skills.convert_vector.service:convert_vector
+    verifier: geoagent_harness.skills.convert_vector.validation:validate_vector_conversion
 
   - id: load_vector_to_postgis
     version: "0.1.0"

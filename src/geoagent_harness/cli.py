@@ -111,6 +111,233 @@ def inspect_vector_command(
         )
     )
 
+@app.command("plan-convert-vector")
+def plan_convert_vector_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Vector dataset beneath the "
+                "approved input root."
+            ),
+        ),
+    ],
+    target_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "New .geojson or .gpkg file beneath "
+                "the approved output root."
+            ),
+        ),
+    ],
+    source_layer: Annotated[
+        str | None,
+        typer.Option("--source-layer"),
+    ] = None,
+    target_layer: Annotated[
+        str | None,
+        typer.Option("--target-layer"),
+    ] = None,
+    input_root: Annotated[
+        Path,
+        typer.Option("--input-root"),
+    ] = Path("data/input"),
+    output_root: Annotated[
+        Path,
+        typer.Option("--output-root"),
+    ] = Path("data/output"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Plan a controlled vector conversion without writing."""
+
+    from geoagent_harness.skills.convert_vector import (
+        ConvertVectorPolicyError,
+        plan_vector_conversion,
+    )
+
+    try:
+        plan = plan_vector_conversion(
+            path=path,
+            target_path=target_path,
+            input_root=input_root,
+            output_root=output_root,
+            source_layer=source_layer,
+            target_layer=target_layer,
+        )
+    except ConvertVectorPolicyError as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            plan.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("convert-vector")
+def convert_vector_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Vector dataset beneath the "
+                "approved input root."
+            ),
+        ),
+    ],
+    target_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "New .geojson or .gpkg file beneath "
+                "the approved output root."
+            ),
+        ),
+    ],
+    source_layer: Annotated[
+        str | None,
+        typer.Option("--source-layer"),
+    ] = None,
+    target_layer: Annotated[
+        str | None,
+        typer.Option("--target-layer"),
+    ] = None,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Execute a controlled conversion pending validation."""
+
+    from geoagent_harness.mcp_server.settings import (
+        load_settings,
+    )
+    from geoagent_harness.skills.convert_vector import (
+        ConvertVectorError,
+        convert_vector,
+    )
+
+    try:
+        result = convert_vector(
+            path=path,
+            target_path=target_path,
+            settings=load_settings(),
+            source_layer=source_layer,
+            target_layer=target_layer,
+        )
+    except (
+        ConvertVectorError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("validate-vector-conversion")
+def validate_vector_conversion_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Original vector dataset.",
+        ),
+    ],
+    target_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Converted vector dataset.",
+        ),
+    ],
+    source_layer: Annotated[
+        str | None,
+        typer.Option("--source-layer"),
+    ] = None,
+    target_layer: Annotated[
+        str | None,
+        typer.Option("--target-layer"),
+    ] = None,
+    input_root: Annotated[
+        Path,
+        typer.Option("--input-root"),
+    ] = Path("data/input"),
+    output_root: Annotated[
+        Path,
+        typer.Option("--output-root"),
+    ] = Path("data/output"),
+    extent_tolerance: Annotated[
+        float,
+        typer.Option("--extent-tolerance"),
+    ] = 1e-8,
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Deterministically validate a vector conversion."""
+
+    from geoagent_harness.skills.convert_vector import (
+        ConvertVectorValidationError,
+        validate_vector_conversion,
+    )
+
+    try:
+        result = validate_vector_conversion(
+            path=path,
+            target_path=target_path,
+            input_root=input_root,
+            output_root=output_root,
+            source_layer=source_layer,
+            target_layer=target_layer,
+            extent_tolerance=extent_tolerance,
+        )
+    except ConvertVectorValidationError as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.passed:
+        raise typer.Exit(code=1)
+
 @app.command("load-vector-to-postgis")
 def load_vector_to_postgis_command(
     path: Annotated[

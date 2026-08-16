@@ -334,6 +334,80 @@ Known limitations:
 - schema evolution beyond `1.0` has not yet been exercised with a real
   backward-compatible version.
 
+
+## Checkpoint 8 — Controlled vector conversion
+
+Status: in progress.
+
+### Checkpoint 8A — Conversion schema and policy
+
+Implemented:
+
+- typed vector-conversion plans;
+- GeoJSON and GeoPackage output allowlist;
+- approved input-root enforcement;
+- approved output-root enforcement;
+- safe output filenames and layer identifiers;
+- one explicit source layer per conversion;
+- CRS-required policy;
+- overwrite rejection;
+- structured plan-only CLI command;
+- schema-registry coverage;
+- no file creation during planning;
+- automated policy and CLI tests.
+
+Not yet implemented:
+
+- conversion execution;
+- deterministic output verification;
+- approval-gated MCP integration;
+- conversion traces and reports.
+
+### Checkpoint 8B — Controlled conversion execution
+
+Implemented:
+
+- write-disabled-by-default conversion service;
+- GeoJSON and GeoPackage creation;
+- one selected source layer;
+- no reprojection or geometry mutation;
+- temporary output creation;
+- atomic final-file publication;
+- existing-target and overwrite rejection;
+- incomplete-output cleanup;
+- non-root-readable output permissions;
+- structured `converted_pending_validation` result;
+- explicit withholding of final success;
+- CLI execution command;
+- automated service and CLI tests.
+
+Not yet implemented:
+
+- deterministic conversion verification;
+- approval-gated MCP conversion workflow;
+- conversion traces, reports, and production state transitions.
+
+
+### Checkpoint 8C — Deterministic conversion validation
+
+Status: completed.
+
+Implemented:
+
+- independent source and converted-output inspection;
+- trusted input-root and output-root enforcement;
+- output existence and non-empty checks;
+- driver and layer verification;
+- CRS preservation checks;
+- feature-count preservation checks;
+- attribute-field preservation checks;
+- geometry-type preservation checks;
+- null and invalid geometry comparisons;
+- extent comparison with bounded tolerance;
+- structured validation results;
+- final success withheld unless every deterministic check passes.
+
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

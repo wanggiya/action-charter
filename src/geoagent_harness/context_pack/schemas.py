@@ -25,12 +25,14 @@ class DatasetContext(BaseModel):
 
 
 class SkillContext(BaseModel):
+    """Implemented skill supplied to the Planner."""
     model_config = ConfigDict(extra="forbid")
 
     id: str
     status: Literal["implemented"]
     version: str | None = None
     entrypoint: str | None = None
+    verifier: str | None = None
 
 
 class DecisionContext(BaseModel):

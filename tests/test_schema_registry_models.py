@@ -28,6 +28,9 @@ from geoagent_harness.workflow_state import (
     create_initial_state,
 )
 
+from geoagent_harness.skills.convert_vector import (
+    plan_vector_conversion,
+)
 
 NOW = datetime.now(timezone.utc)
 

@@ -8,6 +8,10 @@ from geoagent_harness.context_pack import (
     build_context_pack,
 )
 
+from geoagent_harness.context_pack.schemas import (
+    SkillContext,
+)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -89,3 +93,25 @@ def test_context_references_do_not_contain_file_contents() -> None:
     for reference in pack.context_references:
         assert reference.path.startswith("context/")
         assert "Project Summary" not in reference.path
+        
+def test_skill_context_accepts_optional_verifier() -> None:
+    skill = SkillContext.model_validate(
+        {
+            "id": "convert_vector",
+            "version": "0.1.0",
+            "status": "implemented",
+            "entrypoint": (
+                "geoagent_harness.skills.convert_vector."
+                "service:convert_vector"
+            ),
+            "verifier": (
+                "geoagent_harness.skills.convert_vector."
+                "validation:validate_vector_conversion"
+            ),
+        }
+    )
+
+    assert skill.verifier == (
+        "geoagent_harness.skills.convert_vector."
+        "validation:validate_vector_conversion"
+    )

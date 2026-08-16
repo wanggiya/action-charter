@@ -32,6 +32,12 @@ class ArtifactType(str, Enum):
     CRITIC_EVIDENCE_PACK = "critic_evidence_pack"
     WORKFLOW_STATE = "workflow_state"
     RESUME_ASSESSMENT = "resume_assessment"
+    VECTOR_CONVERSION_PLAN = (
+        "vector_conversion_plan"
+    )
+    VECTOR_CONVERSION_RESULT = (
+        "vector_conversion_result"
+    )
 
 
 class CompatibilityDisposition(str, Enum):
