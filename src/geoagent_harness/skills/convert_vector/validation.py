@@ -258,13 +258,22 @@ def validate_vector_conversion(
         label="source",
     )
 
+    default_target_layer = (
+        target_file.stem.replace(
+            "-",
+            "_",
+        )
+        if target_file.suffix.lower() == ".gpkg"
+        else None
+    )
+
     selected_target_layer = _choose_layer(
         layer_names=[
             layer.name
             for layer in target_inspection.layers
         ],
         requested=target_layer,
-        default=target_file.stem,
+        default=default_target_layer,
         label="target",
     )
 

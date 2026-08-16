@@ -62,14 +62,24 @@ def test_allowlist_contains_no_delete_tool() -> None:
     )
 
 
-def test_only_approval_gated_write_tool_is_exposed() -> None:
+def test_only_approval_gated_write_tools_are_exposed() -> None:
     assert (
         "load_vector_to_postgis"
         not in tools.TOOL_ALLOWLIST
     )
 
     assert (
+        "convert_vector"
+        not in tools.TOOL_ALLOWLIST
+    )
+
+    assert (
         "run_approved_vector_postgis_workflow"
+        in tools.TOOL_ALLOWLIST
+    )
+
+    assert (
+        "run_approved_recipe"
         in tools.TOOL_ALLOWLIST
     )
     
@@ -87,5 +97,11 @@ def test_raw_load_is_not_registered_over_mcp() -> None:
     assert "load_vector_to_postgis" not in names
     assert (
         "run_approved_vector_postgis_workflow"
+        in names
+    )
+    assert "convert_vector" not in names
+
+    assert (
+        "run_approved_recipe"
         in names
     )

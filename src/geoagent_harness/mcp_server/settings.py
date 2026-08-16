@@ -73,6 +73,10 @@ class MCPSettings(BaseModel):
     postgres_password_file: Path = Path(
         "/run/secrets/postgis_password"
     )
+    
+    project_root: Path = Path(".")
+    recipe_root: Path = Path("workflow-recipes")
+    project_root: Path = Path(".")
 
     @field_validator("allowed_schemas")
     @classmethod
@@ -123,11 +127,11 @@ def load_settings(
     )
     
     recipe_root=Path(
-    source.get(
-        "GEOAGENT_RECIPE_ROOT",
-        "workflow-recipes",
-    )
-),
+        source.get(
+            "GEOAGENT_RECIPE_ROOT",
+            "workflow-recipes",
+        )
+    ),
 
     return MCPSettings(
         input_root=Path(
@@ -207,6 +211,12 @@ def load_settings(
             source.get(
                 "POSTGRES_PASSWORD_FILE",
                 "/run/secrets/postgis_password",
+            )
+        ),
+        project_root=Path(
+            source.get(
+                "GEOAGENT_PROJECT_ROOT",
+                ".",
             )
         ),
     )

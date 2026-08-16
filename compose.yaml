@@ -96,8 +96,11 @@ services:
 
     environment:
       GEOAGENT_WORKSPACE: /workspace
+      GEOAGENT_PROJECT_ROOT: /workspace
       GEOAGENT_INPUT_ROOT: /workspace/data/input
-      # GEOAGENT_OUTPUT_ROOT: /workspace/data/output
+      GEOAGENT_OUTPUT_ROOT: /workspace/data/output
+      
+      GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
 
       GEOAGENT_PLAN_ROOT: /workspace/plans
       GEOAGENT_APPROVAL_ROOT: /workspace/approvals
@@ -110,7 +113,7 @@ services:
       GEOAGENT_MCP_PORT: 8000
       GEOAGENT_MCP_PATH: /mcp
 
-      GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
+      
 
       ENABLE_WRITE_TOOLS: ${ENABLE_WRITE_TOOLS:-false}
       ALLOW_OVERWRITE: ${ALLOW_OVERWRITE:-false}
@@ -129,6 +132,8 @@ services:
       - ./plans:/workspace/plans:ro
       - ./approvals:/workspace/approvals:ro
       - ./workflow-recipes:/workspace/workflow-recipes:ro
+      - ./context:/workspace/context:ro
+      - ./data/output:/workspace/data/output
 
     networks:
       - control

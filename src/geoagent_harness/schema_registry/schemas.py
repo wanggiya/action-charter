@@ -41,6 +41,13 @@ class ArtifactType(str, Enum):
     RECIPE = "recipe"
     RECIPE_VALIDATION = "recipe_validation"
     RECIPE_APPROVAL = "recipe_approval"
+    RECIPE_EXECUTION_ENVELOPE = (
+        "recipe_execution_envelope"
+    )
+    RECIPE_STEP_EXECUTION_RESULT = (
+        "recipe_step_execution_result"
+    )
+    RECIPE_RUN_RESULT = "recipe_run_result"
     
 
 

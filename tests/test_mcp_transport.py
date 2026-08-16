@@ -6,6 +6,8 @@ import asyncio
 
 import pytest
 
+from geoagent_harness.mcp_server import tools
+
 from geoagent_harness.mcp_server.server import (
     create_mcp_server,
 )
@@ -111,11 +113,5 @@ def test_created_server_preserves_tool_allowlist() -> None:
     )
 
     assert names == sorted(
-        [
-            "health_check",
-            "inspect_vector_dataset",
-            "plan_load_vector_to_postgis",
-            "validate_postgis_layer",
-            "run_approved_vector_postgis_workflow",
-        ]
+        tools.TOOL_ALLOWLIST
     )

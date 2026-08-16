@@ -28,6 +28,9 @@ def test_every_artifact_has_one_policy() -> None:
         ArtifactType.RECIPE,
         ArtifactType.RECIPE_VALIDATION,
         ArtifactType.RECIPE_APPROVAL,
+        ArtifactType.RECIPE_EXECUTION_ENVELOPE,
+        ArtifactType.RECIPE_STEP_EXECUTION_RESULT,
+        ArtifactType.RECIPE_RUN_RESULT,
     ],
 )
 def test_recipe_artifacts_use_current_schema(

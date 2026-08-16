@@ -4,6 +4,9 @@ from pathlib import Path
 
 import pytest
 
+import geopandas as gpd
+from shapely.geometry import Point
+
 from geoagent_harness.skills.convert_vector import (
     ConvertVectorPolicyError,
     VectorOutputFormat,
@@ -194,3 +197,44 @@ def test_conversion_plan_uses_registered_version(
     )
 
     assert plan.schema_version == "1.0"
+
+def test_default_layer_normalizes_filename_hyphens(
+    tmp_path: Path,
+) -> None:
+    input_root = tmp_path / "input"
+    output_root = tmp_path / "output"
+
+    input_root.mkdir()
+    output_root.mkdir()
+
+    source = input_root / "points.geojson"
+
+    frame = gpd.GeoDataFrame(
+        {
+            "name": ["one"],
+        },
+        geometry=[
+            Point(-71.0, 42.0),
+        ],
+        crs="EPSG:4326",
+    )
+
+    frame.to_file(
+        source,
+        driver="GeoJSON",
+        index=False,
+    )
+
+    plan = plan_vector_conversion(
+        path=source,
+        target_path=(
+            output_root
+            / "converted-points.gpkg"
+        ),
+        input_root=input_root,
+        output_root=output_root,
+    )
+
+    assert plan.target_layer == (
+        "converted_points"
+    )

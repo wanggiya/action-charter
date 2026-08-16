@@ -30,6 +30,150 @@ _STEP_ID = re.compile(
     r"^step_[1-9][0-9]*$"
 )
 
+class RecipeExecutionStep(BaseModel):
+    """Trusted recipe step prepared for execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step_id: str = Field(
+        pattern=r"^step_[1-9][0-9]*$"
+    )
+    skill_id: str = Field(
+        pattern=r"^[a-z][a-z0-9_]*$"
+    )
+
+    depends_on: list[str] = Field(
+        default_factory=list
+    )
+    arguments: dict[str, Any] = Field(
+        default_factory=dict
+    )
+    output_ids: list[str] = Field(
+        default_factory=list
+    )
+
+
+class RecipeExecutionEnvelope(BaseModel):
+    """Approved recipe request that has not executed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    recipe_id: str
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    approval_id: str
+    approved_step_ids: list[str] = Field(
+        min_length=1
+    )
+    topological_step_ids: list[str] = Field(
+        min_length=1
+    )
+
+    steps: list[RecipeExecutionStep] = Field(
+        min_length=1
+    )
+
+    tool_name: Literal[
+        "run_approved_recipe"
+    ] = "run_approved_recipe"
+
+    execution_performed: Literal[False] = False
+    
+class InspectVectorRecipeArguments(BaseModel):
+    """Allowlisted recipe arguments for vector inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1)
+
+
+class ConvertVectorRecipeArguments(BaseModel):
+    """Allowlisted recipe arguments for vector conversion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1)
+    target_path: str = Field(min_length=1)
+
+    source_layer: str | None = None
+    target_layer: str | None = None
+
+
+class RecipeStepExecutionResult(BaseModel):
+    """Result of one hard-coded recipe step dispatch."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    step_id: str
+    skill_id: str
+
+    status: Literal[
+        "completed",
+        "completed_pending_validation",
+    ]
+
+    output_ids: list[str]
+    result: dict[str, Any]
+
+    execution_performed: Literal[True] = True
+    validation_performed: bool    
+
+class RecipeStepRunResult(BaseModel):
+    """Execution and validation result for one recipe step."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    step_id: str
+    skill_id: str
+
+    status: Literal[
+        "completed",
+        "validated_success",
+        "validation_failed",
+    ]
+
+    execution: RecipeStepExecutionResult
+    validation_result: dict[str, Any] | None = None
+
+    execution_performed: Literal[True] = True
+    validation_performed: bool
+
+
+class RecipeRunResult(BaseModel):
+    """Final result of one approved recipe run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    recipe_id: str
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    approval_id: str
+
+    final_status: Literal[
+        "validated_success",
+        "validation_failed",
+    ]
+
+    step_results: list[RecipeStepRunResult] = Field(
+        min_length=1
+    )
+
+    failed_step_id: str | None = None
+    warnings: list[str] = Field(
+        default_factory=list
+    )
+
+    execution_performed: Literal[True] = True
+    validation_performed: bool
 
 class RecipeApprovalRecord(BaseModel):
     """Append-only approval for one exact recipe."""

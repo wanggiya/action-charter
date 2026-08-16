@@ -17,6 +17,10 @@ from geoagent_harness.mcp_server.transport import (
     load_transport_settings,
 )
 
+from geoagent_harness.mcp_server.approved_recipe import (
+    run_approved_recipe,
+)
+
 
 def create_mcp_server(
     settings: MCPTransportSettings | None = None,
@@ -113,6 +117,22 @@ def create_mcp_server(
             expected_geometry_type=(
                 expected_geometry_type
             ),
+        ).model_dump(mode="json")
+    
+    @server.tool(
+        name="run_approved_recipe"
+    )
+    def run_approved_recipe_tool(
+        execution_envelope: dict[str, Any],
+        recipe_filename: str,
+        approval_filename: str,
+    ) -> dict:
+        """Run one exact server-verified approved recipe."""
+
+        return run_approved_recipe(
+            execution_envelope=execution_envelope,
+            recipe_filename=recipe_filename,
+            approval_filename=approval_filename,
         ).model_dump(mode="json")
 
     return server

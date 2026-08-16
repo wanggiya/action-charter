@@ -30,6 +30,7 @@ TOOL_ALLOWLIST = [
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
+    "run_approved_recipe",
 ]
 
 

@@ -189,7 +189,10 @@ def plan_vector_conversion(
     active_target_layer = (
         target_layer
         if target_layer is not None
-        else resolved_target.stem
+        else resolved_target.stem.replace(
+            "-",
+            "_",
+        )
     )
 
     if not _SAFE_LAYER.fullmatch(

@@ -53,3 +53,13 @@ def test_verify_recipe_approval_is_registered() -> None:
     assert "--approval-root" in output
     assert "--project-root" in output
 
+def test_run_approved_recipe_is_registered() -> None:
+    output = command_help(
+        "run-approved-recipe"
+    )
+
+    assert "--recipe-root" in output
+    assert "--approval-root" in output
+    assert "--project-root" in output
+    assert "--pretty" in output
+

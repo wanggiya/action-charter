@@ -1963,5 +1963,106 @@ def verify_recipe_approval_command(
     if not result.approved:
         raise typer.Exit(code=1)
 
+@app.command("run-approved-recipe")
+def run_approved_recipe_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Canonical recipe beneath the recipe root.",
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Recipe approval beneath the approval root.",
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Run and validate one exact approved recipe."""
+
+    from geoagent_harness.mcp_server.settings import (
+        load_settings,
+    )
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeRunError,
+        RecipeStorageError,
+        load_recipe,
+        load_recipe_approval,
+        run_approved_recipe,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        recipe = load_recipe(
+            recipe_file,
+            recipe_root=recipe_root,
+        )
+        approval = load_recipe_approval(
+            approval_file,
+            approval_root=approval_root,
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+
+        result = run_approved_recipe(
+            recipe=recipe,
+            approval=approval,
+            registry=registry,
+            settings=load_settings(),
+        )
+    except (
+        RecipeApprovalError,
+        RecipeRunError,
+        RecipeStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if (
+        result.final_status
+        != "validated_success"
+    ):
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":
     app()
