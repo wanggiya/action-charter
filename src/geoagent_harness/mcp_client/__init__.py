@@ -16,6 +16,8 @@ from geoagent_harness.mcp_client.settings import (
 from geoagent_harness.mcp_client.executor import (
     APPROVED_WORKFLOW_TOOL,
     MCPExecutorClient,
+    APPROVED_EXECUTOR_TOOLS,
+    APPROVED_RECIPE_TOOL,
 )
 
 __all__ = [
@@ -28,4 +30,6 @@ __all__ = [
     "load_mcp_client_settings",
     "APPROVED_WORKFLOW_TOOL",
     "MCPExecutorClient",
+    "APPROVED_EXECUTOR_TOOLS",
+    "APPROVED_RECIPE_TOOL",
 ]

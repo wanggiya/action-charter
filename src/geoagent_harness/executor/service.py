@@ -24,6 +24,8 @@ from geoagent_harness.executor.schemas import (
     WorkflowExecutionResult,
 )
 from geoagent_harness.mcp_client.executor import (
+    APPROVED_EXECUTOR_TOOLS,
+    APPROVED_RECIPE_TOOL,
     APPROVED_WORKFLOW_TOOL,
     MCPExecutorClient,
 )
@@ -60,7 +62,7 @@ def _validate_executor_manifest(
 
     allowed = {
         "health_check",
-        APPROVED_WORKFLOW_TOOL,
+        *APPROVED_EXECUTOR_TOOLS,
     }
 
     if set(manifest.permissions.tools) != allowed:

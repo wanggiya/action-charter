@@ -26,10 +26,25 @@ def test_only_executor_has_tool_access() -> None:
     critic = load_agent_manifest("critic", AGENTS_ROOT)
 
     assert planner.permissions.tools == []
+    assert all(
+        tool not in executor.permissions.tools
+        for tool in {
+            "inspect_vector_dataset",
+            "plan_load_vector_to_postgis",
+            "load_vector_to_postgis",
+            "convert_vector",
+            "validate_postgis_layer",
+        }
+    )
     assert executor.permissions.tools == [
         "health_check",
         "run_approved_vector_postgis_workflow",
+        "run_approved_recipe",
     ]
+    assert (
+        "convert_vector"
+        not in executor.permissions.tools
+    )
     assert (
         "load_vector_to_postgis"
         not in executor.permissions.tools

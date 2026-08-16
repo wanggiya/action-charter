@@ -1,10 +1,11 @@
 id: executor
 model_ref: deterministic_mcp_runtime
-purpose: Execute only an exact approved workflow through a typed MCP tool.
+purpose: Execute only exact approved workflows and recipes through typed composite MCP tools.
 permissions:
   tools:
     - health_check
     - run_approved_vector_postgis_workflow
+    - run_approved_recipe
   arbitrary_shell: false
   unrestricted_sql: false
   filesystem_write: false
@@ -18,3 +19,4 @@ instructions:
   - Never access PostGIS credentials or connect directly to PostGIS.
   - Never claim success unless deterministic validation reports success.
   - Never overwrite or delete files, tables, schemas, or databases.
+  - Never invoke a recipe skill directly; invoke only the exact approval-gated composite recipe tool.

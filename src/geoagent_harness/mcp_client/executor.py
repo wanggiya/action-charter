@@ -25,9 +25,23 @@ from geoagent_harness.mcp_client.schemas import (
 from geoagent_harness.mcp_client.settings import (
     MCPClientSettings,
 )
+from geoagent_harness.recipes.schemas import (
+    RecipeExecutionEnvelope,
+)
 
 APPROVED_WORKFLOW_TOOL = (
     "run_approved_vector_postgis_workflow"
+)
+
+APPROVED_RECIPE_TOOL = (
+    "run_approved_recipe"
+)
+
+APPROVED_EXECUTOR_TOOLS = frozenset(
+    {
+        APPROVED_WORKFLOW_TOOL,
+        APPROVED_RECIPE_TOOL,
+    }
 )
 
 
@@ -70,7 +84,7 @@ def _structured_result(
                 return value
 
     raise MCPClientError.invalid_response(
-        "Approved workflow returned no structured result"
+        "Approved MCP tool returned no structured result"
     )
 
 
@@ -82,6 +96,70 @@ class MCPExecutorClient:
         settings: MCPClientSettings,
     ) -> None:
         self._settings = settings
+        
+    async def _call_approved_tool(
+        self,
+        *,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> MCPToolCallResult:
+        """Call one hard-coded composite execution tool."""
+
+        if tool_name not in APPROVED_EXECUTOR_TOOLS:
+            raise MCPClientError.invalid_response(
+                "Executor attempted a tool outside "
+                "its fixed composite allowlist"
+            )
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self._settings.timeout_seconds,
+            ) as http_client:
+                async with streamable_http_client(
+                    self._settings.url,
+                    http_client=http_client,
+                ) as (
+                    read_stream,
+                    write_stream,
+                    _,
+                ):
+                    async with ClientSession(
+                        read_stream,
+                        write_stream,
+                    ) as session:
+                        await session.initialize()
+
+                        response = await session.call_tool(
+                            tool_name,
+                            arguments=arguments,
+                        )
+
+                        if response.isError:
+                            raise (
+                                MCPClientError
+                                .execution_tool_error()
+                            )
+
+                        return MCPToolCallResult(
+                            tool_name=tool_name,
+                            result=_structured_result(
+                                response
+                            ),
+                        )
+
+        except MCPClientError:
+            raise
+        except (
+            httpx.TimeoutException,
+            TimeoutError,
+        ) as exc:
+            raise (
+                MCPClientError.execution_timeout()
+            ) from exc
+        except Exception as exc:
+            raise (
+                MCPClientError.execution_unavailable()
+            ) from exc
 
     async def execute_approved_workflow(
         self,
@@ -109,53 +187,38 @@ class MCPExecutorClient:
             "approval_filename": safe_approval,
         }
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=self._settings.timeout_seconds,
-            ) as http_client:
-                async with streamable_http_client(
-                    self._settings.url,
-                    http_client=http_client,
-                ) as (
-                    read_stream,
-                    write_stream,
-                    _,
-                ):
-                    async with ClientSession(
-                        read_stream,
-                        write_stream,
-                    ) as session:
-                        await session.initialize()
+        return await self._call_approved_tool(
+            tool_name=APPROVED_WORKFLOW_TOOL,
+            arguments=arguments,
+        )
+        
+    async def execute_approved_recipe(
+        self,
+        *,
+        envelope: RecipeExecutionEnvelope,
+        recipe_filename: str,
+        approval_filename: str,
+    ) -> MCPToolCallResult:
+        """Call the exact approval-gated recipe tool."""
 
-                        response = await session.call_tool(
-                            APPROVED_WORKFLOW_TOOL,
-                            arguments=arguments,
-                        )
+        safe_recipe = _plain_json_filename(
+            recipe_filename,
+            label="recipe_filename",
+        )
+        safe_approval = _plain_json_filename(
+            approval_filename,
+            label="approval_filename",
+        )
 
-                        if response.isError:
-                            raise (
-                                MCPClientError
-                                .execution_tool_error()
-                            )
+        arguments = {
+            "execution_envelope": (
+                envelope.model_dump(mode="json")
+            ),
+            "recipe_filename": safe_recipe,
+            "approval_filename": safe_approval,
+        }
 
-                        return MCPToolCallResult(
-                            tool_name=(
-                                APPROVED_WORKFLOW_TOOL
-                            ),
-                            result=_structured_result(
-                                response
-                            ),
-                        )
-        except MCPClientError:
-            raise
-        except (
-            httpx.TimeoutException,
-            TimeoutError,
-        ) as exc:
-            raise (
-                MCPClientError.execution_timeout()
-            ) from exc
-        except Exception as exc:
-            raise (
-                MCPClientError.execution_unavailable()
-            ) from exc
+        return await self._call_approved_tool(
+            tool_name=APPROVED_RECIPE_TOOL,
+            arguments=arguments,
+        )
