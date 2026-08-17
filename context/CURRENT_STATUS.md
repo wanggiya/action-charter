@@ -492,7 +492,7 @@ Implemented:
 
 #### Checkpoint 8R.6 — Approval-gated recipe execution
 
-Status: completed pending final documentation acceptance.
+Status: completed.
 
 Implemented:
 
