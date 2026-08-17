@@ -333,6 +333,55 @@ Project-owned containers:
 - enable `no-new-privileges`;
 - do not mount the Docker socket.
 
+### Runtime write permissions
+
+The independent Executor is a control-plane service. It has read-only
+access to trusted context, manifests, canonical recipes, approvals,
+plans, and workflow state. It has no GIS input mount, output mount,
+database credentials, or direct artifact-writing permission.
+
+The MCP GIS container performs approved GIS operations as the non-root
+user and group `10001:10001`. Its filesystem is read-only except for
+explicit bind-mounted artifact destinations.
+
+For local bind mounts, prepare the approved vector output directory
+without granting world-write access:
+
+```bash
+sudo chown "$(id -u):10001" data/output
+sudo chmod 2775 data/output
+
+The host user remains the directory owner. Group 10001 allows the
+non-root GIS container to create outputs, and the setgid bit makes new
+entries inherit the approved group.
+
+| Host path          | Container path                | Access     |
+| ------------------ | ----------------------------- | ---------- |
+| `context`          | `/workspace/context`          | read-only  |
+| `data/input`       | `/workspace/data/input`       | read-only  |
+| `data/output`      | `/workspace/data/output`      | read-write |
+| `plans`            | `/workspace/plans`            | read-only  |
+| `approvals`        | `/workspace/approvals`        | read-only  |
+| `workflow-recipes` | `/workspace/workflow-recipes` | read-only  |
+| `traces`           | `/workspace/traces`           | read-write |
+| `reports`          | `/workspace/reports`          | read-write |
+
+
+Filesystem permission does not itself authorize execution.
+ENABLE_WRITE_TOOLS remains disabled by default, and a write requires
+an exact canonical recipe, matching unexpired approval, validated
+execution envelope, fixed MCP tool, hard-coded dispatcher, and
+deterministic verifier.
+
+
+Be careful with the nested code fence when pasting. If VS Code closes the section incorrectly, use `~~~bash` for the inner command:
+
+```markdown
+~~~bash
+sudo chown "$(id -u):10001" data/output
+sudo chmod 2775 data/output
+~~~
+
 ## Repository structure
 
 ```text

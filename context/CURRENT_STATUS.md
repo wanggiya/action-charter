@@ -490,6 +490,31 @@ Implemented:
   verifying recipes;
 - no recipe execution introduced at this checkpoint.
 
+#### Checkpoint 8R.6 — Approval-gated recipe execution
+
+Status: completed pending final documentation acceptance.
+
+Implemented:
+
+- typed recipe execution envelopes;
+- exact recipe digest and approval binding;
+- hard-coded skill dispatch without dynamic entrypoint imports;
+- deterministic topological recipe execution;
+- per-step execution and validation results;
+- generic server-side `run_approved_recipe` MCP tool;
+- independent Executor MCP client support;
+- independent Executor CLI command;
+- read-only recipe, approval, context, and manifest mounts;
+- no GIS libraries or direct GIS data access in the Executor image;
+- lazy GIS imports preserving the Executor dependency boundary;
+- server-side recipe, approval, registry, schema, and envelope checks;
+- non-root GIS artifact writes restricted to the approved output mount;
+- corrected MCP transport and tool-error classification;
+- mixed read-only and validated step-result consistency policy;
+- real Executor-to-MCP vector conversion;
+- deterministic successful result assertions;
+- write tools restored to disabled state after acceptance.
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

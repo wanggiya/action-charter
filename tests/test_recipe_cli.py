@@ -2,6 +2,7 @@
 
 from click import unstyle
 from typer.testing import CliRunner
+from typer.main import get_command
 
 from geoagent_harness.cli import app
 
@@ -76,8 +77,27 @@ def test_execute_approved_recipe_is_registered() -> None:
     assert "Execute one exact approved recipe" in (
         result.stdout
     )
-    assert "--recipe-root" in result.stdout
-    assert "--approval-root" in result.stdout
-    assert "--project-root" in result.stdout
-    assert "--agents-root" in result.stdout
+
+    root_command = get_command(app)
+
+    assert hasattr(root_command, "commands")
+
+    command = root_command.commands[
+        "execute-approved-recipe"
+    ]
+
+    parameter_names = {
+        parameter.name
+        for parameter in command.params
+    }
+
+    assert {
+        "recipe_file",
+        "approval_file",
+        "recipe_root",
+        "approval_root",
+        "project_root",
+        "agents_root",
+        "pretty",
+    } <= parameter_names
 
