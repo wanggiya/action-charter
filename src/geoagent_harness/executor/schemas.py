@@ -10,6 +10,10 @@ from pydantic import (
     Field,
 )
 
+from geoagent_harness.recipes.schemas import (
+    RecipeRunResult,
+)
+
 
 class WorkflowToolArguments(BaseModel):
     """Arguments for the approved composite workflow tool."""
@@ -87,3 +91,23 @@ class ExecutorRunResult(BaseModel):
     ]
     execution_performed: Literal[True] = True
     workflow: WorkflowExecutionResult
+    
+class ExecutorRecipeRunResult(BaseModel):
+    """Recipe result returned by the independent Executor Agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    agent_id: Literal["executor"] = "executor"
+
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    approval_id: str
+
+    tool_name: Literal[
+        "run_approved_recipe"
+    ] = "run_approved_recipe"
+
+    execution_performed: Literal[True] = True
+
+    recipe: RecipeRunResult

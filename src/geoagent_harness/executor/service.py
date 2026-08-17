@@ -20,6 +20,7 @@ from geoagent_harness.executor.policy import (
 )
 from geoagent_harness.executor.schemas import (
     ExecutionEnvelope,
+    ExecutorRecipeRunResult,
     ExecutorRunResult,
     WorkflowExecutionResult,
 )
@@ -28,6 +29,16 @@ from geoagent_harness.mcp_client.executor import (
     APPROVED_RECIPE_TOOL,
     APPROVED_WORKFLOW_TOOL,
     MCPExecutorClient,
+)
+from geoagent_harness.recipes import (
+    RecipeExecutionEnvelope,
+    RecipeRunResult,
+    build_recipe_execution_envelope,
+    load_recipe,
+    load_recipe_approval,
+)
+from geoagent_harness.skill_registry import (
+    load_skill_registry,
 )
 from geoagent_harness.mcp_client.schemas import (
     MCPToolCallResult,
@@ -51,6 +62,18 @@ class ExecutorClientProtocol(Protocol):
     ) -> MCPToolCallResult:
         ...
 
+
+class ExecutorRecipeClientProtocol(Protocol):
+    """Narrow client interface for approved recipe execution."""
+
+    async def execute_approved_recipe(
+        self,
+        *,
+        envelope: RecipeExecutionEnvelope,
+        recipe_filename: str,
+        approval_filename: str,
+    ) -> MCPToolCallResult:
+        ...
 
 def _validate_executor_manifest(
     manifest: AgentManifest,
@@ -169,3 +192,140 @@ async def execute_approved_plan(
         execution_performed=True,
         workflow=workflow,
     )
+    
+async def execute_approved_recipe_via_mcp(
+    *,
+    recipe_file: Path,
+    approval_file: Path,
+    recipe_root: Path,
+    approval_root: Path,
+    project_root: Path,
+    agents_root: Path,
+    mcp_client: (
+        ExecutorRecipeClientProtocol | None
+    ) = None,
+) -> ExecutorRecipeRunResult:
+    """Verify an approved recipe locally and execute it through MCP."""
+
+    manifest = load_agent_manifest(
+        "executor",
+        agents_root,
+    )
+    _validate_executor_manifest(manifest)
+
+    recipe = load_recipe(
+        recipe_file,
+        recipe_root=recipe_root,
+    )
+
+    approval = load_recipe_approval(
+        approval_file,
+        approval_root=approval_root,
+    )
+
+    registry = load_skill_registry(
+        project_root
+    )
+
+    envelope = build_recipe_execution_envelope(
+        recipe=recipe,
+        approval=approval,
+        registry=registry,
+    )
+
+    client = mcp_client or MCPExecutorClient(
+        load_mcp_client_settings()
+    )
+
+    tool_result = await client.execute_approved_recipe(
+        envelope=envelope,
+        recipe_filename=recipe_file.name,
+        approval_filename=approval_file.name,
+    )
+
+    if tool_result.tool_name != APPROVED_RECIPE_TOOL:
+        raise ExecutorServiceError(
+            "MCP returned a result for an unexpected tool"
+        )
+
+    try:
+        recipe_result = RecipeRunResult.model_validate(
+            tool_result.result
+        )
+    except ValidationError as exc:
+        raise ExecutorServiceError(
+            "MCP returned an invalid recipe result"
+        ) from exc
+
+    if (
+        recipe_result.recipe_id
+        != envelope.recipe_id
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe ID does not match the approved recipe"
+        )
+
+    if (
+        recipe_result.recipe_sha256
+        != envelope.recipe_sha256
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe digest does not match the approved recipe"
+        )
+
+    if (
+        recipe_result.approval_id
+        != envelope.approval_id
+    ):
+        raise ExecutorServiceError(
+            "MCP approval ID does not match the approved recipe"
+        )
+
+    if (
+        recipe_result.final_status
+        == "validated_success"
+        and not recipe_result.validation_performed
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe success lacks deterministic validation"
+        )
+
+    if (
+        recipe_result.final_status
+        == "validated_success"
+        and any(
+            (
+                step.validation_performed
+                and step.status
+                != "validated_success"
+            )
+            or (
+                not step.validation_performed
+                and step.status
+                != "completed"
+            )
+            for step in recipe_result.step_results
+        )
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe success conflicts with a step result"
+        )
+        
+    if (
+        recipe_result.final_status
+        == "validated_success"
+        and recipe_result.failed_step_id
+        is not None
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe success identifies a failed step"
+        )
+
+    return ExecutorRecipeRunResult(
+        recipe_sha256=envelope.recipe_sha256,
+        approval_id=envelope.approval_id,
+        tool_name=APPROVED_RECIPE_TOOL,
+        execution_performed=True,
+        recipe=recipe_result,
+    )
+

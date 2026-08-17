@@ -2063,6 +2063,123 @@ def run_approved_recipe_command(
     ):
         raise typer.Exit(code=1)
 
+@app.command("execute-approved-recipe")
+def execute_approved_recipe_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical recipe JSON beneath "
+                "the recipe root."
+            ),
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Recipe approval JSON beneath "
+                "the approval root."
+            ),
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Execute one exact approved recipe through MCP."""
+
+    import asyncio
+
+    from geoagent_harness.executor.service import (
+        ExecutorServiceError,
+        execute_approved_recipe_via_mcp,
+    )
+    from geoagent_harness.mcp_client import (
+        MCPClientError,
+        MCPClientSettingsError,
+    )
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeExecutionPolicyError,
+        RecipeStorageError,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+    )
+
+    try:
+        result = asyncio.run(
+            execute_approved_recipe_via_mcp(
+                recipe_file=recipe_file,
+                approval_file=approval_file,
+                recipe_root=recipe_root,
+                approval_root=approval_root,
+                project_root=project_root,
+                agents_root=agents_root,
+            )
+        )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.EXECUTION,
+        )
+    except MCPClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MCP,
+        )
+    except (
+        ExecutorServiceError,
+        MCPClientSettingsError,
+        RecipeApprovalError,
+        RecipeExecutionPolicyError,
+        RecipeStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if (
+        result.recipe.final_status
+        != "validated_success"
+    ):
+        raise typer.Exit(code=1)
+
 
 if __name__ == "__main__":
     app()

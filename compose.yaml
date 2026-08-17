@@ -58,8 +58,10 @@ services:
 
     volumes:
       - ./agents/executor:/app/agents/executor:ro
+      - ./context:/workspace/context:ro
       - ./plans:/workspace/plans:ro
       - ./approvals:/workspace/approvals:ro
+      - ./workflow-recipes:/workspace/workflow-recipes:ro
       - ./workflow-state:/workspace/workflow-state:ro
 
     profiles:

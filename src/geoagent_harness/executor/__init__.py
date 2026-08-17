@@ -7,8 +7,15 @@ from geoagent_harness.executor.policy import (
 from geoagent_harness.executor.schemas import (
     ExecutionEnvelope,
     ExecutorRunResult,
+    ExecutorRecipeRunResult,
     WorkflowExecutionResult,
     WorkflowToolArguments,
+)
+
+from geoagent_harness.executor.service import (
+    ExecutorServiceError,
+    execute_approved_plan,
+    execute_approved_recipe_via_mcp,
 )
 
 __all__ = [
@@ -18,4 +25,9 @@ __all__ = [
     "WorkflowExecutionResult",
     "WorkflowToolArguments",
     "build_execution_envelope",
+    "ExecutorRecipeRunResult",
+    "execute_approved_recipe_via_mcp",
+    "ExecutorServiceError",
+    "execute_approved_plan",
+    
 ]

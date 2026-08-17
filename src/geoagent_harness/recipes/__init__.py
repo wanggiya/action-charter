@@ -45,15 +45,8 @@ from geoagent_harness.recipes.execution import (
     build_recipe_execution_envelope,
 )
 
-from geoagent_harness.recipes.dispatcher import (
-    RecipeDispatchError,
-    dispatch_recipe_step,
-)
 
-from geoagent_harness.recipes.runner import (
-    RecipeRunError,
-    run_approved_recipe,
-)
+
 
 __all__ = [
     "RecipePolicyError",
@@ -90,3 +83,38 @@ __all__ = [
     "RecipeStepRunResult",
     "run_approved_recipe",
 ]
+
+def __getattr__(name: str):
+    """Load GIS execution code only when explicitly requested."""
+
+    if name == "RecipeDispatchError":
+        from geoagent_harness.recipes.dispatcher import (
+            RecipeDispatchError,
+        )
+
+        return RecipeDispatchError
+
+    if name == "dispatch_recipe_step":
+        from geoagent_harness.recipes.dispatcher import (
+            dispatch_recipe_step,
+        )
+
+        return dispatch_recipe_step
+
+    if name == "RecipeRunError":
+        from geoagent_harness.recipes.runner import (
+            RecipeRunError,
+        )
+
+        return RecipeRunError
+
+    if name == "run_approved_recipe":
+        from geoagent_harness.recipes.runner import (
+            run_approved_recipe,
+        )
+
+        return run_approved_recipe
+
+    raise AttributeError(
+        f"module {__name__!r} has no attribute {name!r}"
+    )

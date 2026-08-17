@@ -43,3 +43,24 @@ def test_executor_service_imports_in_clean_process() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+    
+def test_executor_schema_import_does_not_load_gis_stack() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "from geoagent_harness.executor.schemas "
+                "import ExecutorRecipeRunResult; "
+                "assert 'geopandas' not in sys.modules; "
+                "assert 'pyogrio' not in sys.modules"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr

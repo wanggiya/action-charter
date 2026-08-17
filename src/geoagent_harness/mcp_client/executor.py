@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from mcp import ClientSession
@@ -13,9 +13,6 @@ from mcp.client.streamable_http import (
 )
 from mcp.types import TextContent
 
-from geoagent_harness.executor.schemas import (
-    ExecutionEnvelope,
-)
 from geoagent_harness.mcp_client.client import (
     MCPClientError,
 )
@@ -25,9 +22,13 @@ from geoagent_harness.mcp_client.schemas import (
 from geoagent_harness.mcp_client.settings import (
     MCPClientSettings,
 )
-from geoagent_harness.recipes.schemas import (
-    RecipeExecutionEnvelope,
-)
+if TYPE_CHECKING:
+    from geoagent_harness.executor.schemas import (
+        ExecutionEnvelope,
+    )
+    from geoagent_harness.recipes.schemas import (
+        RecipeExecutionEnvelope,
+    )
 
 APPROVED_WORKFLOW_TOOL = (
     "run_approved_vector_postgis_workflow"
@@ -134,19 +135,6 @@ class MCPExecutorClient:
                             arguments=arguments,
                         )
 
-                        if response.isError:
-                            raise (
-                                MCPClientError
-                                .execution_tool_error()
-                            )
-
-                        return MCPToolCallResult(
-                            tool_name=tool_name,
-                            result=_structured_result(
-                                response
-                            ),
-                        )
-
         except MCPClientError:
             raise
         except (
@@ -161,6 +149,32 @@ class MCPExecutorClient:
                 MCPClientError.execution_unavailable()
             ) from exc
 
+        # Interpret the response only after the MCP transport
+        # contexts have closed normally. This prevents a tool
+        # error from being obscured during stream shutdown.
+        if response.isError:
+            raise (
+                MCPClientError
+                .execution_tool_error()
+            )
+
+        try:
+            result = _structured_result(
+                response
+            )
+        except MCPClientError:
+            raise
+        except Exception as exc:
+            raise MCPClientError.invalid_response(
+                "Approved MCP tool returned "
+                "an invalid structured result"
+            ) from exc
+
+        return MCPToolCallResult(
+            tool_name=tool_name,
+            result=result,
+        )
+        
     async def execute_approved_workflow(
         self,
         *,

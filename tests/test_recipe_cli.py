@@ -63,3 +63,21 @@ def test_run_approved_recipe_is_registered() -> None:
     assert "--project-root" in output
     assert "--pretty" in output
 
+def test_execute_approved_recipe_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "execute-approved-recipe",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Execute one exact approved recipe" in (
+        result.stdout
+    )
+    assert "--recipe-root" in result.stdout
+    assert "--approval-root" in result.stdout
+    assert "--project-root" in result.stdout
+    assert "--agents-root" in result.stdout
+
