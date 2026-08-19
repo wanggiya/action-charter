@@ -2181,5 +2181,129 @@ def execute_approved_recipe_command(
         raise typer.Exit(code=1)
 
 
+@app.command("build-recipe-evidence")
+def build_recipe_evidence_command(
+    result_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Raw RecipeRunResult JSON beneath "
+                "the trusted result root."
+            ),
+        ),
+    ],
+    result_root: Annotated[
+        Path,
+        typer.Option("--result-root"),
+    ] = Path("recipe-runs"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option("--evidence-root"),
+    ] = Path("recipe-evidence"),
+    input_root: Annotated[
+        Path,
+        typer.Option("--input-root"),
+    ] = Path("data/input"),
+    output_root: Annotated[
+        Path,
+        typer.Option("--output-root"),
+    ] = Path("data/output"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Build and immutably store recipe lineage evidence."""
+
+    from geoagent_harness.recipes import (
+        RecipeEvidenceError,
+        RecipeEvidenceStorageError,
+        build_recipe_run_evidence,
+        load_recipe_run_result,
+        recipe_evidence_sha256,
+        write_recipe_evidence,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        run_result = load_recipe_run_result(
+            result_file,
+            result_root=result_root,
+        )
+
+        registry = load_skill_registry(
+            project_root
+        )
+
+        evidence = build_recipe_run_evidence(
+            run_result=run_result,
+            registry=registry,
+            input_root=input_root,
+            output_root=output_root,
+        )
+
+        written_path = write_recipe_evidence(
+            evidence,
+            evidence_root=evidence_root,
+        )
+
+        response = {
+            "status": "stored",
+            "recipe_id": evidence.recipe_id,
+            "recipe_sha256": (
+                evidence.recipe_sha256
+            ),
+            "evidence_sha256": (
+                recipe_evidence_sha256(
+                    evidence
+                )
+            ),
+            "evidence_path": (
+                written_path.as_posix()
+            ),
+            "final_status": (
+                evidence.final_status
+            ),
+            "artifact_count": len(
+                evidence.artifacts
+            ),
+            "lineage_edge_count": len(
+                evidence.lineage
+            ),
+            "secrets_redacted": True,
+        }
+
+    except (
+        RecipeEvidenceError,
+        RecipeEvidenceStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            response,
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

@@ -47,7 +47,13 @@ class ArtifactType(str, Enum):
     RECIPE_STEP_EXECUTION_RESULT = (
         "recipe_step_execution_result"
     )
-    RECIPE_RUN_RESULT = "recipe_run_result"
+    # RECIPE_RUN_RESULT = "recipe_run_result"
+    RECIPE_RUN_EVIDENCE = (
+        "recipe_run_evidence"
+    )
+    RECIPE_RUN_RESULT = (
+        "recipe_run_result"
+    )
     
 
 

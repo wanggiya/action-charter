@@ -45,6 +45,28 @@ from geoagent_harness.recipes.execution import (
     build_recipe_execution_envelope,
 )
 
+from geoagent_harness.recipes.evidence_schemas import (
+    ArtifactReference,
+    ArtifactRole,
+    LineageEdge,
+    RecipeRunEvidence,
+)
+
+from geoagent_harness.recipes.evidence_storage import (
+    MAX_RECIPE_EVIDENCE_BYTES,
+    RecipeEvidenceStorageError,
+    canonical_recipe_evidence_json,
+    load_recipe_evidence,
+    recipe_evidence_path,
+    recipe_evidence_sha256,
+    write_recipe_evidence,
+    MAX_RECIPE_RUN_RESULT_BYTES,
+    load_recipe_run_result,
+    canonical_recipe_run_result_json,
+    recipe_run_result_path,
+    recipe_run_result_sha256,
+    write_recipe_run_result,
+)
 
 
 
@@ -82,6 +104,20 @@ __all__ = [
     "RecipeRunResult",
     "RecipeStepRunResult",
     "run_approved_recipe",
+    "ArtifactReference",
+    "ArtifactRole",
+    "LineageEdge",
+    "RecipeRunEvidence",
+    "MAX_EVIDENCE_ARTIFACT_BYTES",
+    "RecipeEvidenceError",
+    "build_recipe_run_evidence",
+    "MAX_RECIPE_EVIDENCE_BYTES",
+    "RecipeEvidenceStorageError",
+    "canonical_recipe_evidence_json",
+    "load_recipe_evidence",
+    "recipe_evidence_path",
+    "recipe_evidence_sha256",
+    "write_recipe_evidence",
 ]
 
 def __getattr__(name: str):
@@ -114,6 +150,31 @@ def __getattr__(name: str):
         )
 
         return run_approved_recipe
+    
+    if name in {
+        "MAX_EVIDENCE_ARTIFACT_BYTES",
+        "RecipeEvidenceError",
+        "build_recipe_run_evidence",
+    }:
+        from geoagent_harness.recipes.evidence import (
+            MAX_EVIDENCE_ARTIFACT_BYTES,
+            RecipeEvidenceError,
+            build_recipe_run_evidence,
+        )
+
+        evidence_exports = {
+            "MAX_EVIDENCE_ARTIFACT_BYTES": (
+                MAX_EVIDENCE_ARTIFACT_BYTES
+            ),
+            "RecipeEvidenceError": (
+                RecipeEvidenceError
+            ),
+            "build_recipe_run_evidence": (
+                build_recipe_run_evidence
+            ),
+        }
+
+        return evidence_exports[name]
 
     raise AttributeError(
         f"module {__name__!r} has no attribute {name!r}"

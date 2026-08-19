@@ -45,3 +45,9 @@ workflow-state/*
 # Runtime reusable workflow recipes
 workflow-recipes/*
 !workflow-recipes/.gitkeep
+
+recipe-runs/*
+!recipe-runs/.gitkeep
+
+recipe-evidence/*
+!recipe-evidence/.gitkeep
