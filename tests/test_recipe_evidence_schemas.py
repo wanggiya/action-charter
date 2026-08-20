@@ -210,3 +210,143 @@ def test_evidence_identity_must_match_result() -> None:
     ):
         RecipeRunEvidence.model_validate(payload)
 
+
+def test_recipe_execution_record_is_typed() -> None:
+    from geoagent_harness.recipes.evidence_schemas import (
+        RecipeExecutionRecord,
+    )
+
+    record = RecipeExecutionRecord(
+        recipe_id="checkpoint8r7",
+        recipe_sha256="a" * 64,
+        approval_id=(
+            "recipe-approval-"
+            "20260819t120000z-1234abcd"
+        ),
+        final_status="validated_success",
+        run_result_sha256="b" * 64,
+        run_result_path=(
+            "recipe-runs/checkpoint8r7."
+            + "b" * 64
+            + ".json"
+        ),
+        evidence_sha256="c" * 64,
+        evidence_path=(
+            "recipe-evidence/checkpoint8r7."
+            + "c" * 64
+            + ".json"
+        ),
+        report_path=(
+            "reports/checkpoint8r7."
+            + "c" * 64
+            + ".md"
+        ),
+    )
+
+    assert record.execution_performed is True
+    assert record.evidence_recorded is True
+    assert record.report_written is True
+
+def execution_record(
+    run_result,
+):
+    from geoagent_harness.recipes.evidence_schemas import (
+        RecipeExecutionRecord,
+    )
+
+    return RecipeExecutionRecord(
+        recipe_id=run_result.recipe_id,
+        recipe_sha256=run_result.recipe_sha256,
+        approval_id=run_result.approval_id,
+        final_status=run_result.final_status,
+        run_result_sha256="b" * 64,
+        run_result_path=(
+            "recipe-runs/run.json"
+        ),
+        evidence_sha256="c" * 64,
+        evidence_path=(
+            "recipe-evidence/evidence.json"
+        ),
+        report_path="reports/report.md",
+    )
+
+
+def test_persisted_execution_result_accepts_matching_identity() -> None:
+    from geoagent_harness.recipes.evidence_schemas import (
+        PersistedRecipeExecutionResult,
+    )
+
+    run_evidence = evidence()
+    run_result = run_evidence.run_result
+
+    persisted = PersistedRecipeExecutionResult(
+        run_result=run_result,
+        execution_record=execution_record(
+            run_result
+        ),
+    )
+
+    assert persisted.run_result == run_result
+    assert (
+        persisted.execution_record.recipe_id
+        == run_result.recipe_id
+    )
+
+
+def test_persisted_execution_result_rejects_mismatched_status() -> None:
+    from pydantic import ValidationError
+
+    from geoagent_harness.recipes.evidence_schemas import (
+        PersistedRecipeExecutionResult,
+    )
+
+    run_result = evidence().run_result
+    record = execution_record(run_result)
+
+    changed_status = (
+        "validation_failed"
+        if run_result.final_status
+        == "validated_success"
+        else "validated_success"
+    )
+
+    record = record.model_copy(
+        update={
+            "final_status": changed_status,
+        }
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="statuses do not match",
+    ):
+        PersistedRecipeExecutionResult(
+            run_result=run_result,
+            execution_record=record,
+        )
+
+
+def test_persisted_execution_result_rejects_mismatched_digest() -> None:
+    from pydantic import ValidationError
+
+    from geoagent_harness.recipes.evidence_schemas import (
+        PersistedRecipeExecutionResult,
+    )
+
+    run_result = evidence().run_result
+    record = execution_record(run_result)
+
+    record = record.model_copy(
+        update={
+            "recipe_sha256": "f" * 64,
+        }
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="digests do not match",
+    ):
+        PersistedRecipeExecutionResult(
+            run_result=run_result,
+            execution_record=record,
+        )

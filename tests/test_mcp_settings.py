@@ -57,3 +57,24 @@ def test_invalid_allowed_schema_is_rejected() -> None:
                     "agent_sandbox;drop_schema"
             }
         )
+        
+def test_recipe_evidence_roots_are_configurable() -> None:
+    settings = load_settings(
+        {
+            "GEOAGENT_INPUT_ROOT": "data/input",
+            "GEOAGENT_OUTPUT_ROOT": "data/output",
+            "GEOAGENT_RECIPE_RUN_ROOT": (
+                "/workspace/recipe-runs"
+            ),
+            "GEOAGENT_RECIPE_EVIDENCE_ROOT": (
+                "/workspace/recipe-evidence"
+            ),
+        }
+    )
+
+    assert settings.recipe_run_root == Path(
+        "/workspace/recipe-runs"
+    )
+    assert settings.recipe_evidence_root == Path(
+        "/workspace/recipe-evidence"
+    )

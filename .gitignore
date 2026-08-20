@@ -51,3 +51,9 @@ recipe-runs/*
 
 recipe-evidence/*
 !recipe-evidence/.gitkeep
+
+recipe-runs/*
+!recipe-runs/.gitkeep
+
+recipe-evidence/*
+!recipe-evidence/.gitkeep

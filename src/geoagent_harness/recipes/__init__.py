@@ -50,6 +50,9 @@ from geoagent_harness.recipes.evidence_schemas import (
     ArtifactRole,
     LineageEdge,
     RecipeRunEvidence,
+    RecipeExecutionRecord,
+    PersistedRecipeExecutionResult,
+    RecipeExecutionRecord,
 )
 
 from geoagent_harness.recipes.evidence_storage import (
@@ -118,6 +121,10 @@ __all__ = [
     "recipe_evidence_path",
     "recipe_evidence_sha256",
     "write_recipe_evidence",
+    "RecipeExecutionRecord",
+    "RecipeEvidencePersistenceError",
+    "persist_recipe_run",
+    "PersistedRecipeExecutionResult",
 ]
 
 def __getattr__(name: str):
@@ -175,6 +182,19 @@ def __getattr__(name: str):
         }
 
         return evidence_exports[name]
+    
+    if name in {
+        "RecipeEvidencePersistenceError",
+        "persist_recipe_run",
+    }:
+        from geoagent_harness.recipes import (
+            evidence_persistence,
+        )
+
+        return getattr(
+            evidence_persistence,
+            name,
+        )
 
     raise AttributeError(
         f"module {__name__!r} has no attribute {name!r}"

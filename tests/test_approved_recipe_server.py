@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+import geoagent_harness.mcp_server.approved_recipe as approved_recipe_module
+
 from geoagent_harness.mcp_server.approved_recipe import (
     ApprovedRecipeError,
     run_approved_recipe,
@@ -24,6 +26,20 @@ from geoagent_harness.recipes import (
 )
 from geoagent_harness.skill_registry import (
     load_skill_registry,
+)
+
+# import geoagent_harness.mcp_server.approved_recipe as (
+#     approved_recipe_module
+# )
+
+from geoagent_harness.recipes.evidence_persistence import (
+    RecipeEvidencePersistenceError,
+)
+from geoagent_harness.recipes.evidence_schemas import (
+    RecipeExecutionRecord,
+)
+from tests.test_recipe_evidence_schemas import (
+    evidence as example_evidence,
 )
 
 
@@ -131,6 +147,47 @@ def prepared_request(
         settings,
     )
 
+def completed_result(
+    envelope,
+):
+    """Return a completed result matching one envelope."""
+
+    return example_evidence().run_result.model_copy(
+        update={
+            "recipe_id": envelope.recipe_id,
+            "recipe_sha256": (
+                envelope.recipe_sha256
+            ),
+            "approval_id": envelope.approval_id,
+        }
+    )
+
+
+def execution_record(
+    envelope,
+) -> RecipeExecutionRecord:
+    """Return durable references matching one envelope."""
+
+    return RecipeExecutionRecord(
+        recipe_id=envelope.recipe_id,
+        recipe_sha256=envelope.recipe_sha256,
+        approval_id=envelope.approval_id,
+        final_status="validated_success",
+        run_result_sha256="b" * 64,
+        run_result_path=(
+            "recipe-runs/server-result.json"
+        ),
+        evidence_sha256="c" * 64,
+        evidence_path=(
+            "recipe-evidence/server-evidence.json"
+        ),
+        report_path=(
+            "reports/server-report.md"
+        ),
+        execution_performed=True,
+        evidence_recorded=True,
+        report_written=True,
+    )
 
 def test_server_rebuilds_exact_envelope(
     tmp_path: Path,
@@ -246,3 +303,212 @@ def test_writes_disabled_blocks_server(
             settings=blocked,
         )
 
+def test_server_persists_completed_recipe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (
+        recipe_path,
+        approval_path,
+        envelope,
+        settings,
+    ) = prepared_request(tmp_path)
+
+    run_result = completed_result(envelope)
+    record = execution_record(envelope)
+    captured: dict[str, object] = {}
+
+    # Replace the real GIS recipe execution.
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "execute_approved_recipe",
+        lambda **_kwargs: run_result,
+    )
+
+    # Replace real filesystem persistence.
+    def fake_persist(**kwargs):
+        captured.update(kwargs)
+        return record
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "persist_recipe_run",
+        fake_persist,
+    )
+
+    response = run_approved_recipe(
+        execution_envelope=(
+            envelope.model_dump(mode="json")
+        ),
+        recipe_filename=recipe_path.name,
+        approval_filename=approval_path.name,
+        settings=settings,
+    )
+
+    assert response.run_result == run_result
+    assert response.execution_record == record
+
+    assert captured["run_result"] == run_result
+    assert captured["settings"] == settings
+    assert captured["registry"] is not None
+
+    recorded_at = captured["recorded_at"]
+
+    assert isinstance(
+        recorded_at,
+        datetime,
+    )
+    assert recorded_at.tzinfo is not None
+    
+def test_persistence_failure_requires_manual_review(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (
+        recipe_path,
+        approval_path,
+        envelope,
+        settings,
+    ) = prepared_request(tmp_path)
+
+    run_result = completed_result(envelope)
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "execute_approved_recipe",
+        lambda **_kwargs: run_result,
+    )
+
+    def fail_persistence(**_kwargs):
+        raise RecipeEvidencePersistenceError(
+            "simulated persistence failure"
+        )
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "persist_recipe_run",
+        fail_persistence,
+    )
+
+    with pytest.raises(
+        ApprovedRecipeError,
+        match="manual review is required",
+    ):
+        run_approved_recipe(
+            execution_envelope=(
+                envelope.model_dump(
+                    mode="json"
+                )
+            ),
+            recipe_filename=recipe_path.name,
+            approval_filename=(
+                approval_path.name
+            ),
+            settings=settings,
+        )
+
+
+
+def test_persistence_failure_requires_manual_review(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (
+        recipe_path,
+        approval_path,
+        envelope,
+        settings,
+    ) = prepared_request(tmp_path)
+
+    run_result = completed_result(envelope)
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "execute_approved_recipe",
+        lambda **_kwargs: run_result,
+    )
+
+    def fail_persistence(**_kwargs):
+        raise RecipeEvidencePersistenceError(
+            "simulated persistence failure"
+        )
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "persist_recipe_run",
+        fail_persistence,
+    )
+
+    with pytest.raises(
+        ApprovedRecipeError,
+        match="manual review is required",
+    ):
+        run_approved_recipe(
+            execution_envelope=(
+                envelope.model_dump(
+                    mode="json"
+                )
+            ),
+            recipe_filename=recipe_path.name,
+            approval_filename=(
+                approval_path.name
+            ),
+            settings=settings,
+        )
+
+def test_invalid_result_is_not_persisted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (
+        recipe_path,
+        approval_path,
+        envelope,
+        settings,
+    ) = prepared_request(tmp_path)
+
+    invalid_result = completed_result(
+        envelope
+    ).model_copy(
+        update={
+            "recipe_sha256": "f" * 64,
+        }
+    )
+
+    persistence_called = False
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "execute_approved_recipe",
+        lambda **_kwargs: invalid_result,
+    )
+
+    def unexpected_persistence(**_kwargs):
+        nonlocal persistence_called
+        persistence_called = True
+        return execution_record(envelope)
+
+    monkeypatch.setattr(
+        approved_recipe_module,
+        "persist_recipe_run",
+        unexpected_persistence,
+    )
+
+    with pytest.raises(
+        ApprovedRecipeError,
+        match="digest conflicts",
+    ):
+        run_approved_recipe(
+            execution_envelope=(
+                envelope.model_dump(
+                    mode="json"
+                )
+            ),
+            recipe_filename=recipe_path.name,
+            approval_filename=(
+                approval_path.name
+            ),
+            settings=settings,
+        )
+
+    assert persistence_called is False

@@ -47,6 +47,17 @@ from geoagent_harness.mcp_client.settings import (
     load_mcp_client_settings,
 )
 
+from geoagent_harness.recipes.evidence_schemas import (
+    PersistedRecipeExecutionResult,
+)
+from geoagent_harness.schema_registry import (
+    ArtifactType,
+    require_supported_schema,
+)
+
+from geoagent_harness.recipes.evidence_storage import (
+    recipe_run_result_sha256,
+)
 
 class ExecutorServiceError(RuntimeError):
     """Raised when approved execution cannot be accepted."""
@@ -249,13 +260,44 @@ async def execute_approved_recipe_via_mcp(
         )
 
     try:
-        recipe_result = RecipeRunResult.model_validate(
-            tool_result.result
+        require_supported_schema(
+            tool_result.result,
+            artifact_type=(
+                ArtifactType
+                .PERSISTED_RECIPE_EXECUTION_RESULT
+            ),
         )
-    except ValidationError as exc:
+
+        persisted = (
+            PersistedRecipeExecutionResult
+            .model_validate(
+                tool_result.result
+            )
+        )
+    except (
+        ValidationError,
+        ValueError,
+    ) as exc:
         raise ExecutorServiceError(
-            "MCP returned an invalid recipe result"
+            "MCP returned an invalid persisted "
+            "recipe result"
         ) from exc
+
+    recipe_result = persisted.run_result
+    execution_record = (
+        persisted.execution_record
+    )
+    
+    if (
+        recipe_run_result_sha256(
+            recipe_result
+        )
+        != execution_record.run_result_sha256
+    ):
+        raise ExecutorServiceError(
+            "MCP recipe result digest conflicts "
+            "with its execution record"
+        )
 
     if (
         recipe_result.recipe_id
@@ -327,5 +369,6 @@ async def execute_approved_recipe_via_mcp(
         tool_name=APPROVED_RECIPE_TOOL,
         execution_performed=True,
         recipe=recipe_result,
+        execution_record=execution_record,
     )
 

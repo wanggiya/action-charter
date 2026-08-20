@@ -76,6 +76,12 @@ class MCPSettings(BaseModel):
     
     project_root: Path = Path(".")
     recipe_root: Path = Path("workflow-recipes")
+    recipe_run_root: Path = Path(
+        "recipe-runs"
+    )
+    recipe_evidence_root: Path = Path(
+        "recipe-evidence"
+    )
     project_root: Path = Path(".")
 
     @field_validator("allowed_schemas")
@@ -217,6 +223,18 @@ def load_settings(
             source.get(
                 "GEOAGENT_PROJECT_ROOT",
                 ".",
+            )
+        ),
+        recipe_run_root=Path(
+            source.get(
+                "GEOAGENT_RECIPE_RUN_ROOT",
+                "recipe-runs",
+            )
+        ),
+        recipe_evidence_root=Path(
+            source.get(
+                "GEOAGENT_RECIPE_EVIDENCE_ROOT",
+                "recipe-evidence",
             )
         ),
     )

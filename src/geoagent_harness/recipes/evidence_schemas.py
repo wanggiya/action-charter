@@ -281,3 +281,91 @@ class RecipeRunEvidence(BaseModel):
 
         return self
 
+class RecipeExecutionRecord(BaseModel):
+    """Durable references for one completed recipe run."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    recipe_id: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9_-]{0,100}$"
+    )
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    approval_id: str = Field(min_length=1)
+
+    final_status: Literal[
+        "validated_success",
+        "validation_failed",
+    ]
+
+    run_result_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    run_result_path: str = Field(min_length=1)
+
+    evidence_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    evidence_path: str = Field(min_length=1)
+
+    report_path: str = Field(min_length=1)
+
+    execution_performed: Literal[True] = True
+    evidence_recorded: Literal[True] = True
+    report_written: Literal[True] = True
+
+
+class PersistedRecipeExecutionResult(BaseModel):
+    """Completed recipe result with durable evidence references."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    run_result: RecipeRunResult
+    execution_record: RecipeExecutionRecord
+
+    @model_validator(mode="after")
+    def identities_must_match(
+        self,
+    ) -> "PersistedRecipeExecutionResult":
+        result = self.run_result
+        record = self.execution_record
+
+        if result.recipe_id != record.recipe_id:
+            raise ValueError(
+                "recipe result and execution record "
+                "recipe IDs do not match"
+            )
+
+        if (
+            result.recipe_sha256
+            != record.recipe_sha256
+        ):
+            raise ValueError(
+                "recipe result and execution record "
+                "digests do not match"
+            )
+
+        if (
+            result.approval_id
+            != record.approval_id
+        ):
+            raise ValueError(
+                "recipe result and execution record "
+                "approval IDs do not match"
+            )
+
+        if (
+            result.final_status
+            != record.final_status
+        ):
+            raise ValueError(
+                "recipe result and execution record "
+                "statuses do not match"
+            )
+
+        return self

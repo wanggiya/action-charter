@@ -32,6 +32,8 @@ def test_every_artifact_has_one_policy() -> None:
         ArtifactType.RECIPE_STEP_EXECUTION_RESULT,
         ArtifactType.RECIPE_RUN_RESULT,
         ArtifactType.RECIPE_RUN_EVIDENCE,
+        ArtifactType.RECIPE_EXECUTION_RECORD,
+        ArtifactType.PERSISTED_RECIPE_EXECUTION_RESULT,
     ],
 )
 def test_recipe_artifacts_use_current_schema(

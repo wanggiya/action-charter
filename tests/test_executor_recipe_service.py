@@ -23,6 +23,13 @@ from geoagent_harness.recipes import (
     RecipeExecutionEnvelope,
 )
 
+from geoagent_harness.recipes.evidence_storage import (
+    recipe_run_result_sha256,
+)
+from geoagent_harness.recipes.schemas import (
+    RecipeRunResult,
+)
+
 
 DIGEST = "a" * 64
 APPROVAL_ID = (
@@ -151,6 +158,52 @@ def successful_recipe_result(
         "validation_performed": True,
     }
 
+def successful_persisted_result(
+    *,
+    digest: str = DIGEST,
+) -> dict[str, Any]:
+    run_result = successful_recipe_result(
+        digest=digest
+    )
+    
+    run_result_digest = (
+        recipe_run_result_sha256(
+            RecipeRunResult.model_validate(
+                run_result
+            )
+        )
+    )
+
+    return {
+        "schema_version": "1.0",
+        "run_result": run_result,
+        "execution_record": {
+            "schema_version": "1.0",
+            "recipe_id": (
+                "executor-recipe-test"
+            ),
+            "recipe_sha256": digest,
+            "approval_id": APPROVAL_ID,
+            "final_status": (
+                run_result["final_status"]
+            ),
+            "run_result_sha256": run_result_digest,
+            "run_result_path": (
+                "recipe-runs/executor-result.json"
+            ),
+            "evidence_sha256": "c" * 64,
+            "evidence_path": (
+                "recipe-evidence/"
+                "executor-evidence.json"
+            ),
+            "report_path": (
+                "reports/executor-report.md"
+            ),
+            "execution_performed": True,
+            "evidence_recorded": True,
+            "report_written": True,
+        },
+    }
 
 class FakeRecipeClient:
     def __init__(
@@ -232,7 +285,7 @@ def test_executor_runs_approved_recipe_through_mcp(
         monkeypatch
     )
     client = FakeRecipeClient(
-        successful_recipe_result()
+        successful_persisted_result()
     )
 
     result = asyncio.run(
@@ -265,6 +318,14 @@ def test_executor_runs_approved_recipe_through_mcp(
         == "validated_success"
     )
 
+    assert (
+        result.execution_record.evidence_recorded
+        is True
+    )
+    assert result.execution_record.evidence_path == (
+        "recipe-evidence/executor-evidence.json"
+    )
+
     assert len(client.calls) == 1
     assert (
         client.calls[0]["envelope"]
@@ -286,7 +347,7 @@ def test_executor_rejects_mismatched_recipe_digest(
     install_trusted_inputs(monkeypatch)
 
     client = FakeRecipeClient(
-        successful_recipe_result(
+        successful_persisted_result(
             digest="b" * 64,
         )
     )
@@ -324,7 +385,7 @@ def test_executor_rejects_unexpected_mcp_tool(
     install_trusted_inputs(monkeypatch)
 
     client = FakeRecipeClient(
-        successful_recipe_result(),
+        successful_persisted_result(),
         tool_name=(
             "run_approved_vector_postgis_workflow"
         ),
@@ -362,17 +423,63 @@ def test_executor_rejects_invalid_success_step_status(
 ) -> None:
     install_trusted_inputs(monkeypatch)
 
-    payload = successful_recipe_result()
+    payload = successful_persisted_result()
 
-    payload["step_results"][1][
+    payload["run_result"]["step_results"][1][
         "status"
     ] = "completed"
+
+    payload["execution_record"][
+        "run_result_sha256"
+    ] = recipe_run_result_sha256(
+        RecipeRunResult.model_validate(
+            payload["run_result"]
+        )
+    )
 
     client = FakeRecipeClient(payload)
 
     with pytest.raises(
         ExecutorServiceError,
         match="success conflicts",
+    ):
+        asyncio.run(
+            execute_approved_recipe_via_mcp(
+                recipe_file=Path(
+                    "workflow-recipes/"
+                    "executor-recipe-test.json"
+                ),
+                approval_file=Path(
+                    "approvals/"
+                    f"{APPROVAL_ID}.json"
+                ),
+                recipe_root=Path(
+                    "workflow-recipes"
+                ),
+                approval_root=Path(
+                    "approvals"
+                ),
+                project_root=Path("."),
+                agents_root=Path("agents"),
+                mcp_client=client,
+            )
+        )
+
+def test_executor_rejects_tampered_run_result_digest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    install_trusted_inputs(monkeypatch)
+
+    payload = successful_persisted_result()
+    payload["execution_record"][
+        "run_result_sha256"
+    ] = "f" * 64
+
+    client = FakeRecipeClient(payload)
+
+    with pytest.raises(
+        ExecutorServiceError,
+        match="result digest conflicts",
     ):
         asyncio.run(
             execute_approved_recipe_via_mcp(

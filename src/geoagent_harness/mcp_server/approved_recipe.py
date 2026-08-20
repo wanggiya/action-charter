@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,7 @@ from geoagent_harness.recipes.runner import (
 )
 from geoagent_harness.recipes.schemas import (
     RecipeExecutionEnvelope,
-    RecipeRunResult,
+    # RecipeRunResult,
 )
 from geoagent_harness.recipes.storage import (
     RecipeStorageError,
@@ -38,6 +39,13 @@ from geoagent_harness.schema_registry import (
 from geoagent_harness.skill_registry import (
     SkillRegistryError,
     load_skill_registry,
+)
+from geoagent_harness.recipes.evidence_persistence import (
+    RecipeEvidencePersistenceError,
+    persist_recipe_run,
+)
+from geoagent_harness.recipes.evidence_schemas import (
+    PersistedRecipeExecutionResult,
 )
 
 
@@ -151,7 +159,7 @@ def run_approved_recipe(
     recipe_filename: str,
     approval_filename: str,
     settings: MCPSettings | None = None,
-) -> RecipeRunResult:
+) -> PersistedRecipeExecutionResult:
     """Verify exact artifacts, then execute the recipe."""
 
     active = settings or load_settings()
@@ -215,5 +223,24 @@ def run_approved_recipe(
             "the verified execution envelope"
         )
 
-    return result
+    try:
+        execution_record = persist_recipe_run(
+            run_result=result,
+            registry=registry,
+            settings=active,
+            recorded_at=datetime.now(
+                timezone.utc
+            ),
+        )
+    except RecipeEvidencePersistenceError as exc:
+        raise ApprovedRecipeError(
+            "recipe execution completed but durable "
+            "evidence persistence failed; manual "
+            "review is required"
+        ) from exc
+
+    return PersistedRecipeExecutionResult(
+        run_result=result,
+        execution_record=execution_record,
+    )
 

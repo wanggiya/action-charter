@@ -14,6 +14,10 @@ from geoagent_harness.recipes.schemas import (
     RecipeRunResult,
 )
 
+from geoagent_harness.recipes.evidence_schemas import (
+    RecipeExecutionRecord,
+)
+
 
 class WorkflowToolArguments(BaseModel):
     """Arguments for the approved composite workflow tool."""
@@ -111,3 +115,4 @@ class ExecutorRecipeRunResult(BaseModel):
     execution_performed: Literal[True] = True
 
     recipe: RecipeRunResult
+    execution_record: RecipeExecutionRecord

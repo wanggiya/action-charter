@@ -103,6 +103,8 @@ services:
       GEOAGENT_OUTPUT_ROOT: /workspace/data/output
       
       GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
+      GEOAGENT_RECIPE_RUN_ROOT: /workspace/recipe-runs
+      GEOAGENT_RECIPE_EVIDENCE_ROOT: /workspace/recipe-evidence
 
       GEOAGENT_PLAN_ROOT: /workspace/plans
       GEOAGENT_APPROVAL_ROOT: /workspace/approvals
@@ -136,6 +138,8 @@ services:
       - ./workflow-recipes:/workspace/workflow-recipes:ro
       - ./context:/workspace/context:ro
       - ./data/output:/workspace/data/output
+      - ./recipe-runs:/workspace/recipe-runs
+      - ./recipe-evidence:/workspace/recipe-evidence
 
     networks:
       - control
