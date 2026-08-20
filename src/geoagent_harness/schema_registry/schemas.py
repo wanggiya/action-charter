@@ -60,6 +60,19 @@ class ArtifactType(str, Enum):
     PERSISTED_RECIPE_EXECUTION_RESULT = (
         "persisted_recipe_execution_result"
     )
+    RECIPE_PROPOSAL = "recipe_proposal"
+    RECIPE_PROPOSAL_ASSESSMENT = (
+        "recipe_proposal_assessment"
+    )
+    RECIPE_COMPILATION_RESULT = (
+        "recipe_compilation_result"
+    )
+    RECIPE_PROPOSAL_GENERATION_RESULT = (
+        "recipe_proposal_generation_result"
+    )
+    RECIPE_PROPOSAL_PIPELINE_RESULT = (
+        "recipe_proposal_pipeline_result"
+    )
     
 
 

@@ -548,6 +548,54 @@ Acceptance run:
 - Output artifact SHA-256: matched recorded evidence
 - Write tools restored to disabled after execution
 
+## Checkpoint 9 — Natural-language recipe proposals
+
+Status: complete
+
+The Planner can now use the shared local OpenAI-compatible Ollama
+runtime to interpret a natural-language GIS request as a strictly
+typed, non-executable `RecipeProposal`.
+
+Implemented boundaries:
+
+- The model can select only one fixed trusted template:
+  - `inspect_vector`
+  - `inspect_and_convert_vector`
+  - `vector_to_postgis`
+- Model output is parsed as JSON and validated with Pydantic.
+- Unknown templates, arbitrary skills, shell commands, SQL, extra
+  fields, unsupported schema versions, changed requests, and false
+  execution claims fail closed.
+- Incomplete proposals produce deterministic clarification questions.
+- Ready proposals compile through fixed Python templates into a typed
+  `WorkflowRecipe`.
+- The trusted skill registry and recipe policy derive write,
+  approval, validation, and dependency requirements.
+- Compilation does not save, approve, invoke MCP, or execute.
+- Recipe saving remains a separate explicit operator action.
+- Existing append-only approval and approval-gated MCP execution
+  remain unchanged.
+
+Real acceptance result:
+
+1. Qwen interpreted a natural-language vector-conversion request.
+2. It produced an `inspect_and_convert_vector` proposal.
+3. The proposal passed schema validation.
+4. Deterministic assessment declared it ready.
+5. The compiler created the fixed two-step recipe.
+6. Recipe policy identified `step_2` as approval-required,
+   write-performing, and validation-required.
+7. The operator explicitly saved the immutable recipe.
+8. No approval or GIS execution occurred during proposal generation
+   or compilation.
+9. The complete offline test suite passed.
+
+Trust boundary:
+
+`Natural language -> untrusted model proposal -> schema validation
+-> deterministic assessment -> trusted compiler -> recipe policy
+-> explicit operator save -> human approval -> MCP execution`
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

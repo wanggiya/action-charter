@@ -100,4 +100,58 @@ def test_execute_approved_recipe_is_registered() -> None:
         "agents_root",
         "pretty",
     } <= parameter_names
+    
+def test_compile_recipe_proposal_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "compile-recipe-proposal",
+            "--help",
+        ],
+    )
 
+    assert result.exit_code == 0
+    assert (
+        "Compile a safe proposal without "
+        "saving or executing"
+        in result.stdout
+    )
+    assert "--proposal-root" in result.stdout
+    assert "--project-root" in result.stdout
+
+
+def test_propose_recipe_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "propose-recipe",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "Generate a non-executable recipe proposal"
+        in result.stdout
+    )
+    assert "--agents-root" in result.stdout
+    assert "--pretty" in result.stdout
+
+def test_propose_and_compile_recipe_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "propose-and-compile-recipe",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "Generate and compile without saving "
+        "or executing"
+        in result.stdout
+    )
+    assert "--project-root" in result.stdout
+    assert "--agents-root" in result.stdout
+    

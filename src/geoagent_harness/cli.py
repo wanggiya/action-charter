@@ -2305,5 +2305,218 @@ def build_recipe_evidence_command(
         )
     )
 
+@app.command("compile-recipe-proposal")
+def compile_recipe_proposal_command(
+    proposal_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Recipe proposal JSON beneath the "
+                "approved proposal root."
+            ),
+        ),
+    ],
+    proposal_root: Annotated[
+        Path,
+        typer.Option("--proposal-root"),
+    ] = Path("recipe-proposals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Compile a safe proposal without saving or executing."""
+
+    from geoagent_harness.recipe_proposals import (
+        RecipeCompilationError,
+        RecipeProposalStorageError,
+        compile_recipe_proposal,
+        load_recipe_proposal,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        proposal = load_recipe_proposal(
+            proposal_file,
+            proposal_root=proposal_root,
+        )
+
+        registry = load_skill_registry(
+            project_root
+        )
+
+        result = compile_recipe_proposal(
+            proposal,
+            registry=registry,
+        )
+    except (
+        RecipeCompilationError,
+        RecipeProposalStorageError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+    
+@app.command("propose-recipe")
+def propose_recipe_command(
+    original_request: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "Natural-language GIS request. "
+                "Quote requests containing spaces."
+            ),
+        ),
+    ],
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Generate a non-executable recipe proposal."""
+
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+    from geoagent_harness.recipe_proposals import (
+        RecipeProposalAgentError,
+        propose_recipe_with_shared_model,
+    )
+
+    try:
+        result = (
+            propose_recipe_with_shared_model(
+                original_request=(
+                    original_request
+                ),
+                agents_root=agents_root,
+            )
+        )
+    except (
+        ModelClientError,
+        ModelSettingsError,
+        RecipeProposalAgentError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+    
+@app.command("propose-and-compile-recipe")
+def propose_and_compile_recipe_command(
+    original_request: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "Natural-language GIS request. "
+                "Quote requests containing spaces."
+            ),
+        ),
+    ],
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Generate and compile without saving or executing."""
+
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+    from geoagent_harness.recipe_proposals import (
+        RecipeCompilationError,
+        RecipeProposalAgentError,
+        propose_and_compile_recipe,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+    )
+
+    try:
+        result = propose_and_compile_recipe(
+            original_request=original_request,
+            project_root=project_root,
+            agents_root=agents_root,
+        )
+    except (
+        ModelClientError,
+        ModelSettingsError,
+        RecipeCompilationError,
+        RecipeProposalAgentError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()
