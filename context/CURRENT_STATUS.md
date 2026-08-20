@@ -515,6 +515,39 @@ Implemented:
 - deterministic successful result assertions;
 - write tools restored to disabled state after acceptance.
 
+```markdown
+#### Checkpoint 8R.7 — Durable recipe evidence
+
+Status: complete
+
+Implemented:
+
+- Typed recipe run evidence and artifact references.
+- Input/output SHA-256 hashing and lineage edges.
+- Immutable digest-addressed recipe run-result storage.
+- Immutable digest-addressed evidence storage.
+- Deterministic Markdown reporting without model-authored status.
+- Non-root writable mounts for output, run records, evidence, and reports.
+- Typed `PersistedRecipeExecutionResult` MCP response.
+- Independent Executor verification of recipe identity, approval,
+  validation semantics, and run-result digest.
+- Fail-closed manual-review policy for incomplete post-execution
+  persistence.
+- Offline schema, storage, reporting, persistence, server, Executor,
+  and import-boundary tests.
+
+Acceptance run:
+
+- Recipe: `checkpoint8r7_acceptance`
+- Execution: approval-gated through the independent Executor
+- Final status: `validated_success`
+- Output artifact: `data/output/checkpoint8r7_acceptance.gpkg`
+- Run-result JSON: persisted and digest validated
+- Evidence JSON: persisted and digest validated
+- Markdown report: persisted and deterministically validated
+- Output artifact SHA-256: matched recorded evidence
+- Write tools restored to disabled after execution
+
 ## MVP status
 
 The initial vector-to-PostGIS vertical slice is implemented:

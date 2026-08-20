@@ -1647,6 +1647,46 @@ Potential additions:
 
 Every new skill must include typed schemas, path policies, permissions, deterministic verification, sample data, automated tests, and trace integration.
 
+
+## Container filesystem authorization
+
+GeoAgent uses separate read-only input/control mounts and narrowly
+scoped writable evidence/output mounts.
+
+| Path | Executor | MCP GIS | Purpose |
+|---|---:|---:|---|
+| `/workspace/context` | read-only | read-only | Trusted skill registry and policy context |
+| `/workspace/workflow-recipes` | read-only | read-only | Immutable validated recipes |
+| `/workspace/approvals` | read-only | read-only | Digest-bound human approvals |
+| `/workspace/data/input` | unavailable | read-only | Approved GIS source data |
+| `/workspace/data/output` | unavailable | read/write | Approved GIS output artifacts |
+| `/workspace/recipe-runs` | unavailable | read/write | Immutable typed execution results |
+| `/workspace/recipe-evidence` | unavailable | read/write | Hashed lineage and QA evidence |
+| `/workspace/reports` | unavailable | read/write | Deterministic Markdown reports |
+| PostGIS credentials | unavailable | secret file only | Controlled database access |
+
+The GIS container runs as a non-root user. Writable host directories
+use group `10001` and setgid permissions so files created by the
+container remain manageable from the host:
+
+```bash
+sudo chown "$(id -u):10001" \
+  data/output recipe-runs recipe-evidence reports
+
+sudo chmod 2775 \
+  data/output recipe-runs recipe-evidence reports
+
+ENABLE_WRITE_TOOLS=false is the persistent safe default. It is
+enabled only for an exact approved execution and restored immediately
+afterward.
+
+The Executor does not mount GIS inputs, outputs, evidence directories,
+or database credentials. It submits a typed approval-bound envelope
+through the fixed run_approved_recipe MCP tool and validates the
+returned recipe identity, status, and run-result digest.
+
+
+
 ## Decision principles
 
 When extending the project:

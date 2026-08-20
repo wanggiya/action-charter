@@ -57,3 +57,5 @@ recipe-runs/*
 
 recipe-evidence/*
 !recipe-evidence/.gitkeep
+
+.local/
