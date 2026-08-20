@@ -7,6 +7,15 @@ from typer.main import get_command
 from geoagent_harness.cli import app
 
 
+def normalized_output(
+    value: str,
+) -> str:
+    """Remove terminal styling and normalize wrapping."""
+
+    return " ".join(
+        unstyle(value).split()
+    )
+
 runner = CliRunner()
 
 
@@ -111,14 +120,19 @@ def test_compile_recipe_proposal_is_registered() -> None:
     )
 
     assert result.exit_code == 0
+
+    output = normalized_output(
+        result.stdout
+    )
+
     assert (
         "Compile a safe proposal without "
         "saving or executing"
-        in result.stdout
+        in output
     )
-    assert "--proposal-root" in result.stdout
-    assert "--project-root" in result.stdout
-
+    assert "--proposal-root" in output
+    assert "--project-root" in output
+    
 
 def test_propose_recipe_is_registered() -> None:
     result = runner.invoke(
@@ -130,13 +144,18 @@ def test_propose_recipe_is_registered() -> None:
     )
 
     assert result.exit_code == 0
+
+    output = normalized_output(
+        result.stdout
+    )
+
     assert (
         "Generate a non-executable recipe proposal"
-        in result.stdout
+        in output
     )
-    assert "--agents-root" in result.stdout
-    assert "--pretty" in result.stdout
-
+    assert "--agents-root" in output
+    assert "--pretty" in output
+    
 def test_propose_and_compile_recipe_is_registered() -> None:
     result = runner.invoke(
         app,
@@ -147,11 +166,15 @@ def test_propose_and_compile_recipe_is_registered() -> None:
     )
 
     assert result.exit_code == 0
+
+    output = normalized_output(
+        result.stdout
+    )
+
     assert (
         "Generate and compile without saving "
         "or executing"
-        in result.stdout
+        in output
     )
-    assert "--project-root" in result.stdout
-    assert "--agents-root" in result.stdout
-    
+    assert "--project-root" in output
+    assert "--agents-root" in output
