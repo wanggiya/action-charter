@@ -1,5 +1,6 @@
 """CLI registration tests for Snakemake export."""
 
+from click.utils import strip_ansi
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
@@ -16,11 +17,12 @@ def test_plan_snakemake_export_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
-    assert "non-executing" in result.stdout
-    assert "--recipe-root" in result.stdout
-    assert "--approval-root" in result.stdout
+    assert "non-executing" in output
+    assert "--recipe-root" in output
+    assert "--approval-root" in output
 
 
 def test_export_snakemake_is_registered() -> None:
@@ -31,12 +33,11 @@ def test_export_snakemake_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
-    assert "exact approved recipe" in (
-        result.stdout
-    )
-    assert "--export-root" in result.stdout
+    assert "exact approved recipe" in output
+    assert "--export-root" in output
 
 
 def test_validate_snakemake_export_is_registered() -> None:
@@ -47,9 +48,7 @@ def test_validate_snakemake_export_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
-    assert "Statically validate" in (
-        result.stdout
-    )
-
+    assert "Statically validate" in output

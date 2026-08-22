@@ -4,6 +4,7 @@ from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
 
+from click.utils import strip_ansi
 
 runner = CliRunner()
 
@@ -16,12 +17,13 @@ def test_plan_skill_scaffold_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
     assert "without writing files" in (
-        result.stdout
+        output
     )
-    assert "--project-root" in result.stdout
+    assert "--project-root" in output
 
 
 def test_generate_skill_scaffold_is_registered() -> None:
@@ -32,11 +34,12 @@ def test_generate_skill_scaffold_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
-    assert "isolated" in result.stdout
-    assert "--scaffold-root" in result.stdout
-    assert "--project-root" in result.stdout
+    assert "isolated" in output
+    assert "--scaffold-root" in output
+    assert "--project-root" in output
 
 
 def test_validate_skill_scaffold_is_registered() -> None:
@@ -47,9 +50,10 @@ def test_validate_skill_scaffold_is_registered() -> None:
             "--help",
         ],
     )
+    output = strip_ansi(result.stdout)
 
     assert result.exit_code == 0
     assert "without importing or executing" in (
-        result.stdout
+        output
     )
 
