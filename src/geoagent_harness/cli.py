@@ -2703,5 +2703,200 @@ def save_reviewed_recipe_command(
         )
     )
 
+@app.command("plan-skill-scaffold")
+def plan_skill_scaffold_command(
+    request_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Versioned skill scaffold request JSON."
+        ),
+    ],
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Plan a new GIS skill scaffold without writing files."""
+
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+    from geoagent_harness.skill_scaffolding import (
+        SkillScaffoldPolicyError,
+        SkillScaffoldStorageError,
+        load_skill_scaffold_request,
+        plan_skill_scaffold,
+    )
+
+    try:
+        request = load_skill_scaffold_request(
+            request_file
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+        result = plan_skill_scaffold(
+            request,
+            registry=registry,
+        )
+    except (
+        SkillRegistryError,
+        SkillScaffoldPolicyError,
+        SkillScaffoldStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("generate-skill-scaffold")
+def generate_skill_scaffold_command(
+    request_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Versioned skill scaffold request JSON."
+        ),
+    ],
+    scaffold_root: Annotated[
+        Path,
+        typer.Option("--scaffold-root"),
+    ] = Path("skill-scaffolds"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Generate one isolated, untrusted skill scaffold."""
+
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+    from geoagent_harness.skill_scaffolding import (
+        SkillScaffoldGenerationError,
+        SkillScaffoldPolicyError,
+        SkillScaffoldStorageError,
+        generate_skill_scaffold,
+        load_skill_scaffold_request,
+        plan_skill_scaffold,
+    )
+
+    try:
+        request = load_skill_scaffold_request(
+            request_file
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+        plan = plan_skill_scaffold(
+            request,
+            registry=registry,
+        )
+        result = generate_skill_scaffold(
+            plan,
+            scaffold_root=scaffold_root,
+        )
+    except (
+        SkillRegistryError,
+        SkillScaffoldGenerationError,
+        SkillScaffoldPolicyError,
+        SkillScaffoldStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("validate-skill-scaffold")
+def validate_skill_scaffold_command(
+    scaffold_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Generated skill scaffold bundle."
+        ),
+    ],
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Validate a scaffold without importing or executing it."""
+
+    from geoagent_harness.skill_scaffolding import (
+        SkillScaffoldContractError,
+        validate_skill_scaffold_contract,
+    )
+
+    try:
+        result = validate_skill_scaffold_contract(
+            scaffold_path
+        )
+    except (
+        SkillScaffoldContractError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.passed:
+        raise typer.Exit(code=1)
+
 if __name__ == "__main__":
     app()

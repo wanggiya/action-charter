@@ -1381,3 +1381,24 @@ When extending the project:
 A license has not yet been selected.
 
 Before accepting external contributions or distributing the project broadly, add an explicit open-source or proprietary license.
+
+
+### GIS skill scaffolding
+
+GeoAgent can generate isolated skeletons for new GIS skills:
+
+```bash
+geoagent plan-skill-scaffold request.json --pretty
+
+geoagent generate-skill-scaffold \
+  request.json \
+  --scaffold-root skill-scaffolds \
+  --pretty
+
+geoagent validate-skill-scaffold \
+  skill-scaffolds/example_skill \
+  --pretty
+
+Generated scaffolds are untrusted and remain planned. They are not automatically copied into the application, registered, approved, or executed.
+
+Ensure the nested command block is closed with three backticks if copying manually.

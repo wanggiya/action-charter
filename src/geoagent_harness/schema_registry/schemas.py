@@ -47,7 +47,6 @@ class ArtifactType(str, Enum):
     RECIPE_STEP_EXECUTION_RESULT = (
         "recipe_step_execution_result"
     )
-    # RECIPE_RUN_RESULT = "recipe_run_result"
     RECIPE_RUN_EVIDENCE = (
         "recipe_run_evidence"
     )
@@ -78,6 +77,18 @@ class ArtifactType(str, Enum):
     )
     RECIPE_OPERATOR_SAVE_RESULT = (
         "recipe_operator_save_result"
+    )
+    SKILL_SCAFFOLD_REQUEST = (
+        "skill_scaffold_request"
+    )
+    SKILL_SCAFFOLD_PLAN = (
+        "skill_scaffold_plan"
+    )
+    SKILL_SCAFFOLD_GENERATION_RESULT = (
+        "skill_scaffold_generation_result"
+    )
+    SKILL_SCAFFOLD_CONTRACT_RESULT = (
+        "skill_scaffold_contract_result"
     )
     
 

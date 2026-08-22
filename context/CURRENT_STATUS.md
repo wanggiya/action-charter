@@ -521,6 +521,71 @@ Real acceptance confirmed:
 * no GIS output was created;
 * the complete test suite passed.
 
+## Checkpoint 11 — Deterministic GIS skill scaffolding
+
+Status: complete
+
+GeoAgent can now plan, generate, and structurally validate reusable GIS skill skeletons without modifying the live application or trusted skill registry.
+
+Implemented components:
+
+- `SkillScaffoldRequest`
+  - Versioned operator request for one new skill.
+  - Uses existing `SkillKind` and `SkillAccess` values.
+  - Cannot request execution, registry modification, or immediate promotion.
+
+- `SkillScaffoldPlan`
+  - Deterministically derives approval and validation requirements.
+  - Rejects duplicate registered skill IDs.
+  - Rejects unsafe kind/access combinations.
+  - Produces fixed source and test paths.
+  - Keeps the proposed registry entry in `planned` status.
+  - Does not write files.
+
+- Isolated scaffold generation
+  - Writes only beneath a configured scaffold root.
+  - Refuses to overwrite an existing bundle.
+  - Generates source skeletons, test placeholders, a planned registry fragment, and a manifest.
+  - Write-oriented skills receive a validation skeleton.
+  - Generated services refuse execution until implemented.
+  - Does not edit `src/`, `tests/`, or `context/SKILLS_INDEX.yaml`.
+
+- Shared scaffold contract validation
+  - Validates generated file presence and size.
+  - Parses Python files without importing them.
+  - Detects invalid Python syntax.
+  - Rejects subprocess imports, dynamic execution calls, `os.system`, `os.popen`, and `shell=True`.
+  - Confirms that the registry fragment remains planned.
+  - Confirms that no entrypoint, verifier, promotion, trust claim, registry modification, or execution occurred.
+
+- CLI commands
+  - `geoagent plan-skill-scaffold`
+  - `geoagent generate-skill-scaffold`
+  - `geoagent validate-skill-scaffold`
+
+- Schema registry
+  - `skill_scaffold_request`
+  - `skill_scaffold_plan`
+  - `skill_scaffold_generation_result`
+  - `skill_scaffold_contract_result`
+
+Acceptance testing confirmed:
+
+1. A read-only `inspect_raster` scaffold could be planned.
+2. Planning produced no files.
+3. Generation created an isolated bundle.
+4. The bundle contained source and test skeletons.
+5. The read-only scaffold contained no write verifier.
+6. Contract validation passed without importing generated code.
+7. No live skill package was created.
+8. The trusted skill registry was unchanged.
+9. No implementation, approval, promotion, or execution was claimed.
+
+Important limitation:
+
+The scaffold automates boilerplate, policy metadata, file layout, and baseline contract testing. It does not invent or trust a new GIS algorithm. A new primitive GIS operation still requires implementation, deterministic validation where applicable, focused tests, operator review, and explicit promotion to `implemented`.
+
+
 ## Agent boundaries
 
 ### Planner
