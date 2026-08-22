@@ -2898,5 +2898,257 @@ def validate_skill_scaffold_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+@app.command("plan-snakemake-export")
+def plan_snakemake_export_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Canonical recipe beneath the recipe root."
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Recipe approval beneath the approval root."
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Plan a non-executing Snakemake recipe export."""
+
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeStorageError,
+        load_recipe,
+        load_recipe_approval,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+    from geoagent_harness.snakemake_export import (
+        SnakemakeExportPolicyError,
+        plan_snakemake_recipe_export,
+    )
+
+    try:
+        recipe = load_recipe(
+            recipe_file,
+            recipe_root=recipe_root,
+        )
+        approval = load_recipe_approval(
+            approval_file,
+            approval_root=approval_root,
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+
+        result = plan_snakemake_recipe_export(
+            recipe=recipe,
+            approval=approval,
+            registry=registry,
+            recipe_path=recipe_file,
+            approval_path=approval_file,
+        )
+    except (
+        RecipeApprovalError,
+        RecipeStorageError,
+        SkillRegistryError,
+        SnakemakeExportPolicyError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("export-approved-recipe-snakemake")
+def export_approved_recipe_snakemake_command(
+    recipe_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Canonical recipe beneath the recipe root."
+        ),
+    ],
+    approval_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Recipe approval beneath the approval root."
+        ),
+    ],
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    export_root: Annotated[
+        Path,
+        typer.Option("--export-root"),
+    ] = Path("snakemake-exports"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Export one exact approved recipe for Snakemake replay."""
+
+    from geoagent_harness.recipes import (
+        RecipeApprovalError,
+        RecipeStorageError,
+        load_recipe,
+        load_recipe_approval,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+    from geoagent_harness.snakemake_export import (
+        SnakemakeExportGenerationError,
+        SnakemakeExportPolicyError,
+        generate_snakemake_recipe_export,
+        plan_snakemake_recipe_export,
+    )
+
+    try:
+        recipe = load_recipe(
+            recipe_file,
+            recipe_root=recipe_root,
+        )
+        approval = load_recipe_approval(
+            approval_file,
+            approval_root=approval_root,
+        )
+        registry = load_skill_registry(
+            project_root
+        )
+
+        plan = plan_snakemake_recipe_export(
+            recipe=recipe,
+            approval=approval,
+            registry=registry,
+            recipe_path=recipe_file,
+            approval_path=approval_file,
+        )
+
+        result = generate_snakemake_recipe_export(
+            plan,
+            export_root=export_root,
+        )
+    except (
+        RecipeApprovalError,
+        RecipeStorageError,
+        SkillRegistryError,
+        SnakemakeExportGenerationError,
+        SnakemakeExportPolicyError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("validate-snakemake-export")
+def validate_snakemake_export_command(
+    export_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Generated Snakemake replay package."
+        ),
+    ],
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Statically validate a Snakemake replay package."""
+
+    from geoagent_harness.snakemake_export import (
+        SnakemakeExportContractError,
+        validate_snakemake_export_contract,
+    )
+
+    try:
+        result = validate_snakemake_export_contract(
+            export_path
+        )
+    except (
+        SnakemakeExportContractError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.passed:
+        raise typer.Exit(code=1)
+
 if __name__ == "__main__":
     app()

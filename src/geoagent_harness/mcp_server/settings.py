@@ -62,7 +62,6 @@ class MCPSettings(BaseModel):
         default_factory=lambda: frozenset({"agent_sandbox"})
     )
     
-    recipe_root: Path = Path("workflow-recipes")
 
     postgres_host: str = "postgis"
     postgres_port: int = Field(default=5432, ge=1, le=65535)
@@ -82,7 +81,6 @@ class MCPSettings(BaseModel):
     recipe_evidence_root: Path = Path(
         "recipe-evidence"
     )
-    project_root: Path = Path(".")
 
     @field_validator("allowed_schemas")
     @classmethod
@@ -132,12 +130,6 @@ def load_settings(
         if item.strip()
     )
     
-    recipe_root=Path(
-        source.get(
-            "GEOAGENT_RECIPE_ROOT",
-            "workflow-recipes",
-        )
-    ),
 
     return MCPSettings(
         input_root=Path(
@@ -223,6 +215,12 @@ def load_settings(
             source.get(
                 "GEOAGENT_PROJECT_ROOT",
                 ".",
+            )
+        ),
+        recipe_root=Path(
+            source.get(
+                "GEOAGENT_RECIPE_ROOT",
+                "workflow-recipes",
             )
         ),
         recipe_run_root=Path(

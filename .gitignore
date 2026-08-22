@@ -62,3 +62,6 @@ recipe-evidence/*
 
 # Generated, untrusted GIS skill scaffold bundles
 skill-scaffolds/
+
+# Generated approved-recipe replay packages
+snakemake-exports/

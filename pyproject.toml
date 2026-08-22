@@ -35,6 +35,10 @@ mcp = [
   "mcp>=1.29,<1.30",
 ]
 
+workflow = [
+  "snakemake>=9.25,<9.26",
+]
+
 [project.scripts]
 geoagent = "geoagent_harness.cli:app"
 geoagent-mcp = "geoagent_harness.mcp_server.server:main"

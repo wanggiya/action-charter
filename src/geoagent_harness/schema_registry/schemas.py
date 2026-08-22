@@ -90,6 +90,21 @@ class ArtifactType(str, Enum):
     SKILL_SCAFFOLD_CONTRACT_RESULT = (
         "skill_scaffold_contract_result"
     )
+    SNAKEMAKE_RECIPE_EXPORT_PLAN = (
+        "snakemake_recipe_export_plan"
+    )
+    SNAKEMAKE_RECIPE_EXPORT_RESULT = (
+        "snakemake_recipe_export_result"
+    )
+    SNAKEMAKE_EXPORT_CONTRACT_RESULT = (
+        "snakemake_export_contract_result"
+    )
+    SNAKEMAKE_REPLAY_CONFIGURATION = (
+        "snakemake_replay_configuration"
+    )
+    SNAKEMAKE_REPLAY_COMPLETION = (
+        "snakemake_replay_completion"
+    )
     
 
 
