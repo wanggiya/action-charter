@@ -6,7 +6,10 @@ The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared loca
 
 ## Current status
 
-Checkpoints 1–7D are complete for the initial vector-to-PostGIS vertical slice.
+Checkpoints 1–10 are complete. The project includes the original
+vector-to-PostGIS vertical slice, controlled vector conversion,
+reusable approval-gated recipes, durable execution evidence,
+natural-language recipe proposals, and guided operator review.
 
 The implemented workflow is:
 
@@ -57,12 +60,14 @@ The system does not allow an LLM to determine whether execution succeeded. Final
 
 Not yet implemented:
 
-- `convert_vector`;
 - raster workflows;
-- generalized retries and cancellation;
-- resumable workflow state;
+- generic recipe dispatch for every registered skill;
+- automatic retry and automatic workflow resumption;
 - task queues and scheduling;
-- trace-schema migration;
+- real artifact-schema migrations;
+- skill scaffolding and generated contract tests;
+- Snakemake export and replay;
+- GeoServer publication;
 - production authentication;
 - multi-user deployment;
 - strict network egress proxying;
@@ -735,9 +740,18 @@ Reports are generated deterministically from structured workflow evidence.
 
 ### `convert_vector`
 
-Status: planned.
+Status: implemented.
 
-It should eventually support controlled conversion among GeoJSON, GeoPackage, and Shapefile while preserving path, CRS, overwrite, and verification policy.
+The conversion skill:
+
+- accepts approved GeoJSON, GeoPackage, and Shapefile inputs;
+- creates GeoJSON or GeoPackage outputs;
+- enforces trusted input and output roots;
+- blocks overwrite;
+- validates source and target layers;
+- preserves CRS, fields, feature count, geometry type and extent;
+- records null and invalid geometry counts;
+- withholds success until deterministic validation passes.
 
 ## Human approval boundary
 
@@ -1191,8 +1205,24 @@ Every checkpoint should include:
 
 ## Known limitations
 
-- Only the vector-to-PostGIS vertical slice is complete.
-- `convert_vector` is not implemented.
+- Raster processing is not implemented.
+- Generic recipe dispatch does not yet support every registered or
+  planned GIS capability.
+- The PostGIS recipe template requires complete generic dispatcher
+  integration before it should be treated as universally executable.
+- Workflow state and deterministic resume assessment are implemented,
+  but automatic retry and automatic resumption are intentionally
+  unavailable.
+- Critic output is returned in memory rather than persisted as a
+  separate authoritative artifact.
+- Plans, recipes and approvals currently use local filesystem storage.
+- PostGIS and Ollama are externally managed.
+- Existing tables and artifacts cannot be overwritten.
+- Deletion is unavailable.
+- No task queue, production authentication or multi-user deployment
+  exists.
+- Real Ollama and PostGIS acceptance tests depend on the local
+  development environment.
 - Raster processing is not implemented.
 - Critic output is returned in memory rather than saved separately.
 - Plans and approvals are local runtime files.
@@ -1202,7 +1232,6 @@ Every checkpoint should include:
 - Existing tables and artifacts cannot be overwritten.
 - Deletion is unavailable.
 - General retries and cancellation are not implemented.
-- Interrupted workflows are not yet resumable through a state machine.
 - No task queue exists.
 - No production authentication exists.
 - No multi-user deployment exists.
@@ -1211,442 +1240,54 @@ Every checkpoint should include:
 
 ## Roadmap
 
-### Checkpoint 7B — Structured failure handling
-
-Status: implemented; final acceptance is documented in
+Completed checkpoint details are maintained in
 `context/CURRENT_STATUS.md`.
 
-Implemented:
+Planned milestones:
 
-- stable failure categories and codes;
-- explicit failure stages;
-- stable CLI exit codes;
-- secret-redacted structured failure records;
-- retry dispositions of `never`, `safe_read_only`, and `manual_review`;
-- safe retry classification for read-only model and MCP calls;
-- no automatic retry of database writes;
-- manual review after uncertain or interrupted execution;
-- operator cancellation with exit code 130;
-- structured failure evidence in traces;
-- failure summaries in Markdown reports;
-- successful traces with `failure: null`.
+### Checkpoint 11 — Skill scaffolding and contracts
 
-Exit-code policy:
+- generate standard skill package structure;
+- generate strict input, plan, result and validation schemas;
+- generate registry metadata;
+- generate policy and security contract tests;
+- generate verifier placeholders;
+- require human review before a generated skill becomes implemented.
 
-| Exit code | Meaning |
-|---:|---|
-| `1` | Deterministic validation failed |
-| `2` | Invalid input, configuration, policy, approval, conflict, or not found |
-| `3` | Timeout or dependency unavailable |
-| `4` | Invalid external response or execution failure |
-| `5` | Unclassified internal error |
-| `130` | Operator cancellation |
+### Checkpoint 12 — Snakemake export and replay
 
-Retry policy:
+- export validated recipes into deterministic Snakemake workflows;
+- call stable Python/GIS implementations directly;
+- preserve artifact identity and lineage;
+- keep model invocation outside deterministic replay.
 
-| Disposition | Meaning |
-|---|---|
-| `never` | Do not retry automatically |
-| `safe_read_only` | A bounded retry may be added for an explicitly read-only operation |
-| `manual_review` | Inspect state before retrying, especially after database execution |
+### Checkpoint 13 — Raster foundation
 
-The current harness classifies retry safety but does not yet implement an
-automatic retry loop. That work belongs to Checkpoint 7C together with durable
-workflow state and resumption.
-
-### Checkpoint 7C — Durable workflow state and safe resumption
-
-Status: implemented.
-
-The harness can persist and validate a durable lifecycle record for one exact planned workflow. Every transition records its sequence, previous state, next state, responsible actor, reason, timestamp, and optional structured failure.
-
-#### Workflow lifecycle
-
-```text
-planned
-  → approved
-  → executing
-  → validating
-      ├──→ validated_success
-      └──→ validation_failed
-
-executing
-  ├──→ execution_failed
-  └──→ cancelled
-
-validating
-  ├──→ execution_failed
-  └──→ cancelled
-```
-
-#### Transition policy
-
-- Only a human actor can record approval.
-- Only the Executor can begin execution.
-- Only the deterministic verifier can record validation transitions.
-- Only an operator can cancel a workflow.
-- Terminal states cannot transition again.
-- Transition sequences and revisions must be contiguous.
-- Transition timestamps must be monotonic.
-- Stale revision updates are rejected.
-- Initial state files cannot be overwritten.
-- Failure evidence is required for failed or cancelled states.
-- The plan digest and approval identity remain attached to the workflow state.
-
-#### Durable state storage
-
-Workflow state is stored beneath the configured state root:
-
-```text
-workflow-state/<task-id>.state.json
-```
-
-The default local setting is:
-
-```dotenv
-GEOAGENT_STATE_ROOT=workflow-state
-```
-
-Inside the Executor container, the configured path is:
-
-```dotenv
-GEOAGENT_STATE_ROOT=/workspace/workflow-state
-```
-
-State files are:
-
-- schema validated with Pydantic;
-- secret redacted before persistence;
-- limited to the trusted state root;
-- checked for UTF-8 and JSON validity;
-- limited in file size;
-- created without overwrite;
-- updated atomically;
-- protected by expected revision checks;
-- readable by the non-root Executor container.
-
-Runtime state files are excluded from Git. Only the directory placeholder is tracked:
-
-```text
-workflow-state/.gitkeep
-```
-
-#### Resume assessment
-
-The resume assessment is deterministic and read-only.
-
-| Current evidence | Disposition |
-|---|---|
-| Planned and not executed | `resume_allowed` |
-| Approved and not executed | `resume_allowed` |
-| Executing | `manual_review_required` |
-| Validating | `manual_review_required` |
-| Execution failed | `manual_review_required` |
-| Validation failed | `manual_review_required` |
-| Cancelled after execution may have started | `manual_review_required` |
-| Cancelled before execution | `terminal` |
-| Deterministically validated success | `terminal` |
-
-`resume_allowed` does not authorize immediate or automatic execution. It only means that the state history contains no evidence that a database write started. The exact plan and approval must still be revalidated before the Executor begins work.
-
-`manual_review_required` means that a PostGIS write may have started. The operator must inspect the target table, trace, report, approval, and structured failure before deciding what to do next.
-
-#### Inspect workflow state
-
-```bash
-geoagent inspect-workflow-state \
-  workflow-state/example.state.json \
-  --state-root workflow-state \
-  --pretty
-```
-
-This command:
-
-- loads the file only from the trusted state root;
-- validates it against the workflow-state schema;
-- displays structured JSON;
-- does not change the state file;
-- does not execute any GIS or database operation.
-
-#### Assess safe resumption
-
-```bash
-geoagent assess-workflow-resume \
-  workflow-state/example.state.json \
-  --state-root workflow-state \
-  --pretty
-```
-
-The result includes:
-
-```json
-{
-  "current_state": "planned",
-  "disposition": "resume_allowed",
-  "database_write_may_have_started": false,
-  "automatic_execution_allowed": false,
-  "state_modified": false
-}
-```
-
-The displayed values are expected output, not Bash commands.
-
-#### Container assessment
-
-The Executor receives the workflow-state directory through a read-only mount:
-
-```yaml
-- ./workflow-state:/workspace/workflow-state:ro
-```
-
-Run the containerized assessment with:
-
-```bash
-make state-container \
-  STATE_TASK_ID=checkpoint7c-state-check
-```
-
-Planner and Critic containers do not receive the workflow-state mount.
-
-The container assessment must not modify the state file. This can be verified by comparing hashes before and after execution:
-
-```bash
-sha256sum \
-  workflow-state/checkpoint7c-state-check.state.json
-```
-
-#### Security properties
-
-- State inspection never invokes arbitrary shell commands.
-- State assessment never invokes MCP tools.
-- State assessment never accesses PostGIS.
-- The Executor receives state through a read-only mount.
-- Planner and Critic containers receive no state access.
-- Secrets are redacted before state persistence.
-- Path traversal outside the trusted state root is rejected.
-- State-file overwriting is blocked during initial creation.
-- Stale revisions are rejected during updates.
-- Database writes are never automatically retried.
-- An interrupted or uncertain write requires manual inspection.
-- Assessment never modifies workflow state.
-- Assessment never authorizes automatic execution.
-
-#### Current limitations
-
-- Resume assessment recommends an action but does not perform it.
-- Automatic retry is not implemented.
-- Automatic workflow resumption is not implemented.
-- PostGIS writes are never automatically retried.
-- Process-level locking for concurrent writers is not implemented.
-- Do not run two state writers for the same task simultaneously.
-- The production Planner, approval, Executor, and verifier flow does not yet update durable state automatically at every boundary.
-- Recovery after manual review requires creating an explicitly approved follow-up action.
-
-### Checkpoint 7D — Schema versioning and compatibility
-
-Status: implemented.
-
-GeoAgent artifacts use explicit schema versions governed by one central registry. Artifact loaders check compatibility before performing full Pydantic validation.
-
-#### Registered artifact types
-
-The registry currently covers:
-
-- `context_pack`;
-- `workflow_plan`;
-- `approval_record`;
-- `execution_envelope`;
-- `failure_record`;
-- `workflow_trace`;
-- `critic_assessment`;
-- `critic_evidence_pack`;
-- `workflow_state`;
-- `resume_assessment`.
-
-All registered artifacts currently use:
-
-```text
-current version: 1.0
-writable version: 1.0
-supported read versions: 1.0
-registered migration sources: none
-```
-
-#### Compatibility dispositions
-
-| Disposition | Meaning |
-|---|---|
-| `current` | The artifact uses the current readable and writable version |
-| `supported_read` | The artifact can be read, but new writes use another version |
-| `migration_required` | A registered explicit migration is required |
-| `unsupported_older` | The older version is not readable and has no registered migration |
-| `unsupported_future` | The artifact was created by a newer unsupported schema |
-| `invalid_version` | The version does not use the required `major.minor` format |
-
-#### Version-aware loading
-
-Persisted artifact loading follows this order:
-
-```text
-read bounded input
-→ parse JSON
-→ require explicit schema_version
-→ consult central registry
-→ reject unreadable version
-→ validate with the artifact Pydantic schema
-```
-
-For Planner results, the version is nested at:
-
-```text
-plan.schema_version
-```
-
-Other registered persisted artifacts currently use a top-level field:
-
-```json
-{
-  "schema_version": "1.0"
-}
-```
-
-Protected boundaries include:
-
-- saved Planner results;
-- approval records;
-- workflow traces used by the Critic;
-- durable workflow-state files;
-- incoming execution envelopes;
-- structured Critic model responses.
-
-Missing versions do not receive an implicit default when loading external or persisted artifacts. They fail closed before normal schema validation.
-
-#### Inspect schema policies
-
-```bash
-geoagent schema-policies --pretty
-```
-
-This command displays the registry without modifying it.
-
-#### Assess compatibility
-
-```bash
-geoagent assess-schema-compatibility \
-  workflow_trace \
-  1.0 \
-  --pretty
-```
-
-A current version returns exit code `0`:
-
-```json
-{
-  "artifact_type": "workflow_trace",
-  "artifact_version": "1.0",
-  "disposition": "current",
-  "readable": true,
-  "writable": true,
-  "migration_required": false,
-  "artifact_modified": false
-}
-```
-
-An unsupported version returns exit code `1` while still emitting a structured assessment:
-
-```bash
-geoagent assess-schema-compatibility \
-  workflow_trace \
-  2.0 \
-  --pretty
-```
-
-An unknown artifact type returns exit code `2`.
-
-#### Assess migration requirements
-
-```bash
-geoagent assess-schema-migration \
-  workflow_state \
-  2.0 \
-  --pretty
-```
-
-The assessment is read-only and reports:
-
-```json
-{
-  "source_version": "2.0",
-  "target_version": "1.0",
-  "compatibility": "unsupported_future",
-  "migration_available": false,
-  "manual_review_required": true,
-  "artifact_modified": false,
-  "migration_performed": false
-}
-```
-
-An exit code of `1` is expected when manual review is required.
-
-#### Security and compatibility rules
-
-- Every persisted versioned artifact must declare its schema version.
-- Artifact versions must use `major.minor` format.
-- Unknown future versions fail closed.
-- Unsupported older versions fail closed.
-- Missing versions fail closed.
-- Invalid versions fail closed.
-- Only the registered writable version may be produced by current code.
-- No loader silently adds a version to external input.
-- No loader silently upgrades an artifact.
-- No compatibility command modifies an artifact.
-- No migration command currently exists.
-- Original unsupported artifacts must be preserved for review.
-- Model-generated structured responses are treated as untrusted and version checked.
-
-#### Current limitations
-
-- Only schema version `1.0` is implemented.
-- No migration function is registered.
-- No real backward-compatible read version exists yet.
-- `supported_read` and `migration_required` policies are implemented but cannot occur under the current all-`1.0` registry.
-- Future schema evolution must include fixtures, migration tests, rollback guidance, and explicit operator approval before migration is enabled.
-
-### Checkpoint 8 — `convert_vector`
-
-Planned:
-
-- controlled format conversion;
-- trusted input and output roots;
-- explicit target format;
-- CRS preservation or explicit transformation;
-- safe multi-layer handling;
-- deterministic output inspection;
-- trace integration;
-- overwrite approval policy;
-- no arbitrary GDAL command strings.
-
-### Later GIS skills
-
-Potential additions:
-
-- vector reprojection;
-- geometry repair;
-- clip;
-- dissolve;
-- spatial join;
-- buffer;
-- simplify;
-- area and length calculations;
 - raster inspection;
-- raster reprojection;
-- raster clipping;
-- zonal statistics;
-- vector-to-raster;
-- raster-to-vector.
+- CRS, resolution, dimensions, bands, nodata and extent metadata;
+- controlled raster conversion and reprojection;
+- deterministic raster validation.
 
-Every new skill must include typed schemas, path policies, permissions, deterministic verification, sample data, automated tests, and trace integration.
+### Checkpoint 14 — Expanded PostGIS workflows
 
+- controlled spatial transformations;
+- read-only spatial queries;
+- validated table export;
+- broader recipe dispatch integration.
+
+### Checkpoint 15 — GeoServer publication
+
+- publish only approved and validated layers;
+- use restricted GeoServer credentials;
+- verify workspace, datastore, layer and service availability;
+- record publication lineage and evidence.
+
+### Checkpoint 16 — Demonstration interface
+
+- guided operator experience;
+- workflow and approval visualization;
+- evidence and report navigation;
+- portfolio-ready real GIS demonstrations.
 
 ## Container filesystem authorization
 
@@ -1685,6 +1326,39 @@ or database credentials. It submits a typed approval-bound envelope
 through the fixed run_approved_recipe MCP tool and validates the
 returned recipe identity, status, and run-result digest.
 
+
+## Skills and recipes
+
+A skill is a trusted primitive capability implemented and tested in
+code. Examples include inspecting a vector dataset, converting a
+vector file, loading a table into PostGIS and validating a PostGIS
+layer.
+
+A recipe is a declarative workflow assembled from registered skills.
+Recipes define step order, dependencies, validated parameters and
+output identifiers. They do not contain arbitrary Python, shell
+commands or SQL.
+
+This distinction allows operators and local models to create new
+workflows without writing code whenever the necessary primitive
+skills already exist.
+
+Examples of no-code recipe changes include:
+
+- inspecting a different dataset;
+- converting to a different approved format;
+- changing a safe output path;
+- selecting a source layer;
+- changing an approved PostGIS schema or table;
+- combining existing inspection, transformation, validation and
+  reporting steps;
+- replaying a previously validated workflow.
+
+A genuinely new capability still requires a new skill implementation
+and deterministic verifier. Future skill-scaffolding tools will
+generate the repetitive package structure, schemas, registry entry
+and contract tests, but generated implementations will not become
+trusted automatically.
 
 
 ## Decision principles

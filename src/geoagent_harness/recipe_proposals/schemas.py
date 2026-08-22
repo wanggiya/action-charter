@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    model_validator,
 )
 
 from geoagent_harness.recipes.schemas import (
@@ -279,5 +280,114 @@ class RecipeProposalPipelineResult(BaseModel):
     compilation_performed: Literal[True] = True
 
     recipe_saved: Literal[False] = False
+    approval_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+    
+class RecipeOperatorReview(BaseModel):
+    """Review boundary before explicit recipe storage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    status: Literal[
+        "clarification_required",
+        "ready_for_operator_review",
+    ]
+
+    generation: RecipeProposalGenerationResult
+    assessment: RecipeProposalAssessment
+    compilation: RecipeCompilationResult | None = None
+
+    clarification_questions: list[str] = Field(
+        default_factory=list
+    )
+
+    proposal_generated: Literal[True] = True
+    assessment_performed: Literal[True] = True
+    compilation_performed: bool
+
+    recipe_saved: Literal[False] = False
+    approval_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def review_state_is_consistent(
+        self,
+    ) -> "RecipeOperatorReview":
+        if self.status == "ready_for_operator_review":
+            if not self.assessment.ready_for_compilation:
+                raise ValueError(
+                    "ready review requires a ready "
+                    "proposal assessment"
+                )
+
+            if self.compilation is None:
+                raise ValueError(
+                    "ready review requires compilation"
+                )
+
+            if self.compilation_performed is not True:
+                raise ValueError(
+                    "ready review must confirm compilation"
+                )
+
+            if self.clarification_questions:
+                raise ValueError(
+                    "ready review cannot contain "
+                    "clarification questions"
+                )
+
+        if self.status == "clarification_required":
+            if self.assessment.ready_for_compilation:
+                raise ValueError(
+                    "clarification state cannot contain "
+                    "a ready assessment"
+                )
+
+            if self.compilation is not None:
+                raise ValueError(
+                    "clarification state cannot contain "
+                    "a compiled recipe"
+                )
+
+            if self.compilation_performed:
+                raise ValueError(
+                    "clarification state cannot claim "
+                    "compilation"
+                )
+
+            if not self.clarification_questions:
+                raise ValueError(
+                    "clarification state requires at "
+                    "least one question"
+                )
+
+        return self
+
+class RecipeOperatorSaveResult(BaseModel):
+    """Result of explicitly saving one reviewed recipe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    recipe_id: str
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    recipe_filename: str = Field(
+        min_length=1,
+        pattern=(
+            r"^[a-z0-9][a-z0-9_-]*"
+            r"\.[a-f0-9]{64}\.json$"
+        ),
+    )
+
+    source_review_status: Literal[
+        "ready_for_operator_review"
+    ] = "ready_for_operator_review"
+
+    recipe_saved: Literal[True] = True
     approval_performed: Literal[False] = False
     execution_performed: Literal[False] = False

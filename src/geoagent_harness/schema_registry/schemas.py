@@ -73,6 +73,12 @@ class ArtifactType(str, Enum):
     RECIPE_PROPOSAL_PIPELINE_RESULT = (
         "recipe_proposal_pipeline_result"
     )
+    RECIPE_OPERATOR_REVIEW = (
+        "recipe_operator_review"
+    )
+    RECIPE_OPERATOR_SAVE_RESULT = (
+        "recipe_operator_save_result"
+    )
     
 
 

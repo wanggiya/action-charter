@@ -16,7 +16,10 @@ from geoagent_harness.recipe_proposals.agent import (
     generate_recipe_proposal,
 )
 from geoagent_harness.recipe_proposals.schemas import (
+    RecipeCompilationResult,
+    RecipeOperatorReview,
     RecipeProposalGenerationResult,
+    RecipeProposalPipelineResult,
 )
 
 from geoagent_harness.recipe_proposals.compiler import (
@@ -29,6 +32,9 @@ from geoagent_harness.recipe_proposals.schemas import (
 )
 from geoagent_harness.skill_registry import (
     load_skill_registry,
+)
+from geoagent_harness.recipe_proposals.assessment import (
+    assess_recipe_proposal,
 )
 
 
@@ -93,6 +99,70 @@ def propose_and_compile_recipe(
         compilation=compilation,
         proposal_generated=True,
         proposal_assessed=True,
+        compilation_performed=True,
+        recipe_saved=False,
+        approval_performed=False,
+        execution_performed=False,
+    )
+
+def review_recipe_request(
+    *,
+    original_request: str,
+    project_root: Path = Path("."),
+    agents_root: Path = Path("agents"),
+    model_client: (
+        ProposalModelClientProtocol | None
+    ) = None,
+) -> RecipeOperatorReview:
+    """Generate a proposal and stop at operator review."""
+
+    generation = (
+        propose_recipe_with_shared_model(
+            original_request=original_request,
+            agents_root=agents_root,
+            model_client=model_client,
+        )
+    )
+
+    registry = load_skill_registry(
+        project_root
+    )
+
+    assessment = assess_recipe_proposal(
+        generation.proposal,
+        registry=registry,
+    )
+
+    if not assessment.ready_for_compilation:
+        return RecipeOperatorReview(
+            status="clarification_required",
+            generation=generation,
+            assessment=assessment,
+            compilation=None,
+            clarification_questions=(
+                assessment.clarification_questions
+            ),
+            proposal_generated=True,
+            assessment_performed=True,
+            compilation_performed=False,
+            recipe_saved=False,
+            approval_performed=False,
+            execution_performed=False,
+        )
+
+    compilation = compile_recipe_proposal(
+        generation.proposal,
+        registry=registry,
+    )
+
+    return RecipeOperatorReview(
+        status="ready_for_operator_review",
+        generation=generation,
+        assessment=assessment,
+        compilation=compilation,
+        clarification_questions=[],
+        proposal_generated=True,
+        assessment_performed=True,
         compilation_performed=True,
         recipe_saved=False,
         approval_performed=False,

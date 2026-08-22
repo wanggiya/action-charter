@@ -39,6 +39,8 @@ def test_every_artifact_has_one_policy() -> None:
         ArtifactType.RECIPE_COMPILATION_RESULT,
         ArtifactType.RECIPE_PROPOSAL_GENERATION_RESULT,
         ArtifactType.RECIPE_PROPOSAL_PIPELINE_RESULT,
+        ArtifactType.RECIPE_OPERATOR_REVIEW,
+        ArtifactType.RECIPE_OPERATOR_SAVE_RESULT,
     ],
 )
 def test_recipe_artifacts_use_current_schema(

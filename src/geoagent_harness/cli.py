@@ -12,6 +12,12 @@ from geoagent_harness.failures import (
     FailureStage,
     failure_from_exception,
 )
+from geoagent_harness.recipe_proposals import (
+    RecipeCompilationError,
+    RecipeProposalAgentError,
+    render_recipe_operator_review,
+    review_recipe_request,
+)
 
 
 app = typer.Typer(
@@ -2496,6 +2502,185 @@ def propose_and_compile_recipe_command(
         ModelSettingsError,
         RecipeCompilationError,
         RecipeProposalAgentError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("review-recipe-request")
+def review_recipe_request_command(
+    original_request: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "Natural-language GIS request to "
+                "prepare for operator review."
+            ),
+        ),
+    ],
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    output_format: Annotated[
+        str,
+        typer.Option(
+            "--output-format",
+            help="Output format: json or summary.",
+        ),
+    ] = "json",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Prepare a recipe review without saving or executing."""
+
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+    from geoagent_harness.recipe_proposals import (
+        RecipeCompilationError,
+        RecipeProposalAgentError,
+        review_recipe_request,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+    )
+
+    try:
+        result = review_recipe_request(
+            original_request=original_request,
+            project_root=project_root,
+            agents_root=agents_root,
+        )
+    except (
+        ModelClientError,
+        ModelSettingsError,
+        RecipeCompilationError,
+        RecipeProposalAgentError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    if output_format not in {
+        "json",
+        "summary",
+    }:
+        typer.echo(
+            "Error: output format must be "
+            "'json' or 'summary'",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if output_format == "summary":
+        typer.echo(
+            render_recipe_operator_review(
+                result
+            )
+        )
+        return
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("save-reviewed-recipe")
+def save_reviewed_recipe_command(
+    review_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Ready operator-review JSON beneath "
+                "the approved review root."
+            ),
+        ),
+    ],
+    review_root: Annotated[
+        Path,
+        typer.Option("--review-root"),
+    ] = Path("recipe-reviews"),
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Explicitly save one exact reviewed recipe."""
+
+    from geoagent_harness.recipe_proposals import (
+        RecipeOperatorSaveError,
+        RecipeReviewStorageError,
+        load_recipe_operator_review,
+        save_reviewed_recipe,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        review = load_recipe_operator_review(
+            review_file,
+            review_root=review_root,
+        )
+
+        registry = load_skill_registry(
+            project_root
+        )
+
+        result = save_reviewed_recipe(
+            review=review,
+            registry=registry,
+            recipe_root=recipe_root,
+        )
+    except (
+        RecipeOperatorSaveError,
+        RecipeReviewStorageError,
         SkillRegistryError,
         OSError,
         ValueError,

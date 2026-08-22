@@ -44,13 +44,27 @@ from geoagent_harness.recipe_proposals.prompt import (
 from geoagent_harness.recipe_proposals.schemas import (
     RecipeProposalGenerationResult,
     RecipeProposalPipelineResult,
+    RecipeOperatorReview,
+    RecipeOperatorSaveResult,
 )
 from geoagent_harness.recipe_proposals.runtime import (
     propose_recipe_with_shared_model,
     propose_and_compile_recipe,
     # propose_recipe_with_shared_model,
+    review_recipe_request,
 )
-
+from geoagent_harness.recipe_proposals.rendering import (
+    render_recipe_operator_review,
+)
+from geoagent_harness.recipe_proposals.operator_save import (
+    RecipeOperatorSaveError,
+    save_reviewed_recipe,
+)
+from geoagent_harness.recipe_proposals.review_storage import (
+    MAX_RECIPE_REVIEW_BYTES,
+    RecipeReviewStorageError,
+    load_recipe_operator_review,
+)
 
 
 __all__ = [
@@ -82,5 +96,14 @@ __all__ = [
     "propose_recipe_with_shared_model",
     "RecipeProposalPipelineResult",
     "propose_and_compile_recipe",
+    "RecipeOperatorReview",
+    "review_recipe_request",
+    "render_recipe_operator_review",
+    "MAX_RECIPE_REVIEW_BYTES",
+    "RecipeOperatorSaveError",
+    "RecipeOperatorSaveResult",
+    "RecipeReviewStorageError",
+    "load_recipe_operator_review",
+    "save_reviewed_recipe",
 ]
 

@@ -178,3 +178,52 @@ def test_propose_and_compile_recipe_is_registered() -> None:
     )
     assert "--project-root" in output
     assert "--agents-root" in output
+
+def test_review_recipe_request_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "review-recipe-request",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    output = normalized_output(
+        result.stdout
+    )
+
+    assert (
+        "Prepare a recipe review without saving "
+        "or executing"
+        in output
+    )
+    assert "--project-root" in output
+    assert "--agents-root" in output
+    assert "--pretty" in output
+    assert "--output-format" in output
+
+def test_save_reviewed_recipe_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "save-reviewed-recipe",
+            "--help",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    output = normalized_output(
+        result.stdout
+    )
+
+    assert (
+        "Explicitly save one exact reviewed recipe"
+        in output
+    )
+    assert "--review-root" in output
+    assert "--recipe-root" in output
+    assert "--project-root" in output
+
