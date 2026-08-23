@@ -864,6 +864,21 @@ Completed:
 * constrained model proposal and deterministic recipe compilation support;
 * 682 passing automated tests.
 
+### Checkpoint 13L — Container contract CI
+
+Completed:
+
+* independently build the agent, GIS-tools and skill-test-runner images;
+* verify every image uses the non-root `geoagent` user;
+* load Planner, Executor and Critic manifests inside the real agent image;
+* run vector inspection inside the real GIS image;
+* run raster inspection inside the real GIS image;
+* verify raster path traversal fails through a controlled policy error;
+* run container contracts with no network, a read-only root filesystem, all Linux capabilities dropped and `no-new-privileges`;
+* verify the skill-test runner fails closed when no valid candidate bundle is mounted;
+* validate the complete Docker Compose configuration;
+* keep hosted CI independent of Ollama, PostGIS, credentials and write-enabled integration execution.
+
 ## Next milestones
 
 ### Checkpoint 14 — Controlled raster transformation
@@ -954,6 +969,7 @@ versioned skill definition
 → explicit transactional promotion
 → implemented registry entry
 → direct CLI and recipe-template availability
+```
 
 This pipeline reduces repetitive skill boilerplate while preserving the rule that declarative input and generated code cannot directly grant themselves execution authority.
 

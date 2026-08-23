@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build ${{ matrix.name }}
+    name: Build and contract-test ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -26,6 +26,9 @@ jobs:
 
           - name: gis-tools
             dockerfile: docker/gis-tools/Dockerfile
+
+          - name: skill-test-runner
+            dockerfile: docker/skill-test-runner/Dockerfile
 
     steps:
       - name: Check out repository
@@ -54,17 +57,167 @@ jobs:
               --format '{{.Config.User}}'
           )" = "geoagent"
 
-      - name: Smoke-test agent CLI
+      - name: Verify agent CLI starts
         if: matrix.name == 'agent'
         run: |
           docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:size=16m,mode=1777 \
             "geoagent-${{ matrix.name }}:ci" \
             --help
 
-      - name: Smoke-test GIS image CLI
+      - name: Verify all agent manifests
+        if: matrix.name == 'agent'
+        run: |
+          for agent_id in planner executor critic
+          do
+            docker run --rm \
+              --network none \
+              --read-only \
+              --cap-drop ALL \
+              --security-opt no-new-privileges \
+              --tmpfs /tmp:size=16m,mode=1777 \
+              --volume "$GITHUB_WORKSPACE/agents:/app/agents:ro" \
+              "geoagent-${{ matrix.name }}:ci" \
+              agent-info "$agent_id" \
+              --agents-root /app/agents
+          done
+
+      - name: Verify GIS CLI starts
         if: matrix.name == 'gis-tools'
         run: |
           docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:size=16m,mode=1777 \
             --entrypoint geoagent \
             "geoagent-${{ matrix.name }}:ci" \
             --help
+
+      - name: Inspect vector inside GIS image
+        if: matrix.name == 'gis-tools'
+        run: |
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:size=16m,mode=1777 \
+            --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
+            --entrypoint geoagent \
+            "geoagent-${{ matrix.name }}:ci" \
+            inspect-vector \
+            /workspace/data/input/sample_points.geojson \
+            --input-root /workspace/data/input \
+            --pretty
+
+      - name: Inspect raster inside GIS image
+        if: matrix.name == 'gis-tools'
+        run: |
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:size=16m,mode=1777 \
+            --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
+            --entrypoint geoagent \
+            "geoagent-${{ matrix.name }}:ci" \
+            inspect-raster \
+            /workspace/data/input/sample_dem.tif \
+            --input-root /workspace/data/input \
+            --pretty
+
+      - name: Reject raster path escape
+        if: matrix.name == 'gis-tools'
+        run: |
+          set +e
+
+          output="$(
+            docker run --rm \
+              --network none \
+              --read-only \
+              --cap-drop ALL \
+              --security-opt no-new-privileges \
+              --tmpfs /tmp:size=16m,mode=1777 \
+              --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
+              --entrypoint geoagent \
+              "geoagent-${{ matrix.name }}:ci" \
+              inspect-raster \
+              /etc/passwd \
+              --input-root /workspace/data/input \
+              2>&1
+          )"
+
+          status=$?
+
+          set -e
+
+          printf '%s\n' "$output"
+
+          test "$status" -ne 0
+
+          case "$output" in
+            *"raster inspection request failed policy"*)
+              ;;
+            *)
+              echo "Expected controlled raster policy rejection"
+              exit 1
+              ;;
+          esac
+
+      - name: Verify skill-test runner fails closed
+        if: matrix.name == 'skill-test-runner'
+        run: |
+          set +e
+
+          output="$(
+            docker run --rm \
+              --network none \
+              --read-only \
+              --cap-drop ALL \
+              --security-opt no-new-privileges \
+              --pids-limit 128 \
+              --tmpfs /tmp:size=128m,mode=1777 \
+              "geoagent-${{ matrix.name }}:ci" \
+              2>&1
+          )"
+
+          status=$?
+
+          set -e
+
+          printf '%s\n' "$output"
+
+          test "$status" -ne 0
+
+          case "$output" in
+            *"candidate source package is missing"*)
+              ;;
+            *)
+              echo "Expected missing-candidate rejection"
+              exit 1
+              ;;
+          esac
+
+  compose-contract:
+    name: Validate Compose contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate complete Compose configuration
+        run: |
+          docker compose \
+            --profile agents \
+            --profile tools \
+            --profile skill-testing \
+            config --quiet

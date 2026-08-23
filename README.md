@@ -1037,25 +1037,53 @@ It:
 
 Typer/Rich help tests call `click.unstyle()` before asserting option names so terminal color formatting does not make tests environment-dependent.
 
-### Container builds
 
-`.github/workflows/container-build.yaml` independently builds:
+### Container contract tests
+
+`.github/workflows/container-build.yaml` independently builds and validates:
 
 ```text
 docker/agent/Dockerfile
 docker/gis-tools/Dockerfile
+docker/skill-test-runner/Dockerfile
 ```
 
-It:
+The workflow:
 
 - uses BuildKit caching;
 - does not push images;
-- loads each image for validation;
-- verifies the configured runtime user is `geoagent`;
-- runs the installed CLI;
+- loads each image for runtime validation;
+- verifies that every image runs as the non-root `geoagent` user;
 - supplies no PostGIS secret;
 - makes no Ollama request;
-- makes no PostGIS connection.
+- makes no PostGIS connection;
+- validates the complete Docker Compose configuration.
+
+Runtime contracts use:
+
+```text
+no network
+read-only root filesystem
+all Linux capabilities dropped
+no-new-privileges
+temporary /tmp filesystem
+read-only public fixture mounts
+```
+
+The agent-image contract loads the Planner, Executor and Critic manifests inside the built image. This verifies that the installed CLI, package, manifests and role definitions work without contacting a model or MCP service.
+
+The GIS-image contract performs real read-only operations against committed fixtures:
+
+```text
+data/input/sample_points.geojson
+data/input/sample_dem.tif
+```
+
+It runs vector and raster inspection inside the built GIS image and verifies that raster path traversal is rejected through a controlled policy error.
+
+The skill-test-runner contract verifies that the isolated runner fails closed when no valid candidate bundle is mounted. Detailed candidate generation, hashing, testing and promotion behavior remains covered by the offline pytest suite.
+
+These contracts validate container packaging and safe read-only runtime behavior. They do not claim that a complete model, MCP or PostGIS workflow ran successfully.
 
 ### Local integration
 
@@ -1243,46 +1271,94 @@ Every checkpoint should include:
 Completed checkpoint details are maintained in
 `context/CURRENT_STATUS.md`.
 
-Planned milestones:
+## Roadmap status
 
 ### Checkpoint 11 — Skill scaffolding and contracts
 
-- generate standard skill package structure;
-- generate strict input, plan, result and validation schemas;
-- generate registry metadata;
-- generate policy and security contract tests;
-- generate verifier placeholders;
-- require human review before a generated skill becomes implemented.
+Completed:
+
+- deterministic standard skill-package planning;
+- isolated, non-overwriting scaffold generation;
+- typed schema, policy, service and verifier placeholders;
+- planned registry metadata without executable entrypoints;
+- static contract validation without importing generated code;
+- explicit separation between generated scaffolds and trusted implementations.
 
 ### Checkpoint 12 — Snakemake export and replay
 
-- export validated recipes into deterministic Snakemake workflows;
-- call stable Python/GIS implementations directly;
-- preserve artifact identity and lineage;
-- keep model invocation outside deterministic replay.
+Completed:
 
-### Checkpoint 13 — Raster foundation
+- immutable digest-addressed Snakemake exports;
+- exact recipe and approval verification;
+- shell-free trusted replay adapters;
+- isolated non-root workflow-runner container;
+- replay through the existing Executor-to-MCP boundary;
+- durable evidence and completion-marker verification;
+- trusted recipe-and-approval inventory discovery.
 
-- raster inspection;
-- CRS, resolution, dimensions, bands, nodata and extent metadata;
-- controlled raster conversion and reprojection;
-- deterministic raster validation.
+### Checkpoint 13 — Declarative Skill SDK and raster inspection
 
-### Checkpoint 14 — Expanded PostGIS workflows
+Completed:
+
+- versioned declarative skill definitions;
+- fixed permission profiles and trusted adapter catalog;
+- immutable skill-contract bundles;
+- isolated generic scaffolds and candidate materialization;
+- network-disabled candidate tests;
+- digest-bound test evidence;
+- deterministic promotion assessment and planning;
+- transactional promotion with registry modification last;
+- promoted read-only `inspect_raster` skill;
+- deterministic GeoTIFF test fixture;
+- safe Rasterio metadata inspection;
+- CLI, dispatcher and constrained recipe-proposal integration.
+
+### Checkpoint 13L — Container contract CI
+
+Completed:
+
+- independent agent, GIS-tools and skill-test-runner builds;
+- non-root runtime-user verification;
+- Planner, Executor and Critic manifest loading inside the agent image;
+- vector and raster inspection inside the GIS image;
+- controlled raster path-escape rejection;
+- fail-closed skill-test-runner behavior;
+- no-network, read-only and non-privileged runtime contracts;
+- complete Compose configuration validation.
+
+### Checkpoint 14 — Controlled raster transformation
+
+Planned:
+
+- raster conversion and reprojection;
+- explicit CRS and resolution policy;
+- nodata and band-preservation contracts;
+- approval-gated raster writes;
+- output-root containment and overwrite prevention;
+- deterministic output validation;
+- raster artifact lineage and recipe evidence.
+
+### Checkpoint 15 — Expanded PostGIS workflows
+
+Planned:
 
 - controlled spatial transformations;
 - read-only spatial queries;
-- validated table export;
-- broader recipe dispatch integration.
+- validated PostGIS export;
+- broader generic recipe-dispatch integration.
 
-### Checkpoint 15 — GeoServer publication
+### Checkpoint 16 — GeoServer publication
+
+Planned:
 
 - publish only approved and validated layers;
 - use restricted GeoServer credentials;
 - verify workspace, datastore, layer and service availability;
 - record publication lineage and evidence.
 
-### Checkpoint 16 — Demonstration interface
+### Checkpoint 17 — Demonstration interface
+
+Planned:
 
 - guided operator experience;
 - workflow and approval visualization;
