@@ -13,6 +13,7 @@ from pydantic import (
 
 TemplateId = Literal[
     "inspect_vector",
+    "inspect_raster",
     "inspect_and_convert_vector",
     "vector_to_postgis",
 ]
@@ -43,6 +44,15 @@ _TEMPLATES: dict[
         template_id="inspect_vector",
         skill_ids=(
             "inspect_vector",
+        ),
+        required_parameters=(
+            "path",
+        ),
+    ),
+    "inspect_raster": RecipeTemplateDefinition(
+        template_id="inspect_raster",
+        skill_ids=(
+            "inspect_raster",
         ),
         required_parameters=(
             "path",

@@ -15,6 +15,7 @@ from geoagent_harness.recipes.schemas import (
     InspectVectorRecipeArguments,
     RecipeExecutionEnvelope,
     RecipeStepExecutionResult,
+    InspectRasterRecipeArguments,
 )
 from geoagent_harness.redaction import (
     redact_value,
@@ -33,6 +34,19 @@ from geoagent_harness.skills.inspect_vector.service import (
     inspect_vector,
 )
 
+from geoagent_harness.skill_adapters.raster_inspection import (
+    RasterInspectionError,
+)
+from geoagent_harness.skills.inspect_raster.policy import (
+    InspectRasterPolicyError,
+)
+from geoagent_harness.skills.inspect_raster.schemas import (
+    InspectRasterArguments,
+)
+from geoagent_harness.skills.inspect_raster.service import (
+    inspect_raster,
+)
+
 
 _EXPECTED_ENTRYPOINTS = {
     "inspect_vector": (
@@ -42,6 +56,10 @@ _EXPECTED_ENTRYPOINTS = {
     "convert_vector": (
         "geoagent_harness.skills.convert_vector."
         "service:convert_vector"
+    ),
+    "inspect_raster": (
+        "geoagent_harness.skills.inspect_raster."
+        "service:inspect_raster"
     ),
 }
 
@@ -214,6 +232,28 @@ def dispatch_recipe_step(
             )
             validation_performed = False
 
+        elif step.skill_id == "inspect_raster":
+            arguments = (
+                InspectRasterRecipeArguments
+                .model_validate(
+                    step.arguments
+                )
+            )
+
+            value = inspect_raster(
+                InspectRasterArguments(
+                    path=Path(
+                        arguments.path
+                    ),
+                    input_root=(
+                        settings.input_root
+                    ),
+                )
+            )
+
+            status = "completed"
+            validation_performed = False
+
         else:
             # This remains unreachable unless code changes
             # without updating the hard-coded policy.
@@ -228,7 +268,9 @@ def dispatch_recipe_step(
         ) from exc
     except (
         ConvertVectorError,
+        InspectRasterPolicyError,
         InspectVectorError,
+        RasterInspectionError,
     ) as exc:
         raise RecipeDispatchError(
             f"skill {step.skill_id!r} "

@@ -17,8 +17,9 @@ Return exactly one JSON object and no Markdown.
 You may select exactly one template_id:
 
 1. inspect_vector
-2. inspect_and_convert_vector
-3. vector_to_postgis
+2. inspect_raster
+3. inspect_and_convert_vector
+4. vector_to_postgis
 
 You must not invent any other template, skill, step,
 tool, function, package, entrypoint, SQL statement,
@@ -51,6 +52,11 @@ inspect_vector:
 {
   "path": "string or null",
   "source_layer": "string or null"
+}
+
+inspect_raster:
+{
+  "path": "string or null"
 }
 
 inspect_and_convert_vector:

@@ -31,6 +31,7 @@ def test_template_registry_has_stable_order() -> None:
         for template in list_recipe_templates()
     ] == [
         "inspect_vector",
+        "inspect_raster",
         "inspect_and_convert_vector",
         "vector_to_postgis",
     ]

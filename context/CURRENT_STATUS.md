@@ -796,7 +796,9 @@ Those acceptance tests run locally.
 
 ## Current limitations
 
-* Raster processing is not implemented.
+* Raster metadata inspection is implemented, but raster transformation, reprojection and deterministic output validation are not yet implemented.
+* Declarative skill definitions support fixed trusted profiles and adapters; arbitrary generated GIS algorithms cannot become trusted without implementation review and isolated tests.
+* Purely read-only recipes can be proposed, assessed, compiled and saved, but the current recipe execution envelope remains approval-gated and therefore does not execute recipes with zero approval-required steps.
 * Generic recipe dispatch does not support every registered skill.
 * The PostGIS recipe template needs complete generic dispatcher integration.
 * Automatic retry and automatic workflow resumption are not implemented.
@@ -812,40 +814,72 @@ Those acceptance tests run locally.
 * Real integration tests depend on the local development environment.
 * No production remote orchestrator exists.
 
-## Next milestones
+## Completed extension checkpoints
 
 ### Checkpoint 11 — Skill scaffolding and contracts
 
-Planned:
+Completed:
 
-* generate a standard skill package;
-* generate strict schema templates;
-* generate policy and verifier placeholders;
-* generate registry metadata;
-* generate contract tests;
-* test universal security requirements;
-* require review before a generated skill becomes implemented.
+* deterministic planning of standard GIS skill packages;
+* isolated and non-overwriting scaffold generation;
+* typed schema, policy, service and verifier placeholders;
+* planned registry fragments with no executable entrypoint;
+* static contract validation without importing generated code;
+* explicit separation between generated scaffolds and trusted implementations.
 
 ### Checkpoint 12 — Snakemake export and replay
 
+Completed:
+
+* immutable digest-addressed Snakemake exports for exact approved recipes;
+* a canonical shell-free Snakefile;
+* isolated non-root workflow-runner container;
+* independent recipe, approval, digest and step-scope verification;
+* replay through the existing Executor-to-MCP boundary;
+* completion markers written only after validated execution and durable evidence persistence;
+* trusted recipe-and-approval inventory discovery.
+
+### Checkpoint 13 — Declarative Skill SDK and raster inspection
+
+Completed:
+
+* versioned declarative `.skill.yaml` definitions;
+* fixed permission profiles and a trusted adapter catalog;
+* deterministic policy assessment;
+* immutable digest-addressed contract bundles;
+* generic untrusted scaffold generation;
+* static contract validation without execution;
+* trusted adapter materialization into isolated candidates;
+* isolated, non-root and network-disabled candidate testing;
+* digest-bound JSON test evidence;
+* deterministic promotion assessment and dry-run planning;
+* explicit transactional promotion with registry mutation last;
+* rollback of newly copied files if promotion fails;
+* promotion of `inspect_raster` as an implemented read-only skill;
+* deterministic GeoTIFF fixture generation;
+* safe Rasterio-based metadata inspection;
+* containment and symlink rejection;
+* direct `inspect-raster` CLI integration;
+* hard-coded recipe dispatcher allowlisting;
+* constrained model proposal and deterministic recipe compilation support;
+* 682 passing automated tests.
+
+## Next milestones
+
+### Checkpoint 14 — Controlled raster transformation
+
 Planned:
 
-* export validated recipes into deterministic Snakemake workflows;
-* invoke stable GIS implementations directly;
-* preserve artifact identity and lineage;
-* avoid model invocation during deterministic replay.
+* raster conversion and reprojection;
+* explicit CRS and resolution policy;
+* nodata and band-preservation contracts;
+* output-root containment and overwrite prevention;
+* approval-gated raster writes;
+* deterministic output validation;
+* raster artifact lineage and recipe evidence;
+* approved raster recipe execution.
 
-### Checkpoint 13 — Raster foundation
-
-Planned:
-
-* raster metadata inspection;
-* controlled raster conversion;
-* CRS and resolution policy;
-* nodata and band metadata;
-* deterministic raster validation.
-
-### Checkpoint 14 — Expanded PostGIS workflows
+### Checkpoint 15 — Expanded PostGIS workflows
 
 Planned:
 
@@ -854,7 +888,7 @@ Planned:
 * validated PostGIS export;
 * generic recipe-dispatch integration.
 
-### Checkpoint 15 — GeoServer publication
+### Checkpoint 16 — GeoServer publication
 
 Planned:
 
@@ -864,7 +898,7 @@ Planned:
 * publication verification;
 * service evidence and lineage.
 
-### Checkpoint 16 — Demonstration interface
+### Checkpoint 17 — Demonstration interface
 
 Planned:
 
@@ -905,5 +939,22 @@ natural-language request
 → deterministic QA
 → durable result, evidence and report
 ```
+
+The declarative skill extension is now also implemented:
+
+```text
+versioned skill definition
+→ deterministic permission policy
+→ immutable contract bundle
+→ isolated untrusted scaffold
+→ trusted adapter materialization
+→ network-disabled candidate tests
+→ digest-bound test evidence
+→ promotion assessment and exact plan
+→ explicit transactional promotion
+→ implemented registry entry
+→ direct CLI and recipe-template availability
+
+This pipeline reduces repetitive skill boilerplate while preserving the rule that declarative input and generated code cannot directly grant themselves execution authority.
 
 The project currently demonstrates a secure and reproducible architecture for local-model-assisted geospatial automation. It does not yet provide a complete general-purpose GIS platform, but its main planning, approval, execution, validation and evidence boundaries are working.

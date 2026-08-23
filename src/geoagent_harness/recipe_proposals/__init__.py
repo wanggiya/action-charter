@@ -32,6 +32,8 @@ from geoagent_harness.recipe_proposals.schemas import (
     VectorPostGISTemplateSelection,
     RecipeProposalAssessment,
     RecipeCompilationResult,
+    InspectRasterProposalParameters,
+    InspectRasterTemplateSelection,
 )
 from geoagent_harness.recipe_proposals.agent import (
     ProposalModelClientProtocol,
@@ -105,5 +107,7 @@ __all__ = [
     "RecipeReviewStorageError",
     "load_recipe_operator_review",
     "save_reviewed_recipe",
+    "InspectRasterProposalParameters",
+    "InspectRasterTemplateSelection",
 ]
 

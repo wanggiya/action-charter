@@ -69,3 +69,13 @@ snakemake-exports/
 # Local derived operator inventories
 approved-recipes.local.json
 
+skill-contracts/
+skill-scaffolds/
+skill-candidates/
+skill-test-results/
+
+recipe-proposals.local/
+
+# Deterministic public raster fixture for skill contracts.
+!data/input/sample_dem.tif
+

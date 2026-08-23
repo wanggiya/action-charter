@@ -1,49 +1,52 @@
-schema_version: "1.0"
-
+schema_version: '1.0'
 skills:
-  - id: inspect_vector
-    version: "0.1.0"
-    status: implemented
-    kind: inspection
-    access: read_only
-    approval_required: false
-    validation_required: false
-    entrypoint: geoagent_harness.skills.inspect_vector.service:inspect_vector
-
-  - id: convert_vector
-    version: "0.1.0"
-    status: implemented
-    kind: transformation
-    access: artifact_write
-    approval_required: true
-    validation_required: true
-    entrypoint: geoagent_harness.skills.convert_vector.service:convert_vector
-    verifier: geoagent_harness.skills.convert_vector.validation:validate_vector_conversion
-
-  - id: load_vector_to_postgis
-    version: "0.1.0"
-    status: implemented
-    kind: database_load
-    access: database_write
-    approval_required: true
-    validation_required: true
-    entrypoint: geoagent_harness.skills.load_vector_to_postgis.service:load_vector_to_postgis
-    verifier: geoagent_harness.verifier.postgis:validate_postgis_layer
-
-  - id: validate_postgis_layer
-    version: "0.1.0"
-    status: implemented
-    kind: validation
-    access: read_only
-    approval_required: false
-    validation_required: false
-    entrypoint: geoagent_harness.verifier.postgis:validate_postgis_layer
-
-  - id: generate_report
-    version: "0.1.0"
-    status: implemented
-    kind: reporting
-    access: evidence_write
-    approval_required: false
-    validation_required: false
-    entrypoint: geoagent_harness.reporting:write_report
+- id: inspect_vector
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.skills.inspect_vector.service:inspect_vector
+- id: convert_vector
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.skills.convert_vector.service:convert_vector
+  verifier: geoagent_harness.skills.convert_vector.validation:validate_vector_conversion
+- id: load_vector_to_postgis
+  version: 0.1.0
+  status: implemented
+  kind: database_load
+  access: database_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.skills.load_vector_to_postgis.service:load_vector_to_postgis
+  verifier: geoagent_harness.verifier.postgis:validate_postgis_layer
+- id: validate_postgis_layer
+  version: 0.1.0
+  status: implemented
+  kind: validation
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.verifier.postgis:validate_postgis_layer
+- id: generate_report
+  version: 0.1.0
+  status: implemented
+  kind: reporting
+  access: evidence_write
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.reporting:write_report
+- id: inspect_raster
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.skills.inspect_raster.service:inspect_raster

@@ -108,6 +108,30 @@ class ArtifactType(str, Enum):
     RECIPE_APPROVAL_INVENTORY = (
         "recipe_approval_inventory"
     )
+    DECLARATIVE_SKILL_DEFINITION = (
+        "declarative_skill_definition"
+    )
+    DECLARATIVE_SKILL_ASSESSMENT = (
+        "declarative_skill_assessment"
+    )
+    SKILL_CONTRACT_BUNDLE = (
+        "skill_contract_bundle"
+    )
+    SKILL_CONTRACT_GENERATION_RESULT = (
+        "skill_contract_generation_result"
+    )
+    SKILL_CANDIDATE_TEST_RECORD = (
+        "skill_candidate_test_record"
+    )
+    SKILL_CANDIDATE_PROMOTION_ASSESSMENT = (
+        "skill_candidate_promotion_assessment"
+    )
+    SKILL_CANDIDATE_PROMOTION_PLAN = (
+        "skill_candidate_promotion_plan"
+    )
+    SKILL_CANDIDATE_PROMOTION_RESULT = (
+        "skill_candidate_promotion_result"
+    )
     
 
 

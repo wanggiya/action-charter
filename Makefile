@@ -1,6 +1,8 @@
 CRITIC_TASK_ID ?= checkpoint5e-points-20260809a
 STATE_TASK_ID ?= checkpoint7c-state-check
 SNAKEMAKE_EXPORT_DIR ?=
+SKILL_CANDIDATE_DIR ?=
+SKILL_TEST_RECORD_FILE ?=
 
 .PHONY: checkpoint6-accept
 .PHONY: critic-container
@@ -9,6 +11,8 @@ SNAKEMAKE_EXPORT_DIR ?=
 .PHONY: state-container
 .PHONY: workflow-version
 .PHONY: snakemake-dry-run
+.PHONY: skill-candidate-test
+.PHONY: skill-candidate-test-record
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -24,6 +28,7 @@ help:
 	@echo "make state-container Assess workflow state read-only"
 	@echo "make workflow-version Show isolated Snakemake version"
 	@echo "make snakemake-dry-run SNAKEMAKE_EXPORT_DIR=name Validate a replay DAG"
+	@echo "make skill-candidate-test SKILL_CANDIDATE_DIR=<path>  Test one isolated generated skill candidate"
 
 install:
 	python3 -m venv .venv
@@ -116,3 +121,24 @@ snakemake-dry-run:
 		"/workspace/snakemake-exports/$(SNAKEMAKE_EXPORT_DIR)" \
 		--cores 1 \
 		--dry-run
+
+skill-candidate-test:
+	@test -n "$(SKILL_CANDIDATE_DIR)" || \
+		(echo "Error: SKILL_CANDIDATE_DIR is required"; exit 2)
+	SKILL_CANDIDATE_DIR="$(abspath $(SKILL_CANDIDATE_DIR))" \
+		docker compose \
+		--profile skill-testing \
+		run --rm skill-test-runner
+
+skill-candidate-test-record:
+	@test -n "$(SKILL_CANDIDATE_DIR)" || \
+		(echo "Error: SKILL_CANDIDATE_DIR is required"; exit 2)
+	@test -n "$(SKILL_TEST_RECORD_FILE)" || \
+		(echo "Error: SKILL_TEST_RECORD_FILE is required"; exit 2)
+	@mkdir -p "$(dir $(SKILL_TEST_RECORD_FILE))"
+	@SKILL_CANDIDATE_DIR="$(abspath $(SKILL_CANDIDATE_DIR))" \
+		docker compose \
+		--profile skill-testing \
+		run --rm skill-test-runner \
+		> "$(SKILL_TEST_RECORD_FILE)"
+	@echo "Candidate test record: $(SKILL_TEST_RECORD_FILE)"

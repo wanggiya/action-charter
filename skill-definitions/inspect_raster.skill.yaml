@@ -1,0 +1,19 @@
+schema_version: "1.0"
+
+skill_id: inspect_raster
+version: "0.1.0"
+summary: Inspect one raster dataset without modifying it.
+
+profile: read_only_inspection
+
+adapter_id: raster_inspection
+arguments_schema_id: inspect_raster_arguments
+result_schema_id: inspect_raster_result
+
+fixture_path: data/input/sample_dem.tif
+
+generation_requested: false
+promotion_requested: false
+execution_requested: false
+execution_performed: false
+

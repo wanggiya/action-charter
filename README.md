@@ -1403,6 +1403,85 @@ Generated scaffolds are untrusted and remain planned. They are not automatically
 
 Ensure the nested command block is closed with three backticks if copying manually.
 
+### Declarative Skill SDK
+
+GeoAgent provides a controlled path from a versioned declarative skill definition to a trusted installed GIS skill.
+
+A file such as `skill-definitions/inspect_raster.skill.yaml` declares skill intent and metadata only. It cannot provide executable Python, arbitrary imports, shell commands, entrypoints, verifiers, approvals or execution results.
+
+The trusted skill lifecycle is:
+
+```text
+.skill.yaml definition
+→ deterministic profile and adapter assessment
+→ immutable digest-addressed contract
+→ isolated generic scaffold
+→ static contract validation
+→ trusted adapter materialization
+→ isolated candidate bundle
+→ network-disabled container tests
+→ digest-bound test evidence
+→ read-only promotion assessment
+→ exact promotion plan
+→ explicit transactional promotion
+→ implemented registry entry
+```
+
+The permission profile determines the skill’s access class, approval requirement and validation requirement. The adapter identifier must exist in a fixed trusted catalog. Unknown profiles, adapters and unsafe combinations fail closed.
+
+Generated scaffolds remain untrusted. Passing static scaffold contracts does not make their code implemented or trusted. Candidate code is produced only by an allowlisted trusted adapter renderer and is tested in a separate non-root container with:
+
+- no network;
+- no model endpoint;
+- no MCP service;
+- no PostGIS credentials;
+- a read-only candidate mount;
+- a read-only container filesystem;
+- dropped Linux capabilities;
+- `no-new-privileges`.
+
+Candidate test evidence records the exact definition digest, candidate-tree digest, test outcome and test counts. Promotion requires that the current candidate and test record still match those digests.
+
+Promotion is an explicit transaction. It copies only the exact files listed in the promotion plan, installs the trusted registry entry last and removes newly copied files if promotion cannot complete. It does not execute the promoted skill.
+
+The first skill promoted through this pipeline is `inspect_raster`. It:
+
+- reads one raster beneath an approved input root;
+- rejects path traversal and symlinks;
+- opens the raster read-only with Rasterio;
+- returns typed dimensions, CRS, bounds, transform, band, datatype and nodata metadata;
+- verifies that inspection did not change the source file;
+- has no filesystem-write, database-write or approval authority.
+
+Run the promoted skill directly:
+
+```bash
+.venv/bin/geoagent inspect-raster \
+  data/input/sample_dem.tif \
+  --input-root data/input \
+  --pretty
+```
+
+The constrained recipe-proposal system also recognizes the fixed `inspect_raster` template. A request can be validated and compiled into this non-executing step:
+
+```json
+{
+  "step_id": "step_1",
+  "skill_id": "inspect_raster",
+  "depends_on": [],
+  "arguments": {
+    "path": "data/input/sample_dem.tif"
+  },
+  "output_ids": [
+    "raster_metadata"
+  ]
+}
+```
+
+Because this skill is read-only, deterministic recipe policy returns no approval-required steps. The existing recipe execution envelope remains write-approval-gated, so a purely read-only recipe is not given a fabricated approval. A separate controlled read-only recipe execution policy can be added later.
+
+This SDK reduces the manual work required to add standard skills, but it does not allow YAML or model output to invent and trust arbitrary GIS algorithms. Novel implementations still require a trusted adapter, domain-specific tests and explicit promotion.
+
 ### Approved Snakemake replay
 
 GeoAgent can export an exact approved recipe into a deterministic Snakemake package:

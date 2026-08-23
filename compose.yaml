@@ -227,6 +227,41 @@ services:
     expose:
       - "8000"
 
+  skill-test-runner:
+    build:
+      context: .
+      dockerfile: docker/skill-test-runner/Dockerfile
+
+    image: ${SKILL_TEST_IMAGE:-geoagent-skill-test:local}
+
+    working_dir: /candidate
+
+    environment:
+      PYTHONPATH: /app/src
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+
+    network_mode: none
+
+    read_only: true
+
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    pids_limit: 128
+
+    volumes:
+      - ${SKILL_CANDIDATE_DIR:-./skill-candidates}:/candidate:ro
+
+    profiles:
+      - skill-testing
+
 networks:
   control:
     internal: true

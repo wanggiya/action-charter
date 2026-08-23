@@ -3214,5 +3214,670 @@ def list_approved_recipes_command(
         )
     )
 
+@app.command("assess-skill-definition")
+def assess_skill_definition_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Assess a declarative skill without generating code."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillDefinitionStorageError,
+        assess_declarative_skill,
+        load_skill_definition,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+        result = assess_declarative_skill(
+            definition
+        )
+    except (
+        SkillDefinitionStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.ready_for_generation:
+        raise typer.Exit(code=1)
+
+@app.command("generate-skill-contract")
+def generate_skill_contract_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    contract_root: Annotated[
+        Path,
+        typer.Option("--contract-root"),
+    ] = Path("skill-contracts"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Generate one isolated immutable skill contract."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillContractGenerationError,
+        SkillDefinitionStorageError,
+        generate_skill_contract_bundle,
+        load_skill_definition,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+        result = generate_skill_contract_bundle(
+            definition,
+            contract_root=contract_root,
+        )
+    except (
+        SkillContractGenerationError,
+        SkillDefinitionStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("validate-skill-contract")
+def validate_skill_contract_command(
+    bundle_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Generated immutable skill "
+                "contract bundle."
+            )
+        ),
+    ],
+    contract_root: Annotated[
+        Path,
+        typer.Option("--contract-root"),
+    ] = Path("skill-contracts"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Validate a contract without importing or executing code."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillContractGenerationError,
+        SkillContractValidationError,
+        validate_skill_contract_bundle,
+    )
+
+    try:
+        result = validate_skill_contract_bundle(
+            bundle_path,
+            contract_root=contract_root,
+        )
+    except (
+        SkillContractGenerationError,
+        SkillContractValidationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("generate-skill-candidate")
+def generate_skill_candidate_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    scaffold_root: Annotated[
+        Path,
+        typer.Option("--scaffold-root"),
+    ] = Path("skill-scaffolds"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option("--candidate-root"),
+    ] = Path("skill-candidates"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Generate one isolated untrusted skill candidate."""
+
+    from geoagent_harness.skill_definitions import (
+        DeclarativeSkillScaffoldError,
+        SkillDefinitionStorageError,
+        TrustedAdapterMaterializationError,
+        generate_declarative_skill_scaffold,
+        load_skill_definition,
+        materialize_trusted_adapter_candidate,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+
+        registry = load_skill_registry(
+            project_root
+        )
+
+        generated = (
+            generate_declarative_skill_scaffold(
+                definition,
+                registry=registry,
+                scaffold_root=scaffold_root,
+            )
+        )
+
+        result = (
+            materialize_trusted_adapter_candidate(
+                definition=definition,
+                scaffold=generated.scaffold,
+                candidate_root=candidate_root,
+            )
+        )
+    except (
+        DeclarativeSkillScaffoldError,
+        SkillDefinitionStorageError,
+        SkillRegistryError,
+        TrustedAdapterMaterializationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("assess-skill-candidate")
+def assess_skill_candidate_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Materialized skill candidate "
+                "directory."
+            )
+        ),
+    ],
+    test_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Isolated candidate-test JSON "
+                "record."
+            )
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option("--candidate-root"),
+    ] = Path("skill-candidates"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option("--evidence-root"),
+    ] = Path("skill-test-results"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Assess exact candidate evidence before promotion."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillCandidatePromotionError,
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        assess_skill_candidate_for_promotion,
+        load_skill_candidate_test_record,
+        load_skill_definition,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+
+        test_record = (
+            load_skill_candidate_test_record(
+                test_record_file,
+                evidence_root=evidence_root,
+            )
+        )
+
+        result = (
+            assess_skill_candidate_for_promotion(
+                definition=definition,
+                candidate_path=candidate_path,
+                candidate_root=candidate_root,
+                test_record=test_record,
+            )
+        )
+    except (
+        SkillCandidatePromotionError,
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+    if not result.ready_for_promotion_review:
+        raise typer.Exit(code=1)
+
+@app.command("plan-skill-promotion")
+def plan_skill_promotion_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Materialized candidate directory."
+        ),
+    ],
+    test_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Isolated candidate-test JSON record."
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option("--candidate-root"),
+    ] = Path("skill-candidates"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option("--evidence-root"),
+    ] = Path("skill-test-results"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Plan exact trusted writes without performing them."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        SkillPromotionPlanError,
+        load_skill_candidate_test_record,
+        load_skill_definition,
+        plan_skill_candidate_promotion,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+
+        test_record = (
+            load_skill_candidate_test_record(
+                test_record_file,
+                evidence_root=evidence_root,
+            )
+        )
+
+        result = plan_skill_candidate_promotion(
+            definition=definition,
+            candidate_path=candidate_path,
+            candidate_root=candidate_root,
+            test_record=test_record,
+            project_root=project_root,
+        )
+    except (
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        SkillPromotionPlanError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("promote-skill-candidate")
+def promote_skill_candidate_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Canonical declarative skill "
+                "definition YAML."
+            )
+        ),
+    ],
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Materialized candidate directory."
+        ),
+    ],
+    test_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Isolated candidate-test JSON record."
+        ),
+    ],
+    confirmed_skill_id: Annotated[
+        str,
+        typer.Option(
+            "--confirm-skill-id",
+            help=(
+                "Exact skill ID explicitly approved "
+                "for trusted promotion."
+            ),
+        ),
+    ],
+    definition_root: Annotated[
+        Path,
+        typer.Option("--definition-root"),
+    ] = Path("skill-definitions"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option("--candidate-root"),
+    ] = Path("skill-candidates"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option("--evidence-root"),
+    ] = Path("skill-test-results"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Explicitly promote one exact verified candidate."""
+
+    from geoagent_harness.skill_definitions import (
+        SkillCandidatePromotionExecutionError,
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        load_skill_candidate_test_record,
+        load_skill_definition,
+        promote_skill_candidate,
+    )
+
+    try:
+        definition = load_skill_definition(
+            definition_file,
+            definition_root=definition_root,
+        )
+
+        test_record = (
+            load_skill_candidate_test_record(
+                test_record_file,
+                evidence_root=evidence_root,
+            )
+        )
+
+        result = promote_skill_candidate(
+            definition=definition,
+            candidate_path=candidate_path,
+            candidate_root=candidate_root,
+            test_record=test_record,
+            project_root=project_root,
+            confirmed_skill_id=(
+                confirmed_skill_id
+            ),
+        )
+    except (
+        SkillCandidatePromotionExecutionError,
+        SkillCandidateTestEvidenceError,
+        SkillDefinitionStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("inspect-raster")
+def inspect_raster_command(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Raster dataset beneath the input root."
+        ),
+    ],
+    input_root: Annotated[
+        Path,
+        typer.Option("--input-root"),
+    ] = Path("data/input"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Inspect one raster dataset without modifying it."""
+
+    from geoagent_harness.skill_adapters.raster_inspection import (
+        RasterInspectionError,
+    )
+    from geoagent_harness.skills.inspect_raster.policy import (
+        InspectRasterPolicyError,
+    )
+    from geoagent_harness.skills.inspect_raster.schemas import (
+        InspectRasterArguments,
+    )
+    from geoagent_harness.skills.inspect_raster.service import (
+        inspect_raster,
+    )
+
+    try:
+        result = inspect_raster(
+            InspectRasterArguments(
+                path=path,
+                input_root=input_root,
+            )
+        )
+    except (
+        InspectRasterPolicyError,
+        RasterInspectionError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

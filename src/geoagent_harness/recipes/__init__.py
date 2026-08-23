@@ -23,6 +23,7 @@ from geoagent_harness.recipes.schemas import (
     RecipeStepRunResult,
     RecipeApprovalInventory,
     RecipeApprovalMatch,
+    InspectRasterRecipeArguments,
 )
 
 from geoagent_harness.recipes.storage import (
@@ -139,6 +140,7 @@ __all__ = [
     "RecipeApprovalMatch",
     "RecipeInventoryError",
     "build_recipe_approval_inventory",
+    "InspectRasterRecipeArguments",
 ]
 
 def __getattr__(name: str):

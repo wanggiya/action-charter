@@ -64,3 +64,44 @@ def test_executor_schema_import_does_not_load_gis_stack() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+
+def test_executor_schema_import_does_not_load_raster_stack(
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "from geoagent_harness.executor.schemas "
+                "import ExecutorRecipeRunResult; "
+                "assert 'rasterio' not in sys.modules"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+def test_skill_adapter_package_does_not_load_rasterio(
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "import geoagent_harness.skill_adapters; "
+                "assert 'rasterio' not in sys.modules"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr

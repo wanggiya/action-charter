@@ -82,6 +82,25 @@ def _inspect_recipe(
         )
     ]
 
+def _inspect_raster_recipe(
+    proposal: RecipeProposal,
+) -> list[RecipeStep]:
+    """Compile the fixed read-only raster inspection template."""
+
+    parameters = proposal.selection.parameters
+
+    return [
+        RecipeStep(
+            step_id="step_1",
+            skill_id="inspect_raster",
+            arguments={
+                "path": parameters.path,
+            },
+            output_ids=[
+                "raster_metadata",
+            ],
+        )
+    ]
 
 def _conversion_recipe(
     proposal: RecipeProposal,
@@ -216,6 +235,11 @@ def _compile_steps(
 
     if template_id == "inspect_vector":
         return _inspect_recipe(proposal)
+
+    if template_id == "inspect_raster":
+        return _inspect_raster_recipe(
+            proposal
+        )
 
     if (
         template_id
