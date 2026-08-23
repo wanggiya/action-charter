@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import asyncio
 
 import geoagent_harness.snakemake_export.replay as replay_module
 
@@ -314,3 +315,37 @@ def test_failed_validation_writes_no_completion(
 
     assert not completion_path.exists()
 
+def test_replay_works_inside_running_event_loop(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    export_path = generated_export(
+        tmp_path
+    )
+    install_local_verification(
+        monkeypatch
+    )
+
+    async def fake_executor(**_kwargs):
+        return executor_result()
+
+    completion_path = (
+        export_path
+        / ".geoagent-replay-complete.json"
+    )
+
+    async def invoke():
+        return run_approved_recipe_replay(
+            configuration_path=(
+                export_path
+                / "geoagent-replay.json"
+            ),
+            completion_path=completion_path,
+            settings=replay_settings(tmp_path),
+            executor=fake_executor,
+        )
+
+    result = asyncio.run(invoke())
+
+    assert result.replay_completed is True
+    assert completion_path.is_file()

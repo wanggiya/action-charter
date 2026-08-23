@@ -3150,5 +3150,69 @@ def validate_snakemake_export_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+@app.command("list-approved-recipes")
+def list_approved_recipes_command(
+    recipe_root: Annotated[
+        Path,
+        typer.Option("--recipe-root"),
+    ] = Path("workflow-recipes"),
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """List deterministic recipe and approval matches."""
+
+    from geoagent_harness.recipes import (
+        RecipeInventoryError,
+        build_recipe_approval_inventory,
+    )
+    from geoagent_harness.skill_registry import (
+        SkillRegistryError,
+        load_skill_registry,
+    )
+
+    try:
+        registry = load_skill_registry(
+            project_root
+        )
+
+        result = build_recipe_approval_inventory(
+            recipe_root=recipe_root,
+            approval_root=approval_root,
+            registry=registry,
+        )
+    except (
+        RecipeInventoryError,
+        SkillRegistryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

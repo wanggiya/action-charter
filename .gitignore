@@ -65,3 +65,7 @@ skill-scaffolds/
 
 # Generated approved-recipe replay packages
 snakemake-exports/
+
+# Local derived operator inventories
+approved-recipes.local.json
+

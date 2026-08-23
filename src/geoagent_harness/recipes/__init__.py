@@ -21,6 +21,8 @@ from geoagent_harness.recipes.schemas import (
     RecipeStepExecutionResult,
     RecipeRunResult,
     RecipeStepRunResult,
+    RecipeApprovalInventory,
+    RecipeApprovalMatch,
 )
 
 from geoagent_harness.recipes.storage import (
@@ -71,6 +73,12 @@ from geoagent_harness.recipes.evidence_storage import (
     write_recipe_run_result,
 )
 
+from geoagent_harness.recipes.inventory import (
+    MAX_INVENTORY_APPROVALS,
+    MAX_INVENTORY_RECIPES,
+    RecipeInventoryError,
+    build_recipe_approval_inventory,
+)
 
 
 __all__ = [
@@ -125,6 +133,12 @@ __all__ = [
     "RecipeEvidencePersistenceError",
     "persist_recipe_run",
     "PersistedRecipeExecutionResult",
+    "MAX_INVENTORY_APPROVALS",
+    "MAX_INVENTORY_RECIPES",
+    "RecipeApprovalInventory",
+    "RecipeApprovalMatch",
+    "RecipeInventoryError",
+    "build_recipe_approval_inventory",
 ]
 
 def __getattr__(name: str):

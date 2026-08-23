@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 from typer.main import get_command
 
 from geoagent_harness.cli import app
-
+from click.utils import strip_ansi
 
 def normalized_output(
     value: str,
@@ -225,5 +225,24 @@ def test_save_reviewed_recipe_is_registered() -> None:
     )
     assert "--review-root" in output
     assert "--recipe-root" in output
+    assert "--project-root" in output
+
+def test_list_approved_recipes_is_registered() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "list-approved-recipes",
+            "--help",
+        ],
+    )
+    output = strip_ansi(result.stdout)
+
+    assert result.exit_code == 0
+    assert (
+        "recipe and approval matches"
+        in output
+    )
+    assert "--recipe-root" in output
+    assert "--approval-root" in output
     assert "--project-root" in output
 

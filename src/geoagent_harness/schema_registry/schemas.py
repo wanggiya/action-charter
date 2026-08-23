@@ -105,6 +105,9 @@ class ArtifactType(str, Enum):
     SNAKEMAKE_REPLAY_COMPLETION = (
         "snakemake_replay_completion"
     )
+    RECIPE_APPROVAL_INVENTORY = (
+        "recipe_approval_inventory"
+    )
     
 
 

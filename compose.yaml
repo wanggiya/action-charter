@@ -71,6 +71,9 @@ services:
     build:
       context: .
       dockerfile: docker/workflow-runner/Dockerfile
+      args:
+        GEOAGENT_UID: ${GEOAGENT_HOST_UID:-1000}
+        GEOAGENT_GID: ${GEOAGENT_HOST_GID:-1000}
 
     image: ${WORKFLOW_IMAGE:-geoagent-workflow-runner:local}
 
@@ -82,7 +85,7 @@ services:
     command:
       - --help
 
-    user: "${GEOAGENT_HOST_UID:-1000}:${GEOAGENT_HOST_GID:-1000}"
+    # user: "${GEOAGENT_HOST_UID:-1000}:${GEOAGENT_HOST_GID:-1000}"
 
     environment:
       GEOAGENT_MCP_URL: http://mcp-gis:8000/mcp
@@ -93,6 +96,12 @@ services:
       GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
       GEOAGENT_APPROVAL_ROOT: /workspace/approvals
       GEOAGENT_SNAKEMAKE_EXPORT_ROOT: /workspace/snakemake-exports
+
+      HOME: /tmp/geoagent-home
+      XDG_CACHE_HOME: /tmp/geoagent-cache
+      XDG_CONFIG_HOME: /tmp/geoagent-config
+      XDG_DATA_HOME: /tmp/geoagent-data
+      TMPDIR: /tmp
 
     extra_hosts: []
 

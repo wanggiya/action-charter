@@ -320,7 +320,66 @@ class RecipeApprovalVerification(BaseModel):
     )
 
     reason: str
-    
+ 
+class RecipeApprovalMatch(BaseModel):
+    """One deterministic recipe and approval pairing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str
+    recipe_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    recipe_filename: str
+
+    approval_id: str
+    approval_filename: str
+    decision: Literal[
+        "approved",
+        "denied",
+    ]
+
+    approved: bool
+    required_step_ids: list[str] = Field(
+        default_factory=list
+    )
+    approved_step_ids: list[str] = Field(
+        default_factory=list
+    )
+    missing_step_ids: list[str] = Field(
+        default_factory=list
+    )
+
+    created_at: datetime
+    expires_at: datetime | None = None
+    reason: str
+
+
+class RecipeApprovalInventory(BaseModel):
+    """Read-only inventory of recipe and approval matches."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    matches: list[RecipeApprovalMatch] = Field(
+        default_factory=list
+    )
+    recipes_without_matching_approval: list[str] = Field(
+        default_factory=list
+    )
+    approvals_without_matching_recipe: list[str] = Field(
+        default_factory=list
+    )
+
+    recipe_count: int = Field(ge=0)
+    approval_count: int = Field(ge=0)
+    valid_match_count: int = Field(ge=0)
+
+    inventory_performed: Literal[True] = True
+    recipe_modified: Literal[False] = False
+    approval_modified: Literal[False] = False
+    execution_performed: Literal[False] = False  
 
 class RecipeStep(BaseModel):
     """One non-executed step in a reusable recipe."""

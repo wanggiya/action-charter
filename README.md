@@ -1402,3 +1402,34 @@ geoagent validate-skill-scaffold \
 Generated scaffolds are untrusted and remain planned. They are not automatically copied into the application, registered, approved, or executed.
 
 Ensure the nested command block is closed with three backticks if copying manually.
+
+### Approved Snakemake replay
+
+GeoAgent can export an exact approved recipe into a deterministic Snakemake package:
+
+```bash
+geoagent list-approved-recipes --pretty
+
+geoagent plan-snakemake-export \
+  workflow-recipes/RECIPE.json \
+  approvals/RECIPE-APPROVAL.json \
+  --pretty
+
+geoagent export-approved-recipe-snakemake \
+  workflow-recipes/RECIPE.json \
+  approvals/RECIPE-APPROVAL.json \
+  --export-root snakemake-exports \
+  --pretty
+
+geoagent validate-snakemake-export \
+  snakemake-exports/EXPORT_DIRECTORY \
+  --pretty
+
+Run a non-executing DAG check in the isolated workflow container:
+
+make snakemake-dry-run \
+  SNAKEMAKE_EXPORT_DIR=EXPORT_DIRECTORY
+
+The generated Snakefile contains no shell rule. It calls one trusted adapter that revalidates the export and exact approval before using the existing Executor-to-MCP boundary. Real replay requires an explicit operator procedure that temporarily enables MCP writes and restores the disabled default afterward.
+
+Be sure both nested code blocks are closed correctly.

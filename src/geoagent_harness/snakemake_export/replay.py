@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from pydantic import ValidationError
 
+from concurrent.futures import ThreadPoolExecutor
+
 from geoagent_harness.recipes.approval import (
     RecipeApprovalError,
     load_recipe_approval,
@@ -230,6 +232,48 @@ def _verify_configuration_against_envelope(
             + ", ".join(conflicts)
         )
 
+def _run_async_executor(
+    executor: ReplayExecutorProtocol,
+    *,
+    recipe_file: Path,
+    approval_file: Path,
+    recipe_root: Path,
+    approval_root: Path,
+    project_root: Path,
+    agents_root: Path,
+):
+    """Run the async Executor from synchronous workflow code."""
+
+    arguments = {
+        "recipe_file": recipe_file,
+        "approval_file": approval_file,
+        "recipe_root": recipe_root,
+        "approval_root": approval_root,
+        "project_root": project_root,
+        "agents_root": agents_root,
+    }
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(
+            executor(**arguments)
+        )
+
+    def run_in_thread():
+        return asyncio.run(
+            executor(**arguments)
+        )
+
+    with ThreadPoolExecutor(
+        max_workers=1,
+        thread_name_prefix=(
+            "geoagent-approved-replay"
+        ),
+    ) as pool:
+        return pool.submit(
+            run_in_thread
+        ).result()
 
 def run_approved_recipe_replay(
     *,
@@ -370,15 +414,14 @@ def run_approved_recipe_replay(
         )
 
     try:
-        result = asyncio.run(
-            active_executor(
-                recipe_file=recipe_file,
-                approval_file=approval_file,
-                recipe_root=active.recipe_root,
-                approval_root=active.approval_root,
-                project_root=active.project_root,
-                agents_root=active.agents_root,
-            )
+        result = _run_async_executor(
+            active_executor,
+            recipe_file=recipe_file,
+            approval_file=approval_file,
+            recipe_root=active.recipe_root,
+            approval_root=active.approval_root,
+            project_root=active.project_root,
+            agents_root=active.agents_root,
         )
     except SnakemakeReplayError:
         raise

@@ -585,6 +585,84 @@ Important limitation:
 
 The scaffold automates boilerplate, policy metadata, file layout, and baseline contract testing. It does not invent or trust a new GIS algorithm. A new primitive GIS operation still requires implementation, deterministic validation where applicable, focused tests, operator review, and explicit promotion to `implemented`.
 
+## Checkpoint 12 — Approval-gated Snakemake export and replay
+
+Status: complete
+
+GeoAgent can now export one exact approved recipe as an immutable Snakemake replay package and execute it without creating a second GIS execution boundary.
+
+Implemented components:
+
+- Deterministic recipe/approval inventory
+  - Scans canonical recipe artifacts.
+  - Selects only `recipe-approval-*.json` from the shared approval root.
+  - Matches recipes and approvals by canonical SHA-256 digest.
+  - Re-runs deterministic approval verification.
+  - Reports valid, denied, expired, incomplete, unmatched, and missing pairs.
+  - Exposes `geoagent list-approved-recipes` for CLI and future frontend use.
+
+- Typed Snakemake export planning
+  - Rebuilds the exact recipe execution envelope.
+  - Records recipe ID, recipe digest, approval ID, approved steps, and topological order.
+  - Stores only plain canonical artifact filenames.
+  - Performs no export or execution.
+
+- Immutable export generation
+  - Creates a digest-addressed package beneath `snakemake-exports/`.
+  - Generates `Snakefile`, `geoagent-replay.json`, and `snakemake-export-manifest.json`.
+  - Records SHA-256 digests for the workflow and configuration.
+  - Refuses to overwrite an existing export.
+
+- Static export contracts
+  - Require the exact canonical Snakefile.
+  - Reject changed workflow or configuration digests.
+  - Reject `shell:`, subprocess, direct GIS skill calls, and database libraries.
+  - Reject changed replay entrypoints, unsafe filenames, conflicting identities, and invalid step scope.
+  - Do not run Snakemake or import arbitrary generated code.
+
+- Trusted replay adapter
+  - Revalidates the static export contract.
+  - Loads exact canonical recipes and approvals from trusted roots.
+  - Rebuilds and compares the execution envelope before execution.
+  - Invokes only `execute_approved_recipe_via_mcp`.
+  - Supports invocation from Snakemake's active asyncio runtime through a bounded single-worker bridge.
+  - Writes a completion marker only after validated success.
+  - Records durable run-result, evidence, and report references.
+
+- Isolated workflow runner
+  - Uses Python 3.12 and Snakemake 9.25.
+  - Runs as a named non-root user matching the WSL host UID/GID.
+  - Uses only the internal control network.
+  - Has no model access, GIS libraries, PostGIS credentials, or direct GIS output mount.
+  - Receives read-only Executor manifest, context, approvals, and recipes.
+  - Receives one writable Snakemake export mount.
+  - Uses bounded temporary cache/config locations under `/tmp`.
+  - Keeps the container root filesystem read-only.
+
+- CLI commands
+  - `geoagent list-approved-recipes`
+  - `geoagent plan-snakemake-export`
+  - `geoagent export-approved-recipe-snakemake`
+  - `geoagent validate-snakemake-export`
+
+Acceptance results:
+
+1. Five existing exact recipe/approval pairs were discovered deterministically.
+2. A canonical approved recipe was exported.
+3. Static contract validation passed.
+4. Snakemake dry-run produced only `replay_approved_recipe` and `all`.
+5. Dry-run performed no execution and created no completion marker.
+6. A fresh recipe with a new output path was saved and approved.
+7. The real Snakemake replay passed through Executor and MCP.
+8. Vector conversion and deterministic validation succeeded.
+9. Durable run result, evidence, report, and completion records were written.
+10. Completion digests matched the stored evidence artifacts.
+11. MCP writes were restored to disabled after execution.
+12. Re-running the completed workflow was a no-op.
+
+Security boundary:
+
+Snakemake schedules one trusted composite replay. It does not execute recipe steps individually, invoke raw GIS commands, call shell rules, connect to PostGIS, or bypass approval verification.
 
 ## Agent boundaries
 

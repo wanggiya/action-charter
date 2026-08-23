@@ -1,11 +1,14 @@
 CRITIC_TASK_ID ?= checkpoint5e-points-20260809a
 STATE_TASK_ID ?= checkpoint7c-state-check
+SNAKEMAKE_EXPORT_DIR ?=
 
 .PHONY: checkpoint6-accept
 .PHONY: critic-container
 .PHONY: help install test inspect config build
 .PHONY: agent-info mcp-smoke planner-smoke
 .PHONY: state-container
+.PHONY: workflow-version
+.PHONY: snakemake-dry-run
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -19,6 +22,8 @@ help:
 	@echo "make critic-container  Run the read-only Critic container"
 	@echo "make checkpoint6-accept Run complete Checkpoint 6 acceptance"
 	@echo "make state-container Assess workflow state read-only"
+	@echo "make workflow-version Show isolated Snakemake version"
+	@echo "make snakemake-dry-run SNAKEMAKE_EXPORT_DIR=name Validate a replay DAG"
 
 install:
 	python3 -m venv .venv
@@ -89,3 +94,25 @@ state-container:
 			/workspace/workflow-state/$(STATE_TASK_ID).state.json \
 			--state-root /workspace/workflow-state \
 			--pretty
+
+workflow-version:
+	docker compose --profile workflow run --rm \
+		workflow-runner \
+		--version
+
+snakemake-dry-run:
+	@test -n "$(SNAKEMAKE_EXPORT_DIR)" || \
+		(echo "SNAKEMAKE_EXPORT_DIR is required"; exit 2)
+	@case "$(SNAKEMAKE_EXPORT_DIR)" in \
+		*[!A-Za-z0-9._-]*|"") \
+			echo "SNAKEMAKE_EXPORT_DIR must be a plain directory name"; \
+			exit 2 ;; \
+	esac
+	docker compose --profile workflow run --rm \
+		workflow-runner \
+		--snakefile \
+		"/workspace/snakemake-exports/$(SNAKEMAKE_EXPORT_DIR)/Snakefile" \
+		--directory \
+		"/workspace/snakemake-exports/$(SNAKEMAKE_EXPORT_DIR)" \
+		--cores 1 \
+		--dry-run

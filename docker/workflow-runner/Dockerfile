@@ -12,9 +12,16 @@ RUN python -m pip install \
     --no-cache-dir \
     ".[mcp,workflow]"
 
-RUN useradd \
+ARG GEOAGENT_UID=1000
+ARG GEOAGENT_GID=1000
+
+RUN groupadd \
+    --gid "${GEOAGENT_GID}" \
+    geoagent \
+    && useradd \
     --create-home \
-    --uid 10001 \
+    --uid "${GEOAGENT_UID}" \
+    --gid "${GEOAGENT_GID}" \
     geoagent
 
 USER geoagent
