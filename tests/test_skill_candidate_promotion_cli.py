@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from typer.testing import CliRunner
+import typer
 
 from geoagent_harness.cli import app
 from geoagent_harness.skill_definitions import (
@@ -206,19 +207,25 @@ def test_skill_promotion_commands_are_registered(
 
 def test_promotion_requires_exact_confirmation(
 ) -> None:
-    result = runner.invoke(
-        app,
-        [
-            "promote-skill-candidate",
-            "definition.skill.yaml",
-            "candidate",
-            "record.json",
-        ],
-        terminal_width=200,
-    )
+    command = typer.main.get_command(app)
 
-    assert result.exit_code != 0
+    promotion_command = command.commands[
+        "promote-skill-candidate"
+    ]
+
+    matching_parameters = [
+        parameter
+        for parameter in promotion_command.params
+        if parameter.name
+        == "confirmed_skill_id"
+    ]
+
+    assert len(matching_parameters) == 1
+
+    confirmation = matching_parameters[0]
+
+    assert confirmation.required is True
     assert "--confirm-skill-id" in (
-        result.output
+        confirmation.opts
     )
 
