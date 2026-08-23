@@ -214,6 +214,7 @@ def test_promotion_requires_exact_confirmation(
             "candidate",
             "record.json",
         ],
+        terminal_width=200,
     )
 
     assert result.exit_code != 0
