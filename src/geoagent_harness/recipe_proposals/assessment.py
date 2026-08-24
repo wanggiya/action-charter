@@ -43,6 +43,10 @@ def _clarification_question(
             "What new safe PostGIS table name "
             "should be used?"
         ),
+        "target_crs": (
+            "Which target coordinate reference "
+            "system should be used?"
+        ),
     }
 
     return questions.get(
@@ -120,6 +124,24 @@ def assess_recipe_proposal(
                     "target_format conflicts with "
                     "the target_path extension"
                 )
+
+    if (
+        proposal.selection.template_id
+        == "inspect_and_convert_raster"
+    ):
+        target_path = parameters.get(
+            "target_path"
+        )
+
+        if (
+            target_path is not None
+            and Path(target_path).suffix.lower()
+            != ".tif"
+        ):
+            conflicts.append(
+                "raster target_path must end "
+                "with .tif"
+            )
 
     clarification_questions = [
         _clarification_question(field)

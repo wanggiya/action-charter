@@ -2,6 +2,10 @@
 
 import pytest
 
+from geoagent_harness.skill_definitions.catalog import (
+    TrustedAdapter,
+    get_trusted_adapter,
+)
 from geoagent_harness.skill_definitions import (
     DeclarativeSkillDefinition,
     SkillProfile,
@@ -161,3 +165,106 @@ def test_unknown_adapter_blocks_generation() -> None:
     assert result.promotion_performed is False
     assert result.execution_performed is False
 
+def test_write_adapter_requires_trusted_verifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    definition = DeclarativeSkillDefinition(
+        skill_id="convert_raster",
+        version="0.1.0",
+        summary="Convert one raster.",
+        profile=SkillProfile.ARTIFACT_TRANSFORMATION,
+        adapter_id="raster_conversion",
+        arguments_schema_id="convert_raster_arguments",
+        result_schema_id="convert_raster_result",
+        fixture_path="data/input/sample_dem.tif",
+    )
+
+    monkeypatch.setattr(
+        (
+            "geoagent_harness.skill_definitions."
+            "policy.get_trusted_adapter"
+        ),
+        lambda adapter_id: TrustedAdapter(
+            adapter_id=adapter_id,
+            allowed_profiles=(
+                SkillProfile.ARTIFACT_TRANSFORMATION,
+            ),
+            fixture_required=True,
+            entrypoint=(
+                "geoagent_harness.skills.convert_raster."
+                "service:convert_raster"
+            ),
+            verifier=None,
+        ),
+    )
+
+    result = assess_declarative_skill(
+        definition
+    )
+
+    assert result.ready_for_generation is False
+    assert (
+        "selected security profile requires "
+        "a trusted verifier"
+        in result.policy_conflicts
+    )
+
+def test_inspection_adapter_has_no_verifier() -> None:
+    adapter = get_trusted_adapter(
+        "raster_inspection"
+    )
+
+    assert adapter.verifier is None
+
+def test_raster_conversion_is_ready_for_generation(
+) -> None:
+    definition = DeclarativeSkillDefinition(
+        skill_id="convert_raster",
+        version="0.1.0",
+        summary=(
+            "Convert and reproject one raster "
+            "into a new GeoTIFF."
+        ),
+        profile=(
+            SkillProfile.ARTIFACT_TRANSFORMATION
+        ),
+        adapter_id="raster_conversion",
+        arguments_schema_id=(
+            "convert_raster_arguments"
+        ),
+        result_schema_id=(
+            "convert_raster_result"
+        ),
+        fixture_path=(
+            "data/input/sample_dem.tif"
+        ),
+    )
+
+    result = assess_declarative_skill(
+        definition
+    )
+
+    assert result.ready_for_generation is True
+    assert result.adapter_available is True
+    assert result.kind == SkillKind.TRANSFORMATION
+    assert result.access == SkillAccess.ARTIFACT_WRITE
+    assert result.approval_required is True
+    assert result.validation_required is True
+    assert result.verifier_required is True
+    assert result.policy_conflicts == []
+
+
+def test_raster_conversion_adapter_has_verifier(
+) -> None:
+    adapter = get_trusted_adapter(
+        "raster_conversion"
+    )
+
+    assert adapter.entrypoint == (
+        "geoagent_harness.skills.convert_raster."
+        "service:convert_raster"
+    )
+    assert adapter.verifier == (
+        "geoagent_harness.skills.convert_raster."
+        "validation:validate_raster_conversion"
+    )

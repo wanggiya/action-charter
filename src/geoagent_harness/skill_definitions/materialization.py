@@ -8,7 +8,9 @@ import tempfile
 from pathlib import Path
 
 from geoagent_harness.skill_definitions.adapters import (
+    RasterConversionRendererError,
     RasterInspectionRendererError,
+    render_raster_conversion_candidate,
     render_raster_inspection_candidate,
 )
 from geoagent_harness.skill_definitions.generation import (
@@ -51,6 +53,23 @@ def _render_candidate(
                 TrustedAdapterMaterializationError(
                     "trusted raster adapter could "
                     "not render the candidate"
+                )
+            ) from exc
+
+    if definition.adapter_id == (
+        "raster_conversion"
+    ):
+        try:
+            return (
+                render_raster_conversion_candidate(
+                    skill_id=definition.skill_id
+                )
+            )
+        except RasterConversionRendererError as exc:
+            raise (
+                TrustedAdapterMaterializationError(
+                    "trusted raster conversion adapter "
+                    "could not render the candidate"
                 )
             ) from exc
 

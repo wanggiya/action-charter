@@ -102,6 +102,48 @@ def _inspect_raster_recipe(
         )
     ]
 
+def _raster_conversion_recipe(
+    proposal: RecipeProposal,
+) -> list[RecipeStep]:
+    """Compile fixed inspection and raster conversion."""
+
+    parameters = proposal.selection.parameters
+
+    return [
+        RecipeStep(
+            step_id="step_1",
+            skill_id="inspect_raster",
+            arguments={
+                "path": parameters.path,
+            },
+            output_ids=[
+                "source_raster_metadata",
+            ],
+        ),
+        RecipeStep(
+            step_id="step_2",
+            skill_id="convert_raster",
+            depends_on=[
+                "step_1",
+            ],
+            arguments={
+                "path": parameters.path,
+                "target_path": (
+                    parameters.target_path
+                ),
+                "target_crs": (
+                    parameters.target_crs
+                ),
+                "resampling": (
+                    parameters.resampling
+                ),
+            },
+            output_ids=[
+                "converted_raster",
+            ],
+        ),
+    ]
+
 def _conversion_recipe(
     proposal: RecipeProposal,
 ) -> list[RecipeStep]:
@@ -238,6 +280,14 @@ def _compile_steps(
 
     if template_id == "inspect_raster":
         return _inspect_raster_recipe(
+            proposal
+        )
+
+    if (
+        template_id
+        == "inspect_and_convert_raster"
+    ):
+        return _raster_conversion_recipe(
             proposal
         )
 

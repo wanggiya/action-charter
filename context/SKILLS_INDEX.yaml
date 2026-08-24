@@ -50,3 +50,12 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.skills.inspect_raster.service:inspect_raster
+- id: convert_raster
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.skills.convert_raster.service:convert_raster
+  verifier: geoagent_harness.skills.convert_raster.validation:validate_raster_conversion

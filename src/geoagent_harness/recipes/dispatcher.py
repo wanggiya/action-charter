@@ -11,6 +11,7 @@ from geoagent_harness.mcp_server.settings import (
     MCPSettings,
 )
 from geoagent_harness.recipes.schemas import (
+    ConvertRasterRecipeArguments,
     ConvertVectorRecipeArguments,
     InspectVectorRecipeArguments,
     RecipeExecutionEnvelope,
@@ -28,6 +29,13 @@ from geoagent_harness.skill_registry import (
 from geoagent_harness.skills.convert_vector.service import (
     ConvertVectorError,
     convert_vector,
+)
+from geoagent_harness.skills.convert_raster.schemas import (
+    ConvertRasterArguments,
+)
+from geoagent_harness.skills.convert_raster.service import (
+    ConvertRasterError,
+    convert_raster,
 )
 from geoagent_harness.skills.inspect_vector.service import (
     InspectVectorError,
@@ -60,6 +68,10 @@ _EXPECTED_ENTRYPOINTS = {
     "inspect_raster": (
         "geoagent_harness.skills.inspect_raster."
         "service:inspect_raster"
+    ),
+    "convert_raster": (
+        "geoagent_harness.skills.convert_raster."
+        "service:convert_raster"
     ),
 }
 
@@ -254,6 +266,37 @@ def dispatch_recipe_step(
             status = "completed"
             validation_performed = False
 
+        elif step.skill_id == "convert_raster":
+            arguments = (
+                ConvertRasterRecipeArguments
+                .model_validate(
+                    step.arguments
+                )
+            )
+
+            value = convert_raster(
+                ConvertRasterArguments(
+                    path=Path(
+                        arguments.path
+                    ),
+                    target_path=Path(
+                        arguments.target_path
+                    ),
+                    target_crs=(
+                        arguments.target_crs
+                    ),
+                    resampling=(
+                        arguments.resampling
+                    ),
+                ),
+                settings=settings,
+            )
+
+            status = (
+                "completed_pending_validation"
+            )
+            validation_performed = False
+
         else:
             # This remains unreachable unless code changes
             # without updating the hard-coded policy.
@@ -267,6 +310,7 @@ def dispatch_recipe_step(
             f"{step.skill_id!r} are invalid"
         ) from exc
     except (
+        ConvertRasterError,
         ConvertVectorError,
         InspectRasterPolicyError,
         InspectVectorError,

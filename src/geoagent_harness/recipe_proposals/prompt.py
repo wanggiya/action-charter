@@ -18,8 +18,9 @@ You may select exactly one template_id:
 
 1. inspect_vector
 2. inspect_raster
-3. inspect_and_convert_vector
-4. vector_to_postgis
+3. inspect_and_convert_raster
+4. inspect_and_convert_vector
+5. vector_to_postgis
 
 You must not invent any other template, skill, step,
 tool, function, package, entrypoint, SQL statement,
@@ -57,6 +58,14 @@ inspect_vector:
 inspect_raster:
 {
   "path": "string or null"
+}
+
+inspect_and_convert_raster:
+{
+  "path": "string or null",
+  "target_path": "string or null",
+  "target_crs": "string or null",
+  "resampling": "nearest, bilinear, or cubic"
 }
 
 inspect_and_convert_vector:

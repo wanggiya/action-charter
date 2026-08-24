@@ -20,6 +20,7 @@ class TrustedAdapter:
     ]
     fixture_required: bool
     entrypoint: str
+    verifier: str | None
 
 
 _ADAPTERS: dict[str, TrustedAdapter] = {
@@ -32,6 +33,22 @@ _ADAPTERS: dict[str, TrustedAdapter] = {
         entrypoint=(
             "geoagent_harness.skills.inspect_raster."
             "service:inspect_raster"
+        ),
+        verifier=None,
+    ),
+    "raster_conversion": TrustedAdapter(
+        adapter_id="raster_conversion",
+        allowed_profiles=(
+            SkillProfile.ARTIFACT_TRANSFORMATION,
+        ),
+        fixture_required=True,
+        entrypoint=(
+            "geoagent_harness.skills.convert_raster."
+            "service:convert_raster"
+        ),
+        verifier=(
+            "geoagent_harness.skills.convert_raster."
+            "validation:validate_raster_conversion"
         ),
     ),
 }

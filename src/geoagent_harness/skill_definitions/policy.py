@@ -111,10 +111,12 @@ def assess_declarative_skill(
             "adapter catalog"
         )
     else:
-        if (
+        profile_is_compatible = (
             definition.profile
-            not in adapter.allowed_profiles
-        ):
+            in adapter.allowed_profiles
+        )
+
+        if not profile_is_compatible:
             conflicts.append(
                 "adapter is incompatible with the "
                 "selected security profile"
@@ -128,6 +130,25 @@ def assess_declarative_skill(
                 "adapter requires a deterministic "
                 "test fixture"
             )
+
+        if profile_is_compatible:
+            if (
+                profile_policy.verifier_required
+                and adapter.verifier is None
+            ):
+                conflicts.append(
+                    "selected security profile requires "
+                    "a trusted verifier"
+                )
+
+            if (
+                not profile_policy.verifier_required
+                and adapter.verifier is not None
+            ):
+                conflicts.append(
+                    "selected security profile does not "
+                    "permit a verifier"
+                )
 
     return DeclarativeSkillAssessment(
         skill_id=definition.skill_id,

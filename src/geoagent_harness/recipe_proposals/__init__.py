@@ -48,6 +48,8 @@ from geoagent_harness.recipe_proposals.schemas import (
     RecipeProposalPipelineResult,
     RecipeOperatorReview,
     RecipeOperatorSaveResult,
+    ConvertRasterProposalParameters,
+    ConvertRasterTemplateSelection,
 )
 from geoagent_harness.recipe_proposals.runtime import (
     propose_recipe_with_shared_model,
@@ -109,5 +111,7 @@ __all__ = [
     "save_reviewed_recipe",
     "InspectRasterProposalParameters",
     "InspectRasterTemplateSelection",
+    "ConvertRasterProposalParameters",
+    "ConvertRasterTemplateSelection",
 ]
 

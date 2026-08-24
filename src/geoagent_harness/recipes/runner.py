@@ -20,6 +20,7 @@ from geoagent_harness.recipes.execution import (
     build_recipe_execution_envelope,
 )
 from geoagent_harness.recipes.schemas import (
+    ConvertRasterRecipeArguments,
     ConvertVectorRecipeArguments,
     RecipeRunResult,
     RecipeStepRunResult,
@@ -36,12 +37,23 @@ from geoagent_harness.skills.convert_vector.validation import (
     ConvertVectorValidationError,
     validate_vector_conversion,
 )
+from geoagent_harness.skills.convert_raster.schemas import (
+    ConvertRasterArguments,
+)
+from geoagent_harness.skills.convert_raster.validation import (
+    ConvertRasterValidationError,
+    validate_raster_conversion,
+)
 
 
 _EXPECTED_VERIFIERS = {
     "convert_vector": (
         "geoagent_harness.skills.convert_vector."
         "validation:validate_vector_conversion"
+    ),
+    "convert_raster": (
+        "geoagent_harness.skills.convert_raster."
+        "validation:validate_raster_conversion"
     ),
 }
 
@@ -100,6 +112,38 @@ def _validate_conversion_step(
         output_root=settings.output_root,
         source_layer=typed.source_layer,
         target_layer=typed.target_layer,
+    )
+
+def _validate_raster_conversion_step(
+    *,
+    arguments: dict[str, Any],
+    settings: MCPSettings,
+):
+    """Validate one exact converted raster step."""
+
+    try:
+        typed = (
+            ConvertRasterRecipeArguments
+            .model_validate(arguments)
+        )
+
+        wrapped = ConvertRasterArguments(
+            path=Path(typed.path),
+            target_path=Path(
+                typed.target_path
+            ),
+            target_crs=typed.target_crs,
+            resampling=typed.resampling,
+        )
+    except Exception as exc:
+        raise RecipeRunError(
+            "raster conversion arguments failed "
+            "validation before verification"
+        ) from exc
+
+    return validate_raster_conversion(
+        wrapped,
+        settings=settings,
     )
 
 def run_approved_recipe(
@@ -234,12 +278,24 @@ def run_approved_recipe(
                         settings=settings,
                     )
                 )
+            elif step.skill_id == (
+                "convert_raster"
+            ):
+                validation = (
+                    _validate_raster_conversion_step(
+                        arguments=step.arguments,
+                        settings=settings,
+                    )
+                )
             else:
                 raise RecipeRunError(
                     f"skill {step.skill_id!r} has no "
                     "implemented recipe verifier"
                 )
-        except ConvertVectorValidationError as exc:
+        except (
+            ConvertRasterValidationError,
+            ConvertVectorValidationError,
+        ) as exc:
             raise RecipeRunError(
                 f"verification for step "
                 f"{step_id!r} could not run"

@@ -133,6 +133,48 @@ jobs:
             --input-root /workspace/data/input \
             --pretty
 
+      - name: Plan raster conversion without writing
+        if: matrix.name == 'gis-tools'
+        run: |
+          output_root="$RUNNER_TEMP/geoagent-raster-output"
+
+          mkdir -p "$output_root"
+          chmod 0755 "$output_root"
+
+          output="$(
+            docker run --rm \
+              --network none \
+              --read-only \
+              --cap-drop ALL \
+              --security-opt no-new-privileges \
+              --tmpfs /tmp:size=16m,mode=1777 \
+              --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
+              --volume "$output_root:/workspace/data/output" \
+              --entrypoint geoagent \
+              "geoagent-${{ matrix.name }}:ci" \
+              plan-convert-raster \
+              /workspace/data/input/sample_dem.tif \
+              /workspace/data/output/ci_result.tif \
+              --target-crs EPSG:3857 \
+              --input-root /workspace/data/input \
+              --output-root /workspace/data/output
+          )"
+
+          printf '%s\n' "$output"
+
+          printf '%s\n' "$output" \
+            | jq -e '
+                .status == "planned_not_executed"
+                and .target_driver == "GTiff"
+                and .target_crs == "EPSG:3857"
+                and .overwrite == false
+                and .execution_allowed == false
+                and .approval_required == true
+                and .validation_required == true
+              '
+
+          test ! -e "$output_root/ci_result.tif"
+
       - name: Reject raster path escape
         if: matrix.name == 'gis-tools'
         run: |

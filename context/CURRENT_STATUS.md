@@ -796,7 +796,7 @@ Those acceptance tests run locally.
 
 ## Current limitations
 
-* Raster metadata inspection is implemented, but raster transformation, reprojection and deterministic output validation are not yet implemented.
+* Raster inspection, controlled GeoTIFF reprojection, deterministic validation and artifact lineage are implemented; additional raster operations such as clipping, mosaicking, raster algebra and format expansion are not yet implemented.
 * Declarative skill definitions support fixed trusted profiles and adapters; arbitrary generated GIS algorithms cannot become trusted without implementation review and isolated tests.
 * Purely read-only recipes can be proposed, assessed, compiled and saved, but the current recipe execution envelope remains approval-gated and therefore does not execute recipes with zero approval-required steps.
 * Generic recipe dispatch does not support every registered skill.
@@ -879,20 +879,39 @@ Completed:
 * validate the complete Docker Compose configuration;
 * keep hosted CI independent of Ollama, PostGIS, credentials and write-enabled integration execution.
 
+### Checkpoint 14 — Controlled raster transformation
+
+Completed:
+
+* added a trusted Rasterio conversion and reprojection adapter;
+* added fixed CRS, resampling, containment, symlink and overwrite policy;
+* preserved bands, data types and nodata metadata;
+* wrote new GeoTIFFs through temporary files without overwrite;
+* withheld final success until independent validation;
+* extended trusted adapter definitions with fixed verifier identities;
+* required write-capable profiles to provide trusted verifiers;
+* generated, tested and explicitly promoted `convert_raster`;
+* added direct plan, execution and validation CLI commands;
+* added constrained `inspect_and_convert_raster` recipe compilation;
+* required exact approval for the raster write step;
+* added hard-coded dispatcher and verifier bindings;
+* executed and validated a real raster recipe;
+* produced SHA-256 input/output evidence and lineage;
+* persisted immutable recipe results, evidence and reports;
+* verified conversion planning inside the non-root GIS container.
+
 ## Next milestones
 
-### Checkpoint 14 — Controlled raster transformation
+### Checkpoint 14A — Declarative recipe catalog and isolated Builder agent
 
 Planned:
 
-* raster conversion and reprojection;
-* explicit CRS and resolution policy;
-* nodata and band-preservation contracts;
-* output-root containment and overwrite prevention;
-* approval-gated raster writes;
-* deterministic output validation;
-* raster artifact lineage and recipe evidence;
-* approved raster recipe execution.
+* replace synchronized recipe-template edits with one strictly validated data-only catalog;
+* derive parameter readiness, step graphs and prompt descriptions deterministically;
+* add an isolated Ollama-backed Builder agent for untrusted implementation proposals;
+* test generated candidates without network access;
+* preserve explicit human review and digest-bound promotion;
+* prevent model output from modifying trusted registries or granting permissions.
 
 ### Checkpoint 15 — Expanded PostGIS workflows
 

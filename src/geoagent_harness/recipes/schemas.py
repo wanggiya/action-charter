@@ -100,6 +100,40 @@ class InspectRasterRecipeArguments(BaseModel):
         max_length=2000,
     )
 
+class InspectRasterRecipeArguments(BaseModel):
+    """Arguments for one read-only raster inspection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+
+
+class ConvertRasterRecipeArguments(BaseModel):
+    """Allowlisted raster-conversion recipe arguments."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+    target_path: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+    target_crs: str = Field(
+        min_length=1,
+        max_length=200,
+    )
+    resampling: Literal[
+        "nearest",
+        "bilinear",
+        "cubic",
+    ] = "nearest"
+
 class ConvertVectorRecipeArguments(BaseModel):
     """Allowlisted recipe arguments for vector conversion."""
 

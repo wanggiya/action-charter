@@ -44,6 +44,32 @@ class InspectRasterProposalParameters(BaseModel):
         max_length=2000,
     )
 
+class ConvertRasterProposalParameters(BaseModel):
+    """Candidate parameters for raster conversion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=2000,
+    )
+    target_path: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=2000,
+    )
+    target_crs: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+    )
+    resampling: Literal[
+        "nearest",
+        "bilinear",
+        "cubic",
+    ] = "nearest"
+
 class ConvertVectorProposalParameters(BaseModel):
     """Candidate parameters for inspection and conversion."""
 
@@ -124,6 +150,17 @@ class InspectRasterTemplateSelection(BaseModel):
 
     parameters: InspectRasterProposalParameters
 
+class ConvertRasterTemplateSelection(BaseModel):
+    """Selection of controlled raster conversion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    template_id: Literal[
+        "inspect_and_convert_raster"
+    ] = "inspect_and_convert_raster"
+
+    parameters: ConvertRasterProposalParameters
+
 class ConvertVectorTemplateSelection(BaseModel):
     """Selection of the controlled conversion template."""
 
@@ -152,6 +189,7 @@ RecipeTemplateSelection = Annotated[
     (
         InspectVectorTemplateSelection
         | InspectRasterTemplateSelection
+        | ConvertRasterTemplateSelection
         | ConvertVectorTemplateSelection
         | VectorPostGISTemplateSelection
     ),
@@ -217,6 +255,7 @@ class RecipeProposalAssessment(BaseModel):
     template_id: Literal[
         "inspect_vector",
         "inspect_raster",
+        "inspect_and_convert_raster",
         "inspect_and_convert_vector",
         "vector_to_postgis",
     ]

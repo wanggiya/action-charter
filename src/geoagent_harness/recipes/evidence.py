@@ -30,6 +30,10 @@ from geoagent_harness.skills.convert_vector.schemas import (
     ConvertVectorResult,
     ConvertVectorValidationResult,
 )
+from geoagent_harness.skills.convert_raster.schemas import (
+    ConvertRasterResult,
+    ConvertRasterValidationResult,
+)
 
 
 MAX_EVIDENCE_ARTIFACT_BYTES = 2_000_000_000
@@ -38,6 +42,7 @@ _HASH_CHUNK_BYTES = 1024 * 1024
 _MEDIA_TYPES = {
     ".geojson": "application/geo+json",
     ".gpkg": "application/geopackage+sqlite3",
+    ".tif": "image/tiff",
 }
 
 
@@ -51,27 +56,59 @@ def _resolve_artifact(
     root: Path,
     role: ArtifactRole,
 ) -> Path:
-    trusted_root = root.resolve()
-
-    candidate = Path(value)
-
-    if not candidate.is_absolute():
-        candidate = Path.cwd() / candidate
+    """Resolve one artifact inside its trusted root."""
 
     try:
-        resolved = candidate.resolve(strict=True)
+        trusted_root = root.resolve(
+            strict=True
+        )
     except (FileNotFoundError, OSError) as exc:
         raise RecipeEvidenceError(
-            f"{role.value} artifact does not exist"
+            f"{role.value} artifact root "
+            "does not exist"
         ) from exc
 
-    try:
-        resolved.relative_to(trusted_root)
-    except ValueError as exc:
+    supplied = Path(value)
+
+    candidates = (
+        [supplied]
+        if supplied.is_absolute()
+        else [
+            Path.cwd() / supplied,
+            trusted_root / supplied,
+        ]
+    )
+
+    resolved: Path | None = None
+    escaped_candidate_found = False
+
+    for candidate in candidates:
+        try:
+            inspected = candidate.resolve(
+                strict=True
+            )
+        except (FileNotFoundError, OSError):
+            continue
+
+        if not inspected.is_relative_to(
+            trusted_root
+        ):
+            escaped_candidate_found = True
+            continue
+
+        resolved = inspected
+        break
+
+    if resolved is None:
+        if escaped_candidate_found:
+            raise RecipeEvidenceError(
+                f"{role.value} artifact escaped "
+                "its trusted root"
+            )
+
         raise RecipeEvidenceError(
-            f"{role.value} artifact escaped its "
-            "trusted root"
-        ) from exc
+            f"{role.value} artifact does not exist"
+        )
 
     if not resolved.is_file():
         raise RecipeEvidenceError(
@@ -253,6 +290,40 @@ def build_recipe_run_evidence(
 
             continue
 
+        if step.skill_id == "inspect_raster":
+            source_value = (
+                step.execution.result.get(
+                    "source"
+                )
+            )
+
+            if not isinstance(
+                source_value,
+                str,
+            ):
+                raise RecipeEvidenceError(
+                    "inspect_raster result is missing "
+                    "its source artifact"
+                )
+
+            source = _artifact_reference(
+                path_value=source_value,
+                root=input_root,
+                role=ArtifactRole.INPUT,
+                artifact_id=_input_artifact_id(
+                    source_value
+                ),
+            )
+
+            artifacts_by_path[
+                (
+                    ArtifactRole.INPUT,
+                    source.path,
+                )
+            ] = source
+
+            continue
+
         if step.skill_id == "convert_vector":
             try:
                 conversion = (
@@ -335,6 +406,112 @@ def build_recipe_run_evidence(
 
             artifacts_by_path[
                 (ArtifactRole.OUTPUT, output.path)
+            ] = output
+
+            lineage.append(
+                LineageEdge(
+                    source_artifact_id=(
+                        source.artifact_id
+                    ),
+                    target_artifact_id=(
+                        output.artifact_id
+                    ),
+                    step_id=step.step_id,
+                    skill_id=step.skill_id,
+                )
+            )
+
+            continue
+
+        if step.skill_id == "convert_raster":
+            try:
+                conversion = (
+                    ConvertRasterResult
+                    .model_validate(
+                        step.execution.result
+                    )
+                )
+
+                validation = (
+                    ConvertRasterValidationResult
+                    .model_validate(
+                        step.validation_result
+                    )
+                )
+            except ValidationError as exc:
+                raise RecipeEvidenceError(
+                    "raster conversion result failed "
+                    "its registered schema"
+                ) from exc
+
+            if (
+                conversion.source
+                != validation.source
+                or conversion.target
+                != validation.target
+            ):
+                raise RecipeEvidenceError(
+                    "raster conversion and validation "
+                    "paths do not match"
+                )
+
+            if (
+                sanitized_result.final_status
+                == "validated_success"
+                and validation.passed is not True
+            ):
+                raise RecipeEvidenceError(
+                    "successful recipe lacks passing "
+                    "raster validation"
+                )
+
+            source = _artifact_reference(
+                path_value=conversion.source,
+                root=input_root,
+                role=ArtifactRole.INPUT,
+                artifact_id=_input_artifact_id(
+                    conversion.source
+                ),
+            )
+
+            artifacts_by_path[
+                (
+                    ArtifactRole.INPUT,
+                    source.path,
+                )
+            ] = source
+
+            if step.execution.output_ids:
+                output_id = (
+                    step.execution.output_ids[0]
+                )
+            else:
+                output_id = (
+                    f"output_{step.step_id}"
+                )
+
+            output = _artifact_reference(
+                path_value=conversion.target,
+                root=output_root,
+                role=ArtifactRole.OUTPUT,
+                artifact_id=output_id,
+                producer_step_id=step.step_id,
+            )
+
+            if (
+                output.size_bytes
+                != conversion.target_size_bytes
+            ):
+                raise RecipeEvidenceError(
+                    "recorded raster output size "
+                    "conflicts with the artifact"
+                )
+
+            artifacts_by_path[
+                (
+                    ArtifactRole.OUTPUT,
+                    output.path,
+                )
             ] = output
 
             lineage.append(

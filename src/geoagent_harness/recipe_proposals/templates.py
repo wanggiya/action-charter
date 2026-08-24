@@ -14,6 +14,7 @@ from pydantic import (
 TemplateId = Literal[
     "inspect_vector",
     "inspect_raster",
+    "inspect_and_convert_raster",
     "inspect_and_convert_vector",
     "vector_to_postgis",
 ]
@@ -56,6 +57,22 @@ _TEMPLATES: dict[
         ),
         required_parameters=(
             "path",
+        ),
+    ),
+    (
+        "inspect_and_convert_raster"
+    ): RecipeTemplateDefinition(
+        template_id=(
+            "inspect_and_convert_raster"
+        ),
+        skill_ids=(
+            "inspect_raster",
+            "convert_raster",
+        ),
+        required_parameters=(
+            "path",
+            "target_path",
+            "target_crs",
         ),
     ),
     (

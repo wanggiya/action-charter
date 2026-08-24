@@ -1233,38 +1233,20 @@ Every checkpoint should include:
 
 ## Known limitations
 
-- Raster processing is not implemented.
-- Generic recipe dispatch does not yet support every registered or
-  planned GIS capability.
-- The PostGIS recipe template requires complete generic dispatcher
-  integration before it should be treated as universally executable.
-- Workflow state and deterministic resume assessment are implemented,
-  but automatic retry and automatic resumption are intentionally
-  unavailable.
-- Critic output is returned in memory rather than persisted as a
-  separate authoritative artifact.
-- Plans, recipes and approvals currently use local filesystem storage.
+- Generic recipe dispatch does not yet support every registered GIS capability.
+- Adding a new recipe template currently requires synchronized edits across several trusted Python modules.
+- Adding a novel skill algorithm still requires a reviewed trusted adapter and verifier implementation.
+- Model-generated implementation code cannot promote or trust itself.
+- The PostGIS recipe template requires broader generic dispatcher integration.
+- Automatic retry, cancellation and workflow resumption are intentionally unavailable.
+- Critic output is returned in memory rather than persisted as a separate authoritative artifact.
+- Plans, recipes and approvals use local filesystem storage.
+- Existing tables and artifacts cannot be overwritten.
+- Deletion is unavailable.
 - PostGIS and Ollama are externally managed.
-- Existing tables and artifacts cannot be overwritten.
-- Deletion is unavailable.
-- No task queue, production authentication or multi-user deployment
-  exists.
-- Real Ollama and PostGIS acceptance tests depend on the local
-  development environment.
-- Raster processing is not implemented.
-- Critic output is returned in memory rather than saved separately.
-- Plans and approvals are local runtime files.
-- PostGIS is externally managed.
-- Ollama is externally managed.
-- Write enablement is controlled operationally through environment settings.
-- Existing tables and artifacts cannot be overwritten.
-- Deletion is unavailable.
-- General retries and cancellation are not implemented.
-- No task queue exists.
-- No production authentication exists.
-- No multi-user deployment exists.
-- Docker model-network egress is not restricted through a dedicated proxy.
-- Real integration tests depend on the local development environment.
+- No task queue, production authentication or multi-user deployment exists.
+- Network egress is not controlled through a dedicated proxy.
+- Real Ollama, PostGIS and write-enabled integration tests depend on the local development environment.
 
 ## Roadmap
 
@@ -1328,15 +1310,42 @@ Completed:
 
 ### Checkpoint 14 — Controlled raster transformation
 
+Completed:
+
+- implemented a trusted Rasterio conversion and reprojection adapter;
+- allowlisted nearest, bilinear and cubic resampling;
+- required explicit source and target CRS metadata;
+- preserved band count, data types and nodata metadata;
+- restricted sources and targets to approved roots;
+- rejected symlinks, unsafe target names and existing outputs;
+- wrote through a temporary GeoTIFF and finalized without overwrite;
+- withheld success until independent deterministic validation;
+- added a trusted verifier identity to write-capable adapter definitions;
+- preserved the verifier through deterministic promotion planning;
+- defined `convert_raster` through declarative YAML;
+- generated its immutable contract, isolated scaffold and candidate;
+- tested the candidate in the network-disabled skill-test container;
+- promoted the exact digest-verified candidate transactionally;
+- added direct plan, conversion and validation CLI commands;
+- added constrained raster recipe proposal and compilation support;
+- required exact step-scoped approval for raster writes;
+- added hard-coded dispatcher and verifier allowlists;
+- executed and validated a real two-step raster recipe;
+- recorded SHA-256 input/output evidence and raster lineage;
+- persisted immutable run results, evidence and reports;
+- verified read-only container planning and overwrite rejection.
+
+### Checkpoint 14A — Declarative recipe catalog and isolated Builder agent
+
 Planned:
 
-- raster conversion and reprojection;
-- explicit CRS and resolution policy;
-- nodata and band-preservation contracts;
-- approval-gated raster writes;
-- output-root containment and overwrite prevention;
-- deterministic output validation;
-- raster artifact lineage and recipe evidence.
+- consolidate recipe-template metadata into one strictly validated data-only catalog;
+- generate parameter validation, readiness checks, prompt descriptions and deterministic step graphs from that catalog;
+- prohibit catalog-provided Python, imports, entrypoints, shell commands, SQL and permission grants;
+- run a separate Ollama-backed Builder agent in an isolated container;
+- allow the Builder to propose adapter code, renderers, tests and catalog entries only inside an untrusted workspace;
+- require static inspection, network-disabled tests, digest-bound evidence and explicit human promotion;
+- prevent model-generated output from modifying the trusted registry or granting itself execution authority.
 
 ### Checkpoint 15 — Expanded PostGIS workflows
 
@@ -1392,6 +1401,7 @@ sudo chown "$(id -u):10001" \
 
 sudo chmod 2775 \
   data/output recipe-runs recipe-evidence reports
+```
 
 ENABLE_WRITE_TOOLS=false is the persistent safe default. It is
 enabled only for an exact approved execution and restored immediately
@@ -1474,10 +1484,10 @@ geoagent generate-skill-scaffold \
 geoagent validate-skill-scaffold \
   skill-scaffolds/example_skill \
   --pretty
+```
 
 Generated scaffolds are untrusted and remain planned. They are not automatically copied into the application, registered, approved, or executed.
 
-Ensure the nested command block is closed with three backticks if copying manually.
 
 ### Declarative Skill SDK
 

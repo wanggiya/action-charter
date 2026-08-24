@@ -17,6 +17,7 @@ from geoagent_harness.recipes.schemas import (
     RecipeExecutionEnvelope,
     RecipeExecutionStep,
     ConvertVectorRecipeArguments,
+    ConvertRasterRecipeArguments,
     InspectVectorRecipeArguments,
     RecipeStepExecutionResult,
     RecipeRunResult,
@@ -141,6 +142,7 @@ __all__ = [
     "RecipeInventoryError",
     "build_recipe_approval_inventory",
     "InspectRasterRecipeArguments",
+    "ConvertRasterRecipeArguments",
 ]
 
 def __getattr__(name: str):

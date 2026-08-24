@@ -6,7 +6,9 @@ import hashlib
 from pathlib import Path
 
 from geoagent_harness.skill_definitions.adapters import (
+    RasterConversionRendererError,
     RasterInspectionRendererError,
+    render_raster_conversion_candidate,
     render_raster_inspection_candidate,
 )
 from geoagent_harness.skill_definitions.catalog import (
@@ -56,20 +58,31 @@ def _file_sha256(
 def _expected_candidate_files(
     definition: DeclarativeSkillDefinition,
 ) -> tuple[str, ...]:
-    if definition.adapter_id != (
-        "raster_inspection"
-    ):
-        raise SkillPromotionPlanError(
-            "adapter has no promotion file policy"
-        )
-
     try:
-        rendered = (
-            render_raster_inspection_candidate(
-                skill_id=definition.skill_id
+        if definition.adapter_id == (
+            "raster_inspection"
+        ):
+            rendered = (
+                render_raster_inspection_candidate(
+                    skill_id=definition.skill_id
+                )
             )
-        )
-    except RasterInspectionRendererError as exc:
+        elif definition.adapter_id == (
+            "raster_conversion"
+        ):
+            rendered = (
+                render_raster_conversion_candidate(
+                    skill_id=definition.skill_id
+                )
+            )
+        else:
+            raise SkillPromotionPlanError(
+                "adapter has no promotion file policy"
+            )
+    except (
+        RasterConversionRendererError,
+        RasterInspectionRendererError,
+    ) as exc:
         raise SkillPromotionPlanError(
             "adapter promotion files could "
             "not be determined"
@@ -218,7 +231,7 @@ def plan_skill_candidate_promotion(
             contract.validation_required
         ),
         entrypoint=adapter.entrypoint,
-        verifier=None,
+        verifier=adapter.verifier,
     )
 
     return SkillCandidatePromotionPlan(
