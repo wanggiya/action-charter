@@ -1,43 +1,93 @@
-"""Fixed prompt for non-executable recipe proposals."""
+"""Catalog-generated prompt for recipe proposals."""
 
 from __future__ import annotations
+
+import json
 
 from geoagent_harness.model import (
     ChatMessage,
     ModelRequest,
 )
+from geoagent_harness.recipe_proposals.schemas import (
+    get_recipe_parameter_model,
+)
+from geoagent_harness.recipe_proposals.templates import (
+    list_recipe_templates,
+)
 
 
-_SYSTEM_PROMPT = """
+def _template_contracts() -> str:
+    """Render trusted templates deterministically."""
+
+    contracts: list[dict[str, object]] = []
+
+    for template in list_recipe_templates():
+        parameter_model = (
+            get_recipe_parameter_model(
+                template.parameter_profile
+            )
+        )
+
+        parameter_schema = (
+            parameter_model.model_json_schema()
+        )
+
+        contracts.append(
+            {
+                "template_id": (
+                    template.template_id
+                ),
+                "required_parameters": list(
+                    template.required_parameters
+                ),
+                "parameters_schema": (
+                    parameter_schema
+                ),
+            }
+        )
+
+    return json.dumps(
+        contracts,
+        sort_keys=True,
+        indent=2,
+        ensure_ascii=False,
+    )
+
+
+def _system_prompt() -> str:
+    """Build the proposal-only system prompt."""
+
+    contracts = _template_contracts()
+
+    return f"""
 You are the proposal-only component of a controlled
 geospatial workflow system.
 
 Return exactly one JSON object and no Markdown.
 
-You may select exactly one template_id:
-
-1. inspect_vector
-2. inspect_raster
-3. inspect_and_convert_raster
-4. inspect_and_convert_vector
-5. vector_to_postgis
+Select exactly one template_id from the trusted
+template contracts below.
 
 You must not invent any other template, skill, step,
 tool, function, package, entrypoint, SQL statement,
 shell command, approval, or execution result.
 
+Trusted template contracts:
+
+{contracts}
+
 Required top-level JSON shape:
 
-{
+{{
   "schema_version": "1.0",
   "status": "proposed_not_compiled",
   "original_request": "string",
   "summary": "string",
   "recipe_id_hint": "safe-lowercase-id-or-null",
-  "selection": {
-    "template_id": "one allowlisted template",
-    "parameters": {}
-  },
+  "selection": {{
+    "template_id": "one trusted template",
+    "parameters": {{}}
+  }},
   "assumptions": [],
   "missing_information": [],
   "warnings": [],
@@ -45,49 +95,14 @@ Required top-level JSON shape:
   "execution_requested": false,
   "approval_performed": false,
   "execution_performed": false
-}
+}}
 
-Parameter shapes:
+Follow the selected parameters_schema exactly.
+Do not add parameter fields that are not declared.
 
-inspect_vector:
-{
-  "path": "string or null",
-  "source_layer": "string or null"
-}
-
-inspect_raster:
-{
-  "path": "string or null"
-}
-
-inspect_and_convert_raster:
-{
-  "path": "string or null",
-  "target_path": "string or null",
-  "target_crs": "string or null",
-  "resampling": "nearest, bilinear, or cubic"
-}
-
-inspect_and_convert_vector:
-{
-  "path": "string or null",
-  "source_layer": "string or null",
-  "target_path": "string or null",
-  "target_layer": "string or null",
-  "target_format": "geojson, geopackage, or null"
-}
-
-vector_to_postgis:
-{
-  "path": "string or null",
-  "source_layer": "string or null",
-  "target_schema": "safe identifier or null",
-  "target_table": "safe identifier or null"
-}
-
-Use null for any parameter that the user did not
-provide. Add a short question or description to
-missing_information when essential information is
+Use null for an optional parameter that the user did
+not provide. Add a short question or description to
+missing_information when required information is
 missing.
 
 Never claim that compilation, saving, approval, tool
@@ -112,7 +127,7 @@ def build_recipe_proposal_request(
         messages=[
             ChatMessage(
                 role="system",
-                content=_SYSTEM_PROMPT,
+                content=_system_prompt(),
             ),
             ChatMessage(
                 role="user",
@@ -122,4 +137,3 @@ def build_recipe_proposal_request(
         temperature=0.0,
         json_mode=True,
     )
-

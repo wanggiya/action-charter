@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Callable
 
 from geoagent_harness.recipe_proposals.schemas import (
     RecipeProposal,
@@ -20,6 +21,95 @@ from geoagent_harness.skill_registry import (
 _FORMAT_BY_SUFFIX = {
     ".geojson": "geojson",
     ".gpkg": "geopackage",
+}
+
+def _no_policy_conflicts(
+    _parameters: dict[str, Any],
+) -> list[str]:
+    """Return no additional template conflicts."""
+
+    return []
+
+
+def _vector_conversion_conflicts(
+    parameters: dict[str, Any],
+) -> list[str]:
+    """Validate vector target format consistency."""
+
+    conflicts: list[str] = []
+
+    target_path = parameters.get(
+        "target_path"
+    )
+    target_format = parameters.get(
+        "target_format"
+    )
+
+    if target_path is not None:
+        suffix = Path(
+            target_path
+        ).suffix.lower()
+
+        expected_format = (
+            _FORMAT_BY_SUFFIX.get(suffix)
+        )
+
+        if expected_format is None:
+            conflicts.append(
+                "target_path must end with "
+                ".geojson or .gpkg"
+            )
+        elif (
+            target_format is not None
+            and target_format
+            != expected_format
+        ):
+            conflicts.append(
+                "target_format conflicts with "
+                "the target_path extension"
+            )
+
+    return conflicts
+
+
+def _raster_conversion_conflicts(
+    parameters: dict[str, Any],
+) -> list[str]:
+    """Validate the controlled raster target."""
+
+    target_path = parameters.get(
+        "target_path"
+    )
+
+    if (
+        target_path is not None
+        and Path(target_path).suffix.lower()
+        != ".tif"
+    ):
+        return [
+            (
+                "raster target_path must end "
+                "with .tif"
+            )
+        ]
+
+    return []
+
+
+_ASSESSMENT_POLICIES: dict[
+    str,
+    Callable[
+        [dict[str, Any]],
+        list[str],
+    ],
+] = {
+    "none": _no_policy_conflicts,
+    "vector_conversion": (
+        _vector_conversion_conflicts
+    ),
+    "raster_conversion": (
+        _raster_conversion_conflicts
+    ),
 }
 
 
@@ -88,60 +178,21 @@ def assess_recipe_proposal(
         if skill.status != SkillStatus.IMPLEMENTED:
             unavailable_skills.append(skill_id)
 
-    conflicts: list[str] = []
-
-    if (
-        proposal.selection.template_id
-        == "inspect_and_convert_vector"
-    ):
-        target_path = parameters.get(
-            "target_path"
+    try:
+        assessment_policy = (
+            _ASSESSMENT_POLICIES[
+                template.assessment_policy
+            ]
         )
-        target_format = parameters.get(
-            "target_format"
-        )
+    except KeyError as exc:
+        raise ValueError(
+            "template selected an unknown "
+            "trusted assessment policy"
+        ) from exc
 
-        if target_path is not None:
-            suffix = Path(
-                target_path
-            ).suffix.lower()
-
-            expected_format = (
-                _FORMAT_BY_SUFFIX.get(suffix)
-            )
-
-            if expected_format is None:
-                conflicts.append(
-                    "target_path must end with "
-                    ".geojson or .gpkg"
-                )
-            elif (
-                target_format is not None
-                and target_format
-                != expected_format
-            ):
-                conflicts.append(
-                    "target_format conflicts with "
-                    "the target_path extension"
-                )
-
-    if (
-        proposal.selection.template_id
-        == "inspect_and_convert_raster"
-    ):
-        target_path = parameters.get(
-            "target_path"
-        )
-
-        if (
-            target_path is not None
-            and Path(target_path).suffix.lower()
-            != ".tif"
-        ):
-            conflicts.append(
-                "raster target_path must end "
-                "with .tif"
-            )
+    conflicts = assessment_policy(
+        parameters
+    )
 
     clarification_questions = [
         _clarification_question(field)

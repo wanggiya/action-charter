@@ -77,3 +77,32 @@ def test_planner_runs_plan_command() -> None:
     assert "--request" in command
     assert "--project-root" in command
     assert "--agents-root" in command
+
+def test_planner_can_load_read_only_recipe_catalog(
+) -> None:
+    """Planner resolves the catalog from its workspace."""
+
+    planner = load_compose()["services"]["planner"]
+
+    assert planner["working_dir"] == "/workspace"
+
+    volumes = planner["volumes"]
+
+    assert (
+        "./context:/workspace/context:ro"
+        in volumes
+    )
+
+    serialized = "\n".join(
+        str(volume)
+        for volume in volumes
+    )
+
+    assert (
+        "/workspace/context"
+        in serialized
+    )
+    assert (
+        "/workspace/context:rw"
+        not in serialized
+    )

@@ -1335,17 +1335,43 @@ Completed:
 - persisted immutable run results, evidence and reports;
 - verified read-only container planning and overwrite rejection.
 
-### Checkpoint 14A — Declarative recipe catalog and isolated Builder agent
+### Checkpoint 14A — Declarative recipe catalog
+
+Completed:
+
+- consolidated trusted recipe-template metadata into one strictly validated data-only YAML catalog;
+- defined fixed parameter profiles and fixed assessment-policy identifiers;
+- declared deterministic step IDs, skill order, dependencies, parameter bindings, literal bindings and output IDs;
+- rejected duplicate IDs, invalid identifiers, unsafe dependencies, inconsistent skill graphs, symlinked catalogs and unknown schema fields;
+- replaced the hard-coded Python template registry with a catalog-backed compatibility interface;
+- retained strict Pydantic validation for model-proposed parameters;
+- rejected unknown templates, arbitrary parameters and unsafe PostGIS identifiers before compilation;
+- generated the proposal-only Ollama prompt deterministically from the catalog and trusted parameter schemas;
+- compiled `WorkflowRecipe` step graphs generically from catalog data;
+- retained exact legacy parity checks for the original five templates during migration;
+- proved that a new template using existing trusted profiles, policies and skills requires no new compiler branch;
+- preserved the existing approval, execution, evidence and Snakemake interfaces;
+- added a read-only `recipe-template-catalog` CLI validation command;
+- mounted the catalog read-only at the Planner’s explicit `/workspace` working directory;
+- added a network-disabled, read-only container CI catalog contract;
+- passed 720 automated tests.
+
+The recipe catalog is declarative but trusted. It cannot contain Python, imports, entrypoints, verifiers, shell commands, SQL, approval decisions, permission grants or execution claims. A new recipe can be added without Python changes only when it uses existing trusted skills, parameter profiles and assessment policies.
+
+### Checkpoint 14B — Isolated Builder agent
 
 Planned:
 
-- consolidate recipe-template metadata into one strictly validated data-only catalog;
-- generate parameter validation, readiness checks, prompt descriptions and deterministic step graphs from that catalog;
-- prohibit catalog-provided Python, imports, entrypoints, shell commands, SQL and permission grants;
 - run a separate Ollama-backed Builder agent in an isolated container;
-- allow the Builder to propose adapter code, renderers, tests and catalog entries only inside an untrusted workspace;
-- require static inspection, network-disabled tests, digest-bound evidence and explicit human promotion;
-- prevent model-generated output from modifying the trusted registry or granting itself execution authority.
+- provide fixed templates and bounded project context;
+- allow output only into an isolated untrusted candidate workspace;
+- permit proposals for adapter code, renderers, tests and catalog entries;
+- prohibit direct modification of trusted source, registries, approvals, evidence and outputs;
+- perform static inspection before importing candidate code;
+- execute candidate tests without network access;
+- bind test evidence to the exact candidate digest;
+- require explicit human review and promotion;
+- prevent model-generated output from granting permissions, selecting arbitrary trusted entrypoints or promoting itself.
 
 ### Checkpoint 15 — Expanded PostGIS workflows
 

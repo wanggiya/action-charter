@@ -38,3 +38,19 @@ def test_empty_request_is_rejected() -> None:
             "empty request was accepted"
         )
 
+def test_prompt_is_generated_from_catalog() -> None:
+    request = build_recipe_proposal_request(
+        "Inspect and convert a raster."
+    )
+
+    system = request.messages[0].content
+
+    assert (
+        "inspect_and_convert_raster"
+        in system
+    )
+    assert '"target_crs"' in system
+    assert '"resampling"' in system
+    assert '"nearest"' in system
+    assert '"bilinear"' in system
+    assert '"cubic"' in system

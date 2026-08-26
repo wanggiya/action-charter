@@ -25,6 +25,7 @@ x-agent: &agent
 services:
   planner:
     <<: *agent
+    working_dir: /workspace
     command:
       - plan-task
       - --request

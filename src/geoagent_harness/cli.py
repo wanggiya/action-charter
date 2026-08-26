@@ -1486,6 +1486,68 @@ def critique_task_command(
     if result.deterministic_status != "validated_success":
         raise typer.Exit(code=1)
 
+@app.command("recipe-template-catalog")
+def recipe_template_catalog_command(
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help=(
+                "Trusted project root containing "
+                "context/RECIPE_TEMPLATES.yaml."
+            ),
+        ),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Validate and display the recipe-template catalog."""
+
+    from geoagent_harness.recipe_catalog import (
+        RecipeTemplateCatalogError,
+        load_recipe_template_catalog,
+    )
+
+    try:
+        catalog = load_recipe_template_catalog(
+            project_root
+        )
+    except RecipeTemplateCatalogError as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    payload = {
+        "schema_version": (
+            catalog.schema_version
+        ),
+        "templates": [
+            template.model_dump(
+                mode="json"
+            )
+            for template in catalog.templates
+        ],
+        "catalog_validated": True,
+        "files_modified": False,
+        "execution_performed": False,
+    }
+
+    typer.echo(
+        json.dumps(
+            payload,
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 @app.command("schema-policies")
 def schema_policies_command(
     pretty: Annotated[

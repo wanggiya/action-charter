@@ -1,0 +1,191 @@
+schema_version: "1.0"
+
+templates:
+  - template_id: inspect_vector
+    parameter_profile: vector_inspection
+    skill_ids:
+      - inspect_vector
+    assessment_policy: none
+    required_parameters:
+      - path
+    steps:
+      - step_id: step_1
+        skill_id: inspect_vector
+        arguments:
+          path:
+            source: parameter
+            value: path
+        output_ids:
+          - source_metadata
+
+  - template_id: inspect_raster
+    parameter_profile: raster_inspection
+    skill_ids:
+      - inspect_raster
+    assessment_policy: none
+    required_parameters:
+      - path
+    steps:
+      - step_id: step_1
+        skill_id: inspect_raster
+        arguments:
+          path:
+            source: parameter
+            value: path
+        output_ids:
+          - raster_metadata
+
+  - template_id: inspect_and_convert_raster
+    parameter_profile: raster_conversion
+    skill_ids:
+      - inspect_raster
+      - convert_raster
+    assessment_policy: raster_conversion
+    required_parameters:
+      - path
+      - target_path
+      - target_crs
+    steps:
+      - step_id: step_1
+        skill_id: inspect_raster
+        arguments:
+          path:
+            source: parameter
+            value: path
+        output_ids:
+          - source_raster_metadata
+
+      - step_id: step_2
+        skill_id: convert_raster
+        depends_on:
+          - step_1
+        arguments:
+          path:
+            source: parameter
+            value: path
+          target_path:
+            source: parameter
+            value: target_path
+          target_crs:
+            source: parameter
+            value: target_crs
+          resampling:
+            source: parameter
+            value: resampling
+        output_ids:
+          - converted_raster
+
+  - template_id: inspect_and_convert_vector
+    parameter_profile: vector_conversion
+    skill_ids:
+      - inspect_vector
+      - convert_vector
+    assessment_policy: vector_conversion
+    required_parameters:
+      - path
+      - target_path
+    steps:
+      - step_id: step_1
+        skill_id: inspect_vector
+        arguments:
+          path:
+            source: parameter
+            value: path
+        output_ids:
+          - source_metadata
+
+      - step_id: step_2
+        skill_id: convert_vector
+        depends_on:
+          - step_1
+        arguments:
+          path:
+            source: parameter
+            value: path
+          target_path:
+            source: parameter
+            value: target_path
+          source_layer:
+            source: parameter
+            value: source_layer
+            omit_if_none: true
+          target_layer:
+            source: parameter
+            value: target_layer
+            omit_if_none: true
+        output_ids:
+          - converted_vector
+
+  - template_id: vector_to_postgis
+    parameter_profile: vector_postgis
+    skill_ids:
+      - inspect_vector
+      - load_vector_to_postgis
+      - validate_postgis_layer
+      - generate_report
+    assessment_policy: none
+    required_parameters:
+      - path
+      - target_schema
+      - target_table
+    steps:
+      - step_id: step_1
+        skill_id: inspect_vector
+        arguments:
+          path:
+            source: parameter
+            value: path
+        output_ids:
+          - source_metadata
+
+      - step_id: step_2
+        skill_id: load_vector_to_postgis
+        depends_on:
+          - step_1
+        arguments:
+          path:
+            source: parameter
+            value: path
+          source_layer:
+            source: parameter
+            value: source_layer
+            omit_if_none: true
+          target_schema:
+            source: parameter
+            value: target_schema
+          target_table:
+            source: parameter
+            value: target_table
+        output_ids:
+          - postgis_load_result
+
+      - step_id: step_3
+        skill_id: validate_postgis_layer
+        depends_on:
+          - step_2
+        arguments:
+          target_schema:
+            source: parameter
+            value: target_schema
+          target_table:
+            source: parameter
+            value: target_table
+        output_ids:
+          - postgis_validation
+
+      - step_id: step_4
+        skill_id: generate_report
+        depends_on:
+          - step_3
+        arguments:
+          target_schema:
+            source: parameter
+            value: target_schema
+          target_table:
+            source: parameter
+            value: target_table
+          validation_output_id:
+            source: literal
+            value: postgis_validation
+        output_ids:
+          - workflow_report

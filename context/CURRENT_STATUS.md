@@ -900,18 +900,43 @@ Completed:
 * persisted immutable recipe results, evidence and reports;
 * verified conversion planning inside the non-root GIS container.
 
+### Checkpoint 14A — Declarative recipe catalog
+
+Completed:
+
+* added one bounded, data-only `RECIPE_TEMPLATES.yaml` catalog;
+* added strict catalog, template, argument and step-graph schemas;
+* added fixed parameter profiles and assessment-policy identifiers;
+* rejected catalog symlinks, invalid identifiers, duplicate IDs, unsafe dependencies and inconsistent skill graphs;
+* replaced the synchronized Python template registry with a catalog-backed interface;
+* preserved strict Pydantic parameter validation;
+* generated the proposal-only model prompt from trusted catalog metadata;
+* replaced recipe-specific compilation with deterministic catalog step compilation;
+* retained legacy parity checks for the original five templates during migration;
+* proved YAML-only addition of a template that reuses trusted profiles, policies and implemented skills;
+* preserved recipe policy, approval, dispatcher, validation, evidence and Snakemake boundaries;
+* added the read-only `recipe-template-catalog` CLI command;
+* fixed the Planner working directory to its read-only catalog mount;
+* added hosted container validation with no network, secrets, data or write mounts;
+* passed 720 automated tests.
+
+A catalog entry cannot provide executable code, imports, entrypoints, verifiers, shell commands, SQL, approvals, permission grants or execution claims. New executable GIS behavior still requires a separately implemented, tested and promoted trusted skill.
+
 ## Next milestones
 
-### Checkpoint 14A — Declarative recipe catalog and isolated Builder agent
+### Checkpoint 14B — Isolated Builder agent
 
 Planned:
 
-* replace synchronized recipe-template edits with one strictly validated data-only catalog;
-* derive parameter readiness, step graphs and prompt descriptions deterministically;
-* add an isolated Ollama-backed Builder agent for untrusted implementation proposals;
-* test generated candidates without network access;
-* preserve explicit human review and digest-bound promotion;
-* prevent model output from modifying trusted registries or granting permissions.
+* add a separate Ollama-backed Builder container;
+* generate only isolated untrusted implementation candidates;
+* restrict generated file paths and file types;
+* keep trusted source, registries, approvals and outputs unavailable;
+* perform static inspection before candidate import;
+* run candidate tests without network access;
+* record digest-bound test evidence;
+* require explicit reviewed promotion;
+* prevent generated output from granting permissions or becoming trusted automatically.
 
 ### Checkpoint 15 — Expanded PostGIS workflows
 

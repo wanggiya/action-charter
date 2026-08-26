@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -14,6 +14,10 @@ from pydantic import (
 from geoagent_harness.recipes.schemas import (
     RecipeValidation,
     WorkflowRecipe,
+)
+from geoagent_harness.recipe_proposals.templates import (
+    RecipeTemplateError,
+    get_recipe_template,
 )
 
 
@@ -185,16 +189,109 @@ class VectorPostGISTemplateSelection(BaseModel):
     parameters: VectorPostGISProposalParameters
 
 
-RecipeTemplateSelection = Annotated[
-    (
-        InspectVectorTemplateSelection
-        | InspectRasterTemplateSelection
-        | ConvertRasterTemplateSelection
-        | ConvertVectorTemplateSelection
-        | VectorPostGISTemplateSelection
+_PARAMETER_PROFILES: dict[
+    str,
+    type[BaseModel],
+] = {
+    "vector_inspection": (
+        InspectVectorProposalParameters
     ),
-    Field(discriminator="template_id"),
-]
+    "raster_inspection": (
+        InspectRasterProposalParameters
+    ),
+    "raster_conversion": (
+        ConvertRasterProposalParameters
+    ),
+    "vector_conversion": (
+        ConvertVectorProposalParameters
+    ),
+    "vector_postgis": (
+        VectorPostGISProposalParameters
+    ),
+}
+
+
+def get_recipe_parameter_model(
+    profile_id: str,
+) -> type[BaseModel]:
+    """Return one fixed trusted parameter model."""
+
+    try:
+        return _PARAMETER_PROFILES[
+            profile_id
+        ]
+    except KeyError as exc:
+        raise ValueError(
+            "unknown trusted recipe "
+            "parameter profile"
+        ) from exc
+
+class RecipeTemplateSelection(BaseModel):
+    """Catalog-selected, strictly typed parameters."""
+
+    model_config = ConfigDict(
+        extra="forbid"
+    )
+
+    template_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-z][a-z0-9_]*$",
+    )
+
+    parameters: Any
+
+    @model_validator(mode="before")
+    @classmethod
+    def parameters_match_trusted_profile(
+        cls,
+        value: Any,
+    ) -> Any:
+        if not isinstance(value, dict):
+            return value
+
+        template_id = value.get(
+            "template_id"
+        )
+
+        if not isinstance(
+            template_id,
+            str,
+        ):
+            return value
+
+        try:
+            template = get_recipe_template(
+                template_id
+            )
+        except RecipeTemplateError as exc:
+            raise ValueError(
+                "selection references an unknown "
+                "trusted recipe template"
+            ) from exc
+
+        parameter_model = (
+            get_recipe_parameter_model(
+                template.parameter_profile
+            )
+        )
+
+        parameters = value.get(
+            "parameters"
+        )
+
+        validated_parameters = (
+            parameter_model.model_validate(
+                parameters
+            )
+        )
+
+        return {
+            **value,
+            "parameters": (
+                validated_parameters
+            ),
+        }
 
 
 class RecipeProposal(BaseModel):
@@ -252,13 +349,9 @@ class RecipeProposalAssessment(BaseModel):
 
     schema_version: Literal["1.0"] = "1.0"
 
-    template_id: Literal[
-        "inspect_vector",
-        "inspect_raster",
-        "inspect_and_convert_raster",
-        "inspect_and_convert_vector",
-        "vector_to_postgis",
-    ]
+    template_id: str = Field(
+        pattern=r"^[a-z][a-z0-9_]*$"
+    )
 
     ready_for_compilation: bool
 

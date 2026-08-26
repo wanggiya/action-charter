@@ -96,7 +96,9 @@ def test_unknown_template_is_rejected() -> None:
 
     with pytest.raises(
         ValidationError,
-        match="union_tag_invalid",
+        match=(
+            "unknown trusted recipe template"
+        ),
     ):
         RecipeProposal.model_validate(payload)
 

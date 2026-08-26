@@ -1,7 +1,7 @@
 """Tests for deterministic recipe-proposal compilation."""
 
 from pathlib import Path
-
+import yaml
 import pytest
 
 from geoagent_harness.recipe_proposals import (
@@ -209,4 +209,129 @@ def test_target_format_is_not_model_execution() -> None:
 
     assert result.recipe_saved is False
     assert result.execution_performed is False
+
+def test_new_catalog_template_requires_no_compiler_branch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Compile a new template using catalog data only."""
+
+    source_catalog = (
+        PROJECT_ROOT
+        / "context"
+        / "RECIPE_TEMPLATES.yaml"
+    )
+
+    payload = yaml.safe_load(
+        source_catalog.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    payload["templates"].append(
+        {
+            "template_id": (
+                "inspect_vector_alias"
+            ),
+            "parameter_profile": (
+                "vector_inspection"
+            ),
+            "assessment_policy": "none",
+            "skill_ids": [
+                "inspect_vector",
+            ],
+            "required_parameters": [
+                "path",
+            ],
+            "steps": [
+                {
+                    "step_id": "step_1",
+                    "skill_id": (
+                        "inspect_vector"
+                    ),
+                    "arguments": {
+                        "path": {
+                            "source": (
+                                "parameter"
+                            ),
+                            "value": "path",
+                        },
+                    },
+                    "output_ids": [
+                        "alias_metadata",
+                    ],
+                },
+            ],
+        }
+    )
+
+    context = tmp_path / "context"
+    context.mkdir()
+
+    (
+        context / "RECIPE_TEMPLATES.yaml"
+    ).write_text(
+        yaml.safe_dump(
+            payload,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+
+    proposal = RecipeProposal.model_validate(
+        {
+            "original_request": (
+                "Inspect the sample vector "
+                "through an alias template."
+            ),
+            "summary": (
+                "Inspect a trusted vector."
+            ),
+            "recipe_id_hint": (
+                "catalog-only-template-test"
+            ),
+            "selection": {
+                "template_id": (
+                    "inspect_vector_alias"
+                ),
+                "parameters": {
+                    "path": (
+                        "data/input/"
+                        "sample_points.geojson"
+                    ),
+                },
+            },
+        }
+    )
+
+    result = compile_recipe_proposal(
+        proposal,
+        registry=registry(),
+    )
+
+    assert result.compilation_performed is True
+    assert result.execution_performed is False
+
+    assert [
+        step.skill_id
+        for step in result.recipe.steps
+    ] == [
+        "inspect_vector",
+    ]
+
+    step = result.recipe.steps[0]
+
+    assert step.step_id == "step_1"
+    assert step.depends_on == []
+    assert step.arguments == {
+        "path": (
+            "data/input/"
+            "sample_points.geojson"
+        ),
+    }
+    assert step.output_ids == [
+        "alias_metadata",
+    ]
 

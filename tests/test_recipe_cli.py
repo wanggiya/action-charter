@@ -7,6 +7,11 @@ from typer.main import get_command
 from geoagent_harness.cli import app
 from click.utils import strip_ansi
 
+import json
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).parents[1]
+
 def normalized_output(
     value: str,
 ) -> str:
@@ -109,7 +114,7 @@ def test_execute_approved_recipe_is_registered() -> None:
         "agents_root",
         "pretty",
     } <= parameter_names
-    
+
 def test_compile_recipe_proposal_is_registered() -> None:
     result = runner.invoke(
         app,
@@ -132,7 +137,7 @@ def test_compile_recipe_proposal_is_registered() -> None:
     )
     assert "--proposal-root" in output
     assert "--project-root" in output
-    
+
 
 def test_propose_recipe_is_registered() -> None:
     result = runner.invoke(
@@ -155,7 +160,7 @@ def test_propose_recipe_is_registered() -> None:
     )
     assert "--agents-root" in output
     assert "--pretty" in output
-    
+
 def test_propose_and_compile_recipe_is_registered() -> None:
     result = runner.invoke(
         app,
@@ -245,4 +250,52 @@ def test_list_approved_recipes_is_registered() -> None:
     assert "--recipe-root" in output
     assert "--approval-root" in output
     assert "--project-root" in output
+
+def test_recipe_template_catalog_is_registered(
+) -> None:
+    output = command_help(
+        "recipe-template-catalog"
+    )
+
+    assert "--project-root" in output
+    assert "--pretty" in output
+
+
+def test_recipe_template_catalog_is_read_only(
+) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "recipe-template-catalog",
+            "--project-root",
+            str(PROJECT_ROOT),
+        ],
+    )
+
+    assert result.exit_code == 0
+
+    payload = json.loads(
+        result.stdout
+    )
+
+    assert payload[
+        "catalog_validated"
+    ] is True
+    assert payload[
+        "files_modified"
+    ] is False
+    assert payload[
+        "execution_performed"
+    ] is False
+
+    assert [
+        template["template_id"]
+        for template in payload["templates"]
+    ] == [
+        "inspect_vector",
+        "inspect_raster",
+        "inspect_and_convert_raster",
+        "inspect_and_convert_vector",
+        "vector_to_postgis",
+    ]
 

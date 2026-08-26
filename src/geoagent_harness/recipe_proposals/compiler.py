@@ -9,6 +9,11 @@ from typing import Any
 from geoagent_harness.recipe_proposals.assessment import (
     assess_recipe_proposal,
 )
+from geoagent_harness.recipe_proposals.templates import (
+    RecipeTemplateDefinition,
+    RecipeTemplateError,
+    get_recipe_template,
+)
 from geoagent_harness.recipe_proposals.schemas import (
     RecipeCompilationResult,
     RecipeProposal,
@@ -28,6 +33,16 @@ from geoagent_harness.skill_registry import (
 
 class RecipeCompilationError(ValueError):
     """Raised when a proposal cannot compile safely."""
+
+_LEGACY_TEMPLATE_IDS = frozenset(
+    {
+        "inspect_vector",
+        "inspect_raster",
+        "inspect_and_convert_raster",
+        "inspect_and_convert_vector",
+        "vector_to_postgis",
+    }
+)
 
 
 def _recipe_id(
@@ -268,7 +283,87 @@ def _postgis_recipe(
     ]
 
 
-def _compile_steps(
+def _compile_catalog_steps(
+    proposal: RecipeProposal,
+    *,
+    template: RecipeTemplateDefinition,
+) -> list[RecipeStep]:
+    """Compile steps only from trusted catalog data."""
+
+    parameters = (
+        proposal.selection.parameters.model_dump(
+            mode="python"
+        )
+    )
+
+    steps: list[RecipeStep] = []
+
+    for declared_step in template.steps:
+        arguments: dict[str, Any] = {}
+
+        for (
+            argument_name,
+            argument_source,
+        ) in declared_step.arguments.items():
+            if (
+                argument_source.source
+                == "parameter"
+            ):
+                if (
+                    argument_source.value
+                    not in parameters
+                ):
+                    raise RecipeCompilationError(
+                        "catalog references an "
+                        "unknown proposal parameter"
+                    )
+
+                value = parameters[
+                    argument_source.value
+                ]
+
+                if (
+                    value is None
+                    and argument_source
+                    .omit_if_none
+                ):
+                    continue
+
+                if value is None:
+                    raise RecipeCompilationError(
+                        "catalog requires an "
+                        "unavailable proposal "
+                        "parameter"
+                    )
+            else:
+                value = argument_source.value
+
+            arguments[
+                argument_name
+            ] = value
+
+        steps.append(
+            RecipeStep(
+                step_id=(
+                    declared_step.step_id
+                ),
+                skill_id=(
+                    declared_step.skill_id
+                ),
+                depends_on=list(
+                    declared_step.depends_on
+                ),
+                arguments=arguments,
+                output_ids=list(
+                    declared_step.output_ids
+                ),
+            )
+        )
+
+    return steps
+
+
+def _compile_legacy_steps(
     proposal: RecipeProposal,
 ) -> list[RecipeStep]:
     template_id = (
@@ -306,6 +401,45 @@ def _compile_steps(
         "proposal selected an unknown template"
     )
 
+def _compile_steps(
+    proposal: RecipeProposal,
+) -> list[RecipeStep]:
+    """Compile catalog steps and require legacy parity."""
+
+    template_id = (
+        proposal.selection.template_id
+    )
+
+    try:
+        template = get_recipe_template(
+            template_id
+        )
+    except RecipeTemplateError as exc:
+        raise RecipeCompilationError(
+            "trusted recipe template "
+            "could not be loaded"
+        ) from exc
+
+    catalog_steps = _compile_catalog_steps(
+        proposal,
+        template=template,
+    )
+
+    if template_id in _LEGACY_TEMPLATE_IDS:
+        legacy_steps = (
+            _compile_legacy_steps(
+                proposal
+            )
+        )
+
+        if catalog_steps != legacy_steps:
+            raise RecipeCompilationError(
+                "catalog compilation does not "
+                "match the trusted legacy "
+                "compiler"
+            )
+
+    return catalog_steps
 
 def compile_recipe_proposal(
     proposal: RecipeProposal,

@@ -86,6 +86,21 @@ jobs:
               --agents-root /app/agents
           done
 
+      - name: Validate recipe catalog inside agent image
+        if: matrix.name == 'agent'
+        run: |
+          docker run --rm \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --tmpfs /tmp:size=16m,mode=1777 \
+            --workdir /workspace \
+            --volume "$GITHUB_WORKSPACE/context:/workspace/context:ro" \
+            "geoagent-${{ matrix.name }}:ci" \
+            recipe-template-catalog \
+            --project-root /workspace
+
       - name: Verify GIS CLI starts
         if: matrix.name == 'gis-tools'
         run: |
