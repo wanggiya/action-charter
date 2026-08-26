@@ -924,48 +924,110 @@ A catalog entry cannot provide executable code, imports, entrypoints, verifiers,
 
 ## Next milestones
 
+The detailed product direction, presentation scope and prototype-release definition are maintained in `context/PRODUCT_ROADMAP.md`.
+
 ### Checkpoint 14B — Isolated Builder agent
 
 Planned:
 
 * add a separate Ollama-backed Builder container;
-* generate only isolated untrusted implementation candidates;
-* restrict generated file paths and file types;
-* keep trusted source, registries, approvals and outputs unavailable;
+* accept typed implementation requests and bounded candidate proposals;
+* provide fixed templates and explicitly selected read-only context;
+* materialize only validated paths into an isolated untrusted candidate workspace;
+* keep MCP, PostGIS, credentials, approvals, evidence, outputs, trusted registries and trusted source writes unavailable;
 * perform static inspection before candidate import;
 * run candidate tests without network access;
 * record digest-bound test evidence;
-* require explicit reviewed promotion;
-* prevent generated output from granting permissions or becoming trusted automatically.
+* require explicit human review and transactional promotion;
+* prevent generated content from granting permissions, selecting arbitrary trusted entrypoints or becoming trusted automatically.
 
-### Checkpoint 15 — Expanded PostGIS workflows
+### Checkpoint 14C — Spatial data contracts and dirty-data benchmark
+
+Planned:
+
+* define versioned data-only spatial-data contracts;
+* support vector CRS, geometry, schema, nullability, unique-key, count, extent and validity rules;
+* add a read-only deterministic contract-assessment skill;
+* bind contract identities and results into workflow evidence;
+* create dirty-vector fixtures covering representative spatial-data failures;
+* reject unsuitable inputs before approval-gated transformation or release.
+
+### Checkpoint 14D — Agent identity and operational history
+
+Planned:
+
+* assign stable role IDs and unique instance, run, task and correlation IDs;
+* preserve parent-child relationships across workflow stages;
+* write append-only typed operational events;
+* record status transitions, versions, digests and redacted failures;
+* exclude credentials, secrets and private model reasoning.
+
+### Checkpoint 14E — Authoritative results and release packages
+
+Planned:
+
+* add candidate, validated, released and rejected lifecycle states;
+* persist Critic output separately;
+* build one immutable digest-addressed release package per authoritative run;
+* include recipe, approval, results, validation, Critic evidence, artifacts, lineage and report;
+* add read-only release inspection and verification;
+* withhold release status when required evidence is incomplete.
+
+### Checkpoint 14F — Pilot-ready demonstration
+
+Planned:
+
+* prepare fixed dirty-vector and controlled-raster scenarios;
+* demonstrate contract assessment, proposal, compilation, approval, execution and validation;
+* show correlated agent history and separate Critic evidence;
+* create and inspect a release package;
+* demonstrate Snakemake export, dry-run and approved replay;
+* provide a repeatable clean-checkout presentation walkthrough.
+
+### Checkpoint 15 — Expanded PostGIS workflows and controlled release
 
 Planned:
 
 * controlled spatial transformations;
-* read-only spatial queries;
+* bounded read-only spatial queries;
 * validated PostGIS export;
-* generic recipe-dispatch integration.
+* versioned candidate staging;
+* candidate-to-current comparison;
+* exact approval before promotion;
+* previous-version and rollback metadata;
+* trusted-skill and declarative-recipe integration.
 
-### Checkpoint 16 — GeoServer publication
+### Checkpoint 16 — Restricted GeoServer publication
 
 Planned:
 
+* publication planning without mutation;
 * restricted GeoServer credentials;
-* approval-gated layer publication;
-* validated workspace and datastore selection;
-* publication verification;
-* service evidence and lineage.
+* approval-gated publication of promoted releases;
+* allowlisted workspace, datastore, layer and style targets;
+* publication and service verification;
+* release-linked publication evidence and lineage.
 
-### Checkpoint 17 — Demonstration interface
+### Checkpoint 17 — Guided interface and Snakemake productization
 
 Planned:
 
-* guided workflow interface;
-* clear approval review;
-* workflow visualization;
-* evidence navigation;
+* guided request, contract, recipe and approval workflow;
+* workflow and agent-history visualization;
+* validation, Critic, release and report navigation;
+* read-only default interface behavior;
+* guided Snakemake export, validation, dry-run and replay;
 * portfolio-ready GIS demonstrations.
+
+### Checkpoint 18 — Pilot operations and bounded memory
+
+Planned:
+
+* collect real pilot feedback before adding memory;
+* retain only reviewed operational facts with provenance and scope;
+* define version, retention and deletion controls;
+* separate operational facts from run history;
+* prohibit secrets, private reasoning and unreviewed conclusions.
 
 ## MVP status
 

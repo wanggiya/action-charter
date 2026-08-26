@@ -1363,42 +1363,127 @@ The recipe catalog is declarative but trusted. It cannot contain Python, imports
 Planned:
 
 - run a separate Ollama-backed Builder agent in an isolated container;
-- provide fixed templates and bounded project context;
-- allow output only into an isolated untrusted candidate workspace;
-- permit proposals for adapter code, renderers, tests and catalog entries;
-- prohibit direct modification of trusted source, registries, approvals, evidence and outputs;
+- accept only typed implementation requests and return bounded candidate proposals;
+- provide fixed templates and explicitly selected project context;
+- allow materialization only into an isolated untrusted candidate workspace;
+- permit proposals for adapter code, schemas, policies, tests and catalog entries;
+- prohibit access to MCP, PostGIS, credentials, approvals, evidence, outputs, trusted registries and trusted source writes;
+- validate generated paths, extensions, file counts and size limits before writing;
 - perform static inspection before importing candidate code;
 - execute candidate tests without network access;
 - bind test evidence to the exact candidate digest;
-- require explicit human review and promotion;
-- prevent model-generated output from granting permissions, selecting arbitrary trusted entrypoints or promoting itself.
+- require explicit human review and transactional promotion;
+- prevent generated output from granting permissions, selecting arbitrary trusted entrypoints or promoting itself.
 
-### Checkpoint 15 — Expanded PostGIS workflows
+The Builder reduces repetitive implementation work but receives no execution or trust authority. Generated content remains an untrusted candidate until the existing validation and promotion pipeline accepts its exact digest.
 
-Planned:
-
-- controlled spatial transformations;
-- read-only spatial queries;
-- validated PostGIS export;
-- broader generic recipe-dispatch integration.
-
-### Checkpoint 16 — GeoServer publication
+### Checkpoint 14C — Spatial data contracts and dirty-data benchmark
 
 Planned:
 
-- publish only approved and validated layers;
-- use restricted GeoServer credentials;
-- verify workspace, datastore, layer and service availability;
-- record publication lineage and evidence.
+- define versioned, data-only spatial-data contracts;
+- support vector CRS, geometry type, field type, nullability, unique-key, feature-count, extent and geometry-validity rules;
+- add a read-only `assess_spatial_data_contract` skill;
+- return typed violations, warnings and deterministic readiness status;
+- preserve contract identity and version in workflow evidence;
+- create bounded dirty-vector fixtures with missing CRS, invalid geometry, schema drift, null identifiers and duplicate identifiers;
+- verify that invalid inputs fail before approval-gated transformation or release;
+- extend raster contracts later without weakening vector validation.
 
-### Checkpoint 17 — Demonstration interface
+Spatial contracts establish what a usable dataset means before a model proposes downstream work. The dirty-data benchmark makes failure handling visible, repeatable and testable.
+
+### Checkpoint 14D — Agent identity and operational history
 
 Planned:
 
-- guided operator experience;
-- workflow and approval visualization;
-- evidence and report navigation;
-- portfolio-ready real GIS demonstrations.
+- assign stable logical IDs to Planner, Builder, Executor and Critic roles;
+- generate unique instance, run, task and correlation IDs;
+- preserve parent-child relationships between proposal, approval, execution, validation and critique;
+- write append-only typed operational events;
+- record timestamps, component versions, artifact digests, status transitions and redacted failures;
+- keep secrets, unrestricted prompts and private chain-of-thought out of operational history;
+- support deterministic lookup of every event related to one workflow run.
+
+Operational history should explain what happened, which component acted and which exact artifacts were used. It must not attempt to store hidden model reasoning.
+
+### Checkpoint 14E — Authoritative results and release packages
+
+Planned:
+
+- extend completed results with candidate, validated, released and rejected lifecycle states;
+- persist Critic output as a separate immutable record;
+- assemble one digest-addressed release package per completed authoritative run;
+- include the exact recipe, approval, run result, validation evidence, Critic record, artifact manifest, lineage and deterministic report;
+- bind every release component through SHA-256 references;
+- provide read-only release inspection and verification;
+- prohibit release claims when required validation, evidence or Critic records are missing;
+- keep release creation separate from later PostGIS or GeoServer promotion.
+
+A release package turns existing evidence files into one portable and inspectable product result without giving the model authority to declare success.
+
+### Checkpoint 14F — Pilot-ready demonstration
+
+Planned:
+
+- prepare one fixed dirty-vector scenario and one controlled raster scenario;
+- demonstrate contract failure and successful correction;
+- show constrained local-model proposal and deterministic recipe compilation;
+- show exact approval, isolated execution and independent validation;
+- show correlated agent history and the separate Critic result;
+- create and inspect an immutable release package;
+- export and dry-run the approved workflow through Snakemake;
+- provide a repeatable script and presentation walkthrough from a clean checkout.
+
+This checkpoint packages the existing architecture into a clear product demonstration rather than adding broad new infrastructure.
+
+### Checkpoint 15 — Expanded PostGIS workflows and controlled release
+
+Planned:
+
+- add controlled spatial transformations;
+- add bounded read-only spatial queries;
+- add deterministic PostGIS export and validation;
+- create versioned staging targets rather than overwriting current layers;
+- compare candidate and current datasets using schema, count, extent, geometry and digest evidence;
+- require exact approval before promoting a validated candidate;
+- preserve previous-version and rollback metadata;
+- integrate new operations through trusted skills and declarative recipes;
+- prohibit direct model-selected SQL or production-table replacement.
+
+### Checkpoint 16 — Restricted GeoServer publication
+
+Planned:
+
+- plan publication without mutation;
+- publish only approved, promoted and validated release artifacts;
+- use restricted GeoServer credentials unavailable to model containers;
+- allowlist workspace, datastore, layer and style targets;
+- verify layer identity, service availability and advertised spatial metadata;
+- record publication evidence and release lineage;
+- separate publication approval from dataset execution approval.
+
+### Checkpoint 17 — Guided interface and Snakemake productization
+
+Planned:
+
+- provide a guided operator experience for requests, contracts, recipes and approvals;
+- visualize workflow status and correlated agent activity;
+- navigate validation evidence, Critic results, release packages and reports;
+- keep the first interface read-only except for explicit existing approval actions;
+- expose Snakemake export, static validation, dry-run and approved replay as one guided workflow;
+- display completion markers only after validated execution and durable evidence persistence;
+- provide portfolio-ready real GIS demonstrations.
+
+### Checkpoint 18 — Pilot operations and bounded memory
+
+Planned:
+
+- collect pilot feedback and recurring operational failure categories;
+- add memory only for reviewed operational facts that improve future planning;
+- require provenance, scope, version, retention and deletion metadata;
+- separate project facts from agent-run history;
+- prohibit secrets, credentials, private reasoning and unreviewed model conclusions;
+- add memory retrieval only after pilot evidence demonstrates a concrete need.
 
 ## Container filesystem authorization
 
