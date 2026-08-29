@@ -8,6 +8,7 @@ from geoagent_harness.builder import (
     BuilderProposal,
     BuilderRequest,
     validate_builder_proposal,
+    BuilderCandidateTestRecord,
 )
 
 
@@ -179,4 +180,82 @@ def test_candidate_file_byte_limit_is_enforced() -> None:
                 "skill_adapters/oversized.py"
             ),
             content="界" * 20_000,
+        )
+
+def test_builder_candidate_test_record_is_consistent(
+) -> None:
+    digest = "a" * 64
+
+    record = BuilderCandidateTestRecord(
+        task_id="builder-test-record",
+        generation_sha256="b" * 64,
+        candidate_tree_sha256=digest,
+        candidate_tree_sha256_after=digest,
+        candidate_unchanged=True,
+        pytest_exit_code=0,
+        collected=2,
+        passed_count=2,
+        failed_count=0,
+        skipped_count=0,
+        error_count=0,
+        passed=True,
+    )
+
+    assert record.passed is True
+    assert record.network_available is False
+    assert record.candidate_mount_read_only is True
+    assert record.tests_executed is True
+    assert record.implementation_executed is True
+    assert (
+        record.deterministic_validation_performed
+        is False
+    )
+    assert record.implementation_trusted is False
+    assert record.promotion_performed is False
+    assert record.execution_performed is False
+
+
+def test_builder_test_record_rejects_false_success(
+) -> None:
+    digest = "a" * 64
+
+    with pytest.raises(
+        ValueError,
+        match="test success conflicts",
+    ):
+        BuilderCandidateTestRecord(
+            task_id="builder-test-record",
+            generation_sha256="b" * 64,
+            candidate_tree_sha256=digest,
+            candidate_tree_sha256_after=digest,
+            candidate_unchanged=True,
+            pytest_exit_code=1,
+            collected=1,
+            passed_count=0,
+            failed_count=1,
+            skipped_count=0,
+            error_count=0,
+            passed=True,
+        )
+
+
+def test_builder_test_record_rejects_changed_candidate(
+) -> None:
+    with pytest.raises(
+        ValueError,
+        match="unchanged claim conflicts",
+    ):
+        BuilderCandidateTestRecord(
+            task_id="builder-test-record",
+            generation_sha256="b" * 64,
+            candidate_tree_sha256="a" * 64,
+            candidate_tree_sha256_after="c" * 64,
+            candidate_unchanged=True,
+            pytest_exit_code=0,
+            collected=1,
+            passed_count=1,
+            failed_count=0,
+            skipped_count=0,
+            error_count=0,
+            passed=True,
         )

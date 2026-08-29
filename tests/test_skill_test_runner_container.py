@@ -129,3 +129,70 @@ def test_candidate_runner_extends_only_bounded_paths(
         runner_source
     )
 
+def test_candidate_runner_supports_builder_manifest(
+) -> None:
+    runner_source = (
+        PROJECT_ROOT
+        / "docker"
+        / "skill-test-runner"
+        / "run_candidate_tests.py"
+    ).read_text(encoding="utf-8")
+
+    assert "BUILDER_CANDIDATE.json" in (
+        runner_source
+    )
+    assert "BuilderCandidateManifest" in (
+        runner_source
+    )
+    assert (
+        '"builder_candidate_test"'
+        in runner_source
+    )
+    assert (
+        'candidate_type == "skill"'
+        in runner_source
+    )
+
+
+def test_builder_mode_does_not_require_skills_package(
+) -> None:
+    runner_source = (
+        PROJECT_ROOT
+        / "docker"
+        / "skill-test-runner"
+        / "run_candidate_tests.py"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "candidate must contain exactly one"
+        in runner_source
+    )
+    assert "supported manifest" in runner_source
+    assert (
+        "candidate skills package is missing"
+        in runner_source
+    )
+
+    conditional_position = runner_source.index(
+        'if candidate_type == "skill":'
+    )
+    skills_import_position = runner_source.index(
+        "skills_package = importlib.import_module"
+    )
+
+    assert (
+        skills_import_position
+        > conditional_position
+    )
+    assert "CANDIDATE_SKILL_ADAPTERS" in (
+        runner_source
+    )
+    assert (
+        '"geoagent_harness.skill_adapters"'
+        in runner_source
+    )
+    assert (
+        'candidate_type == "builder"'
+        in runner_source
+    )
+

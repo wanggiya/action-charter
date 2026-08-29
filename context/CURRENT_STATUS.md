@@ -987,6 +987,32 @@ Completed sixth slice:
 * added a read-only candidate-inspection CLI and offline failure tests;
 * kept inspection separate from testing, validation, trust and promotion.
 
+Completed seventh slice:
+
+* extended the existing network-disabled skill-test runner with a separate Builder-candidate mode;
+* retained the existing declarative-skill candidate contract;
+* required exactly one supported candidate manifest;
+* validated Builder candidate identity through `BUILDER_CANDIDATE.json`;
+* mounted the exact candidate read-only with no network;
+* extended only bounded candidate package paths needed for isolated pytest collection;
+* emitted typed task, generation and candidate-tree test evidence;
+* recorded deterministic pytest outcome counts;
+* verified identical candidate-tree digests before and after testing;
+* added bounded and symlink-rejecting Builder evidence storage;
+* reran static inspection before assessing test evidence;
+* required exact task, generation and candidate digest binding;
+* added CLI and Make targets for test execution, evidence persistence and assessment;
+* passed one real isolated container test;
+* preserved false deterministic-validation, trust, promotion and GIS-execution claims.
+
+Next Builder slice:
+
+* define an explicit human review package for the exact inspected and tested candidate digest;
+* include the Builder request, proposal, manifest, inspection and test assessment;
+* prohibit automatic promotion from passing tests;
+* define bounded destination planning for reviewed candidate files;
+* reuse the existing transactional promotion boundary where appropriate.
+
 Next Builder slice:
 
 * run exact inspected candidates in the existing network-disabled skill-test container;

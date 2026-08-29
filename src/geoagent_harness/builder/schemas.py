@@ -525,3 +525,134 @@ class BuilderCandidateInspectionResult(BaseModel):
             )
 
         return self
+
+class BuilderCandidateTestRecord(BaseModel):
+    """Evidence emitted by isolated Builder candidate tests."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    record_type: Literal[
+        "builder_candidate_test"
+    ] = "builder_candidate_test"
+
+    task_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256_after: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_unchanged: bool
+
+    pytest_exit_code: int = Field(ge=0)
+    collected: int = Field(ge=0)
+    passed_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    skipped_count: int = Field(ge=0)
+    error_count: int = Field(ge=0)
+
+    passed: bool
+
+    network_available: Literal[False] = False
+    candidate_mount_read_only: Literal[True] = True
+
+    tests_executed: Literal[True] = True
+    implementation_executed: Literal[True] = True
+
+    deterministic_validation_performed: Literal[
+        False
+    ] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def outcome_is_consistent(
+        self,
+    ) -> "BuilderCandidateTestRecord":
+        hashes_match = (
+            self.candidate_tree_sha256
+            == self.candidate_tree_sha256_after
+        )
+
+        if self.candidate_unchanged != hashes_match:
+            raise ValueError(
+                "candidate unchanged claim conflicts "
+                "with candidate digests"
+            )
+
+        success_conditions = (
+            self.pytest_exit_code == 0
+            and self.collected > 0
+            and self.failed_count == 0
+            and self.error_count == 0
+            and self.candidate_unchanged
+        )
+
+        if self.passed != success_conditions:
+            raise ValueError(
+                "Builder candidate test success conflicts "
+                "with recorded outcomes"
+            )
+
+        if (
+            self.passed_count
+            + self.failed_count
+            + self.skipped_count
+            > self.collected
+        ):
+            raise ValueError(
+                "Builder candidate test counts exceed "
+                "collected tests"
+            )
+
+        return self
+
+class BuilderCandidateTestAssessment(BaseModel):
+    """Trusted assessment of isolated Builder test evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    task_id: str
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    candidate_path: str
+    test_record_path: str
+
+    collected: int = Field(ge=1)
+    passed_count: int = Field(ge=0)
+    failed_count: Literal[0] = 0
+    skipped_count: int = Field(ge=0)
+    error_count: Literal[0] = 0
+
+    static_inspection_passed: Literal[True] = True
+    isolated_tests_passed: Literal[True] = True
+    candidate_unchanged: Literal[True] = True
+    digest_bound: Literal[True] = True
+
+    tests_performed: Literal[True] = True
+    implementation_executed: Literal[True] = True
+
+    deterministic_validation_performed: Literal[
+        False
+    ] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False

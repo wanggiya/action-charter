@@ -326,6 +326,85 @@ def inspect_builder_candidate_command(
         )
     )
 
+@app.command("assess-builder-candidate-tests")
+def assess_builder_candidate_tests_command(
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Materialized Builder candidate "
+                "directory."
+            ),
+        ),
+    ],
+    test_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Isolated Builder candidate-test "
+                "JSON record."
+            ),
+        ),
+    ],
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help="Approved Builder candidate root.",
+        ),
+    ] = Path("builder-candidates"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option(
+            "--evidence-root",
+            help="Approved Builder test-evidence root.",
+        ),
+    ] = Path("builder-test-results"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Assess digest-bound isolated Builder tests."""
+
+    from geoagent_harness.builder import (
+        BuilderCandidateTestingError,
+        assess_builder_candidate_tests,
+    )
+
+    try:
+        result = assess_builder_candidate_tests(
+            candidate_path=candidate_path,
+            candidate_root=candidate_root,
+            test_record_path=test_record_file,
+            evidence_root=evidence_root,
+        )
+    except (
+        BuilderCandidateTestingError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 @app.command("validate-vector-conversion")
 def validate_vector_conversion_command(
     path: Annotated[

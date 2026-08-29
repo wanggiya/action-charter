@@ -22,8 +22,10 @@ from geoagent_harness.builder.schemas import (
     BuilderCandidateInspectionResult,
     BuilderCandidateManifest,
     BuilderCandidateManifestFile,
+    BuilderCandidateTestRecord,
     BuilderGenerationResult,
     BuilderMaterializationResult,
+    BuilderCandidateTestAssessment,
 )
 from geoagent_harness.builder.service import (
     propose_builder_candidate,
@@ -45,6 +47,14 @@ from geoagent_harness.builder.materialization import (
 from geoagent_harness.builder.inspection import (
     BuilderCandidateInspectionError,
     inspect_builder_candidate,
+)
+from geoagent_harness.builder.test_evidence import (
+    BuilderCandidateTestEvidenceError,
+    load_builder_candidate_test_record,
+)
+from geoagent_harness.builder.testing import (
+    BuilderCandidateTestingError,
+    assess_builder_candidate_tests,
 )
 
 __all__ = [
@@ -74,4 +84,10 @@ __all__ = [
     "BuilderCandidateManifest",
     "BuilderCandidateManifestFile",
     "inspect_builder_candidate",
+    "BuilderCandidateTestRecord",
+    "BuilderCandidateTestAssessment",
+    "BuilderCandidateTestEvidenceError",
+    "BuilderCandidateTestingError",
+    "assess_builder_candidate_tests",
+    "load_builder_candidate_test_record",
 ]

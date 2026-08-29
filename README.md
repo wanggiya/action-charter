@@ -1434,6 +1434,24 @@ Completed sixth slice:
 - added the read-only `inspect-builder-candidate` CLI command;
 - preserved explicit false claims for imports, execution, testing, validation, trust and promotion.
 
+Completed seventh slice:
+
+- extended the existing hardened skill-test runner with an explicit Builder-candidate mode;
+- preserved the original declarative-skill candidate behavior;
+- required exactly one supported candidate manifest;
+- validated `BUILDER_CANDIDATE.json` through the trusted typed schema;
+- mounted Builder candidates read-only with no network access;
+- extended only the bounded candidate package paths required by declared tests;
+- emitted typed test evidence containing task, generation and candidate-tree digests;
+- recorded pytest collection, pass, failure, skip and error counts;
+- verified that the candidate-tree digest remained unchanged during tests;
+- added bounded, non-symlinked Builder test-evidence storage;
+- required a fresh static inspection before accepting test evidence;
+- required exact task, generation and candidate-tree digest matches;
+- added the `assess-builder-candidate-tests` CLI command and operator Make targets;
+- completed a real network-disabled container test with one passing test;
+- kept passing tests insufficient for deterministic GIS validation, trust or promotion.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

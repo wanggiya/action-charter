@@ -13,6 +13,8 @@ SKILL_TEST_RECORD_FILE ?=
 .PHONY: snakemake-dry-run
 .PHONY: skill-candidate-test
 .PHONY: skill-candidate-test-record
+.PHONY: builder-candidate-test
+.PHONY: builder-candidate-test-record
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -29,6 +31,8 @@ help:
 	@echo "make workflow-version Show isolated Snakemake version"
 	@echo "make snakemake-dry-run SNAKEMAKE_EXPORT_DIR=name Validate a replay DAG"
 	@echo "make skill-candidate-test SKILL_CANDIDATE_DIR=<path>  Test one isolated generated skill candidate"
+	@echo "make builder-candidate-test BUILDER_CANDIDATE_DIR=<path>  Test one isolated Builder candidate"
+	@echo "make builder-candidate-test-record BUILDER_CANDIDATE_DIR=<path> BUILDER_TEST_RECORD_FILE=<path>  Save isolated Builder test evidence"
 
 install:
 	python3 -m venv .venv
@@ -142,3 +146,24 @@ skill-candidate-test-record:
 		run --rm skill-test-runner \
 		> "$(SKILL_TEST_RECORD_FILE)"
 	@echo "Candidate test record: $(SKILL_TEST_RECORD_FILE)"
+
+builder-candidate-test:
+	@test -n "$(BUILDER_CANDIDATE_DIR)" || \
+		(echo "Error: BUILDER_CANDIDATE_DIR is required"; exit 2)
+	SKILL_CANDIDATE_DIR="$(abspath $(BUILDER_CANDIDATE_DIR))" \
+		docker compose \
+		--profile skill-testing \
+		run --rm skill-test-runner
+
+builder-candidate-test-record:
+	@test -n "$(BUILDER_CANDIDATE_DIR)" || \
+		(echo "Error: BUILDER_CANDIDATE_DIR is required"; exit 2)
+	@test -n "$(BUILDER_TEST_RECORD_FILE)" || \
+		(echo "Error: BUILDER_TEST_RECORD_FILE is required"; exit 2)
+	@mkdir -p "$(dir $(BUILDER_TEST_RECORD_FILE))"
+	@SKILL_CANDIDATE_DIR="$(abspath $(BUILDER_CANDIDATE_DIR))" \
+		docker compose \
+		--profile skill-testing \
+		run --rm skill-test-runner \
+		> "$(BUILDER_TEST_RECORD_FILE)"
+	@echo "Builder candidate test record: $(BUILDER_TEST_RECORD_FILE)"

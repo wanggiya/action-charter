@@ -74,6 +74,10 @@ skill-scaffolds/
 skill-candidates/
 skill-test-results/
 
+builder-generations/
+builder-candidates/
+builder-test-results/
+
 recipe-proposals.local/
 
 # Deterministic public raster fixture for skill contracts.

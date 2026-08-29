@@ -19,6 +19,10 @@ import pytest
 import geoagent_harness
 
 
+from geoagent_harness.builder.schemas import (
+    BuilderCandidateManifest,
+)
+
 CANDIDATE_ROOT = Path("/candidate")
 CANDIDATE_SOURCE = (
     CANDIDATE_ROOT
@@ -28,11 +32,17 @@ CANDIDATE_SOURCE = (
 CANDIDATE_SKILLS = (
     CANDIDATE_SOURCE / "skills"
 )
+CANDIDATE_SKILL_ADAPTERS = (
+    CANDIDATE_SOURCE / "skill_adapters"
+)
 CANDIDATE_TESTS = (
     CANDIDATE_ROOT / "tests"
 )
-CANDIDATE_MANIFEST = (
+SKILL_CANDIDATE_MANIFEST = (
     CANDIDATE_ROOT / "scaffold-manifest.json"
+)
+BUILDER_CANDIDATE_MANIFEST = (
+    CANDIDATE_ROOT / "BUILDER_CANDIDATE.json"
 )
 
 
@@ -117,50 +127,84 @@ def candidate_tree_sha256(
     return digest.hexdigest()
 
 
-def _validate_candidate_layout() -> None:
-    for path, label in (
-        (
-            CANDIDATE_SOURCE,
-            "candidate source package",
-        ),
-        (
-            CANDIDATE_SKILLS,
-            "candidate skills package",
-        ),
-        (
-            CANDIDATE_TESTS,
-            "candidate tests",
-        ),
-    ):
-        if not path.is_dir():
-            raise RuntimeError(
-                f"{label} is missing"
-            )
+def _validate_candidate_layout(
+) -> tuple[str, dict[str, str]]:
+    """Validate one exact supported candidate layout."""
 
-    if not CANDIDATE_MANIFEST.is_file():
+    if not CANDIDATE_SOURCE.is_dir():
         raise RuntimeError(
-            "candidate scaffold manifest is missing"
+            "candidate source package is missing"
         )
 
+    if not CANDIDATE_TESTS.is_dir():
+        raise RuntimeError(
+            "candidate tests are missing"
+        )
 
-def main() -> int:
-    """Run tests and emit evidence bound to candidate files."""
+    skill_manifest_exists = (
+        SKILL_CANDIDATE_MANIFEST.is_file()
+    )
+    builder_manifest_exists = (
+        BUILDER_CANDIDATE_MANIFEST.is_file()
+    )
 
-    try:
-        _validate_candidate_layout()
-        
+    if (
+        skill_manifest_exists
+        == builder_manifest_exists
+    ):
+        raise RuntimeError(
+            "candidate must contain exactly one "
+            "supported manifest"
+        )
+
+    if skill_manifest_exists:
+        if not CANDIDATE_SKILLS.is_dir():
+            raise RuntimeError(
+                "candidate skills package is missing"
+            )
+
         manifest = json.loads(
-            CANDIDATE_MANIFEST.read_text(
+            SKILL_CANDIDATE_MANIFEST.read_text(
                 encoding="utf-8"
             )
         )
-
         skill_id = manifest.get("skill_id")
 
         if not isinstance(skill_id, str):
             raise RuntimeError(
                 "candidate manifest has no skill ID"
             )
+
+        return "skill", {
+            "skill_id": skill_id,
+        }
+
+    builder_payload = json.loads(
+        BUILDER_CANDIDATE_MANIFEST.read_text(
+            encoding="utf-8"
+        )
+    )
+    builder_manifest = (
+        BuilderCandidateManifest.model_validate(
+            builder_payload
+        )
+    )
+
+    return "builder", {
+        "task_id": builder_manifest.task_id,
+        "generation_sha256": (
+            builder_manifest.generation_sha256
+        ),
+    }
+
+
+def main() -> int:
+    """Run tests and emit evidence bound to candidate files."""
+
+    try:
+        candidate_type, identity = (
+            _validate_candidate_layout()
+        )
             
         before_sha256 = candidate_tree_sha256(
             CANDIDATE_ROOT
@@ -171,14 +215,32 @@ def main() -> int:
             CANDIDATE_SOURCE.resolve().as_posix(),
         )
 
-        skills_package = importlib.import_module(
-            "geoagent_harness.skills"
-        )
+        if candidate_type == "skill":
+            skills_package = importlib.import_module(
+                "geoagent_harness.skills"
+            )
 
-        skills_package.__path__.insert(
-            0,
-            CANDIDATE_SKILLS.resolve().as_posix(),
-        )
+            skills_package.__path__.insert(
+                0,
+                CANDIDATE_SKILLS.resolve().as_posix(),
+            )
+
+        if (
+            candidate_type == "builder"
+            and CANDIDATE_SKILL_ADAPTERS.is_dir()
+        ):
+            adapters_package = (
+                importlib.import_module(
+                    "geoagent_harness.skill_adapters"
+                )
+            )
+
+            adapters_package.__path__.insert(
+                0,
+                CANDIDATE_SKILL_ADAPTERS
+                .resolve()
+                .as_posix(),
+            )
 
         arguments = sys.argv[1:]
 
@@ -247,7 +309,7 @@ def main() -> int:
             and candidate_unchanged
         )
 
-        record = {
+        record: dict[str, Any] = {
             "schema_version": "1.0",
             "candidate_tree_sha256": (
                 before_sha256
@@ -271,8 +333,30 @@ def main() -> int:
             "implementation_executed": True,
             "registry_modified": False,
             "promotion_performed": False,
-            "skill_id": skill_id,
         }
+
+        if candidate_type == "skill":
+            record["skill_id"] = identity[
+                "skill_id"
+            ]
+        else:
+            record.update(
+                {
+                    "record_type": (
+                        "builder_candidate_test"
+                    ),
+                    "task_id": identity["task_id"],
+                    "generation_sha256": identity[
+                        "generation_sha256"
+                    ],
+                    (
+                        "deterministic_validation_"
+                        "performed"
+                    ): False,
+                    "implementation_trusted": False,
+                    "execution_performed": False,
+                }
+            )
 
         print(
             json.dumps(
@@ -287,6 +371,7 @@ def main() -> int:
     except (
         OSError,
         RuntimeError,
+        TypeError,
         ValueError,
     ) as exc:
         print(
