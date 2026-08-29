@@ -1483,6 +1483,23 @@ Completed ninth slice:
 - recorded and digest-verified one real approved decision;
 - kept file copying, registry modification, implementation trust, promotion and execution false.
 
+Completed tenth slice:
+
+- added secure loading of immutable `DECISION.json` records;
+- required canonical serialization, approved-root containment and digest-addressed decision directories;
+- rejected symlinked, oversized, malformed, noncanonical and relocated decision records;
+- added a read-only Builder promotion-plan schema;
+- required an approved decision that explicitly authorizes promotion planning;
+- reverified the immutable review package and candidate inspection;
+- bound the plan to the review, decision, generation and candidate-tree digests;
+- mapped only explicitly approved paths from the candidate to the trusted project;
+- verified every planned source against the candidate manifest digest;
+- rejected missing sources, path escapes, symlinks and existing destinations;
+- rehashed the candidate after planning;
+- added the `plan-builder-promotion` CLI command;
+- produced one real promotion plan for two harmless fixture files;
+- performed no directory creation, file copying, registry modification, trust promotion or execution.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

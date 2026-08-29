@@ -4783,5 +4783,90 @@ def record_builder_review_decision_command(
         )
     )
 
+@app.command("plan-builder-promotion")
+def plan_builder_promotion_command(
+    decision_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder DECISION.json file.",
+        ),
+    ],
+    decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--decision-root",
+            help="Approved Builder decision root.",
+        ),
+    ] = Path("builder-decisions"),
+    review_root: Annotated[
+        Path,
+        typer.Option(
+            "--review-root",
+            help="Approved Builder review-package root.",
+        ),
+    ] = Path("builder-reviews"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help="Approved Builder candidate root.",
+        ),
+    ] = Path("builder-candidates"),
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help=(
+                "Trusted project root used only for "
+                "non-writing destination assessment."
+            ),
+        ),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Plan exact approved Builder writes without performing them."""
+
+    from geoagent_harness.builder import (
+        BuilderPromotionPlanError,
+        plan_builder_promotion,
+    )
+
+    try:
+        result = plan_builder_promotion(
+            decision_file=decision_file,
+            decision_root=decision_root,
+            review_root=review_root,
+            candidate_root=candidate_root,
+            project_root=project_root,
+        )
+    except (
+        BuilderPromotionPlanError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

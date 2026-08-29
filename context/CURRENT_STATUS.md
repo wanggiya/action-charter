@@ -1036,13 +1036,31 @@ Completed ninth slice:
 * recorded and digest-verified one real approved decision;
 * preserved false file-copy, registry-modification, trust, promotion and execution claims.
 
+Completed tenth slice:
+
+* securely loaded immutable Builder human-decision records;
+* required canonical JSON, approved-root containment and digest-addressed directories;
+* rejected symlinked, oversized, malformed, noncanonical and relocated decisions;
+* added a typed non-writing promotion plan;
+* required an approved decision with promotion-planning authorization;
+* reverified the immutable review and exact candidate;
+* bound plans to review, decision, generation and candidate-tree digests;
+* selected only explicitly approved reviewed paths;
+* verified candidate source files against manifest digests;
+* rejected source or destination escapes, symlinks, missing sources and existing destinations;
+* rehashed candidates after planning;
+* added a read-only promotion-planning CLI command;
+* successfully planned two real fixture destinations without creating them;
+* preserved false copying, registry modification, trust, promotion and execution claims.
+
 Next Builder slice:
 
-* load and verify the immutable human decision;
-* plan exact source-to-destination mappings only for approved paths;
-* reject existing destinations, path escapes, symlinks and changed candidates;
-* bind the plan to the review and decision digests;
-* perform no writes until a later explicit transactional-promotion command.
+* define explicit transactional promotion of one exact promotion plan;
+* require confirmation of the exact decision ID and plan digest;
+* reverify review, decision, candidate, source digests and destination absence;
+* stage all approved files before modifying trusted source;
+* finalize atomically where possible and fail closed before partial trust claims;
+* keep registry changes outside generic Builder promotion unless separately authorized.
 
 
 Planned:

@@ -28,6 +28,7 @@ from geoagent_harness.builder import (
     BuilderReviewDecisionStorageError,
     builder_review_decision_sha256,
     persist_builder_review_decision,
+    load_builder_review_decision,
 )
 from geoagent_harness.skill_definitions import (
     candidate_tree_sha256,
@@ -400,4 +401,156 @@ def test_rejects_symlinked_decision_root(
             decision,
             decision_root=linked_root,
             review_root=review_root,
+        )
+
+def test_loads_canonical_persisted_decision(
+    tmp_path: Path,
+) -> None:
+    review_root, decision = approved_decision(
+        tmp_path
+    )
+    decision_root = tmp_path / "decisions"
+
+    persisted = persist_builder_review_decision(
+        decision,
+        decision_root=decision_root,
+        review_root=review_root,
+    )
+
+    loaded, digest, safe_file = (
+        load_builder_review_decision(
+            Path(persisted.decision_file),
+            decision_root=decision_root,
+        )
+    )
+
+    assert loaded == decision
+    assert digest == persisted.decision_sha256
+    assert safe_file == Path(
+        persisted.decision_file
+    )
+
+
+def test_rejects_changed_decision_content(
+    tmp_path: Path,
+) -> None:
+    review_root, decision = approved_decision(
+        tmp_path
+    )
+    decision_root = tmp_path / "decisions"
+
+    persisted = persist_builder_review_decision(
+        decision,
+        decision_root=decision_root,
+        review_root=review_root,
+    )
+
+    decision_file = Path(
+        persisted.decision_file
+    )
+    content = decision_file.read_text(
+        encoding="utf-8"
+    )
+    decision_file.write_text(
+        content.replace(
+            "Approved exact reviewed adapter.",
+            "Changed rationale after persistence.",
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        BuilderReviewDecisionStorageError,
+        match="directory digest is invalid",
+    ):
+        load_builder_review_decision(
+            decision_file,
+            decision_root=decision_root,
+        )
+
+
+def test_rejects_noncanonical_decision_json(
+    tmp_path: Path,
+) -> None:
+    review_root, decision = approved_decision(
+        tmp_path
+    )
+    decision_root = tmp_path / "decisions"
+
+    persisted = persist_builder_review_decision(
+        decision,
+        decision_root=decision_root,
+        review_root=review_root,
+    )
+
+    original_directory = Path(
+        persisted.decision_directory
+    )
+    content = Path(
+        persisted.decision_file
+    ).read_text(encoding="utf-8")
+
+    import hashlib
+
+    noncanonical = content.replace(
+        '  "approval_granted"',
+        '    "approval_granted"',
+        1,
+    )
+    changed_digest = hashlib.sha256(
+        noncanonical.encode("utf-8")
+    ).hexdigest()
+
+    changed_directory = (
+        decision_root
+        / (
+            f"{decision.decision_id}."
+            f"{changed_digest}.decision"
+        )
+    )
+    original_directory.rename(
+        changed_directory
+    )
+    changed_file = (
+        changed_directory / "DECISION.json"
+    )
+    changed_file.write_text(
+        noncanonical,
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        BuilderReviewDecisionStorageError,
+        match="not canonical",
+    ):
+        load_builder_review_decision(
+            changed_file,
+            decision_root=decision_root,
+        )
+
+
+def test_rejects_decision_outside_root(
+    tmp_path: Path,
+) -> None:
+    review_root, decision = approved_decision(
+        tmp_path
+    )
+    actual_root = tmp_path / "decisions"
+
+    persisted = persist_builder_review_decision(
+        decision,
+        decision_root=actual_root,
+        review_root=review_root,
+    )
+
+    different_root = tmp_path / "different-decisions"
+    different_root.mkdir()
+
+    with pytest.raises(
+        BuilderReviewDecisionStorageError,
+        match="directly beneath",
+    ):
+        load_builder_review_decision(
+            Path(persisted.decision_file),
+            decision_root=different_root,
         )

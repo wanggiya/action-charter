@@ -20,6 +20,8 @@ from geoagent_harness.builder.schemas import (
     BuilderReviewStorageResult,
     BuilderReviewDecision,
     BuilderReviewDecisionStorageResult,
+    BuilderPromotionFile,
+    BuilderPromotionPlan,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -79,6 +81,11 @@ from geoagent_harness.builder.review_decision_storage import (
     builder_review_decision_sha256,
     canonical_builder_review_decision_json,
     persist_builder_review_decision,
+    load_builder_review_decision,
+)
+from geoagent_harness.builder.promotion_plan import (
+    BuilderPromotionPlanError,
+    plan_builder_promotion,
 )
 
 
@@ -133,4 +140,9 @@ __all__ = [
     "builder_review_decision_sha256",
     "canonical_builder_review_decision_json",
     "persist_builder_review_decision",
+    "load_builder_review_decision",
+    "BuilderPromotionFile",
+    "BuilderPromotionPlan",
+    "BuilderPromotionPlanError",
+    "plan_builder_promotion",
 ]

@@ -997,3 +997,63 @@ class BuilderReviewDecisionStorageResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+class BuilderPromotionFile(BaseModel):
+    """One exact approved candidate-to-project mapping."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: BuilderArtifactKind
+    source_path: str
+    destination_path: str
+    sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    destination_exists: Literal[False] = False
+
+
+class BuilderPromotionPlan(BaseModel):
+    """Non-writing plan for approved Builder files."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+    reviewer_id: str
+
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    candidate_path: str
+    project_root: str
+    review_file: str
+    decision_file: str
+
+    files: list[BuilderPromotionFile] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_approval_verified: Literal[True] = True
+    candidate_inspection_passed: Literal[True] = True
+    promotion_ready: Literal[True] = True
+    planning_performed: Literal[True] = True
+
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False

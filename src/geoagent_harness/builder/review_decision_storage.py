@@ -9,6 +9,10 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from typing import Any
+
+from pydantic import ValidationError
+
 from geoagent_harness.builder.review_storage import (
     BuilderReviewStorageError,
     load_builder_review_package,
@@ -20,6 +24,7 @@ from geoagent_harness.builder.schemas import (
 
 
 DECISION_FILE_NAME = "DECISION.json"
+MAX_DECISION_FILE_BYTES = 500_000
 
 
 class BuilderReviewDecisionStorageError(
@@ -270,3 +275,134 @@ def persist_builder_review_decision(
             decision.promotion_planning_authorized
         ),
     )
+
+def load_builder_review_decision(
+    decision_file: Path,
+    *,
+    decision_root: Path,
+) -> tuple[BuilderReviewDecision, str, Path]:
+    """Load and verify one immutable Builder decision."""
+
+    if decision_root.is_symlink():
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision root cannot be a symlink"
+        )
+
+    try:
+        root = decision_root.resolve(strict=True)
+    except OSError as exc:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision root is unavailable"
+        ) from exc
+
+    if not root.is_dir():
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision root must be a directory"
+        )
+
+    unresolved = (
+        decision_file
+        if decision_file.is_absolute()
+        else root / decision_file
+    )
+
+    if unresolved.is_symlink():
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file cannot be a symlink"
+        )
+
+    try:
+        safe_file = unresolved.resolve(strict=True)
+    except OSError as exc:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file is unavailable"
+        ) from exc
+
+    decision_directory = safe_file.parent
+
+    if (
+        decision_directory.parent != root
+        or decision_directory.is_symlink()
+    ):
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision must be directly "
+            "beneath its approved root"
+        )
+
+    if (
+        safe_file.name != DECISION_FILE_NAME
+        or not safe_file.is_file()
+    ):
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision must contain DECISION.json"
+        )
+
+    try:
+        size = safe_file.stat().st_size
+        content = safe_file.read_bytes()
+    except OSError as exc:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file could not be read"
+        ) from exc
+
+    if size < 1:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file is empty"
+        )
+
+    if size > MAX_DECISION_FILE_BYTES:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file exceeds the size limit"
+        )
+
+    digest = hashlib.sha256(content).hexdigest()
+
+    try:
+        payload: Any = json.loads(
+            content.decode("utf-8")
+        )
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+    ) as exc:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file is not valid UTF-8 JSON"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file must contain an object"
+        )
+
+    try:
+        decision = BuilderReviewDecision.model_validate(
+            payload
+        )
+    except ValidationError as exc:
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file failed schema validation"
+        ) from exc
+
+    expected_directory_name = (
+        f"{decision.decision_id}.{digest}.decision"
+    )
+
+    if (
+        decision_directory.name
+        != expected_directory_name
+    ):
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision directory digest is invalid"
+        )
+
+    if (
+        canonical_builder_review_decision_json(
+            decision
+        ).encode("utf-8")
+        != content
+    ):
+        raise BuilderReviewDecisionStorageError(
+            "Builder decision file is not canonical"
+        )
+
+    return decision, digest, safe_file
