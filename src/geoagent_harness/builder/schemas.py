@@ -656,3 +656,176 @@ class BuilderCandidateTestAssessment(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+class BuilderReviewPackage(BaseModel):
+    """Exact evidence package prepared for human review."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    model: str
+
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    generation: BuilderGenerationResult
+    candidate_manifest: BuilderCandidateManifest
+    inspection: BuilderCandidateInspectionResult
+    test_assessment: BuilderCandidateTestAssessment
+
+    candidate_path: str
+    test_record_path: str
+    proposed_destinations: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+
+    review_package_assembled: Literal[True] = True
+    ready_for_human_review: Literal[True] = True
+
+    human_review_performed: Literal[False] = False
+    approval_granted: Literal[False] = False
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    deterministic_validation_performed: Literal[
+        False
+    ] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def identities_must_match(
+        self,
+    ) -> "BuilderReviewPackage":
+        task_ids = {
+            self.task_id,
+            self.generation.request.task_id,
+            self.generation.proposal.task_id,
+            self.candidate_manifest.task_id,
+            self.inspection.task_id,
+            self.test_assessment.task_id,
+        }
+
+        if len(task_ids) != 1:
+            raise ValueError(
+                "Builder review task identities do not match"
+            )
+
+        generation_digests = {
+            self.generation_sha256,
+            self.candidate_manifest.generation_sha256,
+            self.inspection.generation_sha256,
+            self.test_assessment.generation_sha256,
+        }
+
+        if len(generation_digests) != 1:
+            raise ValueError(
+                "Builder review generation digests do not match"
+            )
+
+        candidate_digests = {
+            self.candidate_tree_sha256,
+            self.inspection.candidate_tree_sha256,
+            (
+                self.inspection
+                .candidate_tree_sha256_after
+            ),
+            (
+                self.test_assessment
+                .candidate_tree_sha256
+            ),
+        }
+
+        if len(candidate_digests) != 1:
+            raise ValueError(
+                "Builder review candidate digests do not match"
+            )
+
+        models = {
+            self.model,
+            self.generation.model,
+            self.candidate_manifest.model,
+            self.inspection.model,
+        }
+
+        if len(models) != 1:
+            raise ValueError(
+                "Builder review model identities do not match"
+            )
+
+        proposed_paths = sorted(
+            file.path
+            for file in self.generation.proposal.files
+        )
+
+        if proposed_paths != sorted(
+            self.proposed_destinations
+        ):
+            raise ValueError(
+                "Builder review destinations do not match "
+                "the proposal"
+            )
+
+        if (
+            self.candidate_path
+            != self.inspection.candidate_path
+            or self.candidate_path
+            != self.test_assessment.candidate_path
+        ):
+            raise ValueError(
+                "Builder review candidate paths do not match"
+            )
+
+        if (
+            self.test_record_path
+            != self.test_assessment.test_record_path
+        ):
+            raise ValueError(
+                "Builder review test-record paths do not match"
+            )
+
+        return self
+
+class BuilderReviewStorageResult(BaseModel):
+    """Result of immutable Builder review persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    review_directory: str
+    review_file: str
+
+    review_package_persisted: Literal[True] = True
+    candidate_unchanged: Literal[True] = True
+    ready_for_human_review: Literal[True] = True
+
+    human_review_performed: Literal[False] = False
+    approval_granted: Literal[False] = False
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False

@@ -1005,21 +1005,29 @@ Completed seventh slice:
 * passed one real isolated container test;
 * preserved false deterministic-validation, trust, promotion and GIS-execution claims.
 
+Completed eighth slice:
+
+* assembled a typed human-review package from the exact generation, candidate manifest, inspection and isolated-test assessment;
+* required matching task, model, generation and candidate-tree identities;
+* verified proposed content against the materialized manifest;
+* represented candidate paths only as proposed, unapproved destinations;
+* serialized the complete review package deterministically;
+* persisted it in an immutable digest-addressed directory;
+* used temporary staging and atomic finalization;
+* rejected symlinked review roots and existing packages;
+* verified stable candidate content before and during persistence;
+* added a CLI command for review assembly and storage;
+* created and digest-verified one real review package;
+* kept human review, approval, trusted writes, promotion and execution explicitly false.
+
 Next Builder slice:
 
-* define an explicit human review package for the exact inspected and tested candidate digest;
-* include the Builder request, proposal, manifest, inspection and test assessment;
-* prohibit automatic promotion from passing tests;
-* define bounded destination planning for reviewed candidate files;
-* reuse the existing transactional promotion boundary where appropriate.
+* define a typed human decision bound to the exact review-package digest;
+* require an explicit reviewer identity and decision timestamp;
+* allow approve or reject outcomes without modifying trusted source;
+* require approved file paths to be an exact subset of reviewed proposals;
+* keep approval separate from promotion planning and transactional writes.
 
-Next Builder slice:
-
-* run exact inspected candidates in the existing network-disabled skill-test container;
-* mount the candidate read-only;
-* bind test evidence to the inspected candidate-tree digest;
-* reject candidates that change between inspection and testing;
-* keep passing tests insufficient for trust or promotion.
 
 Planned:
 

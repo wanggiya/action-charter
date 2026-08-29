@@ -101,9 +101,10 @@ def _reject_symlinks(candidate: Path) -> None:
                 )
 
 
-def _load_manifest(
+def load_builder_candidate_manifest(
     candidate: Path,
 ) -> BuilderCandidateManifest:
+    """Load the strict manifest from one inspected candidate."""
     manifest_path = candidate / MANIFEST_NAME
 
     if manifest_path.is_symlink():
@@ -286,7 +287,9 @@ def inspect_builder_candidate(
             "Builder candidate could not be hashed"
         ) from exc
 
-    manifest = _load_manifest(candidate)
+    manifest = load_builder_candidate_manifest(
+        candidate
+    )
 
     _verify_manifest_identity(
         candidate,

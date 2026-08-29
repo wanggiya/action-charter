@@ -1452,6 +1452,21 @@ Completed seventh slice:
 - completed a real network-disabled container test with one passing test;
 - kept passing tests insufficient for deterministic GIS validation, trust or promotion.
 
+Completed eighth slice:
+
+- assembled one exact human-review package from the validated Builder generation, candidate manifest, static inspection and isolated-test assessment;
+- required task, model, generation and candidate-tree identities to match across all records;
+- verified that proposed file contents matched the candidate manifest digests;
+- retained proposed repository paths as unapproved destinations;
+- persisted the complete review package as deterministic canonical JSON;
+- used a digest-addressed immutable review directory;
+- wrote the review through a temporary directory and atomic finalization;
+- refused symlinked review roots and existing review packages;
+- rehashed the candidate before and during review persistence;
+- added the `create-builder-review-package` CLI command;
+- completed a real review-package creation and digest verification;
+- preserved false human-review, approval, trust, promotion and execution claims.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

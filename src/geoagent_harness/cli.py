@@ -4513,5 +4513,119 @@ def materialize_builder_proposal_command(
         )
     )
 
+@app.command("create-builder-review-package")
+def create_builder_review_package_command(
+    generation_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Operator-saved Builder generation "
+                "result JSON."
+            ),
+        ),
+    ],
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Materialized Builder candidate "
+                "directory."
+            ),
+        ),
+    ],
+    test_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Isolated Builder candidate-test "
+                "JSON record."
+            ),
+        ),
+    ],
+    generation_root: Annotated[
+        Path,
+        typer.Option(
+            "--generation-root",
+            help="Approved Builder generation root.",
+        ),
+    ] = Path("builder-generations"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help="Approved Builder candidate root.",
+        ),
+    ] = Path("builder-candidates"),
+    evidence_root: Annotated[
+        Path,
+        typer.Option(
+            "--evidence-root",
+            help="Approved Builder test-evidence root.",
+        ),
+    ] = Path("builder-test-results"),
+    review_root: Annotated[
+        Path,
+        typer.Option(
+            "--review-root",
+            help=(
+                "Root for immutable Builder "
+                "human-review packages."
+            ),
+        ),
+    ] = Path("builder-reviews"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Assemble and persist one immutable review package."""
+
+    from geoagent_harness.builder import (
+        BuilderReviewError,
+        BuilderReviewStorageError,
+        assemble_builder_review_package,
+        persist_builder_review_package,
+    )
+
+    try:
+        review = assemble_builder_review_package(
+            generation_file=generation_file,
+            generation_root=generation_root,
+            candidate_path=candidate_path,
+            candidate_root=candidate_root,
+            test_record_path=test_record_file,
+            evidence_root=evidence_root,
+        )
+        result = persist_builder_review_package(
+            review,
+            review_root=review_root,
+        )
+    except (
+        BuilderReviewError,
+        BuilderReviewStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()
