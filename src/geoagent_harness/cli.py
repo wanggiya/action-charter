@@ -4213,5 +4213,93 @@ def validate_raster_conversion_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+@app.command("builder-propose")
+def builder_propose_command(
+    request_file: Annotated[
+        Path,
+        typer.Option(
+            "--request-file",
+            help="Read-only Builder request JSON file.",
+        ),
+    ],
+    request_root: Annotated[
+        Path,
+        typer.Option(
+            "--request-root",
+            help="Approved Builder request root.",
+        ),
+    ] = Path("builder-requests"),
+    agents_root: Annotated[
+        Path,
+        typer.Option(
+            "--agents-root",
+            help="Trusted agent manifest root.",
+        ),
+    ] = Path("agents"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Generate one validated proposal without writing files."""
+
+    from geoagent_harness.builder import (
+        BuilderAgentError,
+        BuilderRequestLoadError,
+        load_builder_request,
+        propose_builder_candidate,
+    )
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+
+    try:
+        request = load_builder_request(
+            request_file,
+            request_root=request_root,
+        )
+        result = propose_builder_candidate(
+            request=request,
+            agents_root=agents_root,
+        )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MODEL,
+        )
+    except ModelClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MODEL,
+        )
+    except (
+        BuilderAgentError,
+        BuilderRequestLoadError,
+        ModelSettingsError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

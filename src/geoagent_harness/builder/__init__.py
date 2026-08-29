@@ -24,6 +24,10 @@ from geoagent_harness.builder.schemas import (
 from geoagent_harness.builder.service import (
     propose_builder_candidate,
 )
+from geoagent_harness.builder.request_loader import (
+    BuilderRequestLoadError,
+    load_builder_request,
+)
 
 __all__ = [
     "BuilderArtifactKind",
@@ -38,4 +42,6 @@ __all__ = [
     "build_builder_request",
     "generate_builder_proposal",
     "propose_builder_candidate",
+    "BuilderRequestLoadError",
+    "load_builder_request",
 ]

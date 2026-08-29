@@ -65,7 +65,11 @@ def test_builder_mounts_only_its_manifest() -> None:
     volumes = builder.get("volumes", [])
 
     assert volumes == [
-        "./agents/builder:/app/agents/builder:ro"
+        "./agents/builder:/app/agents/builder:ro",
+        (
+            "./builder-requests/example-adapter.json:"
+            "/workspace/request/example-adapter.json:ro"
+        ),
     ]
 
     serialized = "\n".join(volumes).lower()
@@ -101,14 +105,21 @@ def test_builder_runtime_is_hardened() -> None:
     ]
 
 
-def test_builder_runs_manifest_validation_only() -> None:
+def test_builder_runs_bounded_proposal_command() -> None:
     builder = builder_service()
+    command = builder["command"]
 
-    assert builder["command"] == [
-        "agent-info",
-        "builder",
+    assert command[0] == "builder-propose"
+    assert command == [
+        "builder-propose",
+        "--request-file",
+        "/workspace/request/example-adapter.json",
+        "--request-root",
+        "/workspace/request",
+        "--agents-root",
+        "/app/agents",
+        "--pretty",
     ]
-    assert builder["working_dir"] == "/workspace"
 
 
 def test_builder_has_no_candidate_workspace() -> None:

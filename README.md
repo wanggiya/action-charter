@@ -1394,6 +1394,17 @@ Completed third slice:
 - limited the initial container command to static Builder-manifest validation;
 - added deterministic container-policy tests independent of Ollama.
 
+Completed fourth slice:
+
+- added one checked-in typed Builder request fixture;
+- added a bounded read-only request loader;
+- rejected missing, empty, oversized, symlinked, nested, non-regular, malformed and schema-invalid request files;
+- added the `builder-propose` CLI command;
+- emitted validated proposal results only through standard output;
+- used structured model-failure exit codes;
+- mounted only the exact Builder request file and Builder manifest read-only;
+- executed a live proposal through the isolated Builder container without adding a candidate workspace or write mount.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

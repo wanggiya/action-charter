@@ -49,11 +49,18 @@ services:
     working_dir: /workspace
 
     command:
-      - agent-info
-      - builder
+      - builder-propose
+      - --request-file
+      - /workspace/request/example-adapter.json
+      - --request-root
+      - /workspace/request
+      - --agents-root
+      - /app/agents
+      - --pretty
 
     volumes:
       - ./agents/builder:/app/agents/builder:ro
+      - ./builder-requests/example-adapter.json:/workspace/request/example-adapter.json:ro
 
     profiles:
       - agents
