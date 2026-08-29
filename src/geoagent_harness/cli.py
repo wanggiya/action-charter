@@ -53,7 +53,7 @@ def _raise_typed_failure(
 @app.command("agent-info")
 def agent_info_command(
     role: Annotated[
-        str, typer.Argument(help="Logical role: planner, executor, or critic.")
+        str, typer.Argument(help="Logical role: planner, executor, critic, or builder.")
     ],
     agents_root: Annotated[
         Path, typer.Option("--agents-root", help="Trusted agent manifest root.")

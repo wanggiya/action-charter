@@ -1360,7 +1360,21 @@ The recipe catalog is declarative but trusted. It cannot contain Python, imports
 
 ### Checkpoint 14B — Isolated Builder agent
 
-Planned:
+In progress:
+
+Completed first slice:
+
+- registered a fixed Builder identity through the existing root-level agent-manifest system;
+- prohibited Builder tools, shell, SQL, filesystem writes, database writes and additional permission fields;
+- added typed request, artifact and proposal schemas;
+- restricted proposals to six allowlisted artifact kinds and bounded target prefixes;
+- rejected absolute, hidden, traversing, non-normalized and incorrectly typed paths;
+- limited file count, individual file size and total proposal size;
+- required exact correspondence between requested and proposed artifacts;
+- prevented claims of tool use, filesystem modification, testing, validation, approval, trust, promotion or execution;
+- kept all candidate content in memory and untrusted.
+
+Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;
 - accept only typed implementation requests and return bounded candidate proposals;
