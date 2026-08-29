@@ -78,6 +78,7 @@ builder-generations/
 builder-candidates/
 builder-test-results/
 builder-reviews/
+builder-decisions/
 
 recipe-proposals.local/
 

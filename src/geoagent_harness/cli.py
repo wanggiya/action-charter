@@ -4627,5 +4627,161 @@ def create_builder_review_package_command(
         )
     )
 
+@app.command("record-builder-review-decision")
+def record_builder_review_decision_command(
+    review_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder REVIEW.json file.",
+        ),
+    ],
+    decision_id: Annotated[
+        str,
+        typer.Option(
+            "--decision-id",
+            help="Unique human decision identifier.",
+        ),
+    ],
+    reviewer_id: Annotated[
+        str,
+        typer.Option(
+            "--reviewer-id",
+            help="Identity of the human reviewer.",
+        ),
+    ],
+    decided_at: Annotated[
+        str,
+        typer.Option(
+            "--decided-at",
+            help=(
+                "Timezone-aware ISO-8601 decision "
+                "timestamp."
+            ),
+        ),
+    ],
+    decision: Annotated[
+        str,
+        typer.Option(
+            "--decision",
+            help="Either approved or rejected.",
+        ),
+    ],
+    rationale: Annotated[
+        str,
+        typer.Option(
+            "--rationale",
+            help="Human explanation for the decision.",
+        ),
+    ],
+    approved_paths: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--approved-path",
+            help=(
+                "Exact reviewed path approved for later "
+                "promotion planning; repeat as needed."
+            ),
+        ),
+    ] = None,
+    review_root: Annotated[
+        Path,
+        typer.Option(
+            "--review-root",
+            help="Approved Builder review-package root.",
+        ),
+    ] = Path("builder-reviews"),
+    decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--decision-root",
+            help=(
+                "Root for immutable Builder "
+                "human-decision records."
+            ),
+        ),
+    ] = Path("builder-decisions"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Record one human decision without promoting files."""
+
+    from datetime import datetime
+
+    from geoagent_harness.builder import (
+        BuilderReviewDecisionError,
+        BuilderReviewDecisionStorageError,
+        create_builder_review_decision,
+        persist_builder_review_decision,
+    )
+
+    try:
+        normalized_timestamp = (
+            decided_at[:-1] + "+00:00"
+            if decided_at.endswith("Z")
+            else decided_at
+        )
+        parsed_timestamp = datetime.fromisoformat(
+            normalized_timestamp
+        )
+
+        if decision not in {
+            "approved",
+            "rejected",
+        }:
+            raise ValueError(
+                "decision must be approved or rejected"
+            )
+
+        review_decision = (
+            create_builder_review_decision(
+                review_file=review_file,
+                review_root=review_root,
+                decision_id=decision_id,
+                reviewer_id=reviewer_id,
+                decided_at=parsed_timestamp,
+                decision=decision,
+                approved_paths=(
+                    []
+                    if approved_paths is None
+                    else approved_paths
+                ),
+                rationale=rationale,
+            )
+        )
+
+        result = persist_builder_review_decision(
+            review_decision,
+            decision_root=decision_root,
+            review_root=review_root,
+        )
+    except (
+        BuilderReviewDecisionError,
+        BuilderReviewDecisionStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from pathlib import PurePosixPath
 from typing import Literal
@@ -824,6 +825,173 @@ class BuilderReviewStorageResult(BaseModel):
 
     human_review_performed: Literal[False] = False
     approval_granted: Literal[False] = False
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+class BuilderReviewDecision(BaseModel):
+    """Human decision bound to one immutable review package."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    decision_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    task_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    reviewer_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_.@-]*$",
+    )
+    decided_at: datetime
+
+    decision: Literal["approved", "rejected"]
+    rationale: str = Field(
+        min_length=1,
+        max_length=4000,
+    )
+
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    review_file: str
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    reviewed_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+    approved_paths: list[str] = Field(
+        default_factory=list,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_review_performed: Literal[True] = True
+    approval_granted: bool
+    promotion_planning_authorized: bool
+
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @field_validator(
+        "reviewed_paths",
+        "approved_paths",
+    )
+    @classmethod
+    def paths_must_be_unique(
+        cls,
+        paths: list[str],
+    ) -> list[str]:
+        if len(paths) != len(set(paths)):
+            raise ValueError(
+                "Builder review decision paths "
+                "must be unique"
+            )
+
+        for path in paths:
+            _validate_relative_candidate_path(path)
+
+        return paths
+
+    @model_validator(mode="after")
+    def decision_must_be_consistent(
+        self,
+    ) -> "BuilderReviewDecision":
+        if self.decided_at.tzinfo is None:
+            raise ValueError(
+                "Builder review decision timestamp "
+                "must include a timezone"
+            )
+
+        reviewed = set(self.reviewed_paths)
+        approved = set(self.approved_paths)
+
+        if not approved.issubset(reviewed):
+            raise ValueError(
+                "approved paths must be a subset "
+                "of reviewed paths"
+            )
+
+        if self.decision == "approved":
+            if not approved:
+                raise ValueError(
+                    "approved decision requires at least "
+                    "one approved path"
+                )
+
+            if not self.approval_granted:
+                raise ValueError(
+                    "approved decision must grant approval"
+                )
+
+            if not self.promotion_planning_authorized:
+                raise ValueError(
+                    "approved decision must authorize "
+                    "promotion planning"
+                )
+        else:
+            if approved:
+                raise ValueError(
+                    "rejected decision cannot approve paths"
+                )
+
+            if self.approval_granted:
+                raise ValueError(
+                    "rejected decision cannot grant approval"
+                )
+
+            if self.promotion_planning_authorized:
+                raise ValueError(
+                    "rejected decision cannot authorize "
+                    "promotion planning"
+                )
+
+        return self
+
+class BuilderReviewDecisionStorageResult(BaseModel):
+    """Result of immutable Builder decision persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    decision_id: str
+    task_id: str
+    decision: Literal["approved", "rejected"]
+
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    decision_directory: str
+    decision_file: str
+
+    decision_persisted: Literal[True] = True
+    human_review_performed: Literal[True] = True
+    approval_granted: bool
+    promotion_planning_authorized: bool
+
     files_copied: Literal[False] = False
     registry_modified: Literal[False] = False
     implementation_trusted: Literal[False] = False

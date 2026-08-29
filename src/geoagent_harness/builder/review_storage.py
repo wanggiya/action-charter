@@ -9,6 +9,10 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from typing import Any
+
+from pydantic import ValidationError
+
 from geoagent_harness.builder.schemas import (
     BuilderReviewPackage,
     BuilderReviewStorageResult,
@@ -19,6 +23,7 @@ from geoagent_harness.skill_definitions import (
 
 
 REVIEW_FILE_NAME = "REVIEW.json"
+MAX_REVIEW_FILE_BYTES = 2_000_000
 
 
 class BuilderReviewStorageError(RuntimeError):
@@ -228,3 +233,133 @@ def persist_builder_review_package(
         ),
         review_file=final_file.as_posix(),
     )
+
+def load_builder_review_package(
+    review_file: Path,
+    *,
+    review_root: Path,
+) -> tuple[BuilderReviewPackage, str, Path]:
+    """Load and verify one immutable review package."""
+
+    if review_root.is_symlink():
+        raise BuilderReviewStorageError(
+            "Builder review root cannot be a symlink"
+        )
+
+    try:
+        root = review_root.resolve(strict=True)
+    except OSError as exc:
+        raise BuilderReviewStorageError(
+            "Builder review root is unavailable"
+        ) from exc
+
+    if not root.is_dir():
+        raise BuilderReviewStorageError(
+            "Builder review root must be a directory"
+        )
+
+    unresolved = (
+        review_file
+        if review_file.is_absolute()
+        else root / review_file
+    )
+
+    if unresolved.is_symlink():
+        raise BuilderReviewStorageError(
+            "Builder review file cannot be a symlink"
+        )
+
+    try:
+        safe_file = unresolved.resolve(strict=True)
+    except OSError as exc:
+        raise BuilderReviewStorageError(
+            "Builder review file is unavailable"
+        ) from exc
+
+    review_directory = safe_file.parent
+
+    if (
+        review_directory.parent != root
+        or review_directory.is_symlink()
+    ):
+        raise BuilderReviewStorageError(
+            "Builder review package must be directly "
+            "beneath its approved root"
+        )
+
+    if (
+        safe_file.name != REVIEW_FILE_NAME
+        or not safe_file.is_file()
+    ):
+        raise BuilderReviewStorageError(
+            "Builder review package must contain REVIEW.json"
+        )
+
+    try:
+        size = safe_file.stat().st_size
+        content = safe_file.read_bytes()
+    except OSError as exc:
+        raise BuilderReviewStorageError(
+            "Builder review file could not be read"
+        ) from exc
+
+    if size < 1:
+        raise BuilderReviewStorageError(
+            "Builder review file is empty"
+        )
+
+    if size > MAX_REVIEW_FILE_BYTES:
+        raise BuilderReviewStorageError(
+            "Builder review file exceeds the size limit"
+        )
+
+    digest = hashlib.sha256(content).hexdigest()
+
+    try:
+        payload: Any = json.loads(
+            content.decode("utf-8")
+        )
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+    ) as exc:
+        raise BuilderReviewStorageError(
+            "Builder review file is not valid UTF-8 JSON"
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise BuilderReviewStorageError(
+            "Builder review file must contain an object"
+        )
+
+    try:
+        review = BuilderReviewPackage.model_validate(
+            payload
+        )
+    except ValidationError as exc:
+        raise BuilderReviewStorageError(
+            "Builder review file failed schema validation"
+        ) from exc
+
+    expected_directory_name = (
+        f"{review.task_id}.{digest}.review"
+    )
+
+    if (
+        review_directory.name
+        != expected_directory_name
+    ):
+        raise BuilderReviewStorageError(
+            "Builder review directory digest is invalid"
+        )
+
+    if (
+        canonical_builder_review_json(review)
+        .encode("utf-8")
+        != content
+    ):
+        raise BuilderReviewStorageError(
+            "Builder review file is not canonical"
+        )
+
+    return review, digest, safe_file

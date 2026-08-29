@@ -1467,6 +1467,22 @@ Completed eighth slice:
 - completed a real review-package creation and digest verification;
 - preserved false human-review, approval, trust, promotion and execution claims.
 
+Completed ninth slice:
+
+- added a typed human decision bound to one immutable Builder review-package digest;
+- required a unique decision ID, reviewer identity, timezone-aware timestamp and rationale;
+- supported explicit approved and rejected outcomes;
+- required approved paths to be an exact subset of reviewed candidate paths;
+- prohibited rejected decisions from approving paths or authorizing promotion planning;
+- securely reloaded canonical `REVIEW.json` packages from the approved review root;
+- verified review directory identity, canonical serialization and SHA-256 digest;
+- persisted decisions separately as canonical `DECISION.json`;
+- used immutable digest-addressed decision directories and atomic finalization;
+- reverified the review package before and during decision persistence;
+- added the `record-builder-review-decision` CLI command;
+- recorded and digest-verified one real approved decision;
+- kept file copying, registry modification, implementation trust, promotion and execution false.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

@@ -1020,13 +1020,29 @@ Completed eighth slice:
 * created and digest-verified one real review package;
 * kept human review, approval, trusted writes, promotion and execution explicitly false.
 
+Completed ninth slice:
+
+* added typed approved and rejected human decisions;
+* bound every decision to an exact immutable review-package digest;
+* required decision ID, reviewer identity, timezone-aware timestamp and rationale;
+* limited approved paths to reviewed candidate paths;
+* prohibited rejected decisions from approving paths or authorizing promotion planning;
+* securely reloaded and rehashed canonical review packages;
+* persisted decisions separately as canonical JSON;
+* used immutable digest-addressed decision directories;
+* used temporary staging and atomic finalization;
+* reverified review identity before and during persistence;
+* added a CLI command for recording human decisions;
+* recorded and digest-verified one real approved decision;
+* preserved false file-copy, registry-modification, trust, promotion and execution claims.
+
 Next Builder slice:
 
-* define a typed human decision bound to the exact review-package digest;
-* require an explicit reviewer identity and decision timestamp;
-* allow approve or reject outcomes without modifying trusted source;
-* require approved file paths to be an exact subset of reviewed proposals;
-* keep approval separate from promotion planning and transactional writes.
+* load and verify the immutable human decision;
+* plan exact source-to-destination mappings only for approved paths;
+* reject existing destinations, path escapes, symlinks and changed candidates;
+* bind the plan to the review and decision digests;
+* perform no writes until a later explicit transactional-promotion command.
 
 
 Planned:
