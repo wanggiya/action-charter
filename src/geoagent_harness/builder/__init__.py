@@ -10,6 +10,20 @@ from geoagent_harness.builder.schemas import (
     BuilderProposal,
     BuilderRequest,
 )
+from geoagent_harness.builder.agent import (
+    BuilderAgentError,
+    BuilderModelClientProtocol,
+    generate_builder_proposal,
+)
+from geoagent_harness.builder.prompt import (
+    build_builder_request,
+)
+from geoagent_harness.builder.schemas import (
+    BuilderGenerationResult,
+)
+from geoagent_harness.builder.service import (
+    propose_builder_candidate,
+)
 
 __all__ = [
     "BuilderArtifactKind",
@@ -18,4 +32,10 @@ __all__ = [
     "BuilderProposal",
     "BuilderRequest",
     "validate_builder_proposal",
+    "BuilderAgentError",
+    "BuilderGenerationResult",
+    "BuilderModelClientProtocol",
+    "build_builder_request",
+    "generate_builder_proposal",
+    "propose_builder_candidate",
 ]

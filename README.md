@@ -1374,6 +1374,16 @@ Completed first slice:
 - prevented claims of tool use, filesystem modification, testing, validation, approval, trust, promotion or execution;
 - kept all candidate content in memory and untrusted.
 
+Completed second slice:
+
+- added deterministic JSON-only Builder prompt construction;
+- embedded only the typed, secret-redacted Builder request and required proposal schema;
+- invoked the existing shared OpenAI-compatible Ollama client at temperature zero;
+- rejected non-JSON, fenced, non-object and schema-invalid responses;
+- deterministically required exact task, artifact-path and artifact-kind correspondence;
+- rejected model claims of permissions, writes, tools, testing, validation, trust, promotion or execution;
+- added proposal-only runtime wiring without CLI, container or filesystem authority.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

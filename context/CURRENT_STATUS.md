@@ -928,6 +928,16 @@ The detailed product direction, presentation scope and prototype-release definit
 
 ### Checkpoint 14B — Isolated Builder agent
 
+Completed second slice:
+
+* added deterministic JSON-only Builder prompt construction;
+* embedded only the typed, secret-redacted Builder request and required proposal schema;
+* invoked the existing shared OpenAI-compatible Ollama client at temperature zero;
+* rejected non-JSON, fenced, non-object and schema-invalid responses;
+* deterministically required exact task, artifact-path and artifact-kind correspondence;
+* rejected model claims of permissions, writes, tools, testing, validation, trust, promotion or execution;
+* added proposal-only runtime wiring without CLI, container or filesystem authority.
+
 Planned:
 
 * add a separate Ollama-backed Builder container;

@@ -344,3 +344,26 @@ class BuilderProposal(BaseModel):
             )
 
         return files
+
+class BuilderGenerationResult(BaseModel):
+    """Validated in-memory result from the Builder Agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    agent_id: Literal["builder"] = "builder"
+    model: str = Field(min_length=1)
+    request: BuilderRequest
+    proposal: BuilderProposal
+
+    proposal_generated: Literal[True] = True
+    proposal_schema_validated: Literal[True] = True
+    policy_validated: Literal[True] = True
+    filesystem_modified: Literal[False] = False
+    tools_called: Literal[False] = False
+    tests_performed: Literal[False] = False
+    validation_performed: Literal[False] = False
+    approval_granted: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
