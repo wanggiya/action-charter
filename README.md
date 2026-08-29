@@ -1384,6 +1384,16 @@ Completed second slice:
 - rejected model claims of permissions, writes, tools, testing, validation, trust, promotion or execution;
 - added proposal-only runtime wiring without CLI, container or filesystem authority.
 
+Completed third slice:
+
+- added a dedicated Builder Compose service using the hardened non-root agent image;
+- connected the Builder only to the model network;
+- mounted only `agents/builder/manifest.yaml` through its read-only manifest directory;
+- inherited a read-only root filesystem, capability dropping, `no-new-privileges` and bounded temporary storage;
+- withheld MCP, PostGIS, secrets, context, source, data, evidence, approval, output and candidate-workspace mounts;
+- limited the initial container command to static Builder-manifest validation;
+- added deterministic container-policy tests independent of Ollama.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

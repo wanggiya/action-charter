@@ -43,6 +43,21 @@ services:
       - ./context:/workspace/context:ro
     profiles: [agents]
 
+  builder:
+    <<: *agent
+
+    working_dir: /workspace
+
+    command:
+      - agent-info
+      - builder
+
+    volumes:
+      - ./agents/builder:/app/agents/builder:ro
+
+    profiles:
+      - agents
+
   executor:
     <<: *agent
     command: ["agent-info", "executor"]
