@@ -1405,6 +1405,21 @@ Completed fourth slice:
 - mounted only the exact Builder request file and Builder manifest read-only;
 - executed a live proposal through the isolated Builder container without adding a candidate workspace or write mount.
 
+Completed fifth slice:
+
+- added strict loading of operator-saved Builder generation results from an approved root;
+- rejected symlinks, oversized files, path escapes, malformed JSON and schema-invalid generations;
+- calculated a canonical SHA-256 digest for each validated Builder generation;
+- added a trusted operator-side materializer separate from the Builder container;
+- materialized only schema-declared candidate files into an isolated candidate root;
+- created candidates atomically through a temporary directory and `os.replace`;
+- used digest-addressed candidate directories and refused existing destinations;
+- wrote a deterministic `BUILDER_CANDIDATE.json` manifest;
+- verified that the saved generation file remained unchanged during materialization;
+- calculated the resulting candidate-tree SHA-256 digest;
+- added the `materialize-builder-proposal` CLI command;
+- preserved explicit false claims for testing, validation, trust, promotion and execution.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;

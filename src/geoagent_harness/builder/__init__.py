@@ -20,6 +20,7 @@ from geoagent_harness.builder.prompt import (
 )
 from geoagent_harness.builder.schemas import (
     BuilderGenerationResult,
+    BuilderMaterializationResult,
 )
 from geoagent_harness.builder.service import (
     propose_builder_candidate,
@@ -27,6 +28,16 @@ from geoagent_harness.builder.service import (
 from geoagent_harness.builder.request_loader import (
     BuilderRequestLoadError,
     load_builder_request,
+)
+from geoagent_harness.builder.storage import (
+    BuilderGenerationStorageError,
+    builder_generation_sha256,
+    canonical_builder_generation_json,
+    load_builder_generation,
+)
+from geoagent_harness.builder.materialization import (
+    BuilderMaterializationError,
+    materialize_builder_proposal,
 )
 
 __all__ = [
@@ -44,4 +55,11 @@ __all__ = [
     "propose_builder_candidate",
     "BuilderRequestLoadError",
     "load_builder_request",
+    "BuilderGenerationStorageError",
+    "builder_generation_sha256",
+    "canonical_builder_generation_json",
+    "load_builder_generation",
+    "BuilderMaterializationError",
+    "BuilderMaterializationResult",
+    "materialize_builder_proposal",
 ]

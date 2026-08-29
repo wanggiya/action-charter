@@ -367,3 +367,37 @@ class BuilderGenerationResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+class BuilderMaterializationResult(BaseModel):
+    """Result of trusted atomic candidate materialization."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    task_id: str
+    model: str
+
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    source_file_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    source_generation_path: str
+    candidate_path: str
+    materialized_files: list[str] = Field(
+        min_length=1
+    )
+
+    candidate_materialized: Literal[True] = True
+    source_generation_modified: Literal[False] = False
+    registry_modified: Literal[False] = False
+    tests_performed: Literal[False] = False
+    validation_performed: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False

@@ -4301,5 +4301,78 @@ def builder_propose_command(
         )
     )
 
+@app.command("materialize-builder-proposal")
+def materialize_builder_proposal_command(
+    generation_file: Annotated[
+        Path,
+        typer.Option(
+            "--generation-file",
+            help=(
+                "Operator-saved Builder generation "
+                "result JSON."
+            ),
+        ),
+    ],
+    generation_root: Annotated[
+        Path,
+        typer.Option(
+            "--generation-root",
+            help="Approved Builder generation root.",
+        ),
+    ] = Path("builder-generations"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help=(
+                "Root for isolated untrusted "
+                "Builder candidates."
+            ),
+        ),
+    ] = Path("builder-candidates"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Materialize one proposal outside the Builder container."""
+
+    from geoagent_harness.builder import (
+        BuilderMaterializationError,
+        materialize_builder_proposal,
+    )
+
+    try:
+        result = materialize_builder_proposal(
+            generation_file=generation_file,
+            generation_root=generation_root,
+            candidate_root=candidate_root,
+        )
+    except (
+        BuilderMaterializationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()
