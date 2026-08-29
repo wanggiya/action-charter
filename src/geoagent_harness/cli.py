@@ -266,6 +266,66 @@ def convert_vector_command(
         )
     )
 
+@app.command("inspect-builder-candidate")
+def inspect_builder_candidate_command(
+    candidate_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Materialized Builder candidate directory "
+                "to inspect."
+            ),
+        ),
+    ],
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help=(
+                "Approved root containing isolated "
+                "Builder candidates."
+            ),
+        ),
+    ] = Path("builder-candidates"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Statically inspect one untrusted Builder candidate."""
+
+    from geoagent_harness.builder import (
+        BuilderCandidateInspectionError,
+        inspect_builder_candidate,
+    )
+
+    try:
+        result = inspect_builder_candidate(
+            candidate_path=candidate_path,
+            candidate_root=candidate_root,
+        )
+    except BuilderCandidateInspectionError as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 @app.command("validate-vector-conversion")
 def validate_vector_conversion_command(
     path: Annotated[

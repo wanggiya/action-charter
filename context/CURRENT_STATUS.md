@@ -973,13 +973,27 @@ Completed fifth slice:
 * added offline storage, materialization and CLI tests;
 * kept all candidates explicitly untested, unvalidated, untrusted, unpromoted and unexecuted.
 
+Completed sixth slice:
+
+* added deterministic static inspection of isolated Builder candidates;
+* required exact containment directly beneath the approved candidate root;
+* rejected symlinked roots, candidates, directories and files;
+* validated the candidate manifest through strict typed schemas;
+* bound the directory identity to the task ID and generation SHA-256;
+* required the actual and declared candidate file sets to match exactly;
+* verified every declared file digest;
+* parsed supported Python, JSON and YAML syntax without importing or executing candidate content;
+* verified stable candidate-tree digests before and after inspection;
+* added a read-only candidate-inspection CLI and offline failure tests;
+* kept inspection separate from testing, validation, trust and promotion.
+
 Next Builder slice:
 
-* perform deterministic static inspection of the exact materialized candidate digest;
-* verify the candidate manifest and declared file set;
-* reject symlinks, undeclared files, unsafe paths and changed content;
-* parse supported source formats without importing or executing candidate code;
-* produce immutable inspection evidence for later network-disabled tests.
+* run exact inspected candidates in the existing network-disabled skill-test container;
+* mount the candidate read-only;
+* bind test evidence to the inspected candidate-tree digest;
+* reject candidates that change between inspection and testing;
+* keep passing tests insufficient for trust or promotion.
 
 Planned:
 

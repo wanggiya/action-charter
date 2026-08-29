@@ -401,3 +401,127 @@ class BuilderMaterializationResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+class BuilderCandidateManifestFile(BaseModel):
+    """One file declared by a materialized candidate."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: BuilderArtifactKind
+    path: str
+    content_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    @field_validator("path")
+    @classmethod
+    def path_must_be_safe(cls, path: str) -> str:
+        return _validate_relative_candidate_path(path)
+
+    @model_validator(mode="after")
+    def path_must_match_kind(
+        self,
+    ) -> "BuilderCandidateManifestFile":
+        BuilderArtifactRequest(
+            kind=self.kind,
+            path=self.path,
+            purpose="Validate materialized artifact path.",
+        )
+        return self
+
+
+class BuilderCandidateManifest(BaseModel):
+    """Trusted schema for a materialized candidate manifest."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    task_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    model: str = Field(min_length=1)
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    files: list[BuilderCandidateManifestFile] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    candidate_materialized: Literal[True] = True
+    tests_performed: Literal[False] = False
+    validation_performed: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @field_validator("files")
+    @classmethod
+    def file_paths_must_be_unique(
+        cls,
+        files: list[BuilderCandidateManifestFile],
+    ) -> list[BuilderCandidateManifestFile]:
+        paths = [file.path for file in files]
+
+        if len(paths) != len(set(paths)):
+            raise ValueError(
+                "candidate manifest paths must be unique"
+            )
+
+        return files
+
+
+class BuilderCandidateInspectionResult(BaseModel):
+    """Deterministic static inspection of one candidate."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    task_id: str
+    model: str
+
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256_after: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    candidate_path: str
+    checked_files: list[str] = Field(
+        min_length=1
+    )
+    syntax_checked_files: list[str] = Field(
+        default_factory=list
+    )
+    checks: list[str] = Field(min_length=1)
+
+    passed: Literal[True] = True
+    candidate_modified: Literal[False] = False
+    files_imported: Literal[False] = False
+    files_executed: Literal[False] = False
+    tests_performed: Literal[False] = False
+    validation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def candidate_digest_must_be_stable(
+        self,
+    ) -> "BuilderCandidateInspectionResult":
+        if (
+            self.candidate_tree_sha256
+            != self.candidate_tree_sha256_after
+        ):
+            raise ValueError(
+                "candidate digest changed during inspection"
+            )
+
+        return self

@@ -1420,6 +1420,20 @@ Completed fifth slice:
 - added the `materialize-builder-proposal` CLI command;
 - preserved explicit false claims for testing, validation, trust, promotion and execution.
 
+Completed sixth slice:
+
+- added deterministic static inspection for materialized Builder candidates;
+- required candidates to be direct children of the approved candidate root;
+- rejected symlinked roots, candidate directories, nested directories and files;
+- validated the strict `BUILDER_CANDIDATE.json` schema;
+- required the candidate directory name to match its task and generation digest;
+- required the actual file set to match the manifest exactly;
+- verified the SHA-256 digest of every declared candidate file;
+- parsed Python, JSON and YAML syntax without importing or executing candidate code;
+- verified that the complete candidate-tree digest remained stable during inspection;
+- added the read-only `inspect-builder-candidate` CLI command;
+- preserved explicit false claims for imports, execution, testing, validation, trust and promotion.
+
 Remaining:
 
 - run a separate Ollama-backed Builder agent in an isolated container;
