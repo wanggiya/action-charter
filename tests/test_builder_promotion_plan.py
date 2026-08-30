@@ -21,6 +21,9 @@ from geoagent_harness.builder import (
     persist_builder_review_decision,
     persist_builder_review_package,
     plan_builder_promotion,
+    BuilderPromotionPlanStorageError,
+    builder_promotion_plan_sha256,
+    persist_builder_promotion_plan,
 )
 
 
@@ -321,6 +324,115 @@ def test_rejects_changed_candidate(
     ):
         plan_builder_promotion(
             decision_file=paths["decision_file"],
+            decision_root=paths["decision_root"],
+            review_root=paths["review_root"],
+            candidate_root=paths["candidate_root"],
+            project_root=paths["project_root"],
+        )
+
+def test_persists_reverified_promotion_plan(
+    tmp_path: Path,
+) -> None:
+    paths = prepared_promotion(tmp_path)
+
+    plan = plan_builder_promotion(
+        decision_file=paths["decision_file"],
+        decision_root=paths["decision_root"],
+        review_root=paths["review_root"],
+        candidate_root=paths["candidate_root"],
+        project_root=paths["project_root"],
+    )
+
+    result = persist_builder_promotion_plan(
+        plan,
+        plan_root=tmp_path / "plans",
+        decision_root=paths["decision_root"],
+        review_root=paths["review_root"],
+        candidate_root=paths["candidate_root"],
+        project_root=paths["project_root"],
+    )
+
+    plan_file = Path(result.plan_file)
+
+    assert plan_file.is_file()
+    assert plan_file.name == "PLAN.json"
+    assert (
+        result.promotion_plan_sha256
+        == builder_promotion_plan_sha256(plan)
+    )
+    assert (
+        result.promotion_plan_sha256
+        in Path(result.plan_directory).name
+    )
+    assert result.plan_persisted is True
+    assert result.files_copied is False
+    assert result.implementation_trusted is False
+    assert result.promotion_performed is False
+
+
+def test_refuses_existing_promotion_plan(
+    tmp_path: Path,
+) -> None:
+    paths = prepared_promotion(tmp_path)
+
+    plan = plan_builder_promotion(
+        decision_file=paths["decision_file"],
+        decision_root=paths["decision_root"],
+        review_root=paths["review_root"],
+        candidate_root=paths["candidate_root"],
+        project_root=paths["project_root"],
+    )
+    plan_root = tmp_path / "plans"
+
+    persist_builder_promotion_plan(
+        plan,
+        plan_root=plan_root,
+        decision_root=paths["decision_root"],
+        review_root=paths["review_root"],
+        candidate_root=paths["candidate_root"],
+        project_root=paths["project_root"],
+    )
+
+    with pytest.raises(
+        BuilderPromotionPlanStorageError,
+        match="already exists",
+    ):
+        persist_builder_promotion_plan(
+            plan,
+            plan_root=plan_root,
+            decision_root=paths["decision_root"],
+            review_root=paths["review_root"],
+            candidate_root=paths["candidate_root"],
+            project_root=paths["project_root"],
+        )
+
+
+def test_rejects_changed_plan_before_persistence(
+    tmp_path: Path,
+) -> None:
+    paths = prepared_promotion(tmp_path)
+
+    plan = plan_builder_promotion(
+        decision_file=paths["decision_file"],
+        decision_root=paths["decision_root"],
+        review_root=paths["review_root"],
+        candidate_root=paths["candidate_root"],
+        project_root=paths["project_root"],
+    )
+
+    changed = plan.model_copy(
+        update={
+            "reviewer_id": "different-reviewer",
+        }
+    )
+
+    with pytest.raises(
+        BuilderPromotionPlanStorageError,
+        match="changed before persistence",
+    ):
+        persist_builder_promotion_plan(
+            changed,
+            plan_root=tmp_path / "plans",
             decision_root=paths["decision_root"],
             review_root=paths["review_root"],
             candidate_root=paths["candidate_root"],

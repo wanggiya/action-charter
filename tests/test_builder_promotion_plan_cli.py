@@ -10,6 +10,8 @@ import geoagent_harness.builder as builder
 from geoagent_harness.builder import (
     BuilderPromotionPlan,
     BuilderPromotionPlanError,
+    BuilderPromotionPlanStorageError,
+    BuilderPromotionPlanStorageResult,
 )
 from geoagent_harness.cli import app
 
@@ -124,5 +126,120 @@ def test_cli_rejects_invalid_promotion_inputs(
     assert result.exit_code == 2
     assert (
         "does not authorize promotion planning"
+        in result.output
+    )
+
+def test_cli_creates_immutable_promotion_plan(
+    monkeypatch,
+) -> None:
+    plan = promotion_plan()
+
+    def create_plan(**kwargs):
+        assert str(
+            kwargs["decision_file"]
+        ) == "example.decision/DECISION.json"
+        assert str(kwargs["project_root"]) == "."
+
+        return plan
+
+    def persist(received_plan, **kwargs):
+        assert received_plan == plan
+        assert str(
+            kwargs["plan_root"]
+        ) == "builder-promotion-plans"
+        assert str(
+            kwargs["decision_root"]
+        ) == "builder-decisions"
+        assert str(
+            kwargs["review_root"]
+        ) == "builder-reviews"
+        assert str(
+            kwargs["candidate_root"]
+        ) == "builder-candidates"
+        assert str(kwargs["project_root"]) == "."
+
+        return BuilderPromotionPlanStorageResult(
+            task_id=plan.task_id,
+            decision_id=plan.decision_id,
+            review_package_sha256=(
+                plan.review_package_sha256
+            ),
+            decision_sha256=plan.decision_sha256,
+            candidate_tree_sha256=(
+                plan.candidate_tree_sha256
+            ),
+            promotion_plan_sha256="f" * 64,
+            plan_directory=(
+                "builder-promotion-plans/example."
+                f"{'f' * 64}.promotion-plan"
+            ),
+            plan_file=(
+                "builder-promotion-plans/example."
+                f"{'f' * 64}.promotion-plan/PLAN.json"
+            ),
+        )
+
+    monkeypatch.setattr(
+        builder,
+        "plan_builder_promotion",
+        create_plan,
+    )
+    monkeypatch.setattr(
+        builder,
+        "persist_builder_promotion_plan",
+        persist,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "create-builder-promotion-plan",
+            "example.decision/DECISION.json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+
+    payload = json.loads(result.stdout)
+
+    assert payload["plan_persisted"] is True
+    assert payload["files_copied"] is False
+    assert payload["registry_modified"] is False
+    assert payload["implementation_trusted"] is False
+    assert payload["promotion_performed"] is False
+    assert payload["execution_performed"] is False
+
+
+def test_cli_reports_promotion_plan_storage_failure(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        builder,
+        "plan_builder_promotion",
+        lambda **kwargs: promotion_plan(),
+    )
+
+    def reject(*args, **kwargs):
+        raise BuilderPromotionPlanStorageError(
+            "Builder promotion plan already exists"
+        )
+
+    monkeypatch.setattr(
+        builder,
+        "persist_builder_promotion_plan",
+        reject,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "create-builder-promotion-plan",
+            "example.decision/DECISION.json",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert (
+        "Builder promotion plan already exists"
         in result.output
     )

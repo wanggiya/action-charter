@@ -1053,6 +1053,23 @@ Completed tenth slice:
 * successfully planned two real fixture destinations without creating them;
 * preserved false copying, registry modification, trust, promotion and execution claims.
 
+Completed eleventh slice:
+
+* added canonical serialization and SHA-256 identity for Builder promotion plans;
+* persisted plans as immutable `PLAN.json` files in digest-addressed directories;
+* reran promotion planning before and during persistence;
+* rejected plans that changed after their initial calculation;
+* used temporary staging and atomic directory finalization;
+* refused existing promotion-plan destinations instead of overwriting evidence;
+* added secure loading of canonical promotion plans;
+* rejected symlinked roots, directories and files;
+* rejected missing, empty, oversized, malformed, noncanonical and schema-invalid plans;
+* required promotion-plan directory names to match the task ID and exact content digest;
+* added the `create-builder-promotion-plan` CLI command;
+* created and verified one real immutable promotion plan;
+* confirmed that repeated persistence of the same plan fails closed;
+* preserved false file-copy, registry-modification, implementation-trust, promotion and execution claims.
+
 Next Builder slice:
 
 * define explicit transactional promotion of one exact promotion plan;

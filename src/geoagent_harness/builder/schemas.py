@@ -1057,3 +1057,40 @@ class BuilderPromotionPlan(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+
+class BuilderPromotionPlanStorageResult(BaseModel):
+    """Result of immutable promotion-plan persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    plan_directory: str
+    plan_file: str
+
+    plan_persisted: Literal[True] = True
+    human_approval_verified: Literal[True] = True
+    promotion_ready: Literal[True] = True
+
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[False] = False
+    execution_performed: Literal[False] = False

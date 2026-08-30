@@ -1500,20 +1500,55 @@ Completed tenth slice:
 - produced one real promotion plan for two harmless fixture files;
 - performed no directory creation, file copying, registry modification, trust promotion or execution.
 
+Completed eleventh slice:
+
+- added canonical, digest-bound Builder promotion-plan storage;
+- persisted immutable `PLAN.json` files through temporary staging and atomic finalization;
+- reverified the decision, review, candidate and destination state before and during persistence;
+- rejected changed plans, existing destinations, symlinks, malformed content and noncanonical JSON;
+- added secure loading with exact task and content-digest directory verification;
+- added the `create-builder-promotion-plan` CLI command;
+- created and verified one real immutable promotion plan;
+- confirmed that repeated creation is rejected without overwriting evidence;
+- copied no candidate files and granted no implementation trust, promotion or execution status.
+
+Example:
+
+```bash
+BUILDER_DECISION_FILE="$(
+  find builder-decisions \
+    -type f \
+    -path '*builder-runner-review-v1*.decision/DECISION.json' \
+    -print \
+    -quit
+)"
+
+BUILDER_DECISION_FILE="$(
+  realpath "$BUILDER_DECISION_FILE"
+)"
+
+.venv/bin/geoagent create-builder-promotion-plan \
+  "$BUILDER_DECISION_FILE" \
+  --decision-root builder-decisions \
+  --review-root builder-reviews \
+  --candidate-root builder-candidates \
+  --project-root . \
+  --plan-root builder-promotion-plans \
+  --pretty
+```
+
+The decision file is made absolute because relative file arguments are interpreted beneath --decision-root.
+
 Remaining:
 
-- run a separate Ollama-backed Builder agent in an isolated container;
-- accept only typed implementation requests and return bounded candidate proposals;
-- provide fixed templates and explicitly selected project context;
-- allow materialization only into an isolated untrusted candidate workspace;
-- permit proposals for adapter code, schemas, policies, tests and catalog entries;
-- prohibit access to MCP, PostGIS, credentials, approvals, evidence, outputs, trusted registries and trusted source writes;
-- validate generated paths, extensions, file counts and size limits before writing;
-- perform static inspection before importing candidate code;
-- execute candidate tests without network access;
-- bind test evidence to the exact candidate digest;
-- require explicit human review and transactional promotion;
-- prevent generated output from granting permissions, selecting arbitrary trusted entrypoints or promoting itself.
+implement explicit transactional promotion of one exact immutable plan;
+require confirmation of the exact decision ID and promotion-plan digest;
+reverify all decision, review, candidate, source and destination identities;
+stage and verify every approved file before modifying trusted source;
+prevent overwrites and partial trust claims;
+perform independent post-promotion verification;
+persist immutable promotion evidence;
+keep registry changes outside generic Builder promotion unless separately authorized.
 
 The Builder reduces repetitive implementation work but receives no execution or trust authority. Generated content remains an untrusted candidate until the existing validation and promotion pipeline accepts its exact digest.
 
