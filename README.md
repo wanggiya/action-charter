@@ -1562,6 +1562,10 @@ builder-promotions/
         └── tests/...
 ```
 
+Here, immutable means that the trusted service refuses replacement and binds the bundle to cryptographic digests. Independent verification detects any out-of-band filesystem modification; the operating system does not make the directory physically immutable.
+
+`files_copied: true` refers only to copies inside the isolated promotion bundle. Trusted project source and test destinations remain unchanged.
+
 Bundle promotion is not activation. The result intentionally reports:
 bundle_promoted: true
 files_copied: true

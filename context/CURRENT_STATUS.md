@@ -1096,7 +1096,8 @@ Next Builder slice:
 * bind every promoted file to the persisted plan and candidate digests;
 * reject symlinks, path escapes, malformed manifests and changed files;
 * persist separate immutable post-promotion verification evidence;
-* allow implementation trust only after independent verification;
+* report the verified bundle as eligible for separate activation review;
+* keep implementation trust false until explicit activation;
 * keep activation, registry modification and execution separate.
 
 
