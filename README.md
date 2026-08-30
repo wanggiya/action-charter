@@ -1537,6 +1537,48 @@ BUILDER_DECISION_FILE="$(
   --pretty
 ```
 
+Completed twelfth Builder slice:
+
+- added atomic promotion into immutable digest-addressed bundles;
+- required exact decision-ID and promotion-plan-digest confirmation;
+- reverified the complete approved evidence chain before and after staging;
+- copied only approved files into `files/<approved-destination-path>`;
+- verified candidate and staged file SHA-256 digests;
+- persisted a canonical `PROMOTION.json` manifest;
+- finalized the complete bundle with one atomic directory rename;
+- rejected changed candidates, incorrect confirmations, symlinked roots and existing bundles;
+- modified no trusted source, test or registry files;
+- imported and executed no promoted code;
+- withheld verification, activation and trust claims.
+
+Promotion produces:
+
+```text
+builder-promotions/
+└── <task-id>.<promotion-plan-sha256>.promotion/
+    ├── PROMOTION.json
+    └── files/
+        ├── src/...
+        └── tests/...
+```
+
+Here, immutable means that the trusted service refuses replacement and binds the bundle to cryptographic digests. Independent verification detects any out-of-band filesystem modification; the operating system does not make the directory physically immutable.
+
+`files_copied: true` refers only to copies inside the isolated promotion bundle. Trusted project source and test destinations remain unchanged.
+
+Bundle promotion is not activation. The result intentionally reports:
+
+```text
+bundle_promoted: true
+files_copied: true
+post_promotion_verified: false
+activation_performed: false
+registry_modified: false
+implementation_trusted: false
+promotion_performed: true
+execution_performed: false
+```
+
 The decision file is made absolute because relative file arguments are interpreted beneath --decision-root.
 
 Remaining:
