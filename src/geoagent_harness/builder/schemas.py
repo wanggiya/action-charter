@@ -1094,3 +1094,39 @@ class BuilderPromotionPlanStorageResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+
+class BuilderPromotionResult(BaseModel):
+    """Result of atomic immutable-bundle promotion."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    promotion_directory: str
+    promotion_manifest: str
+
+    promoted_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    bundle_promoted: Literal[True] = True
+    files_copied: Literal[True] = True
+
+    post_promotion_verified: Literal[False] = False
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

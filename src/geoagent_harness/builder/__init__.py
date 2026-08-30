@@ -23,6 +23,7 @@ from geoagent_harness.builder.schemas import (
     BuilderPromotionFile,
     BuilderPromotionPlan,
     BuilderPromotionPlanStorageResult,
+    BuilderPromotionResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -95,6 +96,10 @@ from geoagent_harness.builder.promotion_plan_storage import (
     load_builder_promotion_plan,
     persist_builder_promotion_plan,
 )
+from geoagent_harness.builder.promotion import (
+    BuilderPromotionError,
+    promote_builder_candidate,
+)
 
 
 __all__ = [
@@ -159,4 +164,7 @@ __all__ = [
     "canonical_builder_promotion_plan_json",
     "load_builder_promotion_plan",
     "persist_builder_promotion_plan",
+    "BuilderPromotionError",
+    "BuilderPromotionResult",
+    "promote_builder_candidate",
 ]

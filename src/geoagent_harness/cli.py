@@ -4973,5 +4973,146 @@ def create_builder_promotion_plan_command(
         )
     )
 
+@app.command("promote-builder-candidate")
+def promote_builder_candidate_command(
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder PLAN.json file.",
+        ),
+    ],
+    plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--plan-root",
+            help="Approved Builder promotion-plan root.",
+        ),
+    ] = Path("builder-promotion-plans"),
+    decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--decision-root",
+            help="Approved Builder decision root.",
+        ),
+    ] = Path("builder-decisions"),
+    review_root: Annotated[
+        Path,
+        typer.Option(
+            "--review-root",
+            help="Approved Builder review-package root.",
+        ),
+    ] = Path("builder-reviews"),
+    candidate_root: Annotated[
+        Path,
+        typer.Option(
+            "--candidate-root",
+            help="Approved Builder candidate root.",
+        ),
+    ] = Path("builder-candidates"),
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help=(
+                "Trusted project root used only for "
+                "destination-state reverification."
+            ),
+        ),
+    ] = Path("."),
+    promotion_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-root",
+            help="Immutable promoted Builder-bundle root.",
+        ),
+    ] = Path("builder-promotions"),
+    confirm_decision_id: Annotated[
+        str,
+        typer.Option(
+            "--confirm-decision-id",
+            help=(
+                "Exact approved decision ID that the "
+                "operator authorizes for promotion."
+            ),
+        ),
+    ] = "",
+    confirm_plan_sha256: Annotated[
+        str,
+        typer.Option(
+            "--confirm-plan-sha256",
+            help=(
+                "Exact persisted promotion-plan SHA-256 "
+                "that the operator authorizes."
+            ),
+        ),
+    ] = "",
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Atomically promote approved files into an immutable bundle."""
+
+    from geoagent_harness.builder import (
+        BuilderPromotionError,
+        promote_builder_candidate,
+    )
+
+    if not confirm_decision_id:
+        typer.echo(
+            "Error: --confirm-decision-id is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not confirm_plan_sha256:
+        typer.echo(
+            "Error: --confirm-plan-sha256 is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        result = promote_builder_candidate(
+            plan_file=plan_file,
+            plan_root=plan_root,
+            decision_root=decision_root,
+            review_root=review_root,
+            candidate_root=candidate_root,
+            project_root=project_root,
+            promotion_root=promotion_root,
+            confirm_decision_id=(
+                confirm_decision_id
+            ),
+            confirm_plan_sha256=(
+                confirm_plan_sha256
+            ),
+        )
+    except (
+        BuilderPromotionError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

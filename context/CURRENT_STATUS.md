@@ -1070,14 +1070,34 @@ Completed eleventh slice:
 * confirmed that repeated persistence of the same plan fails closed;
 * preserved false file-copy, registry-modification, implementation-trust, promotion and execution claims.
 
+Completed twelfth slice:
+
+* added a typed result for atomic immutable-bundle promotion;
+* separated bundle promotion from trusted-source activation;
+* required exact operator confirmation of the decision ID and promotion-plan SHA-256;
+* securely loaded the canonical digest-addressed `PLAN.json`;
+* reran the complete decision, review, candidate and destination assessment before staging;
+* copied only explicitly approved files into a new isolated bundle;
+* preserved approved destination paths beneath the bundle's `files/` directory;
+* verified every candidate source and staged file against its approved SHA-256;
+* wrote a canonical data-only `PROMOTION.json` manifest;
+* repeated promotion planning and staged-file verification immediately before finalization;
+* finalized the complete bundle through one atomic directory rename;
+* rejected symlinked promotion roots, changed candidates, incorrect confirmations and existing bundles;
+* added the `promote-builder-candidate` CLI command;
+* left trusted source, tests and registries unchanged;
+* imported and executed no promoted code;
+* withheld post-promotion verification, activation and implementation-trust claims.
+
 Next Builder slice:
 
-* define explicit transactional promotion of one exact promotion plan;
-* require confirmation of the exact decision ID and plan digest;
-* reverify review, decision, candidate, source digests and destination absence;
-* stage all approved files before modifying trusted source;
-* finalize atomically where possible and fail closed before partial trust claims;
-* keep registry changes outside generic Builder promotion unless separately authorized.
+* independently load and inspect one immutable promotion bundle;
+* verify the bundle directory identity, manifest and exact promoted file set;
+* bind every promoted file to the persisted plan and candidate digests;
+* reject symlinks, path escapes, malformed manifests and changed files;
+* persist separate immutable post-promotion verification evidence;
+* allow implementation trust only after independent verification;
+* keep activation, registry modification and execution separate.
 
 
 Planned:
