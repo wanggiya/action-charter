@@ -1567,6 +1567,8 @@ Here, immutable means that the trusted service refuses replacement and binds the
 `files_copied: true` refers only to copies inside the isolated promotion bundle. Trusted project source and test destinations remain unchanged.
 
 Bundle promotion is not activation. The result intentionally reports:
+
+```text
 bundle_promoted: true
 files_copied: true
 post_promotion_verified: false
@@ -1575,7 +1577,7 @@ registry_modified: false
 implementation_trusted: false
 promotion_performed: true
 execution_performed: false
-
+```
 
 The decision file is made absolute because relative file arguments are interpreted beneath --decision-root.
 
