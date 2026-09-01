@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Annotated, NoReturn
 
+from datetime import datetime
+
 import typer
 
 from geoagent_harness.agent_manifest import load_agent_manifest
@@ -5271,6 +5273,210 @@ def create_builder_promotion_verification_command(
     except (
         BuilderPromotionVerificationError,
         BuilderPromotionVerificationStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command("create-builder-activation-review")
+def create_builder_activation_review_command(
+    verification_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder VERIFICATION.json.",
+        ),
+    ],
+    verification_root: Annotated[
+        Path,
+        typer.Option(
+            "--verification-root",
+            help="Approved verification-evidence root.",
+        ),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-root",
+            help="Approved Builder promotion root.",
+        ),
+    ] = Path("builder-promotions"),
+    plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--plan-root",
+            help="Approved Builder promotion-plan root.",
+        ),
+    ] = Path("builder-promotion-plans"),
+    decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--decision-root",
+            help=(
+                "Root for immutable activation-review "
+                "decisions."
+            ),
+        ),
+    ] = Path("builder-activation-decisions"),
+    decision_id: Annotated[
+        str,
+        typer.Option(
+            "--decision-id",
+            help="Unique activation-review decision ID.",
+        ),
+    ] = "",
+    reviewer_id: Annotated[
+        str,
+        typer.Option(
+            "--reviewer-id",
+            help="Human reviewer identity.",
+        ),
+    ] = "",
+    decided_at: Annotated[
+        str,
+        typer.Option(
+            "--decided-at",
+            help=(
+                "Timezone-aware ISO-8601 decision "
+                "timestamp."
+            ),
+        ),
+    ] = "",
+    decision: Annotated[
+        str,
+        typer.Option(
+            "--decision",
+            help="Either approved or rejected.",
+        ),
+    ] = "rejected",
+    rationale: Annotated[
+        str,
+        typer.Option(
+            "--rationale",
+            help="Human activation-review rationale.",
+        ),
+    ] = "",
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Review and persist one verified Builder bundle."""
+
+    from geoagent_harness.builder import (
+        BuilderActivationReviewDecisionStorageError,
+        BuilderActivationReviewError,
+        create_builder_activation_review_decision,
+        persist_builder_activation_review_decision,
+    )
+
+    if not decision_id:
+        typer.echo(
+            "Error: --decision-id is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not reviewer_id:
+        typer.echo(
+            "Error: --reviewer-id is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not decided_at:
+        typer.echo(
+            "Error: --decided-at is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        decision_timestamp = (
+            datetime.fromisoformat(decided_at)
+        )
+    except ValueError as exc:
+        typer.echo(
+            "Error: --decided-at must be a valid "
+            "ISO-8601 timestamp",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    if (
+        decision_timestamp.tzinfo is None
+        or decision_timestamp.utcoffset() is None
+    ):
+        typer.echo(
+            "Error: --decided-at must include "
+            "a timezone",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not rationale:
+        typer.echo(
+            "Error: --rationale is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if decision not in {
+        "approved",
+        "rejected",
+    }:
+        typer.echo(
+            "Error: --decision must be approved "
+            "or rejected",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        review_decision = (
+            create_builder_activation_review_decision(
+                verification_file=verification_file,
+                verification_root=verification_root,
+                promotion_root=promotion_root,
+                plan_root=plan_root,
+                decision_id=decision_id,
+                reviewer_id=reviewer_id,
+                decided_at=decision_timestamp,
+                decision=decision,
+                rationale=rationale,
+            )
+        )
+
+        result = (
+            persist_builder_activation_review_decision(
+                review_decision,
+                decision_root=decision_root,
+                verification_root=verification_root,
+                promotion_root=promotion_root,
+                plan_root=plan_root,
+            )
+        )
+    except (
+        BuilderActivationReviewError,
+        BuilderActivationReviewDecisionStorageError,
         OSError,
         ValueError,
     ) as exc:

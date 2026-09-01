@@ -1612,6 +1612,32 @@ The persisted VERIFICATION.json is stored in a digest-addressed, write-once dire
 
 Successful verification means the exact promoted bundle is eligible for a separate activation review. It does not activate files, modify the trusted registry, execute the implementation, or establish implementation trust.
 
+
+### Builder activation review
+
+Verified promotion evidence can enter a separate human activation-review boundary:
+
+```bash
+geoagent create-builder-activation-review \
+  builder-promotion-verifications/<verification>.verification/VERIFICATION.json \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --plan-root builder-promotion-plans \
+  --decision-root builder-activation-decisions \
+  --decision-id <unique-decision-id> \
+  --reviewer-id <reviewer> \
+  --decided-at <timezone-aware-ISO-8601-timestamp> \
+  --decision approved \
+  --rationale "<human rationale>" \
+  --pretty
+```
+
+The service securely reloads the immutable VERIFICATION.json, independently reverifies the current promoted bundle, and binds the human decision to the verification digest, promotion-plan digest, candidate-tree digest, promotion directory, and exact reviewed paths.
+
+Activation review is all-or-nothing for the verified atomic bundle. It cannot silently select a different file subset. An approved decision authorizes only a later activation-planning step. It does not copy files into trusted source, modify the registry, activate the bundle, establish implementation trust, or execute candidate code.
+
+The canonical ACTIVATION_DECISION.json is stored in a digest-addressed, write-once directory. Existing decisions cannot be replaced.
+
 Remaining:
 
 implement explicit transactional promotion of one exact immutable plan;
