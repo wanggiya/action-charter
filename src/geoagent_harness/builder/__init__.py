@@ -28,6 +28,8 @@ from geoagent_harness.builder.schemas import (
     BuilderPromotionManifest,
     BuilderPromotionVerificationResult,
     BuilderPromotionVerificationStorageResult,
+    BuilderActivationReviewDecision,
+    BuilderActivationReviewDecisionStorageResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -116,6 +118,17 @@ from geoagent_harness.builder.promotion_verification_storage import (
     load_builder_promotion_verification,
     persist_builder_promotion_verification,
 )
+from geoagent_harness.builder.activation_review import (
+    BuilderActivationReviewError,
+    create_builder_activation_review_decision,
+)
+from geoagent_harness.builder.activation_review_storage import (
+    BuilderActivationReviewDecisionStorageError,
+    builder_activation_review_sha256,
+    canonical_builder_activation_review_json,
+    load_builder_activation_review_decision,
+    persist_builder_activation_review_decision,
+)
 
 
 __all__ = [
@@ -195,4 +208,13 @@ __all__ = [
     "canonical_builder_promotion_verification_json",
     "load_builder_promotion_verification",
     "persist_builder_promotion_verification",
+    "BuilderActivationReviewDecision",
+    "BuilderActivationReviewError",
+    "create_builder_activation_review_decision",
+    "BuilderActivationReviewDecisionStorageError",
+    "BuilderActivationReviewDecisionStorageResult",
+    "builder_activation_review_sha256",
+    "canonical_builder_activation_review_json",
+    "load_builder_activation_review_decision",
+    "persist_builder_activation_review_decision",
 ]

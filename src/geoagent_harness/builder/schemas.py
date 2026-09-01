@@ -1291,3 +1291,149 @@ class BuilderPromotionVerificationStorageResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[True] = True
     execution_performed: Literal[False] = False
+
+class BuilderActivationReviewDecision(BaseModel):
+    """Human decision for one exact verified promotion bundle."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    decision_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    task_id: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+    )
+    reviewer_id: str = Field(
+        min_length=1,
+        max_length=200,
+    )
+    decided_at: datetime
+    decision: Literal["approved", "rejected"]
+    rationale: str = Field(
+        min_length=1,
+        max_length=4000,
+    )
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    verification_file: str
+
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    promotion_directory: str
+    reviewed_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_review_performed: Literal[True] = True
+    verification_evidence_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+
+    approval_granted: bool
+    activation_planning_authorized: bool
+
+    activation_performed: Literal[False] = False
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def decision_must_be_consistent(
+        self,
+    ) -> "BuilderActivationReviewDecision":
+        if (
+            self.decided_at.tzinfo is None
+            or self.decided_at.utcoffset() is None
+        ):
+            raise ValueError(
+                "Builder activation-review timestamp "
+                "must include a timezone"
+            )
+
+        if len(self.reviewed_paths) != len(
+            set(self.reviewed_paths)
+        ):
+            raise ValueError(
+                "Builder activation-review paths "
+                "must be unique"
+            )
+
+        if self.reviewed_paths != sorted(
+            self.reviewed_paths
+        ):
+            raise ValueError(
+                "Builder activation-review paths "
+                "must be sorted"
+            )
+
+        approved = self.decision == "approved"
+
+        if self.approval_granted != approved:
+            raise ValueError(
+                "Builder activation-review approval "
+                "conflicts with its decision"
+            )
+
+        if (
+            self.activation_planning_authorized
+            != approved
+        ):
+            raise ValueError(
+                "Builder activation-planning authority "
+                "conflicts with its decision"
+            )
+
+        return self
+
+class BuilderActivationReviewDecisionStorageResult(
+    BaseModel
+):
+    """Result of immutable activation-review persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    decision_id: str
+    task_id: str
+    decision: Literal["approved", "rejected"]
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    decision_directory: str
+    decision_file: str
+
+    decision_persisted: Literal[True] = True
+    human_review_performed: Literal[True] = True
+    verification_evidence_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+
+    approval_granted: bool
+    activation_planning_authorized: bool
+
+    activation_performed: Literal[False] = False
+    files_copied: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

@@ -1121,6 +1121,28 @@ Completed controls:
 
 The real `builder-runner-integration-v1` promotion bundle passed verification and produced immutable verification evidence. The bundle is eligible for a separate activation review but is not activated or trusted.
 
+### Builder activation review completed
+
+The Builder trust pipeline now includes a separate human activation-review decision after immutable promotion verification.
+
+Completed controls:
+
+- require canonical immutable `VERIFICATION.json` evidence;
+- reverify the promoted bundle at decision creation;
+- bind the decision to verification, promotion-plan, and candidate-tree digests;
+- bind the decision to the exact promotion directory and reviewed file set;
+- require a timezone-aware human decision timestamp;
+- enforce consistent approved and rejected decision claims;
+- authorize only later activation planning after approval;
+- persist canonical `ACTIVATION_DECISION.json` atomically;
+- use digest-addressed, write-once decision directories;
+- reverify the complete decision inputs before and during persistence;
+- refuse replacement of an existing decision;
+- keep activation, trusted-source copying, registry modification, implementation trust, and execution false.
+
+The real `builder-runner-integration-v1` verified bundle received an approved activation-review decision for activation planning only. No activation or trust transition has occurred.
+
+
 Planned:
 
 * add a separate Ollama-backed Builder container;
