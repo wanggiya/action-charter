@@ -1143,6 +1143,30 @@ Completed controls:
 The real `builder-runner-integration-v1` verified bundle received an approved activation-review decision for activation planning only. No activation or trust transition has occurred.
 
 
+### Builder activation planning completed
+
+Approved Builder activation-review decisions can now produce immutable, non-writing activation plans.
+
+Completed controls:
+
+- securely reload immutable activation-review decisions;
+- require explicit approval and activation-planning authorization;
+- reload canonical verification evidence and verify its digest;
+- reverify the current promoted bundle before and after planning;
+- securely reload the canonical promotion manifest;
+- bind task, decision, verification, plan, candidate-tree, directory, and file identities;
+- map only the complete verified atomic bundle;
+- verify every activation source digest;
+- reject missing files, symlinks, path escapes, duplicate mappings, and existing destinations;
+- persist canonical `ACTIVATION_PLAN.json` atomically;
+- use digest-addressed, write-once activation-plan directories;
+- recreate the plan before and during persistence;
+- refuse replacement of an existing activation plan;
+- keep file copying, activation, registry modification, implementation trust, and execution false.
+
+The real `builder-runner-integration-v1` bundle produced an immutable activation plan for two absent trusted-project destinations. No trusted-source mutation or activation has occurred.
+
+
 Planned:
 
 * add a separate Ollama-backed Builder container;

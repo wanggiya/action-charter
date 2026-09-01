@@ -1437,3 +1437,134 @@ class BuilderActivationReviewDecisionStorageResult(
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[True] = True
     execution_performed: Literal[False] = False
+
+class BuilderActivationFile(BaseModel):
+    """One verified bundle-to-project activation mapping."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: BuilderArtifactKind
+    source_path: str
+    destination_path: str
+    sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    destination_exists: Literal[False] = False
+
+
+class BuilderActivationPlan(BaseModel):
+    """Non-writing plan for one approved verified bundle."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+    reviewer_id: str
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    promotion_directory: str
+    project_root: str
+    verification_file: str
+    activation_decision_file: str
+
+    files: list[BuilderActivationFile] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_approval_verified: Literal[True] = True
+    verification_evidence_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+    activation_ready: Literal[True] = True
+    planning_performed: Literal[True] = True
+
+    files_copied: Literal[False] = False
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+    @field_validator("files")
+    @classmethod
+    def activation_files_must_be_unique(
+        cls,
+        files: list[BuilderActivationFile],
+    ) -> list[BuilderActivationFile]:
+        sources = [
+            item.source_path
+            for item in files
+        ]
+        destinations = [
+            item.destination_path
+            for item in files
+        ]
+
+        if len(sources) != len(set(sources)):
+            raise ValueError(
+                "Builder activation sources "
+                "must be unique"
+            )
+
+        if len(destinations) != len(
+            set(destinations)
+        ):
+            raise ValueError(
+                "Builder activation destinations "
+                "must be unique"
+            )
+
+        return files
+
+class BuilderActivationPlanStorageResult(BaseModel):
+    """Result of immutable activation-plan persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    plan_directory: str
+    plan_file: str
+
+    plan_persisted: Literal[True] = True
+    human_approval_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+    activation_ready: Literal[True] = True
+
+    files_copied: Literal[False] = False
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

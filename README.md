@@ -1638,6 +1638,42 @@ Activation review is all-or-nothing for the verified atomic bundle. It cannot si
 
 The canonical ACTIVATION_DECISION.json is stored in a digest-addressed, write-once directory. Existing decisions cannot be replaced.
 
+### Builder activation planning
+
+An approved activation-review decision can be converted into a read-only activation plan:
+
+```bash
+geoagent plan-builder-activation \
+  builder-activation-decisions/<decision>.activation-decision/ACTIVATION_DECISION.json \
+  --activation-decision-root builder-activation-decisions \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --promotion-plan-root builder-promotion-plans \
+  --project-root . \
+  --pretty
+```
+
+The planner securely reloads the immutable activation decision and verification evidence, reverifies the promoted bundle, reloads the canonical promotion manifest, verifies every source digest, and confirms that every trusted destination is contained beneath the project root and does not already exist.
+
+The exact non-writing plan can be persisted:
+
+```bash
+geoagent create-builder-activation-plan \
+  builder-activation-decisions/<decision>.activation-decision/ACTIVATION_DECISION.json \
+  --activation-decision-root builder-activation-decisions \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --promotion-plan-root builder-promotion-plans \
+  --project-root . \
+  --activation-plan-root builder-activation-plans \
+  --pretty
+```
+
+Canonical ACTIVATION_PLAN.json evidence is stored atomically in a digest-addressed, write-once directory after the complete plan is recreated before and during persistence.
+
+Activation planning performs no trusted-source writes. It does not copy files, modify the registry, activate the bundle, establish implementation trust, or execute candidate code.
+
+
 Remaining:
 
 implement explicit transactional promotion of one exact immutable plan;

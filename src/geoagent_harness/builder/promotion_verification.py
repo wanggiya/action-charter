@@ -219,6 +219,27 @@ def _load_manifest(
 
     return manifest, raw_bytes
 
+def load_builder_promotion_manifest(
+    promotion_directory: Path,
+    *,
+    promotion_root: Path,
+) -> tuple[
+    BuilderPromotionManifest,
+    Path,
+    Path,
+]:
+    """Securely load one canonical promotion manifest."""
+
+    _, bundle = _promotion_directory_path(
+        promotion_directory,
+        promotion_root=promotion_root,
+    )
+    manifest_file = _manifest_path(bundle)
+    manifest, _ = _load_manifest(
+        manifest_file
+    )
+
+    return manifest, bundle, manifest_file
 
 def _load_plan(
     plan_file: Path,
