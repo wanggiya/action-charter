@@ -5114,5 +5114,183 @@ def promote_builder_candidate_command(
         )
     )
 
+@app.command("verify-builder-promotion")
+def verify_builder_promotion_command(
+    promotion_directory: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Promoted Builder bundle directory."
+            ),
+        ),
+    ],
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder PLAN.json file.",
+        ),
+    ],
+    promotion_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-root",
+            help="Approved promoted Builder-bundle root.",
+        ),
+    ] = Path("builder-promotions"),
+    plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--plan-root",
+            help="Approved Builder promotion-plan root.",
+        ),
+    ] = Path("builder-promotion-plans"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Independently verify one promoted bundle read-only."""
+
+    from geoagent_harness.builder import (
+        BuilderPromotionVerificationError,
+        verify_builder_promotion_bundle,
+    )
+
+    try:
+        result = verify_builder_promotion_bundle(
+            promotion_directory,
+            promotion_root=promotion_root,
+            plan_file=plan_file,
+            plan_root=plan_root,
+        )
+    except (
+        BuilderPromotionVerificationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+@app.command(
+    "create-builder-promotion-verification"
+)
+def create_builder_promotion_verification_command(
+    promotion_directory: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable promoted Builder bundle.",
+        ),
+    ],
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder PLAN.json file.",
+        ),
+    ],
+    promotion_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-root",
+            help="Approved Builder promotion root.",
+        ),
+    ] = Path("builder-promotions"),
+    plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--plan-root",
+            help="Approved Builder promotion-plan root.",
+        ),
+    ] = Path("builder-promotion-plans"),
+    verification_root: Annotated[
+        Path,
+        typer.Option(
+            "--verification-root",
+            help=(
+                "Root for immutable Builder "
+                "verification evidence."
+            ),
+        ),
+    ] = Path("builder-promotion-verifications"),
+    pretty: Annotated[
+        bool,
+        typer.Option(
+            "--pretty",
+            help="Indent the JSON response.",
+        ),
+    ] = False,
+) -> None:
+    """Verify a promoted bundle and persist exact evidence."""
+
+    from geoagent_harness.builder import (
+        BuilderPromotionVerificationError,
+        BuilderPromotionVerificationStorageError,
+        persist_builder_promotion_verification,
+        verify_builder_promotion_bundle,
+    )
+
+    try:
+        verification = (
+            verify_builder_promotion_bundle(
+                promotion_directory=(
+                    promotion_directory
+                ),
+                promotion_root=promotion_root,
+                plan_file=plan_file,
+                plan_root=plan_root,
+            )
+        )
+
+        result = (
+            persist_builder_promotion_verification(
+                verification,
+                verification_root=(
+                    verification_root
+                ),
+                promotion_root=promotion_root,
+                plan_root=plan_root,
+            )
+        )
+    except (
+        BuilderPromotionVerificationError,
+        BuilderPromotionVerificationStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

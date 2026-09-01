@@ -1130,3 +1130,164 @@ class BuilderPromotionResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[True] = True
     execution_performed: Literal[False] = False
+
+class BuilderPromotionManifestFile(BaseModel):
+    """One promoted file recorded in PROMOTION.json."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: BuilderArtifactKind
+    source_path: str
+    destination_path: str
+    sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+
+class BuilderPromotionManifest(BaseModel):
+    """Canonical data-only immutable-bundle manifest."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+
+    review_package_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    generation_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    files: list[BuilderPromotionManifestFile] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    bundle_promoted: Literal[True] = True
+    files_copied: Literal[True] = True
+    post_promotion_verified: Literal[False] = False
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+    @field_validator("files")
+    @classmethod
+    def promoted_paths_must_be_unique(
+        cls,
+        files: list[BuilderPromotionManifestFile],
+    ) -> list[BuilderPromotionManifestFile]:
+        source_paths = [
+            item.source_path
+            for item in files
+        ]
+        destination_paths = [
+            item.destination_path
+            for item in files
+        ]
+
+        if len(source_paths) != len(set(source_paths)):
+            raise ValueError(
+                "promotion manifest source paths "
+                "must be unique"
+            )
+
+        if (
+            len(destination_paths)
+            != len(set(destination_paths))
+        ):
+            raise ValueError(
+                "promotion manifest destination paths "
+                "must be unique"
+            )
+
+        return files
+
+
+class BuilderPromotionVerificationResult(BaseModel):
+    """Independent read-only verification of one bundle."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    promotion_directory: str
+    promotion_manifest: str
+    plan_file: str
+
+    verified_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    manifest_canonical: Literal[True] = True
+    directory_identity_verified: Literal[True] = True
+    exact_file_set_verified: Literal[True] = True
+    promoted_file_digests_verified: Literal[True] = True
+    bundle_unchanged: Literal[True] = True
+
+    post_promotion_verified: Literal[True] = True
+    eligible_for_activation_review: Literal[True] = True
+
+    verification_evidence_persisted: Literal[False] = False
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+class BuilderPromotionVerificationStorageResult(BaseModel):
+    """Result of immutable promotion-verification storage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    decision_id: str
+
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    verification_directory: str
+    verification_file: str
+
+    post_promotion_verified: Literal[True] = True
+    eligible_for_activation_review: Literal[True] = True
+    verification_evidence_persisted: Literal[True] = True
+
+    activation_performed: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

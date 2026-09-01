@@ -1101,6 +1101,26 @@ Next Builder slice:
 * keep activation, registry modification and execution separate.
 
 
+### Builder promotion verification completed
+
+The Builder release boundary now supports independent, read-only verification of an immutable promoted bundle.
+
+Completed controls:
+
+- reload and schema-validate the canonical promotion manifest;
+- bind the bundle to the exact immutable promotion plan;
+- verify task, decision, plan, candidate, and directory identities;
+- reject symlinks and unexpected, missing, or changed files;
+- verify every promoted file digest twice;
+- detect bundle changes during verification;
+- persist canonical `VERIFICATION.json` evidence atomically;
+- address persisted evidence by its SHA-256 digest;
+- refuse replacement of existing verification packages;
+- reverify the bundle before and during evidence persistence;
+- keep activation, registry modification, implementation trust, and execution false.
+
+The real `builder-runner-integration-v1` promotion bundle passed verification and produced immutable verification evidence. The bundle is eligible for a separate activation review but is not activated or trusted.
+
 Planned:
 
 * add a separate Ollama-backed Builder container;
