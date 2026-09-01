@@ -24,6 +24,10 @@ from geoagent_harness.builder.schemas import (
     BuilderPromotionPlan,
     BuilderPromotionPlanStorageResult,
     BuilderPromotionResult,
+    BuilderPromotionManifestFile,
+    BuilderPromotionManifest,
+    BuilderPromotionVerificationResult,
+    BuilderPromotionVerificationStorageResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -100,6 +104,18 @@ from geoagent_harness.builder.promotion import (
     BuilderPromotionError,
     promote_builder_candidate,
 )
+from geoagent_harness.builder.promotion_verification import (
+    BuilderPromotionVerificationError,
+    canonical_builder_promotion_manifest_json,
+    verify_builder_promotion_bundle,
+)
+from geoagent_harness.builder.promotion_verification_storage import (
+    BuilderPromotionVerificationStorageError,
+    builder_promotion_verification_sha256,
+    canonical_builder_promotion_verification_json,
+    load_builder_promotion_verification,
+    persist_builder_promotion_verification,
+)
 
 
 __all__ = [
@@ -167,4 +183,16 @@ __all__ = [
     "BuilderPromotionError",
     "BuilderPromotionResult",
     "promote_builder_candidate",
+    "BuilderPromotionManifestFile",
+    "BuilderPromotionManifest",
+    "BuilderPromotionVerificationResult",
+    "BuilderPromotionVerificationError",
+    "canonical_builder_promotion_manifest_json",
+    "verify_builder_promotion_bundle",
+    "BuilderPromotionVerificationStorageError",
+    "BuilderPromotionVerificationStorageResult",
+    "builder_promotion_verification_sha256",
+    "canonical_builder_promotion_verification_json",
+    "load_builder_promotion_verification",
+    "persist_builder_promotion_verification",
 ]

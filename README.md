@@ -1581,6 +1581,37 @@ execution_performed: false
 
 The decision file is made absolute because relative file arguments are interpreted beneath --decision-root.
 
+### Independent Builder promotion verification
+
+A promoted Builder bundle can be independently verified without importing or executing its proposed implementation:
+
+```bash
+geoagent verify-builder-promotion \
+  builder-promotions/<bundle>.promotion \
+  builder-promotion-plans/<plan>.promotion-plan/PLAN.json \
+  --promotion-root builder-promotions \
+  --plan-root builder-promotion-plans \
+  --pretty
+```
+
+The verifier reloads the immutable promotion plan and canonical promotion manifest, verifies their identities and cryptographic bindings, rejects symlinks, requires the exact expected file set, and hashes every promoted file twice to detect changes during verification.
+
+Verification evidence can then be persisted atomically:
+
+```bash
+geoagent create-builder-promotion-verification \
+  builder-promotions/<bundle>.promotion \
+  builder-promotion-plans/<plan>.promotion-plan/PLAN.json \
+  --promotion-root builder-promotions \
+  --plan-root builder-promotion-plans \
+  --verification-root builder-promotion-verifications \
+  --pretty
+```
+
+The persisted VERIFICATION.json is stored in a digest-addressed, write-once directory. Persistence reverifies the promoted bundle before and during storage and refuses replacement of an existing evidence package.
+
+Successful verification means the exact promoted bundle is eligible for a separate activation review. It does not activate files, modify the trusted registry, execute the implementation, or establish implementation trust.
+
 Remaining:
 
 implement explicit transactional promotion of one exact immutable plan;
