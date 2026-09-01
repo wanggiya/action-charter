@@ -30,6 +30,9 @@ from geoagent_harness.builder.schemas import (
     BuilderPromotionVerificationStorageResult,
     BuilderActivationReviewDecision,
     BuilderActivationReviewDecisionStorageResult,
+    BuilderActivationFile,
+    BuilderActivationPlan,
+    BuilderActivationPlanStorageResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -110,6 +113,7 @@ from geoagent_harness.builder.promotion_verification import (
     BuilderPromotionVerificationError,
     canonical_builder_promotion_manifest_json,
     verify_builder_promotion_bundle,
+    load_builder_promotion_manifest,
 )
 from geoagent_harness.builder.promotion_verification_storage import (
     BuilderPromotionVerificationStorageError,
@@ -128,6 +132,17 @@ from geoagent_harness.builder.activation_review_storage import (
     canonical_builder_activation_review_json,
     load_builder_activation_review_decision,
     persist_builder_activation_review_decision,
+)
+from geoagent_harness.builder.activation_plan import (
+    BuilderActivationPlanError,
+    plan_builder_activation,
+)
+from geoagent_harness.builder.activation_plan_storage import (
+    BuilderActivationPlanStorageError,
+    builder_activation_plan_sha256,
+    canonical_builder_activation_plan_json,
+    load_builder_activation_plan,
+    persist_builder_activation_plan,
 )
 
 
@@ -217,4 +232,15 @@ __all__ = [
     "canonical_builder_activation_review_json",
     "load_builder_activation_review_decision",
     "persist_builder_activation_review_decision",
+    "BuilderActivationFile",
+    "BuilderActivationPlan",
+    "BuilderActivationPlanError",
+    "plan_builder_activation",
+    "load_builder_promotion_manifest",
+    "BuilderActivationPlanStorageError",
+    "BuilderActivationPlanStorageResult",
+    "builder_activation_plan_sha256",
+    "canonical_builder_activation_plan_json",
+    "load_builder_activation_plan",
+    "persist_builder_activation_plan",
 ]

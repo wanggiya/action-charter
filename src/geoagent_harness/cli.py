@@ -5498,5 +5498,215 @@ def create_builder_activation_review_command(
         )
     )
 
+@app.command("plan-builder-activation")
+def plan_builder_activation_command(
+    activation_decision_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Immutable Builder "
+                "ACTIVATION_DECISION.json."
+            ),
+        ),
+    ],
+    activation_decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-decision-root",
+            help="Approved activation-decision root.",
+        ),
+    ] = Path("builder-activation-decisions"),
+    verification_root: Annotated[
+        Path,
+        typer.Option(
+            "--verification-root",
+            help="Approved verification-evidence root.",
+        ),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-root",
+            help="Approved Builder promotion root.",
+        ),
+    ] = Path("builder-promotions"),
+    promotion_plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--promotion-plan-root",
+            help="Approved promotion-plan root.",
+        ),
+    ] = Path("builder-promotion-plans"),
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help=(
+                "Trusted project root used only for "
+                "destination assessment."
+            ),
+        ),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Plan exact Builder activation writes without writing."""
+
+    from geoagent_harness.builder import (
+        BuilderActivationPlanError,
+        plan_builder_activation,
+    )
+
+    try:
+        result = plan_builder_activation(
+            activation_decision_file=(
+                activation_decision_file
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+    except (
+        BuilderActivationPlanError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("create-builder-activation-plan")
+def create_builder_activation_plan_command(
+    activation_decision_file: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Immutable Builder "
+                "ACTIVATION_DECISION.json."
+            ),
+        ),
+    ],
+    activation_decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-decision-root",
+        ),
+    ] = Path("builder-activation-decisions"),
+    verification_root: Annotated[
+        Path,
+        typer.Option("--verification-root"),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option("--promotion-root"),
+    ] = Path("builder-promotions"),
+    promotion_plan_root: Annotated[
+        Path,
+        typer.Option("--promotion-plan-root"),
+    ] = Path("builder-promotion-plans"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    activation_plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-plan-root",
+            help=(
+                "Root for immutable Builder "
+                "activation plans."
+            ),
+        ),
+    ] = Path("builder-activation-plans"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Create one immutable reverified activation plan."""
+
+    from geoagent_harness.builder import (
+        BuilderActivationPlanError,
+        BuilderActivationPlanStorageError,
+        persist_builder_activation_plan,
+        plan_builder_activation,
+    )
+
+    try:
+        plan = plan_builder_activation(
+            activation_decision_file=(
+                activation_decision_file
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+
+        result = persist_builder_activation_plan(
+            plan,
+            plan_root=activation_plan_root,
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+    except (
+        BuilderActivationPlanError,
+        BuilderActivationPlanStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()
