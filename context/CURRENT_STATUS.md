@@ -1188,6 +1188,30 @@ Completed controls:
 
 The real `builder-runner-integration-v1` activation installed its adapter and test with their exact approved SHA-256 values. The activated test and complete repository suite passed, but formal persisted post-activation verification remains a separate pending boundary.
 
+### Builder post-activation verification completed
+
+Activated Builder files can now pass a separate deterministic trust transition.
+
+Completed controls:
+
+- securely load canonical activation and activation-plan evidence;
+- reload the immutable activation-review and promotion-verification chain;
+- independently reverify the promoted bundle;
+- bind activation, plan, decision, verification, candidate-tree, and project identities;
+- require exact activation-manifest and plan file mappings;
+- verify activation-directory identity and reject unexpected evidence entries;
+- reject missing activated files, path escapes, and symlinks;
+- hash every installed file twice;
+- detect changes to installed files or upstream evidence during verification;
+- report `post_activation_verified` and `implementation_trusted` only after all checks pass;
+- persist canonical `POST_ACTIVATION_VERIFICATION.json` atomically;
+- use digest-addressed, write-once trust-evidence directories;
+- repeat verification before and during trust-evidence persistence;
+- refuse replacement of existing trust evidence;
+- keep registry modification and implementation execution false.
+
+The real `builder-runner-integration-v1` activation passed post-activation verification. Its exact installed adapter and test are now bound to immutable trust evidence with `implementation_trusted: true`.
+
 
 Planned:
 

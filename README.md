@@ -1698,6 +1698,46 @@ Each file is installed through an atomic rename. If a later installation or evid
 
 Canonical ACTIVATION.json evidence is finalized only after every installed file matches its approved SHA-256. Activation does not modify the registry or execute activated code. implementation_trusted and post_activation_verified remain false until a separate verification boundary succeeds.
 
+### Post-activation verification and trust evidence
+
+Activated Builder files are not trusted merely because they were copied successfully. A separate verifier reloads the complete immutable evidence chain and compares the installed files without importing or executing them:
+
+```bash
+geoagent verify-builder-activation \
+  builder-activations/<activation>.activation \
+  builder-activation-plans/<plan>.activation-plan/ACTIVATION_PLAN.json \
+  --activation-root builder-activations \
+  --activation-plan-root builder-activation-plans \
+  --activation-decision-root builder-activation-decisions \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --promotion-plan-root builder-promotion-plans \
+  --project-root . \
+  --pretty
+```
+
+The verifier securely reloads canonical ACTIVATION.json, ACTIVATION_PLAN.json, activation-review, promotion-verification, and promotion-plan evidence. It reverifies the promoted bundle, validates activation-directory identity and the exact manifest-to-plan mapping, rejects symlinks, and hashes every installed file twice.
+
+Successful deterministic verification sets post_activation_verified and implementation_trusted to true. It does not modify the registry or execute the implementation.
+
+The exact result can be persisted atomically:
+
+```bash
+geoagent create-builder-trust-evidence \
+  builder-activations/<activation>.activation \
+  builder-activation-plans/<plan>.activation-plan/ACTIVATION_PLAN.json \
+  --activation-root builder-activations \
+  --activation-plan-root builder-activation-plans \
+  --activation-decision-root builder-activation-decisions \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --promotion-plan-root builder-promotion-plans \
+  --project-root . \
+  --trust-evidence-root builder-post-activation-verifications \
+  --pretty
+```
+Canonical POST_ACTIVATION_VERIFICATION.json is stored in a digest-addressed, write-once directory after verification is repeated before and during persistence.
+
 
 Remaining:
 

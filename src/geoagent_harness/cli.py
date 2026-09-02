@@ -5855,5 +5855,237 @@ def activate_builder_bundle_command(
         )
     )
 
+@app.command("verify-builder-activation")
+def verify_builder_activation_command(
+    activation_directory: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder activation directory.",
+        ),
+    ],
+    activation_plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder ACTIVATION_PLAN.json.",
+        ),
+    ],
+    activation_root: Annotated[
+        Path,
+        typer.Option("--activation-root"),
+    ] = Path("builder-activations"),
+    activation_plan_root: Annotated[
+        Path,
+        typer.Option("--activation-plan-root"),
+    ] = Path("builder-activation-plans"),
+    activation_decision_root: Annotated[
+        Path,
+        typer.Option("--activation-decision-root"),
+    ] = Path("builder-activation-decisions"),
+    verification_root: Annotated[
+        Path,
+        typer.Option("--verification-root"),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option("--promotion-root"),
+    ] = Path("builder-promotions"),
+    promotion_plan_root: Annotated[
+        Path,
+        typer.Option("--promotion-plan-root"),
+    ] = Path("builder-promotion-plans"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Verify exact activated Builder files without execution."""
+
+    from geoagent_harness.builder import (
+        BuilderPostActivationVerificationError,
+        verify_builder_activation,
+    )
+
+    try:
+        result = verify_builder_activation(
+            activation_directory=(
+                activation_directory
+            ),
+            activation_root=activation_root,
+            activation_plan_file=(
+                activation_plan_file
+            ),
+            activation_plan_root=(
+                activation_plan_root
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+    except (
+        BuilderPostActivationVerificationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("create-builder-trust-evidence")
+def create_builder_trust_evidence_command(
+    activation_directory: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder activation directory.",
+        ),
+    ],
+    activation_plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder ACTIVATION_PLAN.json.",
+        ),
+    ],
+    activation_root: Annotated[
+        Path,
+        typer.Option("--activation-root"),
+    ] = Path("builder-activations"),
+    activation_plan_root: Annotated[
+        Path,
+        typer.Option("--activation-plan-root"),
+    ] = Path("builder-activation-plans"),
+    activation_decision_root: Annotated[
+        Path,
+        typer.Option("--activation-decision-root"),
+    ] = Path("builder-activation-decisions"),
+    verification_root: Annotated[
+        Path,
+        typer.Option("--verification-root"),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option("--promotion-root"),
+    ] = Path("builder-promotions"),
+    promotion_plan_root: Annotated[
+        Path,
+        typer.Option("--promotion-plan-root"),
+    ] = Path("builder-promotion-plans"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    trust_evidence_root: Annotated[
+        Path,
+        typer.Option(
+            "--trust-evidence-root",
+            help=(
+                "Root for immutable post-activation "
+                "trust evidence."
+            ),
+        ),
+    ] = Path(
+        "builder-post-activation-verifications"
+    ),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Verify activation and persist immutable trust evidence."""
+
+    from geoagent_harness.builder import (
+        BuilderPostActivationVerificationError,
+        BuilderPostActivationVerificationStorageError,
+        persist_builder_trust_evidence,
+        verify_builder_activation,
+    )
+
+    try:
+        verification = verify_builder_activation(
+            activation_directory=(
+                activation_directory
+            ),
+            activation_root=activation_root,
+            activation_plan_file=(
+                activation_plan_file
+            ),
+            activation_plan_root=(
+                activation_plan_root
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+
+        result = persist_builder_trust_evidence(
+            verification,
+            evidence_root=trust_evidence_root,
+            activation_root=activation_root,
+            activation_plan_root=(
+                activation_plan_root
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+        )
+    except (
+        BuilderPostActivationVerificationError,
+        BuilderPostActivationVerificationStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()
