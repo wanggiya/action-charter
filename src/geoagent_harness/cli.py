@@ -5708,5 +5708,152 @@ def create_builder_activation_plan_command(
         )
     )
 
+@app.command("activate-builder-bundle")
+def activate_builder_bundle_command(
+    plan_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable Builder ACTIVATION_PLAN.json.",
+        ),
+    ],
+    activation_plan_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-plan-root",
+            help="Approved Builder activation-plan root.",
+        ),
+    ] = Path("builder-activation-plans"),
+    activation_decision_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-decision-root",
+            help=(
+                "Approved Builder activation-decision "
+                "root."
+            ),
+        ),
+    ] = Path("builder-activation-decisions"),
+    verification_root: Annotated[
+        Path,
+        typer.Option("--verification-root"),
+    ] = Path("builder-promotion-verifications"),
+    promotion_root: Annotated[
+        Path,
+        typer.Option("--promotion-root"),
+    ] = Path("builder-promotions"),
+    promotion_plan_root: Annotated[
+        Path,
+        typer.Option("--promotion-plan-root"),
+    ] = Path("builder-promotion-plans"),
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help="Trusted project destination root.",
+        ),
+    ] = Path("."),
+    activation_root: Annotated[
+        Path,
+        typer.Option(
+            "--activation-root",
+            help="Immutable Builder activation-evidence root.",
+        ),
+    ] = Path("builder-activations"),
+    confirm_activation_decision_id: Annotated[
+        str,
+        typer.Option(
+            "--confirm-activation-decision-id",
+            help=(
+                "Exact approved activation-decision ID "
+                "authorized by the operator."
+            ),
+        ),
+    ] = "",
+    confirm_activation_plan_sha256: Annotated[
+        str,
+        typer.Option(
+            "--confirm-activation-plan-sha256",
+            help=(
+                "Exact persisted activation-plan SHA-256 "
+                "authorized by the operator."
+            ),
+        ),
+    ] = "",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Install exact approved Builder files transactionally."""
+
+    from geoagent_harness.builder import (
+        BuilderActivationError,
+        activate_builder_bundle,
+    )
+
+    if not confirm_activation_decision_id:
+        typer.echo(
+            "Error: "
+            "--confirm-activation-decision-id "
+            "is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not confirm_activation_plan_sha256:
+        typer.echo(
+            "Error: "
+            "--confirm-activation-plan-sha256 "
+            "is required",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        result = activate_builder_bundle(
+            plan_file=plan_file,
+            activation_plan_root=(
+                activation_plan_root
+            ),
+            activation_decision_root=(
+                activation_decision_root
+            ),
+            verification_root=verification_root,
+            promotion_root=promotion_root,
+            promotion_plan_root=(
+                promotion_plan_root
+            ),
+            project_root=project_root,
+            activation_root=activation_root,
+            confirm_activation_decision_id=(
+                confirm_activation_decision_id
+            ),
+            confirm_activation_plan_sha256=(
+                confirm_activation_plan_sha256
+            ),
+        )
+    except (
+        BuilderActivationError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None
+                if pretty
+                else (",", ":")
+            ),
+        )
+    )
+
 if __name__ == "__main__":
     app()

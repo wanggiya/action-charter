@@ -1673,6 +1673,31 @@ Canonical ACTIVATION_PLAN.json evidence is stored atomically in a digest-address
 
 Activation planning performs no trusted-source writes. It does not copy files, modify the registry, activate the bundle, establish implementation trust, or execute candidate code.
 
+### Transactional Builder activation
+
+An immutable activation plan can be executed only with exact operator confirmation of both the activation-decision ID and activation-plan SHA-256:
+
+```bash
+geoagent activate-builder-bundle \
+  builder-activation-plans/<plan>.activation-plan/ACTIVATION_PLAN.json \
+  --activation-plan-root builder-activation-plans \
+  --activation-decision-root builder-activation-decisions \
+  --verification-root builder-promotion-verifications \
+  --promotion-root builder-promotions \
+  --promotion-plan-root builder-promotion-plans \
+  --project-root . \
+  --activation-root builder-activations \
+  --confirm-activation-decision-id <exact-decision-id> \
+  --confirm-activation-plan-sha256 <exact-plan-sha256> \
+  --pretty
+```
+
+Activation securely reloads the canonical plan, checks both confirmations, recreates the complete activation plan, verifies every source digest, stages each file beside its trusted destination, reverifies the evidence chain after staging, and refuses destinations that appear before commit.
+
+Each file is installed through an atomic rename. If a later installation or evidence step fails, the service removes only files created by that activation and cleans staged temporary files. Existing trusted files are never overwritten.
+
+Canonical ACTIVATION.json evidence is finalized only after every installed file matches its approved SHA-256. Activation does not modify the registry or execute activated code. implementation_trusted and post_activation_verified remain false until a separate verification boundary succeeds.
+
 
 Remaining:
 
