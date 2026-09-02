@@ -1568,3 +1568,129 @@ class BuilderActivationPlanStorageResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[True] = True
     execution_performed: Literal[False] = False
+
+class BuilderActivationManifestFile(BaseModel):
+    """One exact file installed by Builder activation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: BuilderArtifactKind
+    source_path: str
+    destination_path: str
+    sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+
+class BuilderActivationManifest(BaseModel):
+    """Canonical evidence for one completed activation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    project_root: str
+    promotion_directory: str
+    activation_plan_file: str
+
+    files: list[BuilderActivationManifestFile] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_approval_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+    files_copied: Literal[True] = True
+    activation_performed: Literal[True] = True
+
+    post_activation_verified: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+    @field_validator("files")
+    @classmethod
+    def activated_files_must_be_unique(
+        cls,
+        files: list[BuilderActivationManifestFile],
+    ) -> list[BuilderActivationManifestFile]:
+        sources = [
+            item.source_path
+            for item in files
+        ]
+        destinations = [
+            item.destination_path
+            for item in files
+        ]
+
+        if len(sources) != len(set(sources)):
+            raise ValueError(
+                "Builder activation manifest sources "
+                "must be unique"
+            )
+
+        if len(destinations) != len(
+            set(destinations)
+        ):
+            raise ValueError(
+                "Builder activation manifest "
+                "destinations must be unique"
+            )
+
+        return files
+
+
+class BuilderActivationResult(BaseModel):
+    """Result of explicit transactional Builder activation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+
+    activation_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    activation_directory: str
+    activation_manifest: str
+    activated_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    human_approval_verified: Literal[True] = True
+    bundle_reverified: Literal[True] = True
+    files_copied: Literal[True] = True
+    activation_performed: Literal[True] = True
+
+    post_activation_verified: Literal[False] = False
+    registry_modified: Literal[False] = False
+    implementation_trusted: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

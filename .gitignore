@@ -74,6 +74,7 @@ skill-scaffolds/
 skill-candidates/
 skill-test-results/
 
+builder-activations/
 builder-generations/
 builder-candidates/
 builder-test-results/

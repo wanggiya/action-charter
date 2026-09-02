@@ -1166,6 +1166,28 @@ Completed controls:
 
 The real `builder-runner-integration-v1` bundle produced an immutable activation plan for two absent trusted-project destinations. No trusted-source mutation or activation has occurred.
 
+### Transactional Builder activation completed
+
+Approved immutable Builder activation plans can now install exact files into trusted project destinations.
+
+Completed controls:
+
+- require exact activation-decision ID and activation-plan SHA-256 confirmations;
+- securely reload canonical `ACTIVATION_PLAN.json`;
+- recreate and compare the complete activation plan before mutation;
+- refuse existing destinations and path escapes;
+- rehash every promoted source before staging;
+- stage files beside their final destinations and verify staged digests;
+- reverify the complete activation chain after staging;
+- atomically rename each staged file into its trusted destination;
+- verify every installed file before finalizing evidence;
+- roll back files created by a failed partial activation;
+- preserve pre-existing trusted files;
+- persist canonical `ACTIVATION.json` evidence in a digest-addressed directory;
+- keep registry modification, post-activation verification, implementation trust, and execution false.
+
+The real `builder-runner-integration-v1` activation installed its adapter and test with their exact approved SHA-256 values. The activated test and complete repository suite passed, but formal persisted post-activation verification remains a separate pending boundary.
+
 
 Planned:
 

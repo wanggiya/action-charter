@@ -33,6 +33,9 @@ from geoagent_harness.builder.schemas import (
     BuilderActivationFile,
     BuilderActivationPlan,
     BuilderActivationPlanStorageResult,
+    BuilderActivationManifestFile,
+    BuilderActivationManifest,
+    BuilderActivationResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -144,6 +147,10 @@ from geoagent_harness.builder.activation_plan_storage import (
     load_builder_activation_plan,
     persist_builder_activation_plan,
 )
+from geoagent_harness.builder.activation import (
+    BuilderActivationError,
+    activate_builder_bundle,
+)
 
 
 __all__ = [
@@ -243,4 +250,9 @@ __all__ = [
     "canonical_builder_activation_plan_json",
     "load_builder_activation_plan",
     "persist_builder_activation_plan",
+    "BuilderActivationManifestFile",
+    "BuilderActivationManifest",
+    "BuilderActivationResult",
+    "BuilderActivationError",
+    "activate_builder_bundle",
 ]
