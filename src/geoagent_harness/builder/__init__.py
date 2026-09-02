@@ -36,6 +36,8 @@ from geoagent_harness.builder.schemas import (
     BuilderActivationManifestFile,
     BuilderActivationManifest,
     BuilderActivationResult,
+    BuilderPostActivationVerificationResult,
+    BuilderPostActivationVerificationStorageResult,
 )
 from geoagent_harness.builder.agent import (
     BuilderAgentError,
@@ -151,6 +153,18 @@ from geoagent_harness.builder.activation import (
     BuilderActivationError,
     activate_builder_bundle,
 )
+from geoagent_harness.builder.post_activation_verification import (
+    BuilderPostActivationVerificationError,
+    canonical_builder_activation_manifest_json,
+    verify_builder_activation,
+)
+from geoagent_harness.builder.post_activation_verification_storage import (
+    BuilderPostActivationVerificationStorageError,
+    builder_trust_evidence_sha256,
+    canonical_builder_trust_evidence_json,
+    load_builder_trust_evidence,
+    persist_builder_trust_evidence,
+)
 
 
 __all__ = [
@@ -255,4 +269,14 @@ __all__ = [
     "BuilderActivationResult",
     "BuilderActivationError",
     "activate_builder_bundle",
+    "BuilderPostActivationVerificationResult",
+    "BuilderPostActivationVerificationError",
+    "canonical_builder_activation_manifest_json",
+    "verify_builder_activation",
+    "BuilderPostActivationVerificationStorageError",
+    "BuilderPostActivationVerificationStorageResult",
+    "builder_trust_evidence_sha256",
+    "canonical_builder_trust_evidence_json",
+    "load_builder_trust_evidence",
+    "persist_builder_trust_evidence",
 ]

@@ -1694,3 +1694,102 @@ class BuilderActivationResult(BaseModel):
     implementation_trusted: Literal[False] = False
     promotion_performed: Literal[True] = True
     execution_performed: Literal[False] = False
+
+class BuilderPostActivationVerificationResult(
+    BaseModel
+):
+    """Independent verification of activated Builder files."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+
+    verification_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_decision_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    promotion_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    activation_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    activation_directory: str
+    activation_manifest: str
+    activation_plan_file: str
+    project_root: str
+
+    verified_paths: list[str] = Field(
+        min_length=1,
+        max_length=MAX_BUILDER_FILES,
+    )
+
+    activation_manifest_canonical: Literal[
+        True
+    ] = True
+    activation_directory_identity_verified: Literal[
+        True
+    ] = True
+    activation_plan_bound: Literal[True] = True
+    upstream_evidence_verified: Literal[True] = True
+    exact_activated_file_set_verified: Literal[
+        True
+    ] = True
+    activated_file_digests_verified: Literal[
+        True
+    ] = True
+    activated_files_unchanged: Literal[True] = True
+
+    post_activation_verified: Literal[True] = True
+    trust_evidence_persisted: Literal[False] = False
+    implementation_trusted: Literal[True] = True
+
+    activation_performed: Literal[True] = True
+    files_copied: Literal[True] = True
+    registry_modified: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False
+
+class BuilderPostActivationVerificationStorageResult(
+    BaseModel
+):
+    """Result of immutable trust-evidence persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+
+    task_id: str
+    activation_decision_id: str
+
+    activation_plan_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    candidate_tree_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+    trust_evidence_sha256: str = Field(
+        pattern=r"^[a-f0-9]{64}$"
+    )
+
+    evidence_directory: str
+    evidence_file: str
+
+    post_activation_verified: Literal[True] = True
+    trust_evidence_persisted: Literal[True] = True
+    implementation_trusted: Literal[True] = True
+
+    activation_performed: Literal[True] = True
+    files_copied: Literal[True] = True
+    registry_modified: Literal[False] = False
+    promotion_performed: Literal[True] = True
+    execution_performed: Literal[False] = False

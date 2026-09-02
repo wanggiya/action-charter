@@ -80,6 +80,7 @@ builder-candidates/
 builder-test-results/
 builder-reviews/
 builder-decisions/
+builder-post-activation-verifications/
 builder-promotion-plans/
 builder-promotions/
 builder-promotion-verifications/
