@@ -182,6 +182,65 @@ def assess_spatial_data_contract_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+
+@app.command("assess-pilot-demo-readiness")
+def assess_pilot_demo_readiness_command(
+    definition_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Pilot demonstration definition beneath the project root."
+        ),
+    ] = Path("demonstrations/checkpoint14f/DEMO.json"),
+    project_root: Annotated[
+        Path,
+        typer.Option(
+            "--project-root",
+            help="Trusted clean-checkout project root.",
+        ),
+    ] = Path("."),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Verify the fixed pilot story without taking any action."""
+
+    from geoagent_harness.pilot_demo import (
+        PilotDemoError,
+        assess_pilot_demo_readiness,
+    )
+    from geoagent_harness.spatial_contracts import (
+        SpatialDataContractAssessmentError,
+        SpatialDataContractStorageError,
+    )
+
+    try:
+        result = assess_pilot_demo_readiness(
+            definition_file,
+            project_root=project_root,
+        )
+    except (
+        PilotDemoError,
+        SpatialDataContractAssessmentError,
+        SpatialDataContractStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+    if not result.repository_ready:
+        raise typer.Exit(code=1)
+
+
 @app.command("plan-convert-vector")
 def plan_convert_vector_command(
     path: Annotated[

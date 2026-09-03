@@ -1295,14 +1295,28 @@ Recipe-specific release assessment remains future work. The completed Checkpoint
 
 ### Checkpoint 14F — Pilot-ready demonstration
 
-Planned:
+Completed for the presentation-focused vector scope:
 
-* prepare fixed dirty-vector and controlled-raster scenarios;
-* demonstrate contract assessment, proposal, compilation, approval, execution and validation;
-* show correlated agent history and separate Critic evidence;
-* create and inspect a release package;
-* demonstrate Snakemake export, dry-run and approved replay;
-* provide a repeatable clean-checkout presentation walkthrough.
+* added a strict fixed demo definition and read-only readiness assessment;
+* bound the dirty case, clean control, spatial contract and workflow dataset
+  by deterministic identities and SHA-256;
+* demonstrated expected invalid-geometry rejection and a clean contract pass;
+* demonstrated constrained proposal, deterministic compilation, exact plan
+  approval, isolated Executor/MCP execution and 12 passing PostGIS checks;
+* recorded five validated correlation-scoped GIS operational events;
+* persisted a separate Critic result without changing authoritative status;
+* created and independently verified a six-component authoritative release;
+* exported an approved vector conversion to Snakemake, statically validated
+  it, completed an isolated dry-run without output and completed an approved
+  replay with deterministic validation and durable evidence;
+* added a clean-checkout readiness target and operator presentation
+  walkthrough;
+* passed 1,051 automated tests.
+
+The fixed presentation scope intentionally uses the completed vector contract
+benchmark. Controlled raster inspection exists, while raster contract fixtures
+remain deferred. Generated approvals, execution evidence and releases remain
+outside Git and must be recreated for each authoritative run.
 
 ### Checkpoint 15 — Expanded PostGIS workflows and controlled release
 

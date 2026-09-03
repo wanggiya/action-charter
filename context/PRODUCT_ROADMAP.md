@@ -386,3 +386,10 @@ request
 ```
 
 The prototype does not need to be a general-purpose GIS platform. It needs to prove that model-assisted GIS work can be constrained, inspected, approved, validated, reproduced, and released.
+
+Checkpoint 14F satisfies this presentation definition for one fixed vector
+scenario. The repository now includes deterministic readiness assessment and a
+clean-checkout walkthrough; the demonstrated run completed plan approval,
+PostGIS execution and validation, correlated history, separate Critic evidence,
+authoritative release inspection, and approved Snakemake replay. Broader
+raster contracts, production promotion and publication remain later work.

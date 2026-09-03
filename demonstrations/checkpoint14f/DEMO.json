@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "demo_id": "checkpoint14f-vector-release-v1",
+  "benchmark_manifest": "benchmarks/spatial-contracts/vector/BENCHMARK.json",
+  "contract_file": "benchmarks/spatial-contracts/vector/contract.yaml",
+  "data_root": "benchmarks/spatial-contracts/vector/data",
+  "dirty_case": {
+    "case_id": "invalid_geometry",
+    "dataset": "invalid_geometry.geojson",
+    "expected_failed_checks": ["invalid_geometry"]
+  },
+  "corrected_case": {
+    "case_id": "clean",
+    "dataset": "clean.geojson",
+    "expected_failed_checks": []
+  },
+  "workflow_dataset": "data/input/sample_points.geojson",
+  "request": "Inspect data/input/sample_points.geojson, load it into the new PostGIS table agent_sandbox.checkpoint14f_vector_release_v1, validate that exact layer deterministically, and generate the evidence report for task checkpoint14f-vector-release-v1. Do not overwrite any existing table and do not execute during proposal or review.",
+  "task_id": "checkpoint14f-vector-release-v1",
+  "release_id": "checkpoint14f-vector-release-v1",
+  "target_schema": "agent_sandbox",
+  "target_table": "checkpoint14f_vector_release_v1"
+}

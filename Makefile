@@ -15,6 +15,7 @@ SKILL_TEST_RECORD_FILE ?=
 .PHONY: skill-candidate-test-record
 .PHONY: builder-candidate-test
 .PHONY: builder-candidate-test-record
+.PHONY: checkpoint14f-readiness
 
 help:
 	@echo "make install     Install local development dependencies"
@@ -33,6 +34,7 @@ help:
 	@echo "make skill-candidate-test SKILL_CANDIDATE_DIR=<path>  Test one isolated generated skill candidate"
 	@echo "make builder-candidate-test BUILDER_CANDIDATE_DIR=<path>  Test one isolated Builder candidate"
 	@echo "make builder-candidate-test-record BUILDER_CANDIDATE_DIR=<path> BUILDER_TEST_RECORD_FILE=<path>  Save isolated Builder test evidence"
+	@echo "make checkpoint14f-readiness Regenerate and assess the fixed pilot demo"
 
 install:
 	python3 -m venv .venv
@@ -44,6 +46,12 @@ test:
 
 inspect:
 	.venv/bin/geoagent inspect-vector data/input/sample_points.geojson --pretty
+
+checkpoint14f-readiness:
+	.venv/bin/geoagent assess-pilot-demo-readiness \
+		demonstrations/checkpoint14f/DEMO.json \
+		--project-root . \
+		--pretty
 
 config:
 	docker compose --profile agents --profile tools config --quiet
