@@ -132,6 +132,8 @@ class ArtifactType(str, Enum):
     SKILL_CANDIDATE_PROMOTION_RESULT = (
         "skill_candidate_promotion_result"
     )
+    OPERATIONAL_EVENT = "operational_event"
+    OPERATIONAL_TIMELINE = "operational_timeline"
     
 
 

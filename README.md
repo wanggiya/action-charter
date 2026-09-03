@@ -1769,18 +1769,30 @@ Spatial contracts establish what a usable dataset means before a model proposes 
 
 ### Checkpoint 14D — Agent identity and operational history
 
-Planned:
+Status: complete
 
-- assign stable logical IDs to Planner, Builder, Executor and Critic roles;
-- generate unique instance, run, task and correlation IDs;
-- preserve parent-child relationships between proposal, approval, execution, validation and critique;
-- write append-only typed operational events;
-- record timestamps, component versions, artifact digests, status transitions and redacted failures;
-- keep secrets, unrestricted prompts and private chain-of-thought out of operational history;
-- support deterministic lookup of every event related to one workflow run.
+Implemented:
 
-Operational history should explain what happened, which component acted and which exact artifacts were used. It must not attempt to store hidden model reasoning.
+- stable logical role IDs for Planner, Executor, Critic, Builder, GIS, workflow-runner and harness components;
+- trusted generation of unique instance, run, task and correlation IDs;
+- explicit parent-run relationships across correlated workflow stages;
+- strict versioned Pydantic schemas for operational events and reconstructed timelines;
+- append-only correlation-scoped JSONL storage beneath an approved root;
+- per-agent contiguous sequences and SHA-256 predecessor chains;
+- bounded event lines and logs, file locking, `fsync`, path containment and symlink rejection;
+- timestamps, component versions, artifact digests, evidence references, status transitions and redacted failure codes;
+- trusted observers for validated Planner, Executor, GIS-workflow and Critic results;
+- separation of Critic assessment from authoritative deterministic workflow status;
+- central schema-registry support for operational events and timelines;
+- CLI commands for recording verified GIS evidence and inspecting correlated history;
+- deterministic timeline reconstruction with agent, run, failure and parent-child summaries;
+- explicit exclusion of credentials, secrets and private model reasoning.
 
+A real current-schema GIS workflow produced and independently reloaded a four-event SHA-256-chained history. Because that direct workflow did not include a plan or approval, its successful GIS validation was correctly recorded with the terminal status `incomplete_evidence` rather than being overstated as authoritative success.
+
+Planner, Executor and Critic observers are exercised through validated typed results without granting their containers filesystem-write access. The complete live four-role presentation flow remains part of Checkpoint 14F; it will use these trusted observer boundaries rather than allowing model containers to write their own history.
+
+Operational history records observable facts and cryptographic identities. It does not store unrestricted prompts, credentials or hidden chain-of-thought.
 ### Checkpoint 14E — Authoritative results and release packages
 
 Planned:

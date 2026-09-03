@@ -1239,14 +1239,26 @@ Planned:
 
 ### Checkpoint 14D — Agent identity and operational history
 
-Planned:
+Status: complete
 
-* assign stable role IDs and unique instance, run, task and correlation IDs;
-* preserve parent-child relationships across workflow stages;
-* write append-only typed operational events;
-* record status transitions, versions, digests and redacted failures;
-* exclude credentials, secrets and private model reasoning.
+Implemented:
 
+* stable role identities for Planner, Executor, Critic, Builder, GIS, workflow-runner and harness components;
+* trusted generation of unique instance, run, task and correlation IDs;
+* explicit parent-run relationships across correlated stages;
+* strict versioned operational-event and timeline schemas;
+* append-only correlation-scoped JSONL storage;
+* contiguous per-agent sequences and SHA-256 predecessor chains;
+* bounded storage, file locking, durable append, approved-root containment and symlink rejection;
+* status, timestamp, version, artifact-digest, evidence-reference and redacted-failure facts;
+* trusted observers for validated Planner, Executor, GIS-workflow and Critic results;
+* deterministic correlated timeline reconstruction and inspection;
+* central schema-registry integration;
+* exclusion of credentials, secrets and private model reasoning.
+
+The real Checkpoint 14D GIS demonstration generated four validated events and reloaded them through the independent history reader. The source workflow passed GIS validation but lacked plan and approval evidence, so the observer correctly recorded `incomplete_evidence` as its terminal status.
+
+Model-agent containers retain their existing read-only permissions. Trusted callers derive operational facts from validated results and evidence; agents do not self-author their history. A complete live Planner-to-Executor-to-GIS-to-Critic correlation will be exercised by the Checkpoint 14F presentation workflow.
 ### Checkpoint 14E — Authoritative results and release packages
 
 Planned:
