@@ -2150,3 +2150,28 @@ regenerated with:
 
 Raster contract rules and raster benchmark fixtures remain deferred until
 after the presentation-focused vector scope.
+
+## Pilot-ready demonstration
+
+Checkpoint 14F connects the presentation-critical boundaries into one fixed,
+repeatable story. Start from a clean checkout with:
+
+```bash
+make checkpoint14f-readiness
+```
+
+The command assesses the checked-in bounded dirty-vector fixtures, verifies
+the invalid-geometry failure and clean control, and binds the approved
+workflow input by SHA-256 without calling a model, creating approval or
+execution authority, modifying files or a database, or creating a release.
+
+The complete operator sequence is documented in
+`demonstrations/checkpoint14f/README.md`. It covers constrained proposal,
+deterministic compilation, exact human approval, isolated execution,
+PostGIS validation, correlated operational history, separate Critic evidence,
+authoritative release creation and inspection, plus Snakemake static
+validation, dry-run and approved replay.
+
+Generated operational evidence is excluded from Git. The repository contains
+the fixed definition, benchmark contract, walkthrough and validation code—not
+credentials, approvals, mutable outputs or claims copied from an earlier run.
