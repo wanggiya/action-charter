@@ -38,6 +38,11 @@ CONTEXT_FILES = (
 
 MAX_FILE_BYTES = 128_000
 MAX_DECISIONS = 8
+MAX_CURRENT_STATUS_CHARACTERS = 16_000
+
+CURRENT_STATUS_TRUNCATION_MARKER = (
+    "\n\n[... context/CURRENT_STATUS.md truncated for model context ...]\n\n"
+)
 
 SECURITY_DECISIONS = {
     "D-001",
@@ -50,6 +55,26 @@ SECURITY_DECISIONS = {
 
 class ContextPackError(RuntimeError):
     """Raised when trusted context cannot be loaded safely."""
+
+
+def _bound_current_status(value: str) -> tuple[str, bool]:
+    """Preserve the overview and latest status within a fixed bound."""
+
+    if len(value) <= MAX_CURRENT_STATUS_CHARACTERS:
+        return value, False
+
+    available = (
+        MAX_CURRENT_STATUS_CHARACTERS
+        - len(CURRENT_STATUS_TRUNCATION_MARKER)
+    )
+    head_size = available // 2
+    tail_size = available - head_size
+    return (
+        value[:head_size]
+        + CURRENT_STATUS_TRUNCATION_MARKER
+        + value[-tail_size:],
+        True,
+    )
 
 
 def _read_trusted_file(
@@ -253,6 +278,16 @@ def build_context_pack(
 
     request_tokens = _tokens(clean_request)
 
+    current_status, status_truncated = _bound_current_status(
+        redact_text(contents["context/CURRENT_STATUS.md"])
+    )
+    warnings: list[str] = []
+    if status_truncated:
+        warnings.append(
+            "context/CURRENT_STATUS.md was truncated to "
+            f"{MAX_CURRENT_STATUS_CHARACTERS} characters for model context"
+        )
+
     return TaskContextPack(
         original_request=clean_request,
         project_summary=redact_text(
@@ -261,9 +296,7 @@ def build_context_pack(
         architecture=redact_text(
             contents["context/ARCHITECTURE.md"]
         ),
-        current_status=redact_text(
-            contents["context/CURRENT_STATUS.md"]
-        ),
+        current_status=current_status,
         datasets=_load_datasets(
             contents["context/DATASET_CATALOG.json"],
             request_tokens,
@@ -277,4 +310,5 @@ def build_context_pack(
             request_tokens,
         ),
         context_references=references,
+        warnings=warnings,
     )

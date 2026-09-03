@@ -93,3 +93,5 @@ recipe-proposals.local/
 !data/input/sample_dem.tif
 
 operational-history/
+critic-results/
+/releases/

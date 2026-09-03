@@ -1690,6 +1690,377 @@ def critique_task_command(
     if result.deterministic_status != "validated_success":
         raise typer.Exit(code=1)
 
+
+@app.command("record-critic-result")
+def record_critic_result_command(
+    trace_path: Annotated[
+        Path,
+        typer.Argument(
+            help="JSON trace beneath the approved trace root.",
+        ),
+    ],
+    report_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Markdown report beneath the approved report root.",
+        ),
+    ],
+    trace_root: Annotated[
+        Path,
+        typer.Option("--trace-root"),
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path,
+        typer.Option("--report-root"),
+    ] = Path("reports"),
+    agents_root: Annotated[
+        Path,
+        typer.Option("--agents-root"),
+    ] = Path("agents"),
+    record_root: Annotated[
+        Path,
+        typer.Option(
+            "--record-root",
+            help="Immutable Critic-result package root.",
+        ),
+    ] = Path("critic-results"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Critique verified evidence and persist a separate result."""
+
+    from datetime import timezone
+
+    from geoagent_harness.critic import (
+        CriticAgentError,
+        CriticEvidenceError,
+        CriticResultRecordError,
+        CriticResultStorageError,
+        build_critic_result_record,
+        critique_task,
+        persist_critic_result_record,
+    )
+    from geoagent_harness.model import (
+        ModelClientError,
+        ModelSettingsError,
+    )
+
+    try:
+        result = critique_task(
+            trace_path=trace_path,
+            report_path=report_path,
+            trace_root=trace_root,
+            report_root=report_root,
+            agents_root=agents_root,
+        )
+        record = build_critic_result_record(
+            result=result,
+            recorded_at=datetime.now(timezone.utc),
+        )
+        stored = persist_critic_result_record(
+            record,
+            record_root=record_root,
+        )
+    except KeyboardInterrupt as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.CRITIQUE,
+        )
+    except ModelClientError as exc:
+        _raise_typed_failure(
+            exc,
+            stage=FailureStage.MODEL,
+        )
+    except (
+        CriticAgentError,
+        CriticEvidenceError,
+        CriticResultRecordError,
+        CriticResultStorageError,
+        ModelSettingsError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(
+            f"Error: {exc}",
+            err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            stored.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(
+                None if pretty else (",", ":")
+            ),
+        )
+    )
+
+
+@app.command("assess-workflow-release")
+def assess_workflow_release_command(
+    release_id: Annotated[
+        str,
+        typer.Argument(help="Stable release-candidate ID."),
+    ],
+    trace_file: Annotated[
+        Path,
+        typer.Argument(help="Workflow trace beneath its approved root."),
+    ],
+    report_file: Annotated[
+        Path,
+        typer.Argument(help="Workflow report beneath its approved root."),
+    ],
+    critic_record_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable CRITIC_RESULT.json beneath its root."
+        ),
+    ],
+    history_file: Annotated[
+        Path,
+        typer.Argument(help="Operational JSONL beneath its approved root."),
+    ],
+    trace_root: Annotated[
+        Path,
+        typer.Option("--trace-root"),
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path,
+        typer.Option("--report-root"),
+    ] = Path("reports"),
+    critic_root: Annotated[
+        Path,
+        typer.Option("--critic-root"),
+    ] = Path("critic-results"),
+    history_root: Annotated[
+        Path,
+        typer.Option("--history-root"),
+    ] = Path("operational-history"),
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root"),
+    ] = Path("."),
+    plan_file: Annotated[
+        Path | None,
+        typer.Option("--plan-file"),
+    ] = None,
+    plan_root: Annotated[
+        Path,
+        typer.Option("--plan-root"),
+    ] = Path("plans"),
+    approval_file: Annotated[
+        Path | None,
+        typer.Option("--approval-file"),
+    ] = None,
+    approval_root: Annotated[
+        Path,
+        typer.Option("--approval-root"),
+    ] = Path("approvals"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Assess exact workflow evidence without creating a release."""
+
+    from datetime import timezone
+
+    from geoagent_harness.releases import (
+        ReleaseAssessmentError,
+        assess_workflow_release_candidate,
+        authoritative_release_candidate_sha256,
+    )
+
+    try:
+        candidate = assess_workflow_release_candidate(
+            release_id=release_id,
+            trace_file=trace_file,
+            report_file=report_file,
+            critic_record_file=critic_record_file,
+            history_file=history_file,
+            trace_root=trace_root,
+            report_root=report_root,
+            critic_root=critic_root,
+            history_root=history_root,
+            project_root=project_root,
+            assessed_at=datetime.now(timezone.utc),
+            plan_file=plan_file,
+            plan_root=plan_root,
+            approval_file=approval_file,
+            approval_root=approval_root,
+        )
+        payload = {
+            "candidate_sha256": (
+                authoritative_release_candidate_sha256(candidate)
+            ),
+            "candidate": candidate.model_dump(mode="json"),
+        }
+    except (
+        ReleaseAssessmentError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            payload,
+            indent=2 if pretty else None,
+            separators=(None if pretty else (",", ":")),
+        )
+    )
+
+
+@app.command("create-workflow-release")
+def create_workflow_release_command(
+    release_id: Annotated[
+        str,
+        typer.Argument(help="Stable authoritative release ID."),
+    ],
+    trace_file: Annotated[Path, typer.Argument()],
+    report_file: Annotated[Path, typer.Argument()],
+    critic_record_file: Annotated[Path, typer.Argument()],
+    history_file: Annotated[Path, typer.Argument()],
+    trace_root: Annotated[
+        Path, typer.Option("--trace-root")
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path, typer.Option("--report-root")
+    ] = Path("reports"),
+    critic_root: Annotated[
+        Path, typer.Option("--critic-root")
+    ] = Path("critic-results"),
+    history_root: Annotated[
+        Path, typer.Option("--history-root")
+    ] = Path("operational-history"),
+    project_root: Annotated[
+        Path, typer.Option("--project-root")
+    ] = Path("."),
+    plan_file: Annotated[
+        Path | None, typer.Option("--plan-file")
+    ] = None,
+    plan_root: Annotated[
+        Path, typer.Option("--plan-root")
+    ] = Path("plans"),
+    approval_file: Annotated[
+        Path | None, typer.Option("--approval-file")
+    ] = None,
+    approval_root: Annotated[
+        Path, typer.Option("--approval-root")
+    ] = Path("approvals"),
+    release_root: Annotated[
+        Path, typer.Option("--release-root")
+    ] = Path("releases"),
+    pretty: Annotated[
+        bool, typer.Option("--pretty")
+    ] = False,
+) -> None:
+    """Create one immutable release from reverified workflow evidence."""
+
+    from datetime import timezone
+
+    from geoagent_harness.releases import (
+        AuthoritativeReleaseStorageError,
+        ReleaseAssessmentError,
+        assess_workflow_release_candidate,
+        persist_authoritative_release,
+    )
+
+    now = datetime.now(timezone.utc)
+    try:
+        candidate = assess_workflow_release_candidate(
+            release_id=release_id,
+            trace_file=trace_file,
+            report_file=report_file,
+            critic_record_file=critic_record_file,
+            history_file=history_file,
+            trace_root=trace_root,
+            report_root=report_root,
+            critic_root=critic_root,
+            history_root=history_root,
+            project_root=project_root,
+            assessed_at=now,
+            plan_file=plan_file,
+            plan_root=plan_root,
+            approval_file=approval_file,
+            approval_root=approval_root,
+        )
+        result = persist_authoritative_release(
+            candidate,
+            project_root=project_root,
+            release_root=release_root,
+            released_at=now,
+        )
+    except (
+        ReleaseAssessmentError,
+        AuthoritativeReleaseStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(None if pretty else (",", ":")),
+        )
+    )
+
+
+@app.command("inspect-authoritative-release")
+def inspect_authoritative_release_command(
+    manifest_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Immutable RELEASE.json beneath its approved root."
+        ),
+    ],
+    release_root: Annotated[
+        Path,
+        typer.Option(
+            "--release-root",
+            help="Approved immutable release-package root.",
+        ),
+    ] = Path("releases"),
+    pretty: Annotated[
+        bool, typer.Option("--pretty")
+    ] = False,
+) -> None:
+    """Independently verify one immutable authoritative release."""
+
+    from geoagent_harness.releases import (
+        AuthoritativeReleaseStorageError,
+        inspect_authoritative_release,
+    )
+
+    try:
+        result = inspect_authoritative_release(
+            manifest_file,
+            release_root=release_root,
+        )
+    except (
+        AuthoritativeReleaseStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=(None if pretty else (",", ":")),
+        )
+    )
+
+
 @app.command("recipe-template-catalog")
 def recipe_template_catalog_command(
     project_root: Annotated[
