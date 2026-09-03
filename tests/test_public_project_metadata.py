@@ -48,3 +48,15 @@ def test_readme_documents_legacy_compatibility_names() -> None:
     assert "`geoagent_harness`" in readme
     assert "`geoagent`" in readme
     assert "GIS" in readme
+
+
+def test_container_builds_include_declared_license_file() -> None:
+    for relative_path in (
+        "docker/agent/Dockerfile",
+        "docker/gis-tools/Dockerfile",
+        "docker/skill-test-runner/Dockerfile",
+        "docker/workflow-runner/Dockerfile",
+    ):
+        dockerfile = (ROOT / relative_path).read_text()
+
+        assert "COPY pyproject.toml README.md LICENSE ./" in dockerfile

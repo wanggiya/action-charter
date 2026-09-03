@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 
 RUN python -m pip install \
@@ -30,4 +30,3 @@ WORKDIR /workspace/snakemake-exports
 
 ENTRYPOINT ["snakemake"]
 CMD ["--help"]
-
