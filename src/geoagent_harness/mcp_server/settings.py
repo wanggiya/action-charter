@@ -48,6 +48,7 @@ class MCPSettings(BaseModel):
 
     input_root: Path
     output_root: Path
+    contract_root: Path = Path("spatial-contracts")
     trace_root: Path = Path("traces")
     report_root: Path = Path("reports")
     plan_root: Path = Path("plans")
@@ -142,6 +143,12 @@ def load_settings(
             source.get(
                 "GEOAGENT_OUTPUT_ROOT",
                 "data/output",
+            )
+        ),
+        contract_root=Path(
+            source.get(
+                "GEOAGENT_SPATIAL_CONTRACT_ROOT",
+                "spatial-contracts",
             )
         ),
         trace_root=Path(

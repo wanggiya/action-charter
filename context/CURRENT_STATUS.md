@@ -1,6 +1,6 @@
 # Current Status
 
-Last updated: 2026-08-21
+Last updated: 2026-09-03
 
 ## Project summary
 
@@ -1365,3 +1365,31 @@ versioned skill definition
 This pipeline reduces repetitive skill boilerplate while preserving the rule that declarative input and generated code cannot directly grant themselves execution authority.
 
 The project currently demonstrates a secure and reproducible architecture for local-model-assisted geospatial automation. It does not yet provide a complete general-purpose GIS platform, but its main planning, approval, execution, validation and evidence boundaries are working.
+
+
+### Checkpoint 14C vector presentation scope completed
+
+The presentation-required vector portion of spatial-data contracts is now
+implemented.
+
+Completed controls:
+
+* added strict versioned vector-contract schemas;
+* added bounded JSON and YAML loading beneath a separate approved root;
+* added canonical contract JSON and SHA-256 identity;
+* added deterministic CRS, geometry, schema, nullability, uniqueness,
+  feature-count, geometry-quality and extent checks;
+* hashed each physical dataset before and after assessment;
+* rejected path escapes, symlinks, ambiguous multilayer inputs and changed
+  datasets;
+* added typed checks and violations with validation-derived pass status;
+* added operator CLI and read-only MCP access;
+* kept all agent manifests unchanged and granted no new execution authority;
+* added a generated dirty-vector benchmark with one clean and twelve failing
+  cases;
+* demonstrated a clean pass and isolated invalid-geometry failure;
+* passed 969 automated tests.
+
+Assessment performs no filesystem or database mutation and does not execute a
+workflow. Raster contracts and raster dirty-data fixtures remain deferred by
+the presentation scope of the product roadmap.

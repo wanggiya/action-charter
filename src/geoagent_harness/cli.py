@@ -119,6 +119,69 @@ def inspect_vector_command(
         )
     )
 
+
+@app.command("assess-spatial-data-contract")
+def assess_spatial_data_contract_command(
+    path: Annotated[
+        Path,
+        typer.Argument(help="Vector dataset beneath the approved input root."),
+    ],
+    contract_file: Annotated[
+        Path,
+        typer.Argument(help="JSON or YAML spatial-data contract."),
+    ],
+    input_root: Annotated[
+        Path,
+        typer.Option("--input-root"),
+    ] = Path("data/input"),
+    contract_root: Annotated[
+        Path,
+        typer.Option("--contract-root"),
+    ] = Path("spatial-contracts"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Deterministically assess a vector dataset without mutation."""
+
+    from geoagent_harness.spatial_contracts import (
+        SpatialDataContractAssessmentError,
+        SpatialDataContractStorageError,
+        assess_spatial_data_contract,
+        load_spatial_data_contract,
+    )
+
+    try:
+        contract = load_spatial_data_contract(
+            contract_file,
+            contract_root=contract_root,
+        )
+        result = assess_spatial_data_contract(
+            path=path,
+            contract=contract,
+            input_root=input_root,
+        )
+    except (
+        SpatialDataContractAssessmentError,
+        SpatialDataContractStorageError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            result.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+    if not result.passed:
+        raise typer.Exit(code=1)
+
 @app.command("plan-convert-vector")
 def plan_convert_vector_command(
     path: Annotated[

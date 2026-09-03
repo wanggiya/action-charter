@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from geoagent_harness.mcp_server.schemas import (
+    AssessSpatialDataContractToolResult,
     HealthCheckResult,
     InspectVectorToolResult,
     LoadVectorPlan,
@@ -14,6 +15,10 @@ from geoagent_harness.mcp_server.settings import (
 )
 from geoagent_harness.skills.inspect_vector.service import (
     inspect_vector,
+)
+from geoagent_harness.spatial_contracts import (
+    assess_spatial_data_contract as execute_contract_assessment,
+    load_spatial_data_contract,
 )
 from geoagent_harness.skills.load_vector_to_postgis.service import (
     LoadVectorResult,
@@ -27,6 +32,7 @@ from geoagent_harness.verifier.postgis import (
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
+    "assess_spatial_data_contract",
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
@@ -61,6 +67,29 @@ def inspect_vector_dataset(
     )
 
     return InspectVectorToolResult(result=result)
+
+
+
+def assess_spatial_data_contract(
+    path: str,
+    contract_file: str,
+    settings: MCPSettings | None = None,
+) -> AssessSpatialDataContractToolResult:
+    """Assess one approved vector dataset against one contract."""
+
+    active = settings or load_settings()
+    contract = load_spatial_data_contract(
+        Path(contract_file),
+        contract_root=active.contract_root,
+    )
+    assessment = execute_contract_assessment(
+        path=Path(path),
+        contract=contract,
+        input_root=active.input_root,
+    )
+    return AssessSpatialDataContractToolResult(
+        result=assessment
+    )
 
 
 def plan_load_vector_to_postgis(

@@ -2084,3 +2084,42 @@ make snakemake-dry-run \
 The generated Snakefile contains no shell rule. It calls one trusted adapter that revalidates the export and exact approval before using the existing Executor-to-MCP boundary. Real replay requires an explicit operator procedure that temporarily enables MCP writes and restores the disabled default afterward.
 
 Be sure both nested code blocks are closed correctly.
+
+
+## Vector spatial data contracts and dirty-data benchmark
+
+GeoAgent can deterministically assess an approved vector dataset against a
+versioned JSON or YAML spatial-data contract:
+
+```bash
+geoagent assess-spatial-data-contract   clean.geojson   contract.yaml   --input-root benchmarks/spatial-contracts/vector/data   --contract-root benchmarks/spatial-contracts/vector   --pretty
+```
+
+The contract can constrain CRS, geometry types, mixed geometry, required
+fields and logical field types, null fractions, unique keys, feature-count
+bounds, invalid, empty, null and duplicate geometry counts, and expected or
+permitted extent.
+
+Every assessment contains canonical contract and physical-dataset SHA-256
+identities, typed deterministic checks, violations, before-and-after dataset
+digests, and explicit false filesystem-modification, database-modification
+and execution claims. A contract violation produces structured JSON and exit
+code 1; unsafe or unreadable inputs produce exit code 2.
+
+The same operation is exposed as the read-only MCP tool
+`assess_spatial_data_contract`. Contract files have a separate approved root
+mounted read-only in the GIS service. Planner, Executor, Critic and Builder
+manifests receive no additional tool authority.
+
+The checked-in dirty-vector benchmark provides a clean control and cases for
+wrong or missing CRS, invalid or null geometry, duplicate identifiers,
+missing fields, incorrect field types, unexpected extent, empty data, mixed
+geometry, duplicate geometry and excessive attribute nulls. Fixtures can be
+regenerated with:
+
+```bash
+.venv/bin/python scripts/generate_spatial_contract_benchmark.py
+```
+
+Raster contract rules and raster benchmark fixtures remain deferred until
+after the presentation-focused vector scope.

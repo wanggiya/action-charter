@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "benchmark_id": "dirty-vector-v1",
+  "contract_file": "contract.yaml",
+  "cases": [
+    {"id": "clean", "dataset": "clean.geojson", "expected_failed_checks": []},
+    {"id": "wrong_crs", "dataset": "wrong_crs.geojson", "expected_failed_checks": ["crs"]},
+    {"id": "missing_crs", "dataset": "missing_crs.shp", "expected_failed_checks": ["crs"]},
+    {"id": "invalid_geometry", "dataset": "invalid_geometry.geojson", "expected_failed_checks": ["invalid_geometry"]},
+    {"id": "null_geometry", "dataset": "null_geometry.geojson", "expected_failed_checks": ["null_geometry"]},
+    {"id": "duplicate_identifiers", "dataset": "duplicate_identifiers.geojson", "expected_failed_checks": ["unique_key:feature_id"]},
+    {"id": "missing_fields", "dataset": "missing_fields.geojson", "expected_failed_checks": ["required_field:name"]},
+    {"id": "incorrect_field_types", "dataset": "incorrect_field_types.geojson", "expected_failed_checks": ["field_type:feature_id"]},
+    {"id": "unexpected_extent", "dataset": "unexpected_extent.geojson", "expected_failed_checks": ["permitted_extent"]},
+    {"id": "empty_data", "dataset": "empty_data.gpkg", "expected_failed_checks": ["feature_count", "permitted_extent"]},
+    {"id": "mixed_geometry", "dataset": "mixed_geometry.geojson", "expected_failed_checks": ["mixed_geometry"]},
+    {"id": "duplicate_geometry", "dataset": "duplicate_geometry.geojson", "expected_failed_checks": ["duplicate_geometry"]},
+    {"id": "null_attribute", "dataset": "null_attribute.geojson", "expected_failed_checks": ["null_fraction:name"]}
+  ]
+}
