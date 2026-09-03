@@ -4,7 +4,7 @@ Last updated: 2026-09-03
 
 ## Project summary
 
-GeoAgent Skill Harness is a CLI-first, local-first, containerized system for planning, approving, executing, validating and auditing controlled geospatial workflows.
+ActionCharter is a CLI-first, local-first governed execution harness for AI agents using professional tools. Its current reference implementation plans, approves, executes, validates and audits controlled geospatial workflows.
 
 The current system combines:
 

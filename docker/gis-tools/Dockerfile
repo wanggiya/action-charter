@@ -6,7 +6,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 # RUN python3 -m pip install --break-system-packages --no-cache-dir ".[gis]"
 RUN python3 -m pip install \
@@ -16,4 +16,3 @@ RUN python3 -m pip install \
 RUN useradd --create-home --uid 10001 geoagent
 USER geoagent
 WORKDIR /workspace
-

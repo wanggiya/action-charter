@@ -1,4 +1,3 @@
-"""GeoAgent Skill Harness."""
+"""ActionCharter compatibility package for governed agent execution."""
 
 __version__ = "0.1.0"
-

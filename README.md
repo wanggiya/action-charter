@@ -1,15 +1,32 @@
-# GeoAgent Skill Harness
+# ActionCharter
 
-GeoAgent Skill Harness is a CLI-first, local-first, containerized platform for planning controlled geospatial workflows, executing allowlisted GIS operations, deterministically validating results, and recording reproducible reports and traces.
+**A governed execution harness for AI agents using professional tools.**
+
+ActionCharter turns uncertain model proposals into explicitly scoped,
+human-approved and independently verifiable work. Models may interpret a
+request and propose an action charter; deterministic software controls what
+can execute, which evidence is authoritative and whether a result may be
+released.
+
+The current reference implementation applies this architecture to geospatial
+data with GeoPandas, GDAL, rasterio and PostGIS. The control plane is designed
+to support additional professional-tool domains without granting models broad
+shell, credential, database or filesystem authority.
 
 The prototype runs under Ubuntu WSL with Docker Desktop. It uses one shared local Ollama/Qwen runtime instead of placing a large model inside every agent container.
 
+> **Compatibility:** the initial `0.1.x` releases retain the
+> `geoagent_harness` Python import package and the `geoagent` and
+> `geoagent-mcp` commands. These are stable compatibility interfaces, not the
+> public product name.
+
 ## Current status
 
-Checkpoints 1–10 are complete. The project includes the original
-vector-to-PostGIS vertical slice, controlled vector conversion,
-reusable approval-gated recipes, durable execution evidence,
-natural-language recipe proposals, and guided operator review.
+Checkpoints 1–14F are complete. The project includes controlled vector and
+raster operations, spatial-data contracts, approval-gated recipes, isolated
+Builder candidate testing and promotion, correlated operational history,
+immutable Critic records, authoritative release packages, Snakemake replay,
+and a repeatable pilot demonstration.
 
 The implemented workflow is:
 
@@ -55,18 +72,23 @@ The system does not allow an LLM to determine whether execution succeeded. Final
 - deterministic Critic evidence packs;
 - schema-constrained Critic Agent;
 - independent read-only Critic container;
+- versioned spatial-data contracts and dirty-vector benchmarks;
+- isolated generation, testing, review, promotion and activation boundaries;
+- append-only, correlation-scoped operational history;
+- immutable digest-addressed Critic result records;
+- validated authoritative release packages and independent inspection;
+- approval-gated Snakemake export, dry-run and replay;
+- a repository-owned pilot-readiness definition and walkthrough;
 - secret-free GitHub-hosted Python tests;
 - independent GitHub container builds.
 
 Not yet implemented:
 
-- raster workflows;
-- generic recipe dispatch for every registered skill;
 - automatic retry and automatic workflow resumption;
 - task queues and scheduling;
 - real artifact-schema migrations;
-- skill scaffolding and generated contract tests;
-- Snakemake export and replay;
+- recipe-specific authoritative release assessment;
+- raster spatial-data contract fixtures;
 - GeoServer publication;
 - production authentication;
 - multi-user deployment;
@@ -390,7 +412,7 @@ sudo chmod 2775 data/output
 ## Repository structure
 
 ```text
-geoagent-skill-harness/
+action-charter/
 ├── .github/
 │   └── workflows/
 │       ├── test.yaml
@@ -515,7 +537,7 @@ sudo apt install -y \
 Keep the repository in the WSL Linux filesystem:
 
 ```text
-~/projects/geoagent-skill-harness
+~/projects/action-charter
 ```
 
 Using the Linux filesystem generally performs better and avoids Windows-mounted filesystem permission differences.
@@ -1975,11 +1997,29 @@ When extending the project:
 - avoid adding broad capabilities merely for convenience;
 - prefer small, tested vertical checkpoints.
 
+## Project identity and compatibility
+
+ActionCharter is the public project and Python distribution name. The
+geospatial implementation established the original compatibility surfaces,
+so `geoagent_harness`, `geoagent`, `geoagent-mcp`, existing evidence fields,
+and existing Compose service names remain unchanged in `0.1.x`.
+
+Future domain adapters should reuse the authorization, policy, evidence and
+release boundaries rather than treating GIS-specific dependencies as part of
+the core architecture.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. Security
+issues, exposed credentials and private-data incidents must follow
+[SECURITY.md](SECURITY.md), not a public issue.
+
 ## License
 
-A license has not yet been selected.
+Copyright 2026 Jay Qi.
 
-Before accepting external contributions or distributing the project broadly, add an explicit open-source or proprietary license.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
 
 
 ### GIS skill scaffolding

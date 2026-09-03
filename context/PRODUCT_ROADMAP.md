@@ -1,10 +1,10 @@
-# GeoAgent Product Roadmap
+# ActionCharter Product Roadmap
 
 Updated: 2026-08-26
 
 ## Product direction
 
-GeoAgent is a local-first, approval-gated geospatial automation and release system. A local model may interpret a request and propose a constrained workflow, but deterministic policy, typed schemas, human approval, trusted adapters, independent validation, evidence, and reproducible replay determine what becomes authoritative.
+ActionCharter is a local-first, approval-gated execution and release system for AI agents using professional tools. A local model may interpret a request and propose a constrained workflow, but deterministic policy, typed schemas, human approval, trusted adapters, independent validation, evidence, and reproducible replay determine what becomes authoritative. GIS is the first complete reference domain, not the architectural limit.
 
 The project should not compete by exposing the largest number of MCP tools. Its differentiation is the controlled path from an uncertain request and imperfect spatial data to a validated, auditable, reproducible spatial-data product.
 
@@ -40,7 +40,7 @@ dirty spatial input
 
 The main message is:
 
-> GeoAgent does not require users to trust an LLM with GIS infrastructure. It uses the model for constrained interpretation and proposal, while deterministic software controls authority, execution, validation, evidence, and release.
+> ActionCharter does not require users to trust an LLM with professional infrastructure. It uses the model for constrained interpretation and proposal, while deterministic software controls authority, execution, validation, evidence, and release.
 
 ## Checkpoint 14B — Isolated Builder agent
 

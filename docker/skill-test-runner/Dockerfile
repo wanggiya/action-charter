@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 COPY docker/skill-test-runner/run_candidate_tests.py \
     /app/run_candidate_tests.py
@@ -36,4 +36,3 @@ USER geoagent
 ENTRYPOINT ["python", "/app/run_candidate_tests.py"]
 
 CMD ["/candidate/tests", "-q", "--disable-warnings", "-p", "no:cacheprovider"]
-

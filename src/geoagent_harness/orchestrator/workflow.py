@@ -81,8 +81,8 @@ def _package_version(package: str) -> str:
 def _versions(settings: MCPSettings) -> dict[str, str]:
     return {
         "python": platform.python_version(),
-        "geoagent-skill-harness": _package_version(
-            "geoagent-skill-harness"
+        "actioncharter": _package_version(
+            "actioncharter"
         ),
         "geopandas": _package_version("geopandas"),
         "psycopg": _package_version("psycopg"),
