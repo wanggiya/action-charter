@@ -6150,5 +6150,184 @@ def create_builder_trust_evidence_command(
         )
     )
 
+@app.command("record-gis-operational-history")
+def record_gis_operational_history_command(
+    trace_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Validated workflow trace JSON file.",
+        ),
+    ],
+    report_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Validated workflow Markdown report.",
+        ),
+    ],
+    task_id: Annotated[
+        str,
+        typer.Option(
+            "--task-id",
+            help="Exact task identity observed by the caller.",
+        ),
+    ],
+    correlation_id: Annotated[
+        str,
+        typer.Option(
+            "--correlation-id",
+            help="Correlation identity shared across agent runs.",
+        ),
+    ],
+    agent_instance_id: Annotated[
+        str,
+        typer.Option(
+            "--agent-instance-id",
+            help="Identity of the observed GIS service instance.",
+        ),
+    ],
+    agent_run_id: Annotated[
+        str,
+        typer.Option(
+            "--agent-run-id",
+            help="Unique identity of the observed GIS invocation.",
+        ),
+    ],
+    parent_run_id: Annotated[
+        str | None,
+        typer.Option(
+            "--parent-run-id",
+            help="Optional parent Executor run identity.",
+        ),
+    ] = None,
+    trace_root: Annotated[
+        Path,
+        typer.Option("--trace-root"),
+    ] = Path("traces"),
+    report_root: Annotated[
+        Path,
+        typer.Option("--report-root"),
+    ] = Path("reports"),
+    event_root: Annotated[
+        Path,
+        typer.Option("--event-root"),
+    ] = Path("operational-history"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Derive one GIS run history from verified evidence."""
+
+    from geoagent_harness.operational_history import (
+        AgentRole,
+        OperationalHistoryError,
+        OperationalIdentity,
+        build_operational_timeline,
+        load_operational_events,
+        operational_event_log_path,
+        record_gis_workflow_history,
+    )
+
+    try:
+        identity = OperationalIdentity(
+            agent_id=AgentRole.GIS,
+            agent_instance_id=agent_instance_id,
+            agent_run_id=agent_run_id,
+            task_id=task_id,
+            correlation_id=correlation_id,
+            parent_run_id=parent_run_id,
+        )
+        recorded = record_gis_workflow_history(
+            trace_path=trace_path,
+            report_path=report_path,
+            trace_root=trace_root,
+            report_root=report_root,
+            event_root=event_root,
+            identity=identity,
+        )
+        event_file = operational_event_log_path(
+            event_root=event_root,
+            correlation_id=correlation_id,
+        )
+        all_events = load_operational_events(
+            event_file,
+            event_root=event_root,
+        )
+        timeline = build_operational_timeline(
+            all_events
+        )
+    except (
+        OperationalHistoryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            {
+                "status": "recorded",
+                "event_file": event_file.as_posix(),
+                "recorded_event_count": len(recorded),
+                "timeline": timeline.model_dump(mode="json"),
+            },
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+
+@app.command("inspect-operational-history")
+def inspect_operational_history_command(
+    event_file: Annotated[
+        Path,
+        typer.Argument(
+            help="Correlation-scoped operational event JSONL file.",
+        ),
+    ],
+    event_root: Annotated[
+        Path,
+        typer.Option(
+            "--event-root",
+            help="Approved operational-history root.",
+        ),
+    ] = Path("operational-history"),
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty"),
+    ] = False,
+) -> None:
+    """Validate and display one correlated event timeline."""
+
+    from geoagent_harness.operational_history import (
+        OperationalHistoryError,
+        build_operational_timeline,
+        load_operational_events,
+    )
+
+    try:
+        events = load_operational_events(
+            event_file,
+            event_root=event_root,
+        )
+        timeline = build_operational_timeline(events)
+    except (
+        OperationalHistoryError,
+        OSError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        json.dumps(
+            timeline.model_dump(mode="json"),
+            indent=2 if pretty else None,
+            separators=None if pretty else (",", ":"),
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

@@ -92,3 +92,4 @@ recipe-proposals.local/
 # Deterministic public raster fixture for skill contracts.
 !data/input/sample_dem.tif
 
+operational-history/
