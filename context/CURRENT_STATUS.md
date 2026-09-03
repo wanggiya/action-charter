@@ -18,6 +18,7 @@ The current system combines:
 * deterministic post-write validation;
 * immutable recipes and execution records;
 * durable lineage, evidence, traces and reports;
+* immutable Critic records and authoritative release packages;
 * natural-language recipe proposals;
 * guided operator review and explicit recipe storage.
 
@@ -45,6 +46,10 @@ natural-language request
 → durable evidence and lineage
 → Markdown report and structured trace
 → independent Critic assessment
+→ immutable Critic-result record
+→ deterministic release assessment
+→ immutable authoritative release package
+→ independent release inspection
 ```
 
 ## Checkpoint 1 — Repository and vector inspection
@@ -806,7 +811,7 @@ Those acceptance tests run locally.
 * No task queue or scheduler exists.
 * Existing database tables and artifacts cannot be overwritten.
 * Deletion is unavailable.
-* Critic assessments are not persisted as separate authoritative artifacts.
+* Critic assessments can be persisted as separate immutable evidence, but remain non-authoritative and cannot alter deterministic status.
 * PostGIS and Ollama are externally managed.
 * No production authentication exists.
 * No multi-user deployment exists.
@@ -1259,16 +1264,34 @@ Implemented:
 The real Checkpoint 14D GIS demonstration generated four validated events and reloaded them through the independent history reader. The source workflow passed GIS validation but lacked plan and approval evidence, so the observer correctly recorded `incomplete_evidence` as its terminal status.
 
 Model-agent containers retain their existing read-only permissions. Trusted callers derive operational facts from validated results and evidence; agents do not self-author their history. A complete live Planner-to-Executor-to-GIS-to-Critic correlation will be exercised by the Checkpoint 14F presentation workflow.
+
 ### Checkpoint 14E — Authoritative results and release packages
 
-Planned:
+Status: complete for authoritative workflow releases.
 
-* add candidate, validated, released and rejected lifecycle states;
-* persist Critic output separately;
-* build one immutable digest-addressed release package per authoritative run;
-* include recipe, approval, results, validation, Critic evidence, artifacts, lineage and report;
-* add read-only release inspection and verification;
-* withhold release status when required evidence is incomplete.
+Implemented:
+
+* strict candidate, validated, released and rejected lifecycle states;
+* separate canonical, immutable and digest-addressed Critic-result evidence;
+* deterministic non-writing workflow release assessment;
+* complete task, plan, approval, validation, Critic and operational-history consistency checks;
+* non-ready candidates and explicit violations for incomplete or invalid evidence;
+* SHA-256 and size binding for every physical component;
+* canonical `CANDIDATE.json` and `RELEASE.json` package records;
+* verified component copies beneath project-relative paths;
+* pre-staging, post-staging and pre-finalization source verification;
+* atomic digest-addressed package finalization;
+* write-once release IDs and duplicate refusal;
+* independent candidate, manifest, directory, exact-file-set and component verification;
+* rejection of path escapes, symlinks, missing files, unexpected entries, changed inputs and tampering;
+* assessment, creation and inspection CLI commands;
+* no registry modification or execution during the release lifecycle.
+
+The real `checkpoint14e-release-demo-v1` workflow completed exact plan approval, isolated Executor and MCP execution, deterministic PostGIS validation, five-event operational history, separate Critic persistence, six-component release creation and independent inspection. Its authoritative release digest is `f9452eadae4f74c09ac9749535f5d9a2f20b8f2a4f594e1a1cb8793cf9c2d3bb`. Repeated creation with the same release ID failed closed.
+
+The Planner model-facing current-status excerpt is now deterministically bounded to preserve context-window availability. The prompt retains the overview and latest status, reports truncation explicitly and continues to bind the complete trusted source file by SHA-256.
+
+Recipe-specific release assessment remains future work. The completed Checkpoint 14E presentation scope covers authoritative workflow releases and does not perform PostGIS or GeoServer promotion.
 
 ### Checkpoint 14F — Pilot-ready demonstration
 

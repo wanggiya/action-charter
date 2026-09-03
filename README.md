@@ -1239,7 +1239,7 @@ Every checkpoint should include:
 - Model-generated implementation code cannot promote or trust itself.
 - The PostGIS recipe template requires broader generic dispatcher integration.
 - Automatic retry, cancellation and workflow resumption are intentionally unavailable.
-- Critic output is returned in memory rather than persisted as a separate authoritative artifact.
+- Critic output can be persisted separately as immutable digest-addressed evidence; it remains non-authoritative and cannot change deterministic workflow status.
 - Plans, recipes and approvals use local filesystem storage.
 - Existing tables and artifacts cannot be overwritten.
 - Deletion is unavailable.
@@ -1793,20 +1793,35 @@ A real current-schema GIS workflow produced and independently reloaded a four-ev
 Planner, Executor and Critic observers are exercised through validated typed results without granting their containers filesystem-write access. The complete live four-role presentation flow remains part of Checkpoint 14F; it will use these trusted observer boundaries rather than allowing model containers to write their own history.
 
 Operational history records observable facts and cryptographic identities. It does not store unrestricted prompts, credentials or hidden chain-of-thought.
+
 ### Checkpoint 14E — Authoritative results and release packages
 
-Planned:
+Status: complete for authoritative workflow releases.
 
-- extend completed results with candidate, validated, released and rejected lifecycle states;
-- persist Critic output as a separate immutable record;
-- assemble one digest-addressed release package per completed authoritative run;
-- include the exact recipe, approval, run result, validation evidence, Critic record, artifact manifest, lineage and deterministic report;
-- bind every release component through SHA-256 references;
-- provide read-only release inspection and verification;
-- prohibit release claims when required validation, evidence or Critic records are missing;
-- keep release creation separate from later PostGIS or GeoServer promotion.
+Implemented:
 
-A release package turns existing evidence files into one portable and inspectable product result without giving the model authority to declare success.
+- strict candidate, validated, released and rejected lifecycle states;
+- separate immutable, canonical and digest-addressed Critic-result records;
+- deterministic read-only workflow release assessment;
+- exact task, plan, approval, validation, Critic and operational-history consistency checks;
+- explicit non-ready candidates when required evidence is missing or invalid;
+- SHA-256 and size binding for every physical release component;
+- canonical `CANDIDATE.json` containing the exact readiness assessment;
+- canonical `RELEASE.json` binding the candidate and complete component manifest;
+- copy-only staging beneath `files/<project-relative-path>`;
+- source verification before and after staging;
+- one atomic directory rename for final package creation;
+- write-once release IDs and duplicate-release refusal;
+- independent canonical-manifest, candidate, directory-identity, exact-file-set and component-digest verification;
+- rejection of path escapes, symlinks, missing files, unexpected entries, changed inputs and tampered packages;
+- `assess-workflow-release`, `create-workflow-release` and `inspect-authoritative-release` CLI commands;
+- no registry modification, workflow execution or model authority during assessment, creation or inspection.
+
+The real `checkpoint14e-release-demo-v1` workflow was planned by the local model, deterministically checked, approved for its exact write steps, executed through the isolated Executor and approval-gated MCP service, validated successfully, recorded as a five-event operational history, reviewed through a separately persisted Critic result, packaged and independently inspected. The resulting six-component release has digest `f9452eadae4f74c09ac9749535f5d9a2f20b8f2a4f594e1a1cb8793cf9c2d3bb`; duplicate creation failed closed.
+
+Release packaging establishes an inspectable evidence product, not PostGIS or GeoServer promotion. Recipe-specific release assessment remains future work; the completed presentation scope covers the authoritative workflow path.
+
+Planner context construction now also bounds the model-facing `CURRENT_STATUS.md` excerpt while preserving its beginning, latest ending, explicit truncation warning and full-source SHA-256 reference. The trusted source document is not truncated or modified.
 
 ### Checkpoint 14F — Pilot-ready demonstration
 

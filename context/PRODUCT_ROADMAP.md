@@ -129,25 +129,30 @@ Show one workflow timeline joined by `correlation_id` and containing distinct Pl
 
 ## Checkpoint 14E — Authoritative results and release packages
 
+Status: complete for the presentation-required authoritative workflow path.
+
 ### Function
 
 Create one immutable release package for every completed run that is eligible to be treated as an authoritative candidate.
 
-Recommended structure:
+Implemented structure:
 
 ```text
-releases/<release-id>/
+releases/<release-id>.<release-sha256>.release/
+|- CANDIDATE.json
 |- RELEASE.json
-|- RUN-RESULT.json
-|- EVIDENCE.json
-|- CRITIC.json
-|- ARTIFACTS.json
-`- REPORT.md
+`- files/
+   |- plans/<plan>.json
+   |- approvals/<approval>.json
+   |- traces/<trace>.json
+   |- reports/<report>.md
+   |- critic-results/<package>/CRITIC_RESULT.json
+   `- operational-history/<correlation>.events.jsonl
 ```
 
-The release manifest should include the release ID and status, recipe and approval identities, associated agent runs, input and output artifact digests, contract and validation status, Critic status, skill and software versions, creation time, predecessor release, and publication status.
+The release manifest includes the release and subject identities, exact candidate digest, complete component manifest, release time and explicit non-execution and non-registry-modification claims. The candidate record preserves the deterministic readiness decision and its approval, validation, Critic and evidence-completeness claims.
 
-Persist Critic output separately. Deterministic evidence may reference the Critic record, but model analysis must not be confused with authoritative validation.
+Critic output is persisted separately. Deterministic evidence may reference the Critic record, but model analysis is not confused with authoritative validation and cannot change workflow status.
 
 Initial release states:
 
@@ -162,7 +167,9 @@ A release package gives the workflow a clear final product. It lets an operator,
 
 ### Presentation scope
 
-Generate and display one immutable package after the existing vector or raster workflow and connect it to Snakemake replay evidence.
+The real `checkpoint14e-release-demo-v1` vector-to-PostGIS workflow generated and independently verified one immutable six-component package. Connecting the fixed presentation workflow to Snakemake replay evidence remains part of Checkpoint 14F.
+
+Recipe-specific assembly, predecessor-release metadata and publication state remain later extensions; they do not weaken the completed workflow release boundary.
 
 ## Checkpoint 14F — Pilot-ready demonstration
 

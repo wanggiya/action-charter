@@ -30,6 +30,13 @@ class ArtifactType(str, Enum):
     WORKFLOW_TRACE = "workflow_trace"
     CRITIC_ASSESSMENT = "critic_assessment"
     CRITIC_EVIDENCE_PACK = "critic_evidence_pack"
+    CRITIC_RESULT_RECORD = "critic_result_record"
+    AUTHORITATIVE_RELEASE_CANDIDATE = (
+        "authoritative_release_candidate"
+    )
+    AUTHORITATIVE_RELEASE_MANIFEST = (
+        "authoritative_release_manifest"
+    )
     WORKFLOW_STATE = "workflow_state"
     RESUME_ASSESSMENT = "resume_assessment"
     VECTOR_CONVERSION_PLAN = (
