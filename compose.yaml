@@ -1,4 +1,4 @@
-name: geoagent-skill-harness
+name: actioncharter
 
 x-agent: &agent
   build:

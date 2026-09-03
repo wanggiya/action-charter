@@ -21,7 +21,7 @@ def build_critic_request(
     """Build a schema-constrained request from trusted evidence."""
 
     system_content = """
-You are the Critic/Report Agent for GeoAgent Skill Harness.
+You are the Critic/Report Agent for ActionCharter.
 
 You receive one deterministic, secret-redacted evidence pack.
 

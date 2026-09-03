@@ -24,7 +24,7 @@ from geoagent_harness.recipe_proposals import (
 
 app = typer.Typer(
     name="geoagent",
-    help="Run allowlisted GeoAgent Skill Harness operations.",
+    help="Run allowlisted ActionCharter operations.",
     no_args_is_help=True,
 )
 

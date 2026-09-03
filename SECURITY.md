@@ -1,5 +1,11 @@
 # Security Policy
 
+## Supported versions
+
+ActionCharter is currently an alpha prototype. Security fixes are applied to
+the latest commit on `main`; older snapshots and generated demonstration
+artifacts are not supported releases.
+
 ## MVP trust boundaries
 
 - Model output is untrusted and must pass typed schema and policy checks.
@@ -16,12 +22,16 @@
 
 Compose network settings do not constitute a complete egress firewall. The
 prototype needs local access to host Ollama, and Docker/host firewall rules must
-enforce any strict host-only egress policy. The Checkpoint 1 agent services only
-validate their manifests; the agent loop and MCP transport are not implemented.
+enforce any strict host-only egress policy. This repository is a research and
+pilot implementation, not a hardened multi-user production control plane.
 
 ## Reporting
 
-Do not open a public issue containing credentials, private datasets, traces, or
-database details. Rotate any credential accidentally committed to version
-control; removing it from the latest commit is not sufficient.
+Report security problems privately through GitHub's **Report a vulnerability**
+feature when it is enabled for the repository. Until then, contact the
+maintainer through the private contact method listed on the GitHub profile.
 
+Do not open a public issue containing credentials, private datasets, traces,
+database details, exploit instructions or an unpatched vulnerability. Rotate
+any credential accidentally committed to version control; removing it from the
+latest commit is not sufficient.

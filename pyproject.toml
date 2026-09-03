@@ -3,11 +3,25 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "geoagent-skill-harness"
+name = "actioncharter"
 version = "0.1.0"
-description = "CLI-first, local-first harness for validated geospatial agent skills"
+description = "Governed execution harness for AI agents using professional tools"
 readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Jay Qi" },
+]
 requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: GIS",
+  "Typing :: Typed",
+]
 dependencies = [
   "geoalchemy2>=0.15,<1",
   "httpx>=0.27,<1",
@@ -46,6 +60,12 @@ workflow = [
 [project.scripts]
 geoagent = "geoagent_harness.cli:app"
 geoagent-mcp = "geoagent_harness.mcp_server.server:main"
+
+[project.urls]
+Homepage = "https://github.com/wanggiya/action-charter"
+Repository = "https://github.com/wanggiya/action-charter"
+Issues = "https://github.com/wanggiya/action-charter/issues"
+Documentation = "https://github.com/wanggiya/action-charter#readme"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/geoagent_harness"]
