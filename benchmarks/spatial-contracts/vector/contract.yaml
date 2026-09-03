@@ -1,0 +1,38 @@
+schema_version: "1.0"
+contract_id: dirty_vector_benchmark
+contract_version: 1.0.0
+dataset_kind: vector
+description: Deterministic presentation benchmark for vector data quality.
+expected_crs: EPSG:4326
+allowed_geometry_types:
+  - Point
+  - LineString
+  - Polygon
+mixed_geometry_allowed: false
+required_fields:
+  - name: feature_id
+    field_type: integer
+    nullable: false
+    max_null_fraction: 0.0
+  - name: name
+    field_type: string
+    nullable: false
+    max_null_fraction: 0.0
+unique_keys:
+  - fields:
+      - feature_id
+    allow_nulls: false
+feature_count:
+  minimum: 1
+  maximum: 100
+geometry_quality:
+  max_invalid_count: 0
+  max_empty_count: 0
+  max_null_count: 0
+  max_duplicate_count: 0
+permitted_extent:
+  min_x: -80.0
+  min_y: 40.0
+  max_x: -70.0
+  max_y: 50.0
+  tolerance: 0.0

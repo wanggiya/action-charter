@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "wrong_crs",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "feature_id": 1, "name": "alpha" }, "geometry": { "type": "Point", "coordinates": [ -75.0, 43.0 ] } },
+{ "type": "Feature", "properties": { "feature_id": 2, "name": "beta" }, "geometry": { "type": "Point", "coordinates": [ -74.0, 44.0 ] } }
+]
+}

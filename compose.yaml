@@ -185,6 +185,7 @@ services:
       GEOAGENT_WORKSPACE: /workspace
       GEOAGENT_PROJECT_ROOT: /workspace
       GEOAGENT_INPUT_ROOT: /workspace/data/input
+      GEOAGENT_SPATIAL_CONTRACT_ROOT: /workspace/spatial-contracts
       GEOAGENT_OUTPUT_ROOT: /workspace/data/output
       
       GEOAGENT_RECIPE_ROOT: /workspace/workflow-recipes
@@ -216,6 +217,7 @@ services:
 
     volumes:
       - ./data/input:/workspace/data/input:ro
+      - ./benchmarks/spatial-contracts/vector:/workspace/spatial-contracts:ro
       - ./traces:/workspace/traces
       - ./reports:/workspace/reports
       - ./plans:/workspace/plans:ro

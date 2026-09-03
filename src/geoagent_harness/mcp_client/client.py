@@ -28,6 +28,7 @@ READ_ONLY_TOOL_ALLOWLIST = frozenset(
     {
         "health_check",
         "inspect_vector_dataset",
+        "assess_spatial_data_contract",
         "plan_load_vector_to_postgis",
     }
 )

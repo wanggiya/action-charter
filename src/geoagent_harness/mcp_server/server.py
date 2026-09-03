@@ -69,6 +69,19 @@ def create_mcp_server(
             path
         ).model_dump(mode="json")
 
+
+    @server.tool()
+    def assess_spatial_data_contract(
+        path: str,
+        contract_file: str,
+    ) -> dict:
+        """Assess an approved vector input against a contract."""
+
+        return tools.assess_spatial_data_contract(
+            path=path,
+            contract_file=contract_file,
+        ).model_dump(mode="json")
+
     @server.tool()
     def plan_load_vector_to_postgis(
         path: str,

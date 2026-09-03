@@ -5,6 +5,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from geoagent_harness.schemas import InspectVectorResult
+from geoagent_harness.spatial_contracts import (
+    SpatialDataContractAssessment,
+)
 
 
 class HealthCheckResult(BaseModel):
@@ -45,3 +48,12 @@ class LoadVectorPlan(BaseModel):
     approval_required: Literal[True] = True
 
     warnings: list[str]
+
+
+class AssessSpatialDataContractToolResult(BaseModel):
+    """Read-only deterministic spatial-contract result."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["assessed"] = "assessed"
+    result: SpatialDataContractAssessment
