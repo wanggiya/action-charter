@@ -109,6 +109,16 @@ def test_change_assessment_is_pure_fixed_policy() -> None:
     assert "assess_postgis_change" in tools.TOOL_ALLOWLIST
 
 
+def test_promotion_planning_has_no_write_or_sql_boundary() -> None:
+    from geoagent_harness.postgis_promotion_plan import service
+
+    source = inspect.getsource(service).lower()
+    assert "execute(" not in source
+    assert "alter table" not in source
+    assert "subprocess" not in source
+    assert "plan_postgis_promotion" in tools.TOOL_ALLOWLIST
+
+
 def test_only_approval_gated_write_tools_are_exposed() -> None:
     assert (
         "load_vector_to_postgis"

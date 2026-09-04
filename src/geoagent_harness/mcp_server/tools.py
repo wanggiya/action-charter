@@ -42,6 +42,11 @@ from geoagent_harness.postgis_change_assessment import (
     PostGISChangeAssessment,
     assess_postgis_change as execute_change_assessment,
 )
+from geoagent_harness.postgis_promotion_plan import (
+    PostGISPromotionPlanRequest,
+    PostGISPromotionPlanResult,
+    plan_postgis_promotion as execute_promotion_planning,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
@@ -49,12 +54,45 @@ TOOL_ALLOWLIST = [
     "inspect_postgis_table",
     "compare_postgis_tables",
     "assess_postgis_change",
+    "plan_postgis_promotion",
     "assess_spatial_data_contract",
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def plan_postgis_promotion(
+    plan_id: str,
+    reference_schema: str,
+    reference_table: str,
+    candidate_schema: str,
+    candidate_table: str,
+    archive_schema: str,
+    archive_table: str,
+    settings: MCPSettings | None = None,
+) -> PostGISPromotionPlanResult:
+    """Plan an exact digest-bound promotion without mutation."""
+    active = settings or load_settings()
+    return execute_promotion_planning(
+        request=PostGISPromotionPlanRequest(
+            plan_id=plan_id,
+            reference=PostGISInspectionRequest(
+                target_schema=reference_schema,
+                target_table=reference_table,
+            ),
+            candidate=PostGISInspectionRequest(
+                target_schema=candidate_schema,
+                target_table=candidate_table,
+            ),
+            archive=PostGISInspectionRequest(
+                target_schema=archive_schema,
+                target_table=archive_table,
+            ),
+        ),
+        settings=active,
+    )
 
 
 def assess_postgis_change(

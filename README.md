@@ -118,6 +118,23 @@ geoagent assess-postgis-change \
 The result is `compatible`, `review_required`, or `incompatible`. Assessment
 is read-only and cannot approve or authorize promotion.
 
+Create a digest-bound plan for an exact candidate-to-current promotion:
+
+```bash
+geoagent plan-postgis-promotion \
+  --plan-id checkpoint15d-promotion-v1 \
+  --reference-schema agent_sandbox \
+  --reference-table current_layer \
+  --candidate-schema agent_sandbox \
+  --candidate-table candidate_layer \
+  --archive-schema agent_sandbox \
+  --archive-table current_layer_archive_v1 \
+  --pretty
+```
+
+Planning reinspects all relations, requires compatible evidence and an absent
+archive target, accepts no SQL, creates no approval and performs no mutation.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major

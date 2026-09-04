@@ -110,6 +110,27 @@ def create_mcp_server(
             candidate_table=candidate_table,
         ).model_dump(mode="json")
 
+    @server.tool()
+    def plan_postgis_promotion(
+        plan_id: str,
+        reference_schema: str,
+        reference_table: str,
+        candidate_schema: str,
+        candidate_table: str,
+        archive_schema: str,
+        archive_table: str,
+    ) -> dict:
+        """Plan an exact approved PostGIS relation promotion."""
+        return tools.plan_postgis_promotion(
+            plan_id=plan_id,
+            reference_schema=reference_schema,
+            reference_table=reference_table,
+            candidate_schema=candidate_schema,
+            candidate_table=candidate_table,
+            archive_schema=archive_schema,
+            archive_table=archive_table,
+        ).model_dump(mode="json")
+
 
     @server.tool()
     def assess_spatial_data_contract(
