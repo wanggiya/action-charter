@@ -11,7 +11,7 @@ project follows Semantic Versioning after the initial public alpha.
 - Broadened the public description from a GIS-only harness to a governed
   professional-tool execution architecture with GIS as its reference domain.
 
-## [0.1.0] - 2026-09-03
+## [0.9.0] - 2026-09-04
 
 ### Added
 
@@ -25,5 +25,12 @@ project follows Semantic Versioning after the initial public alpha.
 - Immutable Critic records and authoritative workflow release packages.
 - A repeatable Checkpoint 14F pilot demonstration.
 
-[Unreleased]: https://github.com/wanggiya/action-charter/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/wanggiya/action-charter/releases/tag/v0.1.0
+## [0.8.0] - 2026-08-20
+
+### Added
+
+- Approval-gated reusable GIS recipes with durable execution evidence.
+
+[Unreleased]: https://github.com/wanggiya/action-charter/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/wanggiya/action-charter/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/wanggiya/action-charter/releases/tag/v0.8.0

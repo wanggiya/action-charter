@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "actioncharter"
-version = "0.1.0"
+version = "0.9.0"
 description = "Governed execution harness for AI agents using professional tools"
 readme = "README.md"
 license = { file = "LICENSE" }
