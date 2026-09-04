@@ -16,6 +16,14 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.spatial_contracts.service:assess_spatial_data_contract
+- id: inspect_postgis_table
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgis_inspection.service:inspect_postgis_table
 - id: convert_vector
   version: 0.1.0
   status: implemented

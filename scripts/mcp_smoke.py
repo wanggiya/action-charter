@@ -12,10 +12,13 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 EXPECTED_TOOLS = {
+    "assess_spatial_data_contract",
     "health_check",
+    "inspect_postgis_table",
     "inspect_vector_dataset",
     "plan_load_vector_to_postgis",
-    "load_vector_to_postgis",
+    "run_approved_recipe",
+    "run_approved_vector_postgis_workflow",
     "validate_postgis_layer",
 }
 

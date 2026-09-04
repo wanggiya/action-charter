@@ -69,6 +69,17 @@ def create_mcp_server(
             path
         ).model_dump(mode="json")
 
+    @server.tool()
+    def inspect_postgis_table(
+        target_schema: str,
+        target_table: str,
+    ) -> dict:
+        """Inspect bounded metadata for one approved PostGIS table."""
+        return tools.inspect_postgis_table(
+            target_schema=target_schema,
+            target_table=target_table,
+        ).model_dump(mode="json")
+
 
     @server.tool()
     def assess_spatial_data_contract(
