@@ -95,6 +95,21 @@ def create_mcp_server(
             candidate_table=candidate_table,
         ).model_dump(mode="json")
 
+    @server.tool()
+    def assess_postgis_change(
+        reference_schema: str,
+        reference_table: str,
+        candidate_schema: str,
+        candidate_table: str,
+    ) -> dict:
+        """Classify deterministic PostGIS comparison evidence."""
+        return tools.assess_postgis_change(
+            reference_schema=reference_schema,
+            reference_table=reference_table,
+            candidate_schema=candidate_schema,
+            candidate_table=candidate_table,
+        ).model_dump(mode="json")
+
 
     @server.tool()
     def assess_spatial_data_contract(

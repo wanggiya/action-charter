@@ -13,6 +13,7 @@ from geoagent_harness.mcp_server.tools import (
     load_vector_to_postgis,
     validate_postgis_layer,
     compare_postgis_tables,
+    assess_postgis_change,
 )
 from geoagent_harness.skills.inspect_vector.service import (
     InspectVectorError,
@@ -222,3 +223,43 @@ def test_mcp_comparison_builds_exact_request(
         observed["request"].candidate.target_table
         == "candidate_layer"
     )
+
+
+def test_mcp_change_assessment_composes_comparison(
+    settings: MCPSettings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import geoagent_harness.mcp_server.tools as module
+
+    observed = {}
+
+    def fake_comparison(**kwargs):
+        observed["arguments"] = kwargs
+        return "comparison"
+
+    def fake_assessment(comparison):
+        observed["comparison"] = comparison
+        return "assessment"
+
+    monkeypatch.setattr(
+        module,
+        "compare_postgis_tables",
+        fake_comparison,
+    )
+    monkeypatch.setattr(
+        module,
+        "execute_change_assessment",
+        fake_assessment,
+    )
+
+    result = assess_postgis_change(
+        reference_schema="agent_sandbox",
+        reference_table="reference_layer",
+        candidate_schema="agent_sandbox",
+        candidate_table="candidate_layer",
+        settings=settings,
+    )
+
+    assert result == "assessment"
+    assert observed["comparison"] == "comparison"
+    assert observed["arguments"]["settings"] is settings

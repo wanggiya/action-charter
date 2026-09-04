@@ -38,18 +38,41 @@ from geoagent_harness.postgis_comparison import (
     PostGISComparisonResult,
     compare_postgis_tables as execute_postgis_comparison,
 )
+from geoagent_harness.postgis_change_assessment import (
+    PostGISChangeAssessment,
+    assess_postgis_change as execute_change_assessment,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "inspect_postgis_table",
     "compare_postgis_tables",
+    "assess_postgis_change",
     "assess_spatial_data_contract",
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def assess_postgis_change(
+    reference_schema: str,
+    reference_table: str,
+    candidate_schema: str,
+    candidate_table: str,
+    settings: MCPSettings | None = None,
+) -> PostGISChangeAssessment:
+    """Compare and classify two exact PostGIS relations."""
+    comparison = compare_postgis_tables(
+        reference_schema=reference_schema,
+        reference_table=reference_table,
+        candidate_schema=candidate_schema,
+        candidate_table=candidate_table,
+        settings=settings,
+    )
+    return execute_change_assessment(comparison)
 
 
 def compare_postgis_tables(

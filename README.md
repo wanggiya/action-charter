@@ -104,6 +104,20 @@ geoagent compare-postgis-tables \
 The command returns exit code zero for matching facts, one for typed
 differences, and two when safe comparison evidence is unavailable.
 
+Classify those facts with the fixed change policy:
+
+```bash
+geoagent assess-postgis-change \
+  --reference-schema agent_sandbox \
+  --reference-table current_layer \
+  --candidate-schema agent_sandbox \
+  --candidate-table candidate_layer \
+  --pretty
+```
+
+The result is `compatible`, `review_required`, or `incompatible`. Assessment
+is read-only and cannot approve or authorize promotion.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major
