@@ -60,3 +60,13 @@ def test_container_builds_include_declared_license_file() -> None:
         dockerfile = (ROOT / relative_path).read_text()
 
         assert "COPY pyproject.toml README.md LICENSE ./" in dockerfile
+
+
+def test_public_contribution_templates_exist() -> None:
+    for relative_path in (
+        ".github/PULL_REQUEST_TEMPLATE.md",
+        ".github/ISSUE_TEMPLATE/config.yml",
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ):
+        assert (ROOT / relative_path).is_file(), relative_path

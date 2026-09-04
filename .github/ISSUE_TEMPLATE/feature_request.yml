@@ -1,0 +1,52 @@
+name: Feature request
+description: Propose a bounded capability or professional-tool adapter.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or operational problem should be solved?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: Describe the smallest useful behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Required authority
+      description: Identify filesystem, network, credential, tool or database access.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Deterministic verification
+      description: How can trusted code establish success without model judgment?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Approval and evidence
+      description: What must be approved, recorded and independently inspectable?
+    validations:
+      required: true
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Design constraints
+      options:
+        - label: Generated or model-produced content remains untrusted.
+          required: true
+        - label: The proposal does not require unrestricted shell or SQL access.
+          required: true
+        - label: No credentials or private data are included in this issue.
+          required: true
