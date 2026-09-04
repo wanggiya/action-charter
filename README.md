@@ -90,6 +90,20 @@ bounded relation, column, key, geometry, CRS, count and extent facts. The
 schema must be allowlisted and both identifiers must pass the conservative
 identifier policy.
 
+Compare two exact tables through the same boundary:
+
+```bash
+geoagent compare-postgis-tables \
+  --reference-schema agent_sandbox \
+  --reference-table current_layer \
+  --candidate-schema agent_sandbox \
+  --candidate-table candidate_layer \
+  --pretty
+```
+
+The command returns exit code zero for matching facts, one for typed
+differences, and two when safe comparison evidence is unavailable.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major

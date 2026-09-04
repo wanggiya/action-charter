@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 import psycopg
-from psycopg import sql
+from psycopg import IsolationLevel, sql
 
 from geoagent_harness.mcp_server.settings import MCPSettings, validate_identifier
 from geoagent_harness.postgis_inspection.schemas import (
@@ -52,6 +52,9 @@ class PsycopgPostGISInspectionReader:
                 connect_timeout=5,
             )
             self._connection.read_only = True
+            self._connection.isolation_level = (
+                IsolationLevel.REPEATABLE_READ
+            )
             self._connection.execute(
                 "SELECT set_config('statement_timeout', %s, false)",
                 (str(STATEMENT_TIMEOUT_MS),),

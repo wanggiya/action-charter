@@ -407,3 +407,9 @@ Checkpoint 15A establishes bounded read-only inspection of one exact table:
 Later Checkpoint 15 increments may add comparison and explicitly approved
 staging or promotion. They must remain separate from inspection and must not
 introduce unrestricted SQL.
+
+Checkpoint 15B adds the comparison increment as a read-only composition over
+inspection. It compares normalized metadata and data-quality facts for two
+exact relations in one repeatable-read transaction and reports bounded typed
+differences. Approved staging and promotion remain deferred to later
+Checkpoint 15 increments.

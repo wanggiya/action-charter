@@ -13,6 +13,7 @@ from mcp.client.stdio import stdio_client
 
 EXPECTED_TOOLS = {
     "assess_spatial_data_contract",
+    "compare_postgis_tables",
     "health_check",
     "inspect_postgis_table",
     "inspect_vector_dataset",

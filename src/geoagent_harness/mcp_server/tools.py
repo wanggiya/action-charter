@@ -33,17 +33,47 @@ from geoagent_harness.postgis_inspection import (
     PostGISInspectionResult,
     inspect_postgis_table as execute_postgis_inspection,
 )
+from geoagent_harness.postgis_comparison import (
+    PostGISComparisonRequest,
+    PostGISComparisonResult,
+    compare_postgis_tables as execute_postgis_comparison,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "inspect_postgis_table",
+    "compare_postgis_tables",
     "assess_spatial_data_contract",
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def compare_postgis_tables(
+    reference_schema: str,
+    reference_table: str,
+    candidate_schema: str,
+    candidate_table: str,
+    settings: MCPSettings | None = None,
+) -> PostGISComparisonResult:
+    """Compare two exact PostGIS relations through inspection."""
+    active = settings or load_settings()
+    return execute_postgis_comparison(
+        request=PostGISComparisonRequest(
+            reference=PostGISInspectionRequest(
+                target_schema=reference_schema,
+                target_table=reference_table,
+            ),
+            candidate=PostGISInspectionRequest(
+                target_schema=candidate_schema,
+                target_table=candidate_table,
+            ),
+        ),
+        settings=active,
+    )
 
 
 def inspect_postgis_table(

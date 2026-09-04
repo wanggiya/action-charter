@@ -24,6 +24,14 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.postgis_inspection.service:inspect_postgis_table
+- id: compare_postgis_tables
+  version: 0.1.0
+  status: implemented
+  kind: validation
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgis_comparison.service:compare_postgis_tables
 - id: convert_vector
   version: 0.1.0
   status: implemented

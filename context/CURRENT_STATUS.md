@@ -1453,3 +1453,14 @@ a read-only connection and a statement timeout, and redacts connection
 details from failures. The same operation is available through
 `inspect-postgis-table` and the fixed MCP tool allowlist. It grants no write,
 approval, export, staging, promotion or publication authority.
+
+### Checkpoint 15B deterministic PostGIS comparison
+
+Checkpoint 15B compares two distinct, exact PostGIS relations by composing
+the bounded 15A inspector over one shared repeatable-read transaction. It
+normalizes table-specific constraint names and returns typed differences for
+columns, key structure, row count, geometry registration, CRS, observed
+types, geometry-quality counts and extent. Matching and different outcomes
+are deterministic results; missing evidence and policy failures fail closed.
+The CLI and MCP surfaces accept no SQL or query fragments and grant no new
+mutation authority.
