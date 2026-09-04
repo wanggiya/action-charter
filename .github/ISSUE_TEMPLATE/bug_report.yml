@@ -1,0 +1,66 @@
+name: Bug report
+description: Report reproducible incorrect behavior without sensitive data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Do not include credentials, private datasets, unredacted traces,
+        database connection strings or unpatched security vulnerabilities.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide safe commands or a minimal public fixture.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: boundary
+    attributes:
+      label: Affected boundary
+      options:
+        - Planning or policy
+        - Approval
+        - MCP or execution
+        - Validation
+        - Evidence or operational history
+        - Release packaging
+        - Builder candidate lifecycle
+        - Containers or CI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python, Docker and relevant dependency versions.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, private data and sensitive operational evidence.
+          required: true
+        - label: This report is not an unpatched security vulnerability.
+          required: true
