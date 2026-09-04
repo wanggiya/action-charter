@@ -44,7 +44,7 @@ for vulnerabilities.
 
 ## Compatibility
 
-ActionCharter `0.1.x` retains `geoagent_harness`, `geoagent`, `geoagent-mcp`,
+ActionCharter `0.9.x` retains `geoagent_harness`, `geoagent`, `geoagent-mcp`,
 existing evidence fields and established internal type names. Renaming those
 interfaces requires a separately reviewed migration and compatibility plan.
 

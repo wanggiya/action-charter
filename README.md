@@ -214,7 +214,7 @@ validated, inspectable and reproducible action.
 ## Compatibility
 
 The public project and Python distribution are named ActionCharter. The
-initial `0.1.x` releases retain the `geoagent_harness` Python package and the
+initial `0.9.x` releases retain the `geoagent_harness` Python package and the
 `geoagent` and `geoagent-mcp` commands. Existing evidence fields, Compose
 service names and established internal `GeoAgent*` types also remain
 compatibility interfaces.

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tomllib
 
 import yaml
+
+from geoagent_harness import __version__
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,3 +73,14 @@ def test_public_contribution_templates_exist() -> None:
         ".github/ISSUE_TEMPLATE/feature_request.yml",
     ):
         assert (ROOT / relative_path).is_file(), relative_path
+
+
+def test_public_release_version_is_consistent() -> None:
+    with (ROOT / "pyproject.toml").open("rb") as stream:
+        project_version = tomllib.load(stream)["project"]["version"]
+
+    citation = yaml.safe_load((ROOT / "CITATION.cff").read_text())
+
+    assert project_version == "0.9.0"
+    assert citation["version"] == project_version
+    assert __version__ == project_version
