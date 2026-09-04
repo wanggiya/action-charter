@@ -418,3 +418,9 @@ Checkpoint 15C adds a fixed non-mutating policy assessment over comparison
 evidence. It distinguishes compatible facts, review-required observational
 drift and incompatible structural change while withholding approval and
 promotion authority. Approved staging and promotion remain deferred.
+
+Checkpoint 15D adds deterministic promotion planning for compatible evidence.
+It binds exact reference, candidate and absent archive identities; inspection
+snapshots; the change assessment; approval scope; transactional choreography;
+rollback; and post-promotion validation into one canonical SHA-256 plan.
+Approval recording and actual promotion remain deferred.

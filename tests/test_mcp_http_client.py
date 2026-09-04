@@ -17,6 +17,7 @@ def test_read_only_allowlist_has_no_write_tools() -> None:
     assert "inspect_postgis_table" in READ_ONLY_TOOL_ALLOWLIST
     assert "compare_postgis_tables" in READ_ONLY_TOOL_ALLOWLIST
     assert "assess_postgis_change" in READ_ONLY_TOOL_ALLOWLIST
+    assert "plan_postgis_promotion" in READ_ONLY_TOOL_ALLOWLIST
     assert (
         "inspect_vector_dataset"
         in READ_ONLY_TOOL_ALLOWLIST

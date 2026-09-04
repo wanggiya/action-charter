@@ -40,6 +40,14 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.postgis_change_assessment.service:assess_postgis_change
+- id: plan_postgis_promotion
+  version: 0.1.0
+  status: implemented
+  kind: validation
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgis_promotion_plan.service:plan_postgis_promotion
 - id: convert_vector
   version: 0.1.0
   status: implemented

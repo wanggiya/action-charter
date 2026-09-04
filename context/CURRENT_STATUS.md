@@ -1474,3 +1474,12 @@ quality and extent drift require review when structure remains compatible.
 Structural incompatibility dominates simultaneous observational drift and
 unknown future changes fail closed. Assessment is model-free, read-only and
 cannot create approval or authorize promotion.
+
+### Checkpoint 15D digest-bound PostGIS promotion planning
+
+Checkpoint 15D creates a canonical SHA-256-bound, non-executing promotion
+plan only after fresh compatible comparison evidence and confirmation that
+the exact archive relation is absent. The plan fixes the transaction,
+rollback, lock, archive, promotion and post-validation choreography and marks
+only the two future rename mutations as approval-required. Planning accepts
+no SQL, creates no approval and performs no database mutation.
