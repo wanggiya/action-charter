@@ -87,6 +87,17 @@ def test_bounded_postgis_inspection_is_read_only() -> None:
     assert "inspect_postgis_table" in tools.TOOL_ALLOWLIST
 
 
+def test_postgis_comparison_reuses_inspection_boundary() -> None:
+    from geoagent_harness.postgis_comparison import service
+
+    source = inspect.getsource(service).lower()
+    assert "inspect_postgis_table" in source
+    assert "psycopg.connect" not in source
+    assert "sql." not in source
+    assert "subprocess" not in source
+    assert "compare_postgis_tables" in tools.TOOL_ALLOWLIST
+
+
 def test_only_approval_gated_write_tools_are_exposed() -> None:
     assert (
         "load_vector_to_postgis"

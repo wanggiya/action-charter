@@ -80,6 +80,21 @@ def create_mcp_server(
             target_table=target_table,
         ).model_dump(mode="json")
 
+    @server.tool()
+    def compare_postgis_tables(
+        reference_schema: str,
+        reference_table: str,
+        candidate_schema: str,
+        candidate_table: str,
+    ) -> dict:
+        """Compare two approved PostGIS relations without mutation."""
+        return tools.compare_postgis_tables(
+            reference_schema=reference_schema,
+            reference_table=reference_table,
+            candidate_schema=candidate_schema,
+            candidate_table=candidate_table,
+        ).model_dump(mode="json")
+
 
     @server.tool()
     def assess_spatial_data_contract(

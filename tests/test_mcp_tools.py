@@ -12,6 +12,7 @@ from geoagent_harness.mcp_server.tools import (
     plan_load_vector_to_postgis,
     load_vector_to_postgis,
     validate_postgis_layer,
+    compare_postgis_tables,
 )
 from geoagent_harness.skills.inspect_vector.service import (
     InspectVectorError,
@@ -182,3 +183,42 @@ def test_mcp_validation_rejects_unapproved_schema(
             target_table="sample_points",
             settings=settings,
         )
+
+
+def test_mcp_comparison_builds_exact_request(
+    settings: MCPSettings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import geoagent_harness.mcp_server.tools as module
+
+    observed = {}
+
+    def fake_compare(*, request, settings):
+        observed["request"] = request
+        observed["settings"] = settings
+        return "compared"
+
+    monkeypatch.setattr(
+        module,
+        "execute_postgis_comparison",
+        fake_compare,
+    )
+
+    result = compare_postgis_tables(
+        reference_schema="agent_sandbox",
+        reference_table="reference_layer",
+        candidate_schema="agent_sandbox",
+        candidate_table="candidate_layer",
+        settings=settings,
+    )
+
+    assert result == "compared"
+    assert observed["settings"] is settings
+    assert (
+        observed["request"].reference.target_table
+        == "reference_layer"
+    )
+    assert (
+        observed["request"].candidate.target_table
+        == "candidate_layer"
+    )
