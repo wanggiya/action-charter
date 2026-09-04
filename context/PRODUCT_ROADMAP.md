@@ -393,3 +393,17 @@ clean-checkout walkthrough; the demonstrated run completed plan approval,
 PostGIS execution and validation, correlated history, separate Critic evidence,
 authoritative release inspection, and approved Snakemake replay. Broader
 raster contracts, production promotion and publication remain later work.
+
+## Checkpoint 15: controlled PostGIS operations
+
+Checkpoint 15A establishes bounded read-only inspection of one exact table:
+
+- allowlisted schema and conservative table identity;
+- fixed catalog and aggregate queries only;
+- bounded columns, keys, geometry columns and observed types;
+- relation, schema, key, CRS, count, quality and extent facts;
+- CLI and read-only MCP access with credential-redacted failures.
+
+Later Checkpoint 15 increments may add comparison and explicitly approved
+staging or promotion. They must remain separate from inspection and must not
+introduce unrestricted SQL.

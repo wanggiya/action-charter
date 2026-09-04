@@ -720,6 +720,51 @@ def validate_postgis_layer_command(
     if not result.passed:
         raise typer.Exit(code=1)
 
+
+@app.command("inspect-postgis-table")
+def inspect_postgis_table_command(
+    target_schema: Annotated[
+        str,
+        typer.Option("--schema", help="Approved PostGIS schema."),
+    ] = "agent_sandbox",
+    target_table: Annotated[
+        str,
+        typer.Option("--table", help="Exact PostGIS table to inspect."),
+    ] = "sample_points",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty", help="Indent the JSON response."),
+    ] = False,
+) -> None:
+    """Inspect bounded metadata for one approved PostGIS table."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.postgis_inspection import (
+        PostGISInspectionError,
+        PostGISInspectionRequest,
+        inspect_postgis_table,
+    )
+
+    try:
+        result = inspect_postgis_table(
+            request=PostGISInspectionRequest(
+                target_schema=target_schema,
+                target_table=target_table,
+            ),
+            settings=load_settings(),
+        )
+    except (PostGISInspectionError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+    if not result.table_exists:
+        raise typer.Exit(code=1)
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[

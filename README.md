@@ -76,6 +76,20 @@ The geospatial reference domain currently includes vector inspection and
 conversion, raster inspection and controlled conversion, PostGIS loading and
 validation, declarative recipes, and a restricted skill registry.
 
+Bounded PostGIS metadata inspection is available without accepting SQL:
+
+```bash
+geoagent inspect-postgis-table \
+  --schema agent_sandbox \
+  --table sample_points \
+  --pretty
+```
+
+The command uses the configured read-only database boundary and reports
+bounded relation, column, key, geometry, CRS, count and extent facts. The
+schema must be allowlisted and both identifiers must pass the conservative
+identifier policy.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major

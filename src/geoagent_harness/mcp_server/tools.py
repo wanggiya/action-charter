@@ -28,16 +28,38 @@ from geoagent_harness.verifier.postgis import (
     PostGISValidationResult,
     validate_postgis_layer as execute_validation,
 )
+from geoagent_harness.postgis_inspection import (
+    PostGISInspectionRequest,
+    PostGISInspectionResult,
+    inspect_postgis_table as execute_postgis_inspection,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
+    "inspect_postgis_table",
     "assess_spatial_data_contract",
     "plan_load_vector_to_postgis",
     "validate_postgis_layer",
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def inspect_postgis_table(
+    target_schema: str,
+    target_table: str,
+    settings: MCPSettings | None = None,
+) -> PostGISInspectionResult:
+    """Inspect one exact PostGIS table through the read-only boundary."""
+    active = settings or load_settings()
+    return execute_postgis_inspection(
+        request=PostGISInspectionRequest(
+            target_schema=target_schema,
+            target_table=target_table,
+        ),
+        settings=active,
+    )
 
 
 def health_check(

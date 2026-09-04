@@ -1442,3 +1442,14 @@ Completed controls:
 Assessment performs no filesystem or database mutation and does not execute a
 workflow. Raster contracts and raster dirty-data fixtures remain deferred by
 the presentation scope of the product roadmap.
+
+### Checkpoint 15A bounded PostGIS inspection
+
+Checkpoint 15A adds a narrow read-only inspection surface for one exact
+allowlisted PostGIS table. It reports bounded column, key, geometry, CRS,
+count, geometry-quality and extent metadata through strict versioned schemas.
+The service accepts no arbitrary SQL or query fragments, uses fixed queries,
+a read-only connection and a statement timeout, and redacts connection
+details from failures. The same operation is available through
+`inspect-postgis-table` and the fixed MCP tool allowlist. It grants no write,
+approval, export, staging, promotion or publication authority.
