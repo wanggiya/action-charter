@@ -30,6 +30,7 @@ READ_ONLY_TOOL_ALLOWLIST = frozenset(
         "inspect_vector_dataset",
         "inspect_postgis_table",
         "compare_postgis_tables",
+        "assess_postgis_change",
         "assess_spatial_data_contract",
         "plan_load_vector_to_postgis",
     }

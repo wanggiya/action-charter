@@ -143,6 +143,7 @@ class ArtifactType(str, Enum):
     OPERATIONAL_TIMELINE = "operational_timeline"
     POSTGIS_INSPECTION_RESULT = "postgis_inspection_result"
     POSTGIS_COMPARISON_RESULT = "postgis_comparison_result"
+    POSTGIS_CHANGE_ASSESSMENT = "postgis_change_assessment"
     
 
 

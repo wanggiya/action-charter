@@ -844,6 +844,77 @@ def compare_postgis_tables_command(
     if not result.matches:
         raise typer.Exit(code=1)
 
+
+@app.command("assess-postgis-change")
+def assess_postgis_change_command(
+    reference_schema: Annotated[
+        str,
+        typer.Option("--reference-schema"),
+    ] = "agent_sandbox",
+    reference_table: Annotated[
+        str,
+        typer.Option("--reference-table"),
+    ] = "reference_layer",
+    candidate_schema: Annotated[
+        str,
+        typer.Option("--candidate-schema"),
+    ] = "agent_sandbox",
+    candidate_table: Annotated[
+        str,
+        typer.Option("--candidate-table"),
+    ] = "candidate_layer",
+    pretty: Annotated[
+        bool,
+        typer.Option("--pretty", help="Indent the JSON response."),
+    ] = False,
+) -> None:
+    """Classify deterministic PostGIS comparison evidence."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.postgis_change_assessment import (
+        assess_postgis_change,
+    )
+    from geoagent_harness.postgis_comparison import (
+        PostGISComparisonError,
+        PostGISComparisonRequest,
+        compare_postgis_tables,
+    )
+    from geoagent_harness.postgis_inspection import (
+        PostGISInspectionError,
+        PostGISInspectionRequest,
+    )
+
+    try:
+        comparison = compare_postgis_tables(
+            request=PostGISComparisonRequest(
+                reference=PostGISInspectionRequest(
+                    target_schema=reference_schema,
+                    target_table=reference_table,
+                ),
+                candidate=PostGISInspectionRequest(
+                    target_schema=candidate_schema,
+                    target_table=candidate_table,
+                ),
+            ),
+            settings=load_settings(),
+        )
+        result = assess_postgis_change(comparison)
+    except (
+        PostGISComparisonError,
+        PostGISInspectionError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+    if not result.compatible:
+        raise typer.Exit(code=1)
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[

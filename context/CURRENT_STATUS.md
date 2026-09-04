@@ -1464,3 +1464,13 @@ types, geometry-quality counts and extent. Matching and different outcomes
 are deterministic results; missing evidence and policy failures fail closed.
 The CLI and MCP surfaces accept no SQL or query fragments and grant no new
 mutation authority.
+
+### Checkpoint 15C deterministic PostGIS change assessment
+
+Checkpoint 15C classifies validated comparison evidence as compatible,
+review-required or incompatible using fixed policy. Schema, key, geometry
+registration, CRS and type changes are incompatible; row-count, geometry
+quality and extent drift require review when structure remains compatible.
+Structural incompatibility dominates simultaneous observational drift and
+unknown future changes fail closed. Assessment is model-free, read-only and
+cannot create approval or authorize promotion.

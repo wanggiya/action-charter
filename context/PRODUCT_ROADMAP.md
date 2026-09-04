@@ -413,3 +413,8 @@ inspection. It compares normalized metadata and data-quality facts for two
 exact relations in one repeatable-read transaction and reports bounded typed
 differences. Approved staging and promotion remain deferred to later
 Checkpoint 15 increments.
+
+Checkpoint 15C adds a fixed non-mutating policy assessment over comparison
+evidence. It distinguishes compatible facts, review-required observational
+drift and incompatible structural change while withholding approval and
+promotion authority. Approved staging and promotion remain deferred.
