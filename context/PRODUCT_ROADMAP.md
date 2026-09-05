@@ -429,3 +429,7 @@ Checkpoint 15E records a human decision for an exact 15D plan digest in
 canonical, write-once approval evidence. Approved scope is fixed to the
 archive-reference and promote-candidate mutations; corrections require a new
 plan. Transactional promotion execution remains deferred.
+
+Checkpoint 15F completes transactional promotion with locked snapshot
+reverification, archive-absence verification, fixed identifier-safe renames,
+rollback on failure, post-promotion validation and immutable execution evidence.

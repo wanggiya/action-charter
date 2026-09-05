@@ -41,24 +41,27 @@ class PostGISInspectionReader(Protocol):
 class PsycopgPostGISInspectionReader:
     """Fixed-query reader with a read-only transaction and timeout."""
 
-    def __init__(self, settings: MCPSettings) -> None:
+    def __init__(
+        self,
+        settings: MCPSettings,
+        *,
+        connection: psycopg.Connection | None = None,
+    ) -> None:
+        self._owns_connection = connection is None
         try:
-            self._connection = psycopg.connect(
-                host=settings.postgres_host,
-                port=settings.postgres_port,
-                dbname=settings.postgres_database,
-                user=settings.postgres_user,
+            self._connection = connection or psycopg.connect(
+                host=settings.postgres_host, port=settings.postgres_port,
+                dbname=settings.postgres_database, user=settings.postgres_user,
                 password=_read_password(settings.postgres_password_file),
                 connect_timeout=5,
             )
-            self._connection.read_only = True
-            self._connection.isolation_level = (
-                IsolationLevel.REPEATABLE_READ
-            )
-            self._connection.execute(
-                "SELECT set_config('statement_timeout', %s, false)",
-                (str(STATEMENT_TIMEOUT_MS),),
-            )
+            if self._owns_connection:
+                self._connection.read_only = True
+                self._connection.isolation_level = IsolationLevel.REPEATABLE_READ
+                self._connection.execute(
+                    "SELECT set_config('statement_timeout', %s, false)",
+                    (str(STATEMENT_TIMEOUT_MS),),
+                )
         except (psycopg.Error, RuntimeError):
             raise PostGISInspectionError(
                 "PostGIS inspection connection failed; connection details were redacted"
@@ -146,7 +149,8 @@ class PsycopgPostGISInspectionReader:
         return types, int(row[1]), int(row[2]), extent
 
     def close(self) -> None:
-        self._connection.close()
+        if self._owns_connection:
+            self._connection.close()
 
 
 def inspect_postgis_table(*, request: PostGISInspectionRequest, settings: MCPSettings, reader: PostGISInspectionReader | None = None) -> PostGISInspectionResult:

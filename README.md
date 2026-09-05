@@ -152,6 +152,12 @@ Approval covers exactly the two rename mutations. It does not execute the
 plan or modify PostGIS; approved corrections are rejected until a replacement
 plan is generated and reviewed.
 
+An operator can then run `execute-postgis-promotion` with write tools enabled,
+the exact plan and approval files, and explicit confirmation of both SHA-256
+digests. Execution locks and reverifies the relations, proves the archive is
+still absent, performs only the two approved renames in one serializable
+transaction, validates before commit, and records digest-addressed evidence.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major

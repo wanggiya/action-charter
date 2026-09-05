@@ -1072,6 +1072,54 @@ def record_postgis_promotion_approval_command(
     ))
 
 
+@app.command("execute-postgis-promotion")
+def execute_postgis_promotion_command(
+    plan_file: Annotated[Path, typer.Argument(help="Exact 15D plan-result JSON.")],
+    approval_file: Annotated[Path, typer.Option("--approval-file")],
+    confirm_plan_sha256: Annotated[str, typer.Option("--confirm-plan-sha256")],
+    confirm_approval_sha256: Annotated[str, typer.Option("--confirm-approval-sha256")],
+    plan_root: Annotated[Path, typer.Option("--plan-root")] = Path("postgis-promotion-plans"),
+    approval_root: Annotated[Path, typer.Option("--approval-root")] = Path("postgis-promotion-approvals"),
+    execution_root: Annotated[Path, typer.Option("--execution-root")] = Path("postgis-promotion-executions"),
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Execute and record one exact approved transactional promotion."""
+    from geoagent_harness.postgis_promotion_execution import (
+        PostGISPromotionExecutionError,
+        PostGISPromotionExecutionStorageError,
+        execute_postgis_promotion,
+        persist_postgis_promotion_execution,
+    )
+    from geoagent_harness.mcp_server.settings import load_settings
+
+    try:
+        execution = execute_postgis_promotion(
+            plan_file=plan_file,
+            plan_root=plan_root,
+            approval_file=approval_file,
+            approval_root=approval_root,
+            settings=load_settings(),
+            confirm_plan_sha256=confirm_plan_sha256,
+            confirm_approval_sha256=confirm_approval_sha256,
+        )
+        result = persist_postgis_promotion_execution(
+            execution,
+            execution_root=execution_root,
+        )
+    except (
+        PostGISPromotionExecutionError,
+        PostGISPromotionExecutionStorageError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[
