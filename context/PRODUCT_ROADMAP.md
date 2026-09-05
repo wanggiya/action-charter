@@ -433,3 +433,7 @@ plan. Transactional promotion execution remains deferred.
 Checkpoint 15F completes transactional promotion with locked snapshot
 reverification, archive-absence verification, fixed identifier-safe renames,
 rollback on failure, post-promotion validation and immutable execution evidence.
+
+Checkpoint 15G adds independent read-only post-promotion verification and a
+separate immutable verification package. Rollback planning and authoritative
+release metadata remain later increments.

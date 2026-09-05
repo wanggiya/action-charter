@@ -158,6 +158,10 @@ digests. Execution locks and reverifies the relations, proves the archive is
 still absent, performs only the two approved renames in one serializable
 transaction, validates before commit, and records digest-addressed evidence.
 
+`verify-postgis-promotion` then independently reloads the exact plan and
+execution package, reinspects the promoted and archived relations through a
+separate read-only transaction, and stores distinct verification evidence.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major
