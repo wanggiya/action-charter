@@ -1492,3 +1492,11 @@ digest-addressed package. Approval is bound to the plan and assessment
 digests and exactly the two planned rename mutations. Approved corrections
 fail closed and require a replacement plan. This checkpoint writes approval
 evidence only and performs no promotion or database mutation.
+
+### Checkpoint 15F transactional PostGIS promotion
+
+Checkpoint 15F consumes the exact 15D plan and 15E approval only after explicit
+digest confirmation and write enablement. It locks and reverifies the relations,
+proves archive absence, performs the two fixed renames in one serializable
+transaction, validates before commit, rolls back every failure, and stores
+canonical digest-addressed execution evidence.

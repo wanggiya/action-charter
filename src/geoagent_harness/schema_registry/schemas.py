@@ -146,6 +146,7 @@ class ArtifactType(str, Enum):
     POSTGIS_CHANGE_ASSESSMENT = "postgis_change_assessment"
     POSTGIS_PROMOTION_PLAN = "postgis_promotion_plan"
     POSTGIS_PROMOTION_APPROVAL = "postgis_promotion_approval"
+    POSTGIS_PROMOTION_EXECUTION = "postgis_promotion_execution"
     
 
 
