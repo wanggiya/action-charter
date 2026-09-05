@@ -992,6 +992,86 @@ def plan_postgis_promotion_command(
         separators=None if pretty else (",", ":"),
     ))
 
+@app.command("record-postgis-promotion-approval")
+def record_postgis_promotion_approval_command(
+    plan_file: Annotated[
+        Path,
+        typer.Argument(help="15D plan-result JSON beneath the approved root."),
+    ],
+    approver: Annotated[str, typer.Option("--approver")],
+    reason: Annotated[str, typer.Option("--reason")],
+    decision: Annotated[
+        str, typer.Option("--decision")
+    ] = "approved",
+    plan_root: Annotated[
+        Path, typer.Option("--plan-root")
+    ] = Path("postgis-promotion-plans"),
+    approval_root: Annotated[
+        Path, typer.Option("--approval-root")
+    ] = Path("postgis-promotion-approvals"),
+    valid_for_minutes: Annotated[
+        int | None, typer.Option("--valid-for-minutes")
+    ] = None,
+    corrections: Annotated[
+        list[str] | None,
+        typer.Option("--correction"),
+    ] = None,
+    pretty: Annotated[
+        bool, typer.Option("--pretty")
+    ] = False,
+) -> None:
+    """Persist a human decision for one exact 15D plan digest."""
+    from datetime import datetime, timedelta, timezone
+
+    from geoagent_harness.postgis_promotion_approval import (
+        PostGISPromotionApprovalError,
+        PostGISPromotionApprovalStorageError,
+        create_postgis_promotion_approval,
+        load_postgis_promotion_plan_result,
+        persist_postgis_promotion_approval,
+    )
+
+    if valid_for_minutes is not None and valid_for_minutes < 1:
+        typer.echo("Error: valid-for-minutes must be positive", err=True)
+        raise typer.Exit(code=2)
+    now = datetime.now(timezone.utc)
+    expires_at = (
+        now + timedelta(minutes=valid_for_minutes)
+        if valid_for_minutes is not None
+        else None
+    )
+    try:
+        plan_result = load_postgis_promotion_plan_result(
+            plan_file,
+            plan_root=plan_root,
+        )
+        approval = create_postgis_promotion_approval(
+            plan_result=plan_result,
+            decision=decision,
+            approver=approver,
+            reason=reason,
+            human_corrections=corrections,
+            expires_at=expires_at,
+            now=now,
+        )
+        result = persist_postgis_promotion_approval(
+            approval,
+            approval_root=approval_root,
+        )
+    except (
+        PostGISPromotionApprovalError,
+        PostGISPromotionApprovalStorageError,
+    ) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[

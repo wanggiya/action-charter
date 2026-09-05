@@ -424,3 +424,8 @@ It binds exact reference, candidate and absent archive identities; inspection
 snapshots; the change assessment; approval scope; transactional choreography;
 rollback; and post-promotion validation into one canonical SHA-256 plan.
 Approval recording and actual promotion remain deferred.
+
+Checkpoint 15E records a human decision for an exact 15D plan digest in
+canonical, write-once approval evidence. Approved scope is fixed to the
+archive-reference and promote-candidate mutations; corrections require a new
+plan. Transactional promotion execution remains deferred.
