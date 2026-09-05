@@ -1483,3 +1483,12 @@ the exact archive relation is absent. The plan fixes the transaction,
 rollback, lock, archive, promotion and post-validation choreography and marks
 only the two future rename mutations as approval-required. Planning accepts
 no SQL, creates no approval and performs no database mutation.
+
+### Checkpoint 15E immutable PostGIS promotion approval
+
+Checkpoint 15E loads a bounded 15D plan-result file, recomputes its canonical
+plan digest and records a separate human decision in an immutable,
+digest-addressed package. Approval is bound to the plan and assessment
+digests and exactly the two planned rename mutations. Approved corrections
+fail closed and require a replacement plan. This checkpoint writes approval
+evidence only and performs no promotion or database mutation.

@@ -82,6 +82,8 @@ builder-reviews/
 builder-decisions/
 builder-post-activation-verifications/
 builder-promotion-plans/
+postgis-promotion-plans/
+postgis-promotion-approvals/
 builder-promotions/
 builder-promotion-verifications/
 builder-activation-decisions/

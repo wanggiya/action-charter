@@ -135,6 +135,23 @@ geoagent plan-postgis-promotion \
 Planning reinspects all relations, requires compatible evidence and an absent
 archive target, accepts no SQL, creates no approval and performs no mutation.
 
+After saving that JSON result beneath an approved plan root, a human operator
+can record an immutable decision for its exact digest:
+
+```bash
+geoagent record-postgis-promotion-approval \
+  checkpoint15d-promotion-v1.json \
+  --plan-root postgis-promotion-plans \
+  --approval-root postgis-promotion-approvals \
+  --approver "Operator Name" \
+  --reason "Approve the exact archive and promotion scope." \
+  --pretty
+```
+
+Approval covers exactly the two rename mutations. It does not execute the
+plan or modify PostGIS; approved corrections are rejected until a replacement
+plan is generated and reviewed.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major
