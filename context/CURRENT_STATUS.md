@@ -1500,3 +1500,10 @@ digest confirmation and write enablement. It locks and reverifies the relations,
 proves archive absence, performs the two fixed renames in one serializable
 transaction, validates before commit, rolls back every failure, and stores
 canonical digest-addressed execution evidence.
+
+### Checkpoint 15G independent promotion verification
+
+Checkpoint 15G independently reloads the exact plan and execution package,
+reinspects the promoted and archived relations in a new read-only transaction,
+compares their normalized profiles with the approved snapshots, and persists
+separate canonical digest-addressed verification evidence.

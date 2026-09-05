@@ -1120,6 +1120,39 @@ def execute_postgis_promotion_command(
     ))
 
 
+@app.command("verify-postgis-promotion")
+def verify_postgis_promotion_command(
+    execution_file: Annotated[Path, typer.Argument()],
+    plan_file: Annotated[Path, typer.Option("--plan-file")],
+    execution_root: Annotated[Path, typer.Option("--execution-root")] = Path("postgis-promotion-executions"),
+    plan_root: Annotated[Path, typer.Option("--plan-root")] = Path("postgis-promotion-plans"),
+    verification_root: Annotated[Path, typer.Option("--verification-root")] = Path("postgis-promotion-verifications"),
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Independently inspect and record one completed promotion."""
+    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.postgis_promotion_verification import (
+        PostGISPromotionVerificationError,
+        PostGISPromotionVerificationStorageError,
+        persist_postgis_promotion_verification,
+        verify_postgis_promotion,
+    )
+    try:
+        verification = verify_postgis_promotion(
+            execution_file=execution_file, execution_root=execution_root,
+            plan_file=plan_file, plan_root=plan_root, settings=load_settings(),
+        )
+        saved = persist_postgis_promotion_verification(
+            verification, verification_root=verification_root
+        )
+    except (PostGISPromotionVerificationError, PostGISPromotionVerificationStorageError) as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps({"verification": verification.model_dump(mode="json"),
+                           "verification_file": saved.as_posix()},
+                          indent=2 if pretty else None,
+                          separators=None if pretty else (",", ":")))
+
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[
