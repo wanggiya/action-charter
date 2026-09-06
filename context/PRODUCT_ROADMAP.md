@@ -437,3 +437,9 @@ rollback on failure, post-promotion validation and immutable execution evidence.
 Checkpoint 15G adds independent read-only post-promotion verification and a
 separate immutable verification package. Rollback planning and authoritative
 release metadata remain later increments.
+
+Checkpoint 15H adds deterministic rollback planning only for a fully verified
+15D/15F/15G evidence chain. It fixes the future locking, candidate restoration,
+reference restoration and validation choreography, while withholding approval
+and execution authority. Rollback approval, transactional rollback execution
+and authoritative release metadata remain later increments.

@@ -1153,6 +1153,44 @@ def verify_postgis_promotion_command(
                           separators=None if pretty else (",", ":")))
 
 
+@app.command("plan-postgis-rollback")
+def plan_postgis_rollback_command(
+    verification_file: Annotated[Path, typer.Argument(help="Exact 15G verification JSON.")],
+    execution_file: Annotated[Path, typer.Option("--execution-file")],
+    plan_file: Annotated[Path, typer.Option("--plan-file")],
+    verification_root: Annotated[Path, typer.Option("--verification-root")] = Path("postgis-promotion-verifications"),
+    execution_root: Annotated[Path, typer.Option("--execution-root")] = Path("postgis-promotion-executions"),
+    plan_root: Annotated[Path, typer.Option("--plan-root")] = Path("postgis-promotion-plans"),
+    rollback_plan_root: Annotated[Path, typer.Option("--rollback-plan-root")] = Path("postgis-rollback-plans"),
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Create an immutable, non-executing rollback plan."""
+    from geoagent_harness.postgis_rollback_plan import (
+        PostGISRollbackPlanError,
+        PostGISRollbackPlanStorageError,
+        persist_postgis_rollback_plan,
+        plan_postgis_rollback,
+    )
+
+    try:
+        rollback_plan = plan_postgis_rollback(
+            plan_file=plan_file, plan_root=plan_root,
+            execution_file=execution_file, execution_root=execution_root,
+            verification_file=verification_file, verification_root=verification_root,
+        )
+        result = persist_postgis_rollback_plan(
+            rollback_plan, rollback_plan_root=rollback_plan_root
+        )
+    except (PostGISRollbackPlanError, PostGISRollbackPlanStorageError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+
 @app.command("run-vector-postgis-workflow")
 def run_vector_postgis_workflow_command(
     path: Annotated[

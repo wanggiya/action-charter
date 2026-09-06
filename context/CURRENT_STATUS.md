@@ -1507,3 +1507,11 @@ Checkpoint 15G independently reloads the exact plan and execution package,
 reinspects the promoted and archived relations in a new read-only transaction,
 compares their normalized profiles with the approved snapshots, and persists
 separate canonical digest-addressed verification evidence.
+
+### Checkpoint 15H deterministic promotion rollback planning
+
+Checkpoint 15H derives a canonical rollback plan only from an exact, successful
+15D plan, 15F execution and 15G independent verification chain. Every source
+digest and identity is revalidated. The six fixed steps reserve approval for
+the two future rename mutations, require transactional execution and final
+validation, and currently perform no database access or mutation.
