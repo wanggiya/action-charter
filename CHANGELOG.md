@@ -7,6 +7,8 @@ project follows Semantic Versioning after the initial public alpha.
 
 ### Changed
 
+- Added independent, digest-bound verification for committed PostGIS rollback execution.
+
 - Adopted ActionCharter as the public project and distribution name.
 - Broadened the public description from a GIS-only harness to a governed
   professional-tool execution architecture with GIS as its reference domain.

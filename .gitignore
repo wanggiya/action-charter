@@ -87,6 +87,8 @@ postgis-promotion-approvals/
 postgis-promotion-executions/
 postgis-promotion-verifications/
 postgis-rollback-plans/
+postgis-rollback-approvals/
+postgis-rollback-executions/
 builder-promotions/
 builder-promotion-verifications/
 builder-activation-decisions/

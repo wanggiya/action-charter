@@ -1515,3 +1515,13 @@ Checkpoint 15H derives a canonical rollback plan only from an exact, successful
 digest and identity is revalidated. The six fixed steps reserve approval for
 the two future rename mutations, require transactional execution and final
 validation, and currently perform no database access or mutation.
+
+### Checkpoints 15I and 15J rollback approval and execution
+
+Checkpoint 15I records a redacted, immutable human decision bound to one exact
+15H plan digest and exactly its two restoration mutations. Checkpoint 15J
+executes only an unexpired approved decision after explicit digest confirmation
+and write enablement. It locks and reverifies the relations, proves the original
+candidate identity remains absent, performs the two fixed renames in one
+serializable transaction, validates both restored relations before commit,
+rolls back failures, and persists canonical execution evidence.

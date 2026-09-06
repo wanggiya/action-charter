@@ -443,3 +443,10 @@ Checkpoint 15H adds deterministic rollback planning only for a fully verified
 reference restoration and validation choreography, while withholding approval
 and execution authority. Rollback approval, transactional rollback execution
 and authoritative release metadata remain later increments.
+
+Checkpoint 15I records immutable human approval for exactly the two mutation
+steps in an exact 15H rollback plan. Checkpoint 15J consumes that approval only
+after explicit digest confirmation and performs the fixed rollback atomically,
+with locked input reverification, candidate-absence proof, post-rollback
+validation and immutable execution evidence. Independent rollback verification
+remains the final Checkpoint 15 increment.

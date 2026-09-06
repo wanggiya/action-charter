@@ -168,6 +168,15 @@ digest, fixes the future two-rename restoration choreography, and stores an
 immutable rollback plan. This command creates no approval, accepts no SQL and
 does not connect to or modify PostGIS.
 
+`record-postgis-rollback-approval` records a separate human decision bound to
+that exact rollback-plan digest and exactly its two future rename mutations.
+`execute-postgis-rollback` requires explicit confirmation of both the plan and
+approval digests, write enablement and an unexpired approval. It locks and
+reverifies the promoted and archived relations, proves the candidate identity
+is absent, performs the two fixed restoration renames in one serializable
+transaction, validates both restored relations before commit, and persists
+immutable execution evidence.
+
 ## Pilot demonstration
 
 Checkpoint 14F provides a fixed, repeatable scenario that connects the major
