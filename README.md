@@ -7,193 +7,180 @@
 
 **A governed execution harness for AI agents using professional tools.**
 
-ActionCharter turns uncertain model proposals into explicitly scoped,
-human-approved and independently verifiable work. Models may interpret a
-request and propose actions; deterministic software controls what can execute,
-which evidence is authoritative and whether a result may be released.
+ActionCharter lets models interpret requests and propose work without giving
+them unrestricted authority over shells, databases, filesystems, credentials,
+or production systems. Deterministic software validates the proposal, binds
+approval to its exact scope, dispatches only allowlisted operations, verifies
+the resulting state, and preserves tamper-evident evidence.
+
+> **Models propose; deterministic software authorizes, executes, validates,
+> and records evidence.**
 
 The current reference implementation applies this architecture to geospatial
-data with GeoPandas, GDAL, rasterio, PostGIS and GeoServer-oriented workflows.
-The control plane is designed to support additional professional-tool domains
-without granting models broad shell, credential, database or filesystem
-authority.
+data with GeoPandas, GDAL, rasterio, PostGIS, and GeoServer-oriented workflows.
+GIS is the first reference domain, not the architectural limit.
 
 > ActionCharter is an alpha research and pilot implementation. It is not yet a
 > hardened multi-user production control plane.
 
 ## Why ActionCharter?
 
-Giving a model access to a powerful tool is easy. Establishing that the model
-used the right input, stayed within scope, received exact approval, produced a
-valid result and left independently verifiable evidence is the harder problem.
+Giving a model access to a powerful tool is easy. The harder problem is proving
+that an AI-assisted operation:
 
-An **action charter** binds together:
+1. used the correct input;
+2. selected an allowed operation;
+3. remained inside an explicitly bounded scope;
+4. received approval for the exact consequential steps;
+5. executed only what was approved;
+6. produced a valid result;
+7. was independently verified; and
+8. left evidence that can be inspected later.
 
-- the requested objective and selected trusted operation;
-- validated arguments and contained paths;
-- the exact plan or recipe digest;
-- explicit human approval for consequential steps;
-- isolated execution through allowlisted adapters;
-- deterministic post-action validation;
-- redacted operational history and immutable evidence;
-- release eligibility based on completeness, not model confidence.
+Generated text never becomes authority merely because a model generated it.
+ActionCharter turns an uncertain proposal into a chain of typed, digest-bound,
+and independently checkable artifacts.
 
-Generated text cannot grant permissions, select arbitrary trusted entrypoints
-or become trusted implementation automatically.
-
-## Control flow
+## Governed execution flow
 
 ```mermaid
 flowchart TD
-    A["Untrusted request or model proposal"] --> B["Typed policy and exact human approval"]
-    B --> C["Isolated allowlisted execution"]
-    C --> D["Deterministic validation and evidence"]
-    D --> E["Independent review and immutable release"]
+    A["User request"] --> B["Planner proposal"]
+    B --> C["Schema and policy validation"]
+    C --> D["Digest-bound plan"]
+    D --> E["Human approval"]
+    E --> F["Allowlisted execution"]
+    F --> G["Deterministic validation"]
+    G --> H["Independent verification"]
+    H --> I["Immutable evidence and release"]
+    C -->|Rejected| X["Fail closed"]
+    E -->|Denied or expired| X
+    G -->|Invalid result| X
+    H -->|State mismatch| X
 ```
 
-The Planner and Critic may share a local model runtime, but they receive
-different manifests, context and permissions. The Executor does not receive
-model access. Professional tools and credentials remain behind the internal
-MCP boundary.
+For consequential mutations, rollback is another governed operation. It
+requires its own deterministic plan, exact approval, transactional execution,
+and independent verification; it is not an emergency bypass.
+
+## Agents and authority
+
+Planner, Executor, and Critic are intentionally separated. The Planner and
+Critic may use the same local model runtime, but they receive different
+contexts and permissions. The Executor has no model authority. Professional
+tools and credentials remain behind controlled adapters and the internal MCP
+boundary.
+
+```mermaid
+flowchart TD
+    U["User / Operator"] --> P["Planner"]
+    P --> G["Deterministic governance layer"]
+    U --> A["Exact human approval"]
+    A --> G
+    G --> E["Executor"]
+    E --> T["Allowlisted adapters / MCP"]
+    T --> S["GIS, PostGIS, filesystem"]
+    S --> V["Independent verifier"]
+    V --> R["Evidence and release"]
+    S --> C["Critic"]
+    C --> R
+    M["Local model runtime"] --> P
+    M --> C
+```
+
+| Component | May do | May not do |
+|---|---|---|
+| Planner | Interpret a bounded request and propose a typed plan | Execute tools or approve work |
+| Executor | Run an already-authorized typed operation | Use a model or invent operations |
+| Critic | Assess bounded evidence and identify unresolved risks | Change authoritative workflow state |
+| Governance layer | Enforce schemas, policy, digests, scope, and approval | Treat generated text as permission |
+| Human operator | Approve or deny an exact consequential scope | Implicitly approve a changed plan |
+| Verifier | Reload authoritative artifacts and inspect resulting state | Trust an executor's success claim |
+
+The Builder explores generated extensions under a separate lifecycle:
+candidate generation, bounded materialization, offline tests, review,
+digest-bound promotion, activation, and post-activation verification. Generated
+code remains untrusted until those deterministic controls succeed.
+
+## Complete PostGIS reference lifecycle
+
+Checkpoints 15A–15K provide the strongest end-to-end demonstration of the
+governance model:
+
+```mermaid
+flowchart TD
+    A["15A Inspect"] --> B["15B Compare"]
+    B --> C["15C Assess"]
+    C --> D["15D Plan promotion"]
+    D --> E["15E Approve promotion"]
+    E --> F["15F Execute promotion"]
+    F --> G["15G Verify promotion"]
+    G --> H["15H Plan rollback"]
+    H --> I["15I Approve rollback"]
+    I --> J["15J Execute rollback"]
+    J --> K["15K Verify rollback"]
+```
+
+The inspection, comparison, and assessment stages are read-only and accept no
+arbitrary SQL. Promotion and rollback execute only fixed, approved relation
+renames inside serializable transactions. Separate verifiers reload the exact
+plan, approval, and execution evidence and inspect PostGIS through independent
+read-only transactions.
+
+Representative commands:
+
+```bash
+geoagent inspect-postgis-table --schema agent_sandbox --table sample_points --pretty
+
+geoagent compare-postgis-tables \
+  --reference-schema agent_sandbox --reference-table current_layer \
+  --candidate-schema agent_sandbox --candidate-table candidate_layer --pretty
+
+geoagent assess-postgis-change \
+  --reference-schema agent_sandbox --reference-table current_layer \
+  --candidate-schema agent_sandbox --candidate-table candidate_layer --pretty
+```
+
+The remaining lifecycle is exposed through `plan-postgis-promotion`,
+`record-postgis-promotion-approval`, `execute-postgis-promotion`,
+`verify-postgis-promotion`, `plan-postgis-rollback`,
+`record-postgis-rollback-approval`, `execute-postgis-rollback`, and
+`verify-postgis-rollback`.
 
 ## Implemented capabilities
 
 | Boundary | Current implementation |
 |---|---|
-| Planning | Bounded task context, schema-constrained plans and deterministic policy |
-| Authorization | Append-only approval records bound to exact SHA-256 identities and step scope |
+| Planning | Bounded task context, schema-constrained plans, and deterministic policy |
+| Authorization | Append-only approvals bound to exact SHA-256 identities and step scope |
 | Execution | Typed envelopes and fixed approval-gated MCP operations |
 | Data quality | Versioned vector contracts and deterministic dirty-data benchmarks |
-| Validation | Independent vector, raster and PostGIS checks; models cannot declare success |
-| Evidence | Redacted traces, reports, lineage and digest-addressed records |
-| Operational history | Typed append-only events with stable run, task and correlation identities |
+| GIS operations | Controlled vector and raster inspection/conversion and PostGIS loading |
+| PostGIS lifecycle | Bounded inspection through independently verified promotion and rollback |
+| Evidence | Redacted traces, reports, lineage, and digest-addressed records |
+| Operational history | Typed events with stable run, task, and correlation identities |
 | Critic | Separate read-only assessment that cannot alter authoritative status |
-| Release | Immutable six-component workflow packages with independent inspection |
-| Reproducibility | Approval-gated Snakemake export, static validation, dry-run and replay |
-| Generated extensions | Isolated Builder candidates, offline tests, review, promotion and post-activation verification |
-
-The geospatial reference domain currently includes vector inspection and
-conversion, raster inspection and controlled conversion, PostGIS loading and
-validation, declarative recipes, and a restricted skill registry.
-
-Bounded PostGIS metadata inspection is available without accepting SQL:
-
-```bash
-geoagent inspect-postgis-table \
-  --schema agent_sandbox \
-  --table sample_points \
-  --pretty
-```
-
-The command uses the configured read-only database boundary and reports
-bounded relation, column, key, geometry, CRS, count and extent facts. The
-schema must be allowlisted and both identifiers must pass the conservative
-identifier policy.
-
-Compare two exact tables through the same boundary:
-
-```bash
-geoagent compare-postgis-tables \
-  --reference-schema agent_sandbox \
-  --reference-table current_layer \
-  --candidate-schema agent_sandbox \
-  --candidate-table candidate_layer \
-  --pretty
-```
-
-The command returns exit code zero for matching facts, one for typed
-differences, and two when safe comparison evidence is unavailable.
-
-Classify those facts with the fixed change policy:
-
-```bash
-geoagent assess-postgis-change \
-  --reference-schema agent_sandbox \
-  --reference-table current_layer \
-  --candidate-schema agent_sandbox \
-  --candidate-table candidate_layer \
-  --pretty
-```
-
-The result is `compatible`, `review_required`, or `incompatible`. Assessment
-is read-only and cannot approve or authorize promotion.
-
-Create a digest-bound plan for an exact candidate-to-current promotion:
-
-```bash
-geoagent plan-postgis-promotion \
-  --plan-id checkpoint15d-promotion-v1 \
-  --reference-schema agent_sandbox \
-  --reference-table current_layer \
-  --candidate-schema agent_sandbox \
-  --candidate-table candidate_layer \
-  --archive-schema agent_sandbox \
-  --archive-table current_layer_archive_v1 \
-  --pretty
-```
-
-Planning reinspects all relations, requires compatible evidence and an absent
-archive target, accepts no SQL, creates no approval and performs no mutation.
-
-After saving that JSON result beneath an approved plan root, a human operator
-can record an immutable decision for its exact digest:
-
-```bash
-geoagent record-postgis-promotion-approval \
-  checkpoint15d-promotion-v1.json \
-  --plan-root postgis-promotion-plans \
-  --approval-root postgis-promotion-approvals \
-  --approver "Operator Name" \
-  --reason "Approve the exact archive and promotion scope." \
-  --pretty
-```
-
-Approval covers exactly the two rename mutations. It does not execute the
-plan or modify PostGIS; approved corrections are rejected until a replacement
-plan is generated and reviewed.
-
-An operator can then run `execute-postgis-promotion` with write tools enabled,
-the exact plan and approval files, and explicit confirmation of both SHA-256
-digests. Execution locks and reverifies the relations, proves the archive is
-still absent, performs only the two approved renames in one serializable
-transaction, validates before commit, and records digest-addressed evidence.
-
-`verify-postgis-promotion` then independently reloads the exact plan and
-execution package, reinspects the promoted and archived relations through a
-separate read-only transaction, and stores distinct verification evidence.
-
-`plan-postgis-rollback` consumes that successful verification together with
-the exact execution and promotion plan. It recomputes and cross-checks every
-digest, fixes the future two-rename restoration choreography, and stores an
-immutable rollback plan. This command creates no approval, accepts no SQL and
-does not connect to or modify PostGIS.
-
-`record-postgis-rollback-approval` records a separate human decision bound to
-that exact rollback-plan digest and exactly its two future rename mutations.
-`execute-postgis-rollback` requires explicit confirmation of both the plan and
-approval digests, write enablement and an unexpired approval. It locks and
-reverifies the promoted and archived relations, proves the candidate identity
-is absent, performs the two fixed restoration renames in one serializable
-transaction, validates both restored relations before commit, and persists
-immutable execution evidence.
+| Release | Immutable workflow packages with independent inspection |
+| Reproducibility | Approval-gated Snakemake export, validation, dry-run, and replay |
+| Generated extensions | Isolated Builder candidates, offline tests, promotion, and activation verification |
 
 ## Pilot demonstration
 
-Checkpoint 14F provides a fixed, repeatable scenario that connects the major
-boundaries. Its first gate is read-only and deterministic:
+Checkpoint 14F connects proposal, deterministic compilation, human approval,
+PostGIS execution, validation, operational history, Critic evidence,
+authoritative release inspection, and Snakemake replay.
+
+Its first gate is read-only and deterministic:
 
 ```bash
 make checkpoint14f-readiness
 ```
 
-The command verifies a clean vector control, an invalid-geometry case, the
-contract identity and the exact workflow input digest. It does not call a
-model, create approval, execute a workflow, modify data or create a release.
-
-The complete walkthrough continues through proposal, compilation, exact human
-approval, PostGIS execution, validation, operational history, separate Critic
-evidence, authoritative release inspection and approved Snakemake replay. See
-[the Checkpoint 14F demonstration](demonstrations/checkpoint14f/README.md).
+It verifies a clean vector control, an invalid-geometry case, the contract
+identity, and the exact workflow-input digest. It does not call a model, create
+approval, execute a workflow, modify data, or create a release. See the
+[Checkpoint 14F demonstration](demonstrations/checkpoint14f/README.md) for the
+complete walkthrough.
 
 ## Quick start
 
@@ -201,24 +188,23 @@ evidence, authoritative release inspection and approved Snakemake replay. See
 
 - Linux or WSL2;
 - Python 3.11 or newer;
-- Docker Engine with Compose v2;
-- optional local Ollama-compatible endpoint for Planner, Builder and Critic;
+- Docker Engine with Compose v2 for containerized boundaries;
+- optional local Ollama-compatible endpoint for Planner, Builder, and Critic;
 - optional externally managed PostGIS for database workflows.
 
-The offline unit tests and read-only fixture checks do not require model or
+The primary development environment is **Ubuntu 24.04 LTS under WSL2**. Hosted
+CI exercises the offline suite and container contracts on Ubuntu. Other modern
+Linux environments are expected to work but are not tested to the same level.
+
+Offline unit tests and read-only fixture checks do not require model or
 database credentials.
 
-### Install
+### Install and test
 
 ```bash
 git clone https://github.com/wanggiya/action-charter.git
 cd action-charter
 make install
-```
-
-Run the complete offline suite:
-
-```bash
 make test
 ```
 
@@ -237,14 +223,13 @@ make build
 ```
 
 Copy `.env.example` to `.env` only when configuring local services. Never
-commit `.env`, credentials, private datasets or generated operational
+commit `.env`, credentials, private datasets, or generated operational
 evidence.
 
 ## Local model configuration
 
 ActionCharter uses an OpenAI-compatible chat-completions interface and is
-developed against a shared local Ollama runtime. Relevant non-secret settings
-include:
+developed against a shared local Ollama runtime:
 
 ```dotenv
 MODEL_PROVIDER=ollama
@@ -261,17 +246,17 @@ receive PostGIS credentials or determine deterministic success.
 Core invariants include:
 
 - model output is always untrusted input;
-- the safe default is `ENABLE_WRITE_TOOLS=false`;
-- there is no unrestricted shell or unrestricted SQL tool;
-- approvals bind exact plan or recipe identities and explicit write steps;
-- trusted inputs and registries are read-only at execution boundaries;
-- paths must remain beneath approved roots and symlinks fail closed;
-- credentials are excluded from prompts, results, traces and reports;
-- generated code is tested in an isolated networkless candidate workspace;
-- deterministic verification is the only success gate;
-- incomplete evidence withholds authoritative release status.
+- `ENABLE_WRITE_TOOLS=false` is the safe default;
+- no interface accepts unrestricted shell commands or arbitrary SQL;
+- approvals bind exact artifact identities and explicit consequential steps;
+- trusted inputs and registries remain read-only at execution boundaries;
+- approved paths must remain under bounded roots and symlinks fail closed;
+- credentials are excluded from prompts, results, traces, and reports;
+- generated code is tested inside an isolated, network-disabled workspace;
+- independent deterministic verification—not model confidence—is the success gate;
+- incomplete or inconsistent evidence withholds authoritative status.
 
-Read [SECURITY.md](SECURITY.md) and
+Read [SECURITY.md](SECURITY.md) and the
 [runtime boundaries](context/RUNTIME_BOUNDARIES.md) before deploying or
 extending an execution path.
 
@@ -279,45 +264,45 @@ extending an execution path.
 
 | Path | Purpose |
 |---|---|
-| `src/geoagent_harness/` | Core policies, agents, adapters, evidence and release code |
+| `src/geoagent_harness/` | Core policies, agents, adapters, workflows, evidence, and release code |
 | `agents/` | Trusted role manifests and bounded instructions |
-| `context/` | Architecture, status, decisions, catalogs and trusted context |
+| `context/` | Architecture, status, decisions, catalogs, and trusted context |
 | `skill-definitions/` | Declarative trusted skill definitions |
 | `skills/` | Installed GIS skill contracts and documentation |
 | `benchmarks/` | Deterministic spatial-contract fixtures and expectations |
 | `demonstrations/` | Repeatable operator walkthroughs |
 | `docker/` and `compose.yaml` | Isolated runtime boundaries |
-| `tests/` | Offline policy, schema, security and workflow tests |
+| `tests/` | Offline policy, schema, security, and workflow tests |
 
 Detailed project records:
 
 - [architecture](context/ARCHITECTURE.md);
 - [current implementation status](context/CURRENT_STATUS.md);
+- [project summary](context/PROJECT_SUMMARY.md);
 - [product roadmap](context/PRODUCT_ROADMAP.md);
 - [accepted architectural decisions](context/DECISIONS.jsonl);
 - [dataset catalog](context/DATASET_CATALOG.json);
 - [skills index](context/SKILLS_INDEX.yaml);
 - [changelog](CHANGELOG.md).
 
-## Current scope
+## Current scope and non-goals
 
-The presentation-focused vector pilot and its supporting Checkpoints 1–14F are
-implemented. Current work remains prototype-level. Important future work
-includes expanded PostGIS lifecycle operations, restricted GeoServer
-publication, a guided interface, production authentication, multi-user
-authorization, strict network egress enforcement and broader non-GIS domain
-adapters.
+ActionCharter demonstrates a complete governed PostGIS mutation and rollback
+lifecycle, but remains a single-operator alpha rather than a production control
+plane. Production authentication, multi-user authorization, strict network
+egress enforcement, broader domain adapters, and a guided interface remain
+future work.
 
 The project deliberately does not compete by exposing the largest possible
 tool catalog. Its focus is the controlled path from uncertain intent to
-validated, inspectable and reproducible action.
+validated, inspectable, reversible, and reproducible action.
 
 ## Compatibility
 
 The public project and Python distribution are named ActionCharter. The
 initial `0.9.x` releases retain the `geoagent_harness` Python package and the
 `geoagent` and `geoagent-mcp` commands. Existing evidence fields, Compose
-service names and established internal `GeoAgent*` types also remain
+service names, and established internal `GeoAgent*` types also remain
 compatibility interfaces.
 
 A future namespace migration requires a separately reviewed compatibility

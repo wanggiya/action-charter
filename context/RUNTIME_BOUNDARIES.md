@@ -7,7 +7,9 @@
 | Planner | manifests and trusted context | none | shared local model only |
 | Executor | plans, recipes, approvals, workflow state | none directly | fixed approval-gated MCP tools |
 | Critic | traces and reports | none | model network only; no MCP or PostGIS |
+| Builder | bounded request and manifest | isolated candidate workspace only through trusted materialization | shared local model only; no MCP or PostGIS |
 | MCP GIS | trusted inputs, recipes, approvals and registry | controlled artifact and GIS output roots | fixed GIS functions and approved PostGIS connection |
+| Independent verifier | exact plans, approvals, execution evidence and read-only resulting state | dedicated digest-addressed verification roots | separate read-only inspection boundary |
 | Human operator | project artifacts | explicit save and approval actions | controls workflow progression |
 
 ## Important mounts
@@ -55,7 +57,7 @@ A controlled write requires:
 4. server-side envelope reconstruction;
 5. a fixed allowlisted MCP operation;
 6. deterministic post-write validation;
-7. durable result, evidence, lineage, and report persistence.
+7. independent resulting-state verification where the operation requires it;
+8. durable result, verification, lineage, and report persistence.
 
 Natural-language proposal generation does not cross this write gate.
-
