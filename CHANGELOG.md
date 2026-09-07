@@ -7,11 +7,21 @@ project follows Semantic Versioning after the initial public alpha.
 
 ### Changed
 
-- Added independent, digest-bound verification for committed PostGIS rollback execution.
-
 - Adopted ActionCharter as the public project and distribution name.
 - Broadened the public description from a GIS-only harness to a governed
   professional-tool execution architecture with GIS as its reference domain.
+- Reorganized the README around the governed flow, agent authority boundaries,
+  complete PostGIS lifecycle, supported environment, and newcomer quick start.
+- Synchronized the project summary, architecture, runtime boundaries, current
+  status, and roadmap with the completed 15A–15K implementation.
+
+### Added
+
+- A complete governed PostGIS candidate-to-current lifecycle: bounded
+  inspection, deterministic comparison and assessment, digest-bound promotion
+  planning and approval, serializable execution, and independent verification.
+- Governed rollback planning, separate rollback approval, serializable rollback
+  execution, and independent digest-bound verification of restored state.
 
 ## [0.9.0] - 2026-09-04
 

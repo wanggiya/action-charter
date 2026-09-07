@@ -1,10 +1,13 @@
 # Current Status
 
-Last updated: 2026-09-03
+Last updated: 2026-09-07
 
 ## Project summary
 
-ActionCharter is a CLI-first, local-first governed execution harness for AI agents using professional tools. Its current reference implementation plans, approves, executes, validates and audits controlled geospatial workflows.
+ActionCharter is a CLI-first, local-first governed execution harness for AI
+agents using professional tools. Its current geospatial reference
+implementation includes a complete, independently verified PostGIS promotion
+and rollback lifecycle.
 
 The current system combines:
 
@@ -20,11 +23,18 @@ The current system combines:
 * durable lineage, evidence, traces and reports;
 * immutable Critic records and authoritative release packages;
 * natural-language recipe proposals;
-* guided operator review and explicit recipe storage.
+* guided operator review and explicit recipe storage;
+* bounded PostGIS inspection, comparison and deterministic change assessment;
+* digest-bound promotion and rollback planning and approval;
+* serializable promotion and rollback execution; and
+* independent post-promotion and post-rollback state verification.
 
 The model is used to interpret requests and produce constrained proposals. It does not determine execution success, approve writes, call GIS tools or directly modify artifacts.
 
 Final success is derived only from deterministic validation.
+
+The PostGIS reference lifecycle is complete through Checkpoint 15K. The latest
+full offline regression completed with **1,153 passing tests**.
 
 ## Current workflow
 
@@ -50,6 +60,12 @@ natural-language request
 → deterministic release assessment
 → immutable authoritative release package
 → independent release inspection
+→ deterministic promotion plan and exact approval
+→ transactional PostGIS promotion
+→ independent promotion verification
+→ deterministic rollback plan and separate approval
+→ transactional rollback
+→ independent rollback verification
 ```
 
 ## Checkpoint 1 — Repository and vector inspection
@@ -927,7 +943,12 @@ Completed:
 
 A catalog entry cannot provide executable code, imports, entrypoints, verifiers, shell commands, SQL, approvals, permission grants or execution claims. New executable GIS behavior still requires a separately implemented, tested and promoted trusted skill.
 
-## Next milestones
+## Historical extension roadmap
+
+The checkpoint proposals in this section record the path considered before the
+PostGIS lifecycle was completed. They are retained for design history and do
+not define the next checkpoint. Current planning is intentionally paused until
+the completed 15A–15K architecture and product priorities are reviewed.
 
 The detailed product direction, presentation scope and prototype-release definition are maintained in `context/PRODUCT_ROADMAP.md`.
 
@@ -1320,18 +1341,22 @@ outside Git and must be recreated for each authoritative run.
 
 ### Checkpoint 15 — Expanded PostGIS workflows and controlled release
 
-Planned:
+Completed for the governed candidate-to-current lifecycle:
 
-* controlled spatial transformations;
-* bounded read-only spatial queries;
-* validated PostGIS export;
-* versioned candidate staging;
-* candidate-to-current comparison;
-* exact approval before promotion;
-* previous-version and rollback metadata;
-* trusted-skill and declarative-recipe integration.
+* bounded PostGIS relation inspection;
+* deterministic candidate-to-current comparison and change assessment;
+* digest-bound promotion planning and exact approval;
+* serializable promotion execution with locked state reverification;
+* independent post-promotion state verification;
+* digest-bound rollback planning and separate approval;
+* serializable rollback execution with locked state reverification; and
+* independent post-rollback state verification.
 
-### Checkpoint 16 — Restricted GeoServer publication
+Controlled transformations, general spatial queries, export, publication and
+generic recipe integration were not part of the completed 15A–15K scope and
+remain possible future extensions rather than incomplete lifecycle gates.
+
+### Previously proposed Checkpoint 16 — Restricted GeoServer publication
 
 Planned:
 
@@ -1342,7 +1367,7 @@ Planned:
 * publication and service verification;
 * release-linked publication evidence and lineage.
 
-### Checkpoint 17 — Guided interface and Snakemake productization
+### Previously proposed Checkpoint 17 — Guided interface and Snakemake productization
 
 Planned:
 
@@ -1353,7 +1378,7 @@ Planned:
 * guided Snakemake export, validation, dry-run and replay;
 * portfolio-ready GIS demonstrations.
 
-### Checkpoint 18 — Pilot operations and bounded memory
+### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:
 
@@ -1525,3 +1550,18 @@ and write enablement. It locks and reverifies the relations, proves the original
 candidate identity remains absent, performs the two fixed renames in one
 serializable transaction, validates both restored relations before commit,
 rolls back failures, and persists canonical execution evidence.
+
+### Checkpoint 15K independent rollback verification
+
+Checkpoint 15K independently reloads the exact rollback plan, approval and
+execution package, recomputes their canonical SHA-256 identities, and verifies
+their bindings and approved scope. It then inspects the restored PostGIS
+relations through a separate read-only transaction, compares normalized state
+with the approved snapshots, rejects missing or inconsistent evidence, and
+persists a separate digest-addressed verification package.
+
+The verifier does not trust the rollback executor's transaction or validation
+claims. A rollback becomes verified only when the independently observed final
+state matches the exact governed restoration plan. This closes the complete
+15A–15K promotion and rollback lifecycle. The full regression after completion
+passed 1,153 tests.

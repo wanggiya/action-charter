@@ -1,6 +1,6 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-08-26
+Updated: 2026-09-07
 
 ## Product direction
 
@@ -19,6 +19,10 @@ The implemented foundation already includes:
 - immutable Snakemake export and replay through the existing Executor-to-MCP boundary;
 - declarative skill contracts, isolated candidate generation and testing, digest-bound evidence, and explicit promotion;
 - one data-only recipe catalog that drives trusted template discovery, parameter profiles, assessment policies, prompts, and deterministic step graphs.
+- a complete PostGIS lifecycle from bounded inspection and deterministic
+  comparison through exact promotion approval, serializable execution,
+  independent verification, governed rollback, and independent rollback
+  verification.
 
 ## Presentation target
 
@@ -194,36 +198,47 @@ The project already has substantial infrastructure. A fixed end-to-end narrative
 
 ## Checkpoint 15 — Expanded PostGIS workflows and controlled release
 
+Status: complete for the governed candidate-to-current promotion and rollback
+lifecycle implemented in Checkpoints 15A–15K.
+
 ### Function
 
-Extend the existing PostGIS checkpoint with:
+The implemented sequence provides:
 
-- controlled spatial transformations;
-- read-only spatial queries;
-- validated PostGIS export;
-- generic recipe dispatch through promoted skills;
-- versioned staging schemas or tables;
-- candidate-to-current comparison;
-- approval-gated promotion;
-- release and rollback metadata.
+- bounded relation inspection with no arbitrary SQL;
+- deterministic candidate-to-current comparison and change assessment;
+- digest-bound promotion planning and exact human approval;
+- serializable, locked and reverified promotion execution;
+- independent post-promotion inspection and evidence;
+- deterministic rollback planning and separate human approval;
+- serializable, locked and reverified rollback execution; and
+- independent post-rollback inspection and evidence.
 
-Recommended release sequence:
+Completed lifecycle:
 
 ```text
-validated artifact
--> versioned staging target
--> deterministic candidate/current comparison
--> exact promotion plan
--> human approval
+bounded inspection
+-> deterministic comparison and assessment
+-> exact promotion plan and approval
 -> transactional promotion
--> authoritative release record
+-> independent promotion verification
+-> exact rollback plan and separate approval
+-> transactional rollback
+-> independent rollback verification
 ```
 
 ### Why
 
 Staging separates successful technical execution from authoritative production state. Candidate/current comparison lets reviewers see feature-count, schema, CRS, geometry, extent, and content changes before approving promotion.
 
-## Checkpoint 16 — Restricted GeoServer publication
+## Candidate future directions
+
+The next numbered checkpoint is intentionally undefined while the completed
+architecture, documentation, demonstration goals, and pilot priorities are
+reviewed. The following sections are design candidates, not a committed
+sequence.
+
+## Candidate — Restricted GeoServer publication
 
 ### Function
 
@@ -244,7 +259,7 @@ Required capabilities:
 
 Publishing before staging and promotion could expose an unreviewed candidate. GeoServer must consume an authoritative release, not merely the latest successful execution.
 
-## Checkpoint 17 — Guided product interface and Snakemake productization
+## Candidate — Guided product interface and Snakemake productization
 
 ### Function
 
@@ -279,7 +294,7 @@ The interface makes the security and evidence model visible. Snakemake should ap
 
 A read-only interface is sufficient. Execution controls may remain CLI-driven until authorization and error handling are mature.
 
-## Checkpoint 18 — Pilot operations and bounded memory
+## Candidate — Pilot operations and bounded memory
 
 ### Function
 
@@ -392,7 +407,8 @@ scenario. The repository now includes deterministic readiness assessment and a
 clean-checkout walkthrough; the demonstrated run completed plan approval,
 PostGIS execution and validation, correlated history, separate Critic evidence,
 authoritative release inspection, and approved Snakemake replay. Broader
-raster contracts, production promotion and publication remain later work.
+raster contracts and publication remain later work. The separately implemented
+15A–15K lifecycle now covers governed PostGIS promotion and rollback.
 
 ## Checkpoint 15: controlled PostGIS operations
 
@@ -404,49 +420,50 @@ Checkpoint 15A establishes bounded read-only inspection of one exact table:
 - relation, schema, key, CRS, count, quality and extent facts;
 - CLI and read-only MCP access with credential-redacted failures.
 
-Later Checkpoint 15 increments may add comparison and explicitly approved
-staging or promotion. They must remain separate from inspection and must not
-introduce unrestricted SQL.
+The later 15B–15K increments preserve separation between observation,
+authorization, mutation and independent verification without introducing
+unrestricted SQL.
 
 Checkpoint 15B adds the comparison increment as a read-only composition over
 inspection. It compares normalized metadata and data-quality facts for two
 exact relations in one repeatable-read transaction and reports bounded typed
-differences. Approved staging and promotion remain deferred to later
-Checkpoint 15 increments.
+differences. It grants no promotion authority.
 
 Checkpoint 15C adds a fixed non-mutating policy assessment over comparison
 evidence. It distinguishes compatible facts, review-required observational
 drift and incompatible structural change while withholding approval and
-promotion authority. Approved staging and promotion remain deferred.
+promotion authority.
 
 Checkpoint 15D adds deterministic promotion planning for compatible evidence.
 It binds exact reference, candidate and absent archive identities; inspection
 snapshots; the change assessment; approval scope; transactional choreography;
 rollback; and post-promotion validation into one canonical SHA-256 plan.
-Approval recording and actual promotion remain deferred.
 
 Checkpoint 15E records a human decision for an exact 15D plan digest in
 canonical, write-once approval evidence. Approved scope is fixed to the
 archive-reference and promote-candidate mutations; corrections require a new
-plan. Transactional promotion execution remains deferred.
+plan.
 
 Checkpoint 15F completes transactional promotion with locked snapshot
 reverification, archive-absence verification, fixed identifier-safe renames,
 rollback on failure, post-promotion validation and immutable execution evidence.
 
 Checkpoint 15G adds independent read-only post-promotion verification and a
-separate immutable verification package. Rollback planning and authoritative
-release metadata remain later increments.
+separate immutable verification package.
 
 Checkpoint 15H adds deterministic rollback planning only for a fully verified
 15D/15F/15G evidence chain. It fixes the future locking, candidate restoration,
 reference restoration and validation choreography, while withholding approval
-and execution authority. Rollback approval, transactional rollback execution
-and authoritative release metadata remain later increments.
+and execution authority.
 
 Checkpoint 15I records immutable human approval for exactly the two mutation
 steps in an exact 15H rollback plan. Checkpoint 15J consumes that approval only
 after explicit digest confirmation and performs the fixed rollback atomically,
 with locked input reverification, candidate-absence proof, post-rollback
-validation and immutable execution evidence. Independent rollback verification
-remains the final Checkpoint 15 increment.
+validation and immutable execution evidence.
+
+Checkpoint 15K independently reloads and rehashes the rollback plan, approval
+and execution package, verifies their exact identity and scope bindings, and
+inspects the restored relations through a separate read-only transaction. It
+persists distinct digest-addressed verification evidence and closes the
+governed promotion and rollback lifecycle.
