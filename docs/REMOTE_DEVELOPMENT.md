@@ -21,6 +21,11 @@ so that repository Compose contracts can be exercised. That socket is a
 developer capability, not an ActionCharter runtime trust boundary: do not run
 unreviewed containers or scripts in the Codespace.
 
+The small `.devcontainer/Dockerfile` removes an unused Yarn package source from
+the upstream image before Dev Container features are installed. ActionCharter
+does not use Node.js or Yarn; this prevents an unrelated Yarn signing-key
+failure from blocking Docker feature installation.
+
 ### Start from an Android phone
 
 1. Open the ActionCharter repository in Chrome or another modern browser.
