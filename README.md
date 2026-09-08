@@ -4,6 +4,7 @@
 [![Container contracts](https://github.com/wanggiya/action-charter/actions/workflows/container-build.yaml/badge.svg)](https://github.com/wanggiya/action-charter/actions/workflows/container-build.yaml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/wanggiya/action-charter?quickstart=1)
 
 **A governed execution harness for AI agents using professional tools.**
 
@@ -226,6 +227,18 @@ Copy `.env.example` to `.env` only when configuring local services. Never
 commit `.env`, credentials, private datasets, or generated operational
 evidence.
 
+### Remote development
+
+The repository includes a GitHub Codespaces development-container
+configuration for remote Linux development from a browser, including an
+Android phone. Codespaces is the recommended execution environment; native
+Termux is limited to editing, Git, and use as an SSH client because it does not
+reproduce the project's complete Linux, GIS, Docker Compose, and PostGIS
+boundaries.
+
+See [remote development from Android](docs/REMOTE_DEVELOPMENT.md) for setup,
+validation, cost-control, security, and recovery guidance.
+
 ## Local model configuration
 
 ActionCharter uses an OpenAI-compatible chat-completions interface and is
@@ -271,6 +284,8 @@ extending an execution path.
 | `skills/` | Installed GIS skill contracts and documentation |
 | `benchmarks/` | Deterministic spatial-contract fixtures and expectations |
 | `demonstrations/` | Repeatable operator walkthroughs |
+| `docs/` | Operator and development guides |
+| `.devcontainer/` | Reproducible Codespaces and Dev Container configuration |
 | `docker/` and `compose.yaml` | Isolated runtime boundaries |
 | `tests/` | Offline policy, schema, security, and workflow tests |
 

@@ -22,6 +22,11 @@ project follows Semantic Versioning after the initial public alpha.
   planning and approval, serializable execution, and independent verification.
 - Governed rollback planning, separate rollback approval, serializable rollback
   execution, and independent digest-bound verification of restored state.
+- A reproducible Python 3.11 Codespaces development container with Docker
+  Compose access and automatic development-dependency installation.
+- An Android remote-development guide covering browser-based Codespaces,
+  Termux as an SSH/Git client, cost control, validation scope, and secret
+  handling.
 
 ## [0.9.0] - 2026-09-04
 
