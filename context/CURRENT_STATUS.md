@@ -36,6 +36,12 @@ Final success is derived only from deterministic validation.
 The PostGIS reference lifecycle is complete through Checkpoint 15K. The latest
 full offline regression completed with **1,153 passing tests**.
 
+Checkpoint 16 is now the restricted GeoServer publication prototype for the
+existing local Docker environment. Checkpoint 16A establishes its first
+boundary: bounded, GET-only inspection of one exact allowlisted workspace,
+datastore, feature type, and published layer. It accepts no arbitrary REST path
+and grants no publication, update, deletion, approval, or credential authority.
+
 ## Current workflow
 
 ```text

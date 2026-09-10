@@ -148,6 +148,22 @@ The remaining lifecycle is exposed through `plan-postgis-promotion`,
 `record-postgis-rollback-approval`, `execute-postgis-rollback`, and
 `verify-postgis-rollback`.
 
+Checkpoint 16A adds bounded, read-only inspection of one exact allowlisted
+GeoServer workspace, datastore, and layer without accepting arbitrary REST
+paths or modification methods:
+
+```bash
+geoagent inspect-geoserver-layer \
+  --workspace geoagent_test \
+  --datastore actioncharter_postgis \
+  --layer checkpoint3e_sample_points \
+  --pretty
+```
+
+See the [Checkpoint 16A local setup](docs/CHECKPOINT16A.md) for allowlists and
+password-file configuration, including the dedicated GeoServer test user,
+workspace-scoped REST role, PostGIS-backed datastore, and Docker network.
+
 ## Implemented capabilities
 
 | Boundary | Current implementation |

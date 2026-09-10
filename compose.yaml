@@ -174,6 +174,9 @@ services:
     build:
       context: .
       dockerfile: docker/gis-tools/Dockerfile
+      args:
+        GEOAGENT_UID: ${GEOAGENT_HOST_UID:-1000}
+        GEOAGENT_GID: ${GEOAGENT_HOST_GID:-1000}
 
     image: ${GIS_IMAGE:-geoagent-gis-tools:local}
 
@@ -215,6 +218,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-geoagent}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgis_password
 
+      GEOSERVER_BASE_URL: ${GEOSERVER_BASE_URL:-http://geoserver:8080/geoserver}
+      GEOSERVER_USER: ${GEOSERVER_USER:-geoagent}
+      GEOSERVER_PASSWORD_FILE: /run/secrets/geoserver_password
+      ALLOWED_GEOSERVER_WORKSPACES: ${ALLOWED_GEOSERVER_WORKSPACES:-agent_sandbox}
+      ALLOWED_GEOSERVER_DATASTORES: ${ALLOWED_GEOSERVER_DATASTORES:-postgis}
+
     volumes:
       - ./data/input:/workspace/data/input:ro
       - ./benchmarks/spatial-contracts/vector:/workspace/spatial-contracts:ro
@@ -234,6 +243,7 @@ services:
     
     secrets:
       - postgis_password
+      - geoserver_password
 
     profiles:
       - tools
@@ -298,3 +308,6 @@ networks:
 secrets:
   postgis_password:
     file: ./.secrets/postgis_password
+
+  geoserver_password:
+    file: ./.secrets/geoserver_password

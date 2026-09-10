@@ -87,6 +87,18 @@ def test_bounded_postgis_inspection_is_read_only() -> None:
     assert "inspect_postgis_table" in tools.TOOL_ALLOWLIST
 
 
+def test_bounded_geoserver_inspection_is_get_only() -> None:
+    from geoagent_harness.geoserver_inspection import service
+
+    source = inspect.getsource(service).lower()
+    assert "client.get" in source
+    assert "client.post" not in source
+    assert "client.put" not in source
+    assert "client.delete" not in source
+    assert "subprocess" not in source
+    assert "inspect_geoserver_layer" in tools.TOOL_ALLOWLIST
+
+
 def test_postgis_comparison_reuses_inspection_boundary() -> None:
     from geoagent_harness.postgis_comparison import service
 

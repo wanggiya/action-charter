@@ -81,6 +81,17 @@ def create_mcp_server(
         ).model_dump(mode="json")
 
     @server.tool()
+    def inspect_geoserver_layer(
+        workspace: str,
+        datastore: str,
+        layer: str,
+    ) -> dict:
+        """Inspect one approved GeoServer publication target read-only."""
+        return tools.inspect_geoserver_layer(
+            workspace=workspace, datastore=datastore, layer=layer,
+        ).model_dump(mode="json")
+
+    @server.tool()
     def compare_postgis_tables(
         reference_schema: str,
         reference_table: str,

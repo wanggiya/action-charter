@@ -766,6 +766,33 @@ def inspect_postgis_table_command(
         raise typer.Exit(code=1)
 
 
+@app.command("inspect-geoserver-layer")
+def inspect_geoserver_layer_command(
+    workspace: Annotated[str, typer.Option("--workspace", help="Approved GeoServer workspace.")] = "agent_sandbox",
+    datastore: Annotated[str, typer.Option("--datastore", help="Approved GeoServer datastore.")] = "postgis",
+    layer: Annotated[str, typer.Option("--layer", help="Exact GeoServer layer name.")] = "current_layer",
+    pretty: Annotated[bool, typer.Option("--pretty", help="Indent the JSON response.")] = False,
+) -> None:
+    """Inspect one bounded GeoServer publication target without mutation."""
+    from geoagent_harness.geoserver_inspection import (
+        GeoServerInspectionError, GeoServerInspectionRequest,
+        inspect_geoserver_layer,
+    )
+    from geoagent_harness.mcp_server.settings import load_settings
+
+    try:
+        result = inspect_geoserver_layer(
+            request=GeoServerInspectionRequest(workspace=workspace, datastore=datastore, layer=layer),
+            settings=load_settings(),
+        )
+    except (GeoServerInspectionError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2 if pretty else None, separators=None if pretty else (",", ":")))
+    if result.status == "not_found":
+        raise typer.Exit(code=1)
+
+
 @app.command("compare-postgis-tables")
 def compare_postgis_tables_command(
     reference_schema: Annotated[

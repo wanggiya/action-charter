@@ -13,6 +13,28 @@ RUN python3 -m pip install \
     --break-system-packages \
     --no-cache-dir ".[gis,mcp]"
 
-RUN useradd --create-home --uid 10001 geoagent
+ARG GEOAGENT_UID=1000
+ARG GEOAGENT_GID=1000
+
+RUN set -eux; \
+    if ! getent group "${GEOAGENT_GID}" >/dev/null; then \
+        groupadd --gid "${GEOAGENT_GID}" geoagent; \
+    fi; \
+    existing_user="$(getent passwd "${GEOAGENT_UID}" | cut -d: -f1 || true)"; \
+    if [ -n "${existing_user}" ]; then \
+        usermod \
+            --login geoagent \
+            --home /home/geoagent \
+            --move-home \
+            --gid "${GEOAGENT_GID}" \
+            "${existing_user}"; \
+    else \
+        useradd \
+            --create-home \
+            --uid "${GEOAGENT_UID}" \
+            --gid "${GEOAGENT_GID}" \
+            geoagent; \
+    fi
+
 USER geoagent
 WORKDIR /workspace

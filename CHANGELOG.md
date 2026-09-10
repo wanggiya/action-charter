@@ -27,6 +27,8 @@ project follows Semantic Versioning after the initial public alpha.
 - An Android remote-development guide covering browser-based Codespaces,
   Termux as an SSH/Git client, cost control, validation scope, and secret
   handling.
+- Checkpoint 16A bounded, GET-only GeoServer inspection for one exact
+  allowlisted workspace, datastore, feature type, and published layer.
 
 ## [0.9.0] - 2026-09-04
 

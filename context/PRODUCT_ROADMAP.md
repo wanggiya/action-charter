@@ -240,6 +240,9 @@ sequence.
 
 ## Candidate — Restricted GeoServer publication
 
+Status: selected as Checkpoint 16. Checkpoint 16A implements bounded read-only
+catalog inspection before any publication authority is introduced.
+
 ### Function
 
 Add publication planning, execution, and verification only for authoritative promoted releases.
