@@ -13,6 +13,13 @@ RUN python3 -m pip install \
     --break-system-packages \
     --no-cache-dir ".[gis,mcp]"
 
-RUN useradd --create-home --uid 10001 geoagent
-USER geoagent
+ARG GEOAGENT_UID=1000
+ARG GEOAGENT_GID=1000
+
+RUN mkdir -p /home/geoagent \
+    && chown "${GEOAGENT_UID}:${GEOAGENT_GID}" /home/geoagent
+
+ENV HOME=/home/geoagent
+
+USER ${GEOAGENT_UID}:${GEOAGENT_GID}
 WORKDIR /workspace

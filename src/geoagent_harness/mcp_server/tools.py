@@ -47,11 +47,16 @@ from geoagent_harness.postgis_promotion_plan import (
     PostGISPromotionPlanResult,
     plan_postgis_promotion as execute_promotion_planning,
 )
+from geoagent_harness.geoserver_inspection import (
+    GeoServerInspectionRequest, GeoServerInspectionResult,
+    inspect_geoserver_layer as execute_geoserver_inspection,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "inspect_postgis_table",
+    "inspect_geoserver_layer",
     "compare_postgis_tables",
     "assess_postgis_change",
     "plan_postgis_promotion",
@@ -61,6 +66,18 @@ TOOL_ALLOWLIST = [
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def inspect_geoserver_layer(
+    workspace: str, datastore: str, layer: str,
+    settings: MCPSettings | None = None,
+) -> GeoServerInspectionResult:
+    """Inspect one exact GeoServer publication through the GET-only boundary."""
+    active = settings or load_settings()
+    return execute_geoserver_inspection(
+        request=GeoServerInspectionRequest(workspace=workspace, datastore=datastore, layer=layer),
+        settings=active,
+    )
 
 
 def plan_postgis_promotion(

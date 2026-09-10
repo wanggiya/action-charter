@@ -62,6 +62,12 @@ class MCPSettings(BaseModel):
     allowed_schemas: frozenset[str] = Field(
         default_factory=lambda: frozenset({"agent_sandbox"})
     )
+    allowed_geoserver_workspaces: frozenset[str] = Field(
+        default_factory=lambda: frozenset({"agent_sandbox"})
+    )
+    allowed_geoserver_datastores: frozenset[str] = Field(
+        default_factory=lambda: frozenset({"postgis"})
+    )
     
 
     postgres_host: str = "postgis"
@@ -72,6 +78,11 @@ class MCPSettings(BaseModel):
     # The password itself is never stored in settings.
     postgres_password_file: Path = Path(
         "/run/secrets/postgis_password"
+    )
+    geoserver_base_url: str = "http://geoserver:8080/geoserver"
+    geoserver_user: str = "geoagent"
+    geoserver_password_file: Path = Path(
+        "/run/secrets/geoserver_password"
     )
     
     project_root: Path = Path(".")
@@ -96,6 +107,28 @@ class MCPSettings(BaseModel):
             validate_identifier(schema, label="schema")
 
         return value
+
+    @field_validator("allowed_geoserver_workspaces", "allowed_geoserver_datastores")
+    @classmethod
+    def geoserver_names_are_safe(cls, value: frozenset[str]) -> frozenset[str]:
+        if not value:
+            raise ValueError("at least one allowed GeoServer name is required")
+        for name in value:
+            validate_identifier(name, label="GeoServer name")
+        return value
+
+    @field_validator("geoserver_base_url")
+    @classmethod
+    def geoserver_url_is_bounded(cls, value: str) -> str:
+        from urllib.parse import urlsplit
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("geoserver_base_url must be an HTTP(S) URL")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError("geoserver_base_url cannot contain credentials, query, or fragment")
+        if parsed.path.rstrip("/") not in {"", "/geoserver"}:
+            raise ValueError("geoserver_base_url path must be empty or /geoserver")
+        return value.rstrip("/")
 
     @field_validator("postgres_database")
     @classmethod
@@ -130,6 +163,12 @@ def load_settings(
         for item in raw_schemas.split(",")
         if item.strip()
     )
+    geoserver_workspaces = frozenset(item.strip() for item in source.get(
+        "ALLOWED_GEOSERVER_WORKSPACES", "agent_sandbox"
+    ).split(",") if item.strip())
+    geoserver_datastores = frozenset(item.strip() for item in source.get(
+        "ALLOWED_GEOSERVER_DATASTORES", "postgis"
+    ).split(",") if item.strip())
     
 
     return MCPSettings(
@@ -194,6 +233,8 @@ def load_settings(
             default=False,
         ),
         allowed_schemas=schemas,
+        allowed_geoserver_workspaces=geoserver_workspaces,
+        allowed_geoserver_datastores=geoserver_datastores,
         postgres_host=source.get(
             "POSTGRES_HOST",
             "postgis",
@@ -218,6 +259,13 @@ def load_settings(
                 "/run/secrets/postgis_password",
             )
         ),
+        geoserver_base_url=source.get(
+            "GEOSERVER_BASE_URL", "http://geoserver:8080/geoserver"
+        ),
+        geoserver_user=source.get("GEOSERVER_USER", "geoagent"),
+        geoserver_password_file=Path(source.get(
+            "GEOSERVER_PASSWORD_FILE", "/run/secrets/geoserver_password"
+        )),
         project_root=Path(
             source.get(
                 "GEOAGENT_PROJECT_ROOT",

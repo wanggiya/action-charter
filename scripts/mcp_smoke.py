@@ -18,6 +18,7 @@ EXPECTED_TOOLS = {
     "compare_postgis_tables",
     "health_check",
     "inspect_postgis_table",
+    "inspect_geoserver_layer",
     "inspect_vector_dataset",
     "plan_load_vector_to_postgis",
     "run_approved_recipe",
