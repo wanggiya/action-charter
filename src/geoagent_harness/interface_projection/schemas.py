@@ -1,0 +1,49 @@
+"""Strict browser-safe workflow projection schemas."""
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class InterfaceNode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=r"^[a-z][a-z0-9_-]*$", max_length=80)
+    title: str = Field(min_length=1, max_length=80)
+    subtitle: str = Field(min_length=1, max_length=120)
+    kind: Literal["input", "agent", "policy", "approval", "tool", "evidence"]
+    x: int = Field(ge=0, le=4000)
+    y: int = Field(ge=0, le=4000)
+    status: Literal["verified", "approved", "complete", "failed", "pending"]
+    authority: str = Field(min_length=1, max_length=120)
+    evidence: str = Field(min_length=1, max_length=160)
+
+
+class InterfaceEdge(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    from_: str = Field(alias="from", pattern=r"^[a-z][a-z0-9_-]*$")
+    to: str = Field(pattern=r"^[a-z][a-z0-9_-]*$")
+
+
+class InterfaceWorkflowProjection(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    schema_version: Literal["1.0"] = Field(default="1.0", alias="schemaVersion")
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*$", max_length=81)
+    title: str = Field(min_length=1, max_length=100)
+    correlation_id: str = Field(alias="correlationId", min_length=1, max_length=81)
+    read_only: Literal[True] = Field(default=True, alias="readOnly")
+    source: Literal["validated_trace"] = "validated_trace"
+    nodes: list[InterfaceNode] = Field(min_length=1, max_length=100)
+    edges: list[InterfaceEdge] = Field(max_length=200)
+
+    @model_validator(mode="after")
+    def graph_references_must_be_closed(self) -> "InterfaceWorkflowProjection":
+        ids = [node.id for node in self.nodes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("interface node IDs must be unique")
+        known = set(ids)
+        if any(edge.from_ not in known or edge.to not in known for edge in self.edges):
+            raise ValueError("interface edge references an unknown node")
+        return self

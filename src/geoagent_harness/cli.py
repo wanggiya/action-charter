@@ -7456,5 +7456,30 @@ def inspect_operational_history_command(
     )
 
 
+@app.command("project-interface-workflow")
+def project_interface_workflow_command(
+    task_id: Annotated[str, typer.Argument(help="Exact validated workflow task ID.")],
+    trace_root: Annotated[Path, typer.Option("--trace-root", help="Approved workflow trace root.")] = Path("traces"),
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Emit a browser-safe, read-only projection of one workflow trace."""
+
+    from geoagent_harness.interface_projection import (
+        InterfaceProjectionError,
+        project_workflow_trace,
+    )
+
+    try:
+        projection = project_workflow_trace(task_id=task_id, trace_root=trace_root)
+    except InterfaceProjectionError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(
+        projection.model_dump(mode="json", by_alias=True),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+
 if __name__ == "__main__":
     app()

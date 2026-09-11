@@ -369,6 +369,11 @@ Future pandas and external-service capabilities are recorded in the
 If `pnpm` starts Windows `CMD.EXE` from WSL, follow the
 [WSL frontend setup](docs/WSL_FRONTEND_SETUP.md) before installing packages.
 
+To inspect a real validated workflow without granting browser filesystem
+access, generate the bounded local projection described in
+[Checkpoint 17B](docs/CHECKPOINT17B.md). Invalid or absent runtime projections
+fall back to the sanitized demonstration graph.
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.
