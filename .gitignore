@@ -114,6 +114,8 @@ critic-results/
 /interface/*.tsbuildinfo
 /interface/vite.config.js
 /interface/vite.config.d.ts
+/interface/public/runtime/*
+!/interface/public/runtime/.gitkeep
 
 # Local transfer archives used to apply checkpoint patches
 /actioncharter-checkpoint*.zip

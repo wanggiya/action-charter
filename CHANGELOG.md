@@ -29,6 +29,9 @@ project follows Semantic Versioning after the initial public alpha.
   for frontend dependencies, build output, caches and test reports.
 - Kept local checkpoint transfer archives and environment-specific GeoServer
   publication evidence outside version control.
+- Checkpoint 17B bounded, redacted projection of one exact validated workflow
+  trace into the interface graph contract, with same-origin loading, response
+  limits, runtime validation and a safe demonstration fallback.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

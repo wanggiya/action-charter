@@ -270,6 +270,11 @@ evidence visible without adding browser execution authority. Live evidence
 projection, proposal-only graph editing and guided Snakemake operations remain
 later Checkpoint 17 slices.
 
+Checkpoint 17B status: implemented for review. It adds an offline, bounded and
+redacted projection from one exact validated workflow trace to the frontend
+graph contract. A live HTTP evidence service, run inventory and graph editing
+remain deferred.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.

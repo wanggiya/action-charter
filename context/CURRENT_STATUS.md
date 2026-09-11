@@ -1415,6 +1415,16 @@ Remaining Checkpoint 17 work:
 * guided Snakemake export, validation, dry-run and replay;
 * portfolio-ready GIS demonstrations.
 
+### Checkpoint 17B — Bounded workflow evidence projection
+
+Status: implemented for review. One exact validated workflow trace can be
+projected into a browser-safe graph without exposing request text, tool
+payloads, approval identity, artifact paths or secrets. The projector enforces
+safe task identity, a fixed trace-root filename, symlink rejection, strict
+schema validation and input/output size limits. The interface loads only a
+same-origin fixed runtime path, validates it again and falls back safely to its
+sanitized demonstration.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

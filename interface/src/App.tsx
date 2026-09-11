@@ -5,13 +5,14 @@ import {
   Plus, Search, ShieldCheck, Workflow, ZoomIn,
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
-import { workflowSchema, type NodeKind } from "./lib/workflow";
+import { loadWorkflowProjection } from "./lib/load-workflow";
+import { workflowSchema, type NodeKind, type Workflow as WorkflowData } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
 type Point = { x: number; y: number };
 type Viewport = { x: number; y: number; width: number; height: number };
 
-const workflow = workflowSchema.parse(workflowFixture);
+const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
 const icons: Record<NodeKind, typeof Bot> = { input: Map, agent: Bot, policy: ShieldCheck, approval: LockKeyhole, tool: Database, evidence: FileCheck2 };
 const canvasSizes: Record<Orientation, { width: number; height: number }> = {
@@ -22,12 +23,14 @@ const verticalPositions: Record<string, Point> = {
   request: { x: 430, y: 35 }, planner: { x: 255, y: 205 }, policy: { x: 605, y: 205 },
   approval: { x: 430, y: 375 }, executor: { x: 255, y: 545 }, mcp: { x: 605, y: 545 },
   validation: { x: 430, y: 715 }, release: { x: 430, y: 885 },
+  evidence: { x: 430, y: 885 },
 };
 const minimapSize = { width: 140, height: 90 };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
+  const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
   const [selectedId, setSelectedId] = useState("approval");
   const [zoom, setZoom] = useState(0.82);
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
@@ -68,6 +71,7 @@ export default function App() {
     updateViewport();
     return () => observer.disconnect();
   }, [updateViewport]);
+  useEffect(() => { void loadWorkflowProjection(demoWorkflow).then(setWorkflow); }, []);
   useEffect(() => { requestAnimationFrame(updateViewport); }, [orientation, updateViewport, zoom]);
   useEffect(() => { requestAnimationFrame(fitGraph); }, [fitGraph, orientation]);
 
@@ -100,7 +104,7 @@ export default function App() {
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
       </aside>
       <section className="flow-stage" aria-label="Governed workflow graph">
-        <div className="stage-heading"><div><p className="eyebrow">Governed workflow</p><h1>{workflow.title}</h1></div><div className="stage-meta"><span><span className="pulse"/> Verified</span><span>{nodes.length} nodes</span><span>{workflow.edges.length} links</span></div></div>
+        <div className="stage-heading"><div><p className="eyebrow">Governed workflow</p><h1>{workflow.title}</h1></div><div className="stage-meta"><span><span className="pulse"/> {workflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{nodes.length} nodes</span><span>{workflow.edges.length} links</span></div></div>
         <div className="canvas-frame">
           <div className="canvas-tools">
             <button aria-label="Zoom in" title="Zoom in" onClick={() => setZoom((value) => Math.min(1.1, value + 0.08))}><Plus size={16}/></button>
@@ -125,7 +129,7 @@ export default function App() {
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 return <path key={`${edge.from}-${edge.to}`} d={path} markerEnd="url(#arrow)"/>;
               })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; return <button key={node.id} className={`flow-node orientation-${orientation} kind-${node.kind} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{labels[node.kind]}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{node.title}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span>{node.evidence}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; return <button key={node.id} className={`flow-node orientation-${orientation} kind-${node.kind} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{labels[node.kind]}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{node.title}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span>{node.evidence}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
