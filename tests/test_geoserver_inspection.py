@@ -37,6 +37,25 @@ def test_inspects_exact_publication_without_mutation(settings):
     assert all(path.endswith(".json") for path in reader.paths)
 
 
+def test_layer_uses_feature_type_state_when_layer_flags_are_omitted(settings):
+    reader = FakeReader({
+        "workspaces/agent_sandbox.json": {"workspace": {"name": "agent_sandbox"}},
+        "workspaces/agent_sandbox/datastores/postgis.json": {"dataStore": {"name": "postgis"}},
+        "workspaces/agent_sandbox/datastores/postgis/featuretypes/current_layer.json": {
+            "featureType": {"name": "current_layer", "nativeName": "current_layer", "enabled": True, "advertised": False}
+        },
+        "workspaces/agent_sandbox/layers/current_layer.json": {
+            "layer": {"name": "current_layer", "defaultStyle": {"name": "point"}}
+        },
+    })
+    result = inspect_geoserver_layer(
+        request=GeoServerInspectionRequest(workspace="agent_sandbox", datastore="postgis", layer="current_layer"),
+        settings=settings, reader=reader,
+    )
+    assert result.published_layer.enabled is True
+    assert result.published_layer.advertised is False
+
+
 def test_missing_workspace_stops_further_reads(settings):
     reader = FakeReader({})
     result = inspect_geoserver_layer(request=GeoServerInspectionRequest(workspace="agent_sandbox", datastore="postgis", layer="current_layer"), settings=settings, reader=reader)

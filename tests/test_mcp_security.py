@@ -99,6 +99,16 @@ def test_bounded_geoserver_inspection_is_get_only() -> None:
     assert "inspect_geoserver_layer" in tools.TOOL_ALLOWLIST
 
 
+def test_geoserver_publication_planning_is_the_only_mcp_publication_tool() -> None:
+    from geoagent_harness.geoserver_publication import service
+
+    assert "plan_geoserver_publication" in tools.TOOL_ALLOWLIST
+    assert "execute_geoserver_publication" not in tools.TOOL_ALLOWLIST
+    assert service.FIXED_FEATURE_TYPE_BODY == {
+        "featureType": {"enabled": True, "advertised": True}
+    }
+
+
 def test_postgis_comparison_reuses_inspection_boundary() -> None:
     from geoagent_harness.postgis_comparison import service
 

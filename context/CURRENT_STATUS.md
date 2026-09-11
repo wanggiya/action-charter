@@ -1,13 +1,14 @@
 # Current Status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-11
 
 ## Project summary
 
 ActionCharter is a CLI-first, local-first governed execution harness for AI
 agents using professional tools. Its current geospatial reference
 implementation includes a complete, independently verified PostGIS promotion
-and rollback lifecycle.
+and rollback lifecycle plus a live-validated, approval-gated GeoServer
+publication boundary.
 
 The current system combines:
 
@@ -34,13 +35,25 @@ The model is used to interpret requests and produce constrained proposals. It do
 Final success is derived only from deterministic validation.
 
 The PostGIS reference lifecycle is complete through Checkpoint 15K. The latest
-full offline regression completed with **1,153 passing tests**.
+full offline regression, including GeoServer Checkpoints 16A and 16B, completed
+with **1,172 passing tests**.
 
 Checkpoint 16 is now the restricted GeoServer publication prototype for the
 existing local Docker environment. Checkpoint 16A establishes its first
 boundary: bounded, GET-only inspection of one exact allowlisted workspace,
 datastore, feature type, and published layer. It accepts no arbitrary REST path
 and grants no publication, update, deletion, approval, or credential authority.
+
+Checkpoint 16B implements the first approval-gated GeoServer mutation for an
+already-configured layer. Planning and approval remain non-writing; execution
+requires the write gate, exact plan and approval digest confirmation, unchanged
+pre-state, and one fixed enable/advertise PUT to the authoritative feature type.
+Failed transitions compensate to the inspected pre-state and produce a typed
+outcome. A live GeoServer 2.28.0 execution successfully activated the exact
+reviewed resource, and independent verification reinspected the target without
+trusting the executor's success claim. Creating
+workspaces, stores, feature types, styles, or arbitrary REST requests remains
+deferred.
 
 ## Current workflow
 
