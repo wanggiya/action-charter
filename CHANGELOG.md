@@ -29,6 +29,12 @@ project follows Semantic Versioning after the initial public alpha.
   handling.
 - Checkpoint 16A bounded, GET-only GeoServer inspection for one exact
   allowlisted workspace, datastore, feature type, and published layer.
+- Checkpoint 16B digest-bound planning, explicit human approval, fixed-path
+  activation, post-write validation, and independent verification for one
+  already-configured GeoServer layer, live-validated against GeoServer 2.28.0.
+- Effective-layer inspection that correctly derives omitted layer-level
+  enable/advertise flags from the authoritative feature-type resource, plus
+  typed compensation outcomes for failed publication validation.
 
 ## [0.9.0] - 2026-09-04
 

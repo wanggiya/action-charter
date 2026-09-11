@@ -92,6 +92,15 @@ def create_mcp_server(
         ).model_dump(mode="json")
 
     @server.tool()
+    def plan_geoserver_publication(
+        plan_id: str, workspace: str, datastore: str, layer: str,
+    ) -> dict:
+        """Plan, but do not execute, one exact GeoServer publication."""
+        return tools.plan_geoserver_publication(
+            plan_id=plan_id, workspace=workspace, datastore=datastore, layer=layer,
+        ).model_dump(mode="json")
+
+    @server.tool()
     def compare_postgis_tables(
         reference_schema: str,
         reference_table: str,

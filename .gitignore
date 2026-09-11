@@ -102,3 +102,7 @@ recipe-proposals.local/
 operational-history/
 critic-results/
 /releases/
+
+# Local GeoServer publication evidence
+geoserver-publication-evidence/*
+!geoserver-publication-evidence/.gitkeep

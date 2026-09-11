@@ -40,6 +40,14 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.geoserver_inspection.service:inspect_geoserver_layer
+- id: plan_geoserver_publication
+  version: 0.1.0
+  status: implemented
+  kind: validation
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.geoserver_publication.service:plan_geoserver_publication
 - id: assess_postgis_change
   version: 0.1.0
   status: implemented

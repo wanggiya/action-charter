@@ -470,3 +470,12 @@ and execution package, verifies their exact identity and scope bindings, and
 inspects the restored relations through a separate read-only transaction. It
 persists distinct digest-addressed verification evidence and closes the
 governed promotion and rollback lifecycle.
+
+### Checkpoint 16B — governed activation of an existing GeoServer layer
+
+Status: complete and live-validated on GeoServer 2.28.0. One exact allowlisted layer that already has
+an existing feature type and catalog layer may be enabled and advertised through
+one fixed PUT to the authoritative feature-type resource only after digest-bound planning and explicit human approval.
+Execution revalidates the unchanged pre-state, validates the resulting state,
+and compensates failed transitions; independent read-only verification produces bounded findings. Workspace,
+store, feature-type, style and deletion administration remain out of scope.

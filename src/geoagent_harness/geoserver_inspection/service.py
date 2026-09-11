@@ -125,7 +125,13 @@ def inspect_geoserver_layer(
             if str(raw.get("name", "")) not in {request.layer, f"{request.workspace}:{request.layer}"}:
                 raise GeoServerInspectionError("GeoServer layer identity does not match the request")
             style = raw.get("defaultStyle") or {}
-            published = GeoServerLayerFacts(name=str(raw.get("name", "")), enabled=bool(raw.get("enabled", False)), advertised=bool(raw.get("advertised", False)), default_style=str(style["name"]) if isinstance(style, dict) and style.get("name") else None)
+            # GeoServer persists enabled/advertised on ResourceInfo (the feature
+            # type for a PostGIS vector layer), not in layer.xml.  Its layer
+            # JSON therefore commonly omits both keys.  Missing keys must not
+            # be interpreted as false; report the effective resource state.
+            effective_enabled = bool(raw["enabled"]) if "enabled" in raw else bool(feature and feature.enabled)
+            effective_advertised = bool(raw["advertised"]) if "advertised" in raw else bool(feature and feature.advertised)
+            published = GeoServerLayerFacts(name=str(raw.get("name", "")), enabled=effective_enabled, advertised=effective_advertised, default_style=str(style["name"]) if isinstance(style, dict) and style.get("name") else None)
         exists = feature is not None or published is not None
         return GeoServerInspectionResult(status="inspected" if exists else "not_found", workspace=request.workspace, datastore=request.datastore, layer=request.layer, workspace_exists=True, datastore_exists=True, feature_type=feature, published_layer=published, warnings=[] if exists else ["Feature type and published layer do not exist."])
     except httpx.HTTPError:

@@ -51,12 +51,17 @@ from geoagent_harness.geoserver_inspection import (
     GeoServerInspectionRequest, GeoServerInspectionResult,
     inspect_geoserver_layer as execute_geoserver_inspection,
 )
+from geoagent_harness.geoserver_publication import (
+    GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult,
+    plan_geoserver_publication as execute_geoserver_publication_planning,
+)
 
 TOOL_ALLOWLIST = [
     "health_check",
     "inspect_vector_dataset",
     "inspect_postgis_table",
     "inspect_geoserver_layer",
+    "plan_geoserver_publication",
     "compare_postgis_tables",
     "assess_postgis_change",
     "plan_postgis_promotion",
@@ -66,6 +71,22 @@ TOOL_ALLOWLIST = [
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def plan_geoserver_publication(
+    plan_id: str, workspace: str, datastore: str, layer: str,
+    settings: MCPSettings | None = None,
+) -> GeoServerPublicationPlanResult:
+    """Create a read-only digest-bound plan for one existing layer."""
+    active = settings or load_settings()
+    return execute_geoserver_publication_planning(
+        request=GeoServerPublicationPlanRequest(
+            plan_id=plan_id,
+            target=GeoServerInspectionRequest(
+                workspace=workspace, datastore=datastore, layer=layer,
+            ),
+        ), settings=active,
+    )
 
 
 def inspect_geoserver_layer(

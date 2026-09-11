@@ -793,6 +793,122 @@ def inspect_geoserver_layer_command(
         raise typer.Exit(code=1)
 
 
+@app.command("plan-geoserver-publication")
+def plan_geoserver_publication_command(
+    plan_id: Annotated[str, typer.Option("--plan-id")],
+    workspace: Annotated[str, typer.Option("--workspace")],
+    datastore: Annotated[str, typer.Option("--datastore")],
+    layer: Annotated[str, typer.Option("--layer")],
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Inspect and plan activation of one existing disabled layer."""
+    from geoagent_harness.geoserver_inspection import GeoServerInspectionRequest
+    from geoagent_harness.geoserver_publication import (
+        GeoServerPublicationError, GeoServerPublicationPlanRequest,
+        plan_geoserver_publication,
+    )
+    from geoagent_harness.mcp_server.settings import load_settings
+    try:
+        result = plan_geoserver_publication(
+            request=GeoServerPublicationPlanRequest(
+                plan_id=plan_id,
+                target=GeoServerInspectionRequest(
+                    workspace=workspace, datastore=datastore, layer=layer,
+                ),
+            ), settings=load_settings(),
+        )
+    except (GeoServerPublicationError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2 if pretty else None,
+                          separators=None if pretty else (",", ":")))
+
+
+@app.command("record-geoserver-publication-approval")
+def record_geoserver_publication_approval_command(
+    plan_file: Annotated[Path, typer.Argument()],
+    approver: Annotated[str, typer.Option("--approver")],
+    reason: Annotated[str, typer.Option("--reason")],
+    decision: Annotated[str, typer.Option("--decision")] = "approved",
+    valid_for_minutes: Annotated[int | None, typer.Option("--valid-for-minutes")] = None,
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Record a human decision bound to one exact publication plan."""
+    from datetime import datetime, timedelta, timezone
+    from geoagent_harness.geoserver_publication import (
+        GeoServerPublicationError, GeoServerPublicationPlanResult,
+        create_geoserver_publication_approval, load_json,
+    )
+    if valid_for_minutes is not None and valid_for_minutes < 1:
+        typer.echo("Error: valid-for-minutes must be positive", err=True); raise typer.Exit(code=2)
+    now = datetime.now(timezone.utc)
+    try:
+        plan = load_json(plan_file, GeoServerPublicationPlanResult)
+        result = create_geoserver_publication_approval(
+            plan_result=plan, decision=decision, approver=approver, reason=reason,
+            now=now, expires_at=now + timedelta(minutes=valid_for_minutes) if valid_for_minutes else None,
+        )
+    except GeoServerPublicationError as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2 if pretty else None,
+                          separators=None if pretty else (",", ":")))
+
+
+@app.command("execute-geoserver-publication")
+def execute_geoserver_publication_command(
+    plan_file: Annotated[Path, typer.Argument()],
+    approval_file: Annotated[Path, typer.Option("--approval-file")],
+    confirm_plan_sha256: Annotated[str, typer.Option("--confirm-plan-sha256")],
+    confirm_approval_sha256: Annotated[str, typer.Option("--confirm-approval-sha256")],
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Execute one exact approved GeoServer layer activation."""
+    from geoagent_harness.geoserver_publication import (
+        GeoServerPublicationApproval, GeoServerPublicationError,
+        GeoServerPublicationPlanResult, execute_geoserver_publication, load_json,
+    )
+    from geoagent_harness.mcp_server.settings import load_settings
+    try:
+        plan = load_json(plan_file, GeoServerPublicationPlanResult)
+        approval = load_json(approval_file, GeoServerPublicationApproval)
+        result = execute_geoserver_publication(
+            plan_result=plan, approval=approval, settings=load_settings(),
+            confirm_plan_sha256=confirm_plan_sha256,
+            confirm_approval_sha256=confirm_approval_sha256,
+        )
+    except GeoServerPublicationError as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2 if pretty else None,
+                          separators=None if pretty else (",", ":")))
+    if result.status != "published":
+        raise typer.Exit(code=1)
+
+
+@app.command("verify-geoserver-publication")
+def verify_geoserver_publication_command(
+    execution_file: Annotated[Path, typer.Argument()],
+    plan_file: Annotated[Path, typer.Option("--plan-file")],
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Independently inspect one executed GeoServer publication."""
+    from geoagent_harness.geoserver_publication import (
+        GeoServerPublicationError, GeoServerPublicationExecutionResult,
+        GeoServerPublicationPlanResult, load_json, verify_geoserver_publication,
+    )
+    from geoagent_harness.mcp_server.settings import load_settings
+    try:
+        plan = load_json(plan_file, GeoServerPublicationPlanResult)
+        execution = load_json(execution_file, GeoServerPublicationExecutionResult)
+        result = verify_geoserver_publication(
+            execution=execution, plan_result=plan, settings=load_settings(),
+        )
+    except GeoServerPublicationError as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2 if pretty else None,
+                          separators=None if pretty else (",", ":")))
+    if result.status != "verified":
+        raise typer.Exit(code=1)
+
+
 @app.command("compare-postgis-tables")
 def compare_postgis_tables_command(
     reference_schema: Annotated[

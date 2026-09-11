@@ -164,6 +164,15 @@ See the [Checkpoint 16A local setup](docs/CHECKPOINT16A.md) for allowlists and
 password-file configuration, including the dedicated GeoServer test user,
 workspace-scoped REST role, PostGIS-backed datastore, and Docker network.
 
+Checkpoint 16B adds the first governed GeoServer mutation. It can only enable
+and advertise an existing allowlisted feature type and its published layer
+after the current state has been captured in an exact SHA-256 plan and a human
+approval binds that digest. The executor revalidates the state before one fixed
+PUT to the authoritative feature-type resource, validates the complete effective
+result, and compensates to the pre-state if the
+transition fails. A separate command independently reinspects the layer.
+See [Checkpoint 16B](docs/CHECKPOINT16B.md).
+
 ## Implemented capabilities
 
 | Boundary | Current implementation |
