@@ -264,6 +264,20 @@ Publishing before staging and promotion could expose an unreviewed candidate. Ge
 
 ## Candidate — Guided product interface and Snakemake productization
 
+Checkpoint 17A status: implemented for review. The initial read-only interface
+uses a schema-validated demonstration graph and makes node authority and
+evidence visible without adding browser execution authority. Live evidence
+projection, proposal-only graph editing and guided Snakemake operations remain
+later Checkpoint 17 slices.
+
+The graph foundation includes measured fit-to-viewport, a live pannable
+minimap, and user-selectable horizontal or vertical layouts, with vertical as
+the narrow-screen default.
+
+The candidate capability-registry and pandas-adapter sequence is preserved in
+`context/CAPABILITY_EXPANSION.md`. It follows the interface and pilot evidence
+work and does not permit browser package installation or raw socket access.
+
 ### Function
 
 Build a thin guided interface over existing backend contracts. It should display rather than reimplement orchestration.

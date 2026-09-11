@@ -17,6 +17,19 @@ project follows Semantic Versioning after the initial public alpha.
 
 ### Added
 
+- Checkpoint 17A read-only workflow interface foundation with a blueprint-style
+  connected graph, node inspector, timeline, minimap, responsive layout and a
+  schema-validated sanitized demonstration fixture.
+- A repository-native React, TypeScript and Vite frontend setup without the
+  hosting-provider scaffold, plus a capability-expansion backlog for a governed
+  pandas adapter and named external-service adapters.
+- Measured graph fitting, a live pannable minimap, and switchable horizontal
+  and vertical workflow layouts with a mobile-first vertical default.
+- Fixed canvas controls and minimap positioning, plus repository-level ignores
+  for frontend dependencies, build output, caches and test reports.
+- Kept local checkpoint transfer archives and environment-specific GeoServer
+  publication evidence outside version control.
+
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion
   planning and approval, serializable execution, and independent verification.

@@ -1,0 +1,5 @@
+import { z } from "zod";
+export const nodeKindSchema=z.enum(["input","agent","policy","approval","tool","evidence"]);
+export const workflowNodeSchema=z.object({id:z.string().regex(/^[a-z][a-z0-9_-]*$/),title:z.string().min(1).max(80),subtitle:z.string().min(1).max(120),kind:nodeKindSchema,x:z.number().int().min(0).max(4000),y:z.number().int().min(0).max(4000),status:z.enum(["verified","approved","complete"]),authority:z.string().min(1).max(120),evidence:z.string().min(1).max(160)});
+export const workflowSchema=z.object({schemaVersion:z.literal("1.0"),id:z.string(),title:z.string(),correlationId:z.string(),readOnly:z.literal(true),nodes:z.array(workflowNodeSchema).min(1).max(100),edges:z.array(z.object({from:z.string(),to:z.string()})).max(200)}).superRefine((flow,ctx)=>{const ids=new Set(flow.nodes.map(node=>node.id));if(ids.size!==flow.nodes.length)ctx.addIssue({code:"custom",message:"node IDs must be unique"});flow.edges.forEach((edge,index)=>{if(!ids.has(edge.from)||!ids.has(edge.to))ctx.addIssue({code:"custom",message:`edge ${index} references an unknown node`})})});
+export type NodeKind=z.infer<typeof nodeKindSchema>;

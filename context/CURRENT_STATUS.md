@@ -1386,12 +1386,30 @@ Planned:
 * publication and service verification;
 * release-linked publication evidence and lineage.
 
-### Previously proposed Checkpoint 17 — Guided interface and Snakemake productization
+### Checkpoint 17A — Read-only workflow interface foundation
 
-Planned:
+Status: implemented for review. The isolated `interface/` application provides
+a polished blueprint-style graph of the governed execution lifecycle. It
+supports node selection, authority and evidence inspection, bounded zoom, a
+minimap and an execution timeline using a schema-validated sanitized fixture.
+Fit-to-viewport is calculated from the live canvas dimensions, the minimap
+tracks and controls the visible region, and operators can switch between
+horizontal and vertical graph layouts. Narrow screens default to vertical.
+The minimap and viewport controls remain fixed to the canvas frame while graph
+content pans underneath them.
+The deliberately small stack is React, TypeScript, Vite, Zod, Lucide React and
+plain CSS; it contains no hosting-provider or backend scaffold.
+It has no approval, execution, secret, filesystem, database, arbitrary network
+or package-installation authority.
+
+Pandas and external-service connectivity are recorded as governed capability
+expansion work in `context/CAPABILITY_EXPANSION.md`; neither is implemented by
+Checkpoint 17A.
+
+Remaining Checkpoint 17 work:
 
 * guided request, contract, recipe and approval workflow;
-* workflow and agent-history visualization;
+* live bounded evidence projection and agent-history visualization;
 * validation, Critic, release and report navigation;
 * read-only default interface behavior;
 * guided Snakemake export, validation, dry-run and replay;

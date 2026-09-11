@@ -103,6 +103,21 @@ operational-history/
 critic-results/
 /releases/
 
-# Local GeoServer publication evidence
-geoserver-publication-evidence/*
-!geoserver-publication-evidence/.gitkeep
+# Frontend dependencies, builds, caches and generated test output
+/interface/node_modules/
+/interface/dist/
+/interface/.vite/
+/interface/.pnpm-store/
+/interface/coverage/
+/interface/playwright-report/
+/interface/test-results/
+/interface/*.tsbuildinfo
+/interface/vite.config.js
+/interface/vite.config.d.ts
+
+# Local transfer archives used to apply checkpoint patches
+/actioncharter-checkpoint*.zip
+
+# Environment-specific GeoServer publication evidence
+/geoserver-publication-evidence/*
+!/geoserver-publication-evidence/.gitkeep

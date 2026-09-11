@@ -348,6 +348,27 @@ compatibility interfaces.
 A future namespace migration requires a separately reviewed compatibility
 plan; it is not part of the public-project rename.
 
+## Read-only workflow interface
+
+Checkpoint 17A introduces a polished blueprint-style workflow explorer under
+[`interface/`](interface/). It visualizes the complete governed path as
+connected nodes and exposes node authority, evidence references and execution
+status in a read-only inspector. It uses React, TypeScript, Vite, Zod and plain
+CSS; the browser cannot approve or execute work.
+
+```bash
+cd interface
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+See [Checkpoint 17A](docs/CHECKPOINT17A.md) for the frontend trust boundary and
+the planned progression from visualization to proposal-only graph editing.
+Future pandas and external-service capabilities are recorded in the
+[capability expansion backlog](context/CAPABILITY_EXPANSION.md).
+If `pnpm` starts Windows `CMD.EXE` from WSL, follow the
+[WSL frontend setup](docs/WSL_FRONTEND_SETUP.md) before installing packages.
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.
