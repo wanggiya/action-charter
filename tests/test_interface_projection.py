@@ -7,7 +7,7 @@ import pytest
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
-from geoagent_harness.interface_projection import InterfaceProjectionError, project_workflow_trace
+from geoagent_harness.interface_projection import InterfaceProjectionError, export_workflow_catalog, project_workflow_trace
 from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
 
 
@@ -33,7 +33,7 @@ def _trace(task_id: str = "demo-run") -> WorkflowTrace:
 
 
 def _write_trace(root, trace: WorkflowTrace) -> None:
-    root.mkdir()
+    root.mkdir(exist_ok=True)
     (root / f"{trace.task_id}.json").write_text(trace.model_dump_json(), encoding="utf-8")
 
 
@@ -84,3 +84,26 @@ def test_projection_cli_emits_browser_contract(tmp_path) -> None:
     result = CliRunner().invoke(app, ["project-interface-workflow", "demo-run", "--trace-root", str(root)])
     assert result.exit_code == 0
     assert json.loads(result.stdout)["source"] == "validated_trace"
+
+
+def test_catalog_export_writes_only_sanitized_runtime_files(tmp_path) -> None:
+    root = tmp_path / "traces"
+    _write_trace(root, _trace("first-run"))
+    _write_trace(root, _trace("second-run"))
+    output = tmp_path / "runtime"
+    result = export_workflow_catalog(trace_root=root, output_root=output)
+    catalog = json.loads((output / "catalog.json").read_text(encoding="utf-8"))
+    assert result.workflow_count == 2
+    assert {item["taskId"] for item in catalog["workflows"]} == {"first-run", "second-run"}
+    assert (output / "first-run.json").is_file()
+    assert "private operator request" not in (output / "first-run.json").read_text(encoding="utf-8")
+
+
+def test_catalog_export_cli_reports_bounded_files(tmp_path) -> None:
+    root = tmp_path / "traces"
+    _write_trace(root, _trace())
+    output = tmp_path / "runtime"
+    result = CliRunner().invoke(app, ["export-interface-workflows", "--trace-root", str(root), "--output-root", str(output)])
+    assert result.exit_code == 0
+    assert json.loads(result.stdout)["projection_files"] == ["demo-run.json"]
+    assert (output / "catalog.json").is_file()

@@ -5,8 +5,8 @@ import {
   Plus, Search, ShieldCheck, Workflow, ZoomIn,
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
-import { loadWorkflowProjection } from "./lib/load-workflow";
-import { workflowSchema, type NodeKind, type Workflow as WorkflowData } from "./lib/workflow";
+import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
+import { workflowSchema, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
 type Point = { x: number; y: number };
@@ -31,6 +31,8 @@ const clamp = (value: number, minimum: number, maximum: number) => Math.min(maxi
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
+  const [runs, setRuns] = useState<WorkflowSummary[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedId, setSelectedId] = useState("approval");
   const [zoom, setZoom] = useState(0.82);
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
@@ -40,7 +42,7 @@ export default function App() {
   const nodes = useMemo(() => workflow.nodes.map((node) => ({
     ...node,
     ...(orientation === "vertical" ? verticalPositions[node.id] : { x: node.x, y: node.y }),
-  })), [orientation]);
+  })), [orientation, workflow.nodes]);
 
   const updateViewport = useCallback(() => {
     const element = canvasWindowRef.current;
@@ -71,7 +73,18 @@ export default function App() {
     updateViewport();
     return () => observer.disconnect();
   }, [updateViewport]);
-  useEffect(() => { void loadWorkflowProjection(demoWorkflow).then(setWorkflow); }, []);
+  useEffect(() => {
+    void (async () => {
+      const catalog = await loadWorkflowCatalog();
+      setRuns(catalog);
+      if (catalog.length) {
+        setSelectedTaskId(catalog[0].taskId);
+        setWorkflow(await loadWorkflowProjection(demoWorkflow, catalog[0].taskId));
+      } else {
+        setWorkflow(await loadWorkflowProjection(demoWorkflow));
+      }
+    })();
+  }, []);
   useEffect(() => { requestAnimationFrame(updateViewport); }, [orientation, updateViewport, zoom]);
   useEffect(() => { requestAnimationFrame(fitGraph); }, [fitGraph, orientation]);
 
@@ -96,7 +109,7 @@ export default function App() {
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17A</span></div>
-      <div className="run-switcher"><CircleDot size={15}/><span>checkpoint14f / vector-release</span><ChevronDown size={14}/></div>
+      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
     <div className="workspace">
@@ -115,7 +128,7 @@ export default function App() {
           </div>
           <div className="minimap" role="button" tabIndex={0} aria-label="Workflow minimap; click to pan or press Enter to center" onPointerDown={panFromMinimap} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); centerCanvas(); } }}>
             <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} aria-hidden="true">
-              {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from)!; const end = nodes.find((node) => node.id === edge.to)!; return <line key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
+              {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
               {nodes.map((node) => <rect key={node.id} x={node.x} y={node.y} width="190" height="108" rx="14"/>)}
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
@@ -124,7 +137,7 @@ export default function App() {
             <div className="canvas-sizer" style={{ width: canvasSize.width * zoom, height: canvasSize.height * zoom }}>
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
               <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#468ac7"/></marker></defs>{workflow.edges.map((edge) => {
-                const start = nodes.find((node) => node.id === edge.from)!; const end = nodes.find((node) => node.id === edge.to)!; const horizontal = orientation === "horizontal";
+                const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; const horizontal = orientation === "horizontal";
                 const x1 = horizontal ? start.x + 190 : start.x + 95; const y1 = horizontal ? start.y + 54 : start.y + 108; const x2 = horizontal ? end.x : end.x + 95; const y2 = horizontal ? end.y + 54 : end.y; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 return <path key={`${edge.from}-${edge.to}`} d={path} markerEnd="url(#arrow)"/>;
