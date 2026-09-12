@@ -111,3 +111,8 @@ Checkpoint 17D completes the first evidence-backed inspector slice in step 4:
 safe summaries, aggregate facts, timing and findings are available on every
 projected node. Artifact navigation and richer responsive inspection remain
 future slices.
+
+Checkpoint 17E adds the first compact evidence-card visual language: category
+color, recorded state, safe reference, integrity metadata and expandable facts.
+Future artifact-specific viewers should extend this contract instead of
+embedding raw JSON or unrestricted logs.

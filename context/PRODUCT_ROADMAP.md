@@ -284,6 +284,11 @@ details using bounded aggregate facts, timing and safe findings. Complete
 artifact navigation, responsive inspector sheets and proposal editing remain
 deferred.
 
+Checkpoint 17E status: implemented for review. It adds expandable safe evidence
+previews with explicit categories, status, digest metadata and basename-only
+artifact references. Full artifact-content rendering remains deferred until
+each artifact family has a dedicated sanitization contract.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.

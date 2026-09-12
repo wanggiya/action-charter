@@ -108,7 +108,7 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17D</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17E</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -154,7 +154,12 @@ export default function App() {
         <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>Evidence-backed status</span></div></div>
         {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>
-        <section className="detail-section"><h3>Evidence</h3><button className="evidence-file"><FileCheck2 size={17}/><span><strong>{selected.evidence}</strong><small>SHA-256 bound · immutable</small></span><ChevronDown size={14}/></button></section>
+        <section className="detail-section"><h3>Evidence</h3>
+          {selected.details?.evidencePreviews.length ? <div className="evidence-list">{selected.details.evidencePreviews.map((item, index) => <details className="evidence-preview" key={`${item.category}-${item.reference}-${index}`} open={index === 0}>
+            <summary><span className={`evidence-category category-${item.category}`}><FileCheck2 size={15}/></span><span><strong>{item.title}</strong><small>{item.category} · {item.reference}</small></span><span className={`evidence-status evidence-${item.status}`}>{item.status}</span><ChevronDown className="evidence-chevron" size={14}/></summary>
+            <div className="evidence-content">{item.digest && <div className="digest-row"><span>SHA-256</span><code title={item.digest}>{item.digest.slice(0, 16)}…{item.digest.slice(-8)}</code></div>}<dl>{item.facts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl><p className="evidence-safety"><ShieldCheck size={13}/> Sanitized projection</p></div>
+          </details>)}</div> : <div className="evidence-empty"><FileCheck2 size={17}/><span><strong>{selected.evidence}</strong><small>Regenerate this runtime projection for evidence previews</small></span></div>}
+        </section>
         <section className="detail-section"><h3>Observed facts</h3><dl><div><dt>Result</dt><dd>{selected.status}</dd></div>{selected.details?.observedFacts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl></section>
         {selected.details?.startedAt && selected.details.finishedAt && <section className="detail-section"><h3>Timing</h3><dl><div><dt>Started</dt><dd>{new Date(selected.details.startedAt).toLocaleString()}</dd></div><div><dt>Finished</dt><dd>{new Date(selected.details.finishedAt).toLocaleString()}</dd></div>{selected.details.durationMs !== null && selected.details.durationMs !== undefined && <div><dt>Duration</dt><dd>{selected.details.durationMs} ms</dd></div>}</dl></section>}
         {!!selected.details?.findings.length && <section className="detail-section findings"><h3>Findings</h3>{selected.details.findings.map((finding) => <p key={finding}>{finding}</p>)}</section>}
