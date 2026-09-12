@@ -383,6 +383,11 @@ bounded summary, aggregate observed facts, timing and safe findings derived
 from the validated trace—never the original request, tool payloads, secrets or
 private paths. See [Checkpoint 17D](docs/CHECKPOINT17D.md).
 
+Checkpoint 17E adds expandable evidence cards to relevant nodes. These display
+the important verified metadata—category, state, safe reference, digest and
+bounded facts—without turning the browser into a raw trace or filesystem
+viewer. See [Checkpoint 17E](docs/CHECKPOINT17E.md).
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.

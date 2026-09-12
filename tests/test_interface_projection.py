@@ -122,3 +122,19 @@ def test_detail_projection_contains_only_bounded_aggregate_facts(tmp_path) -> No
     assert {fact.label for fact in evidence.details.observed_facts} == {
         "Artifacts recorded", "Warnings recorded", "Secrets redacted"
     }
+    categories = {preview.category for preview in evidence.details.evidence_previews}
+    assert categories == {"trace", "plan", "approval", "validation", "artifact"}
+    artifact = next(preview for preview in evidence.details.evidence_previews if preview.category == "artifact")
+    assert artifact.reference == "result.json"
+    assert "private/" not in result.model_dump_json(by_alias=True)
+
+
+def test_evidence_previews_expose_digest_but_not_approval_identity(tmp_path) -> None:
+    root = tmp_path / "traces"
+    _write_trace(root, _trace())
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    planner = next(node for node in result.nodes if node.id == "planner")
+    approval = next(node for node in result.nodes if node.id == "approval")
+    assert planner.details.evidence_previews[0].digest == "a" * 64
+    assert approval.details.evidence_previews[0].reference == "approval record"
+    assert "approval-private-id" not in result.model_dump_json(by_alias=True)

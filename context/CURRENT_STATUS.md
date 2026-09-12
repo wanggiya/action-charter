@@ -1443,6 +1443,16 @@ different run is loaded. Python and browser schemas reject additional fields;
 request text, tool inputs and outputs, approval identities, artifact paths,
 secret values and private reasoning remain excluded.
 
+### Checkpoint 17E — Safe evidence previews
+
+Status: implemented for review. Planner, approval, validation and evidence
+nodes expose expandable, schema-validated preview cards. The cards identify
+trace, plan, approval, validation and up to four artifact records; show bounded
+aggregate facts and plan integrity where available; and reduce artifact paths
+to basenames. Approval identity, raw trace content, payloads, private paths,
+secrets and unrestricted messages remain excluded. Older runtime projections
+remain compatible and show a regeneration prompt.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

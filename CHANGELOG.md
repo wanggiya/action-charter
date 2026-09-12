@@ -36,6 +36,9 @@ project follows Semantic Versioning after the initial public alpha.
   selector that loads only task-ID-bound same-origin projections.
 - Checkpoint 17D evidence-backed node inspector details with bounded aggregate
   facts, timing and safe findings, validated in both Python and the browser.
+- Checkpoint 17E expandable safe evidence previews for trace, plan, approval,
+  validation and artifact records, with digest display and basename-only
+  artifact references.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

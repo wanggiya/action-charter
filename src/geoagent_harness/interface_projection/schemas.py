@@ -30,6 +30,17 @@ class InterfaceObservedFact(BaseModel):
     value: str = Field(min_length=1, max_length=120)
 
 
+class InterfaceEvidencePreview(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    title: str = Field(min_length=1, max_length=80)
+    category: Literal["trace", "plan", "approval", "validation", "artifact"]
+    status: Literal["verified", "recorded", "pending", "failed"]
+    reference: str = Field(min_length=1, max_length=120)
+    digest: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    facts: list[InterfaceObservedFact] = Field(default_factory=list, max_length=6)
+
+
 class InterfaceNodeDetails(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -39,6 +50,11 @@ class InterfaceNodeDetails(BaseModel):
     finished_at: datetime | None = Field(default=None, alias="finishedAt")
     duration_ms: int | None = Field(default=None, alias="durationMs", ge=0)
     findings: list[str] = Field(default_factory=list, max_length=10)
+    evidence_previews: list[InterfaceEvidencePreview] = Field(
+        default_factory=list,
+        alias="evidencePreviews",
+        max_length=8,
+    )
 
 
 class InterfaceEdge(BaseModel):
