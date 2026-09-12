@@ -19,6 +19,7 @@ class InterfaceNode(BaseModel):
     y: int = Field(ge=0, le=4000)
     status: Literal["verified", "approved", "complete", "failed", "pending"]
     authority: str = Field(min_length=1, max_length=120)
+    performed_by: str = Field(alias="performedBy", min_length=1, max_length=80)
     evidence: str = Field(min_length=1, max_length=160)
     details: "InterfaceNodeDetails | None" = None
 

@@ -116,3 +116,12 @@ Checkpoint 17E adds the first compact evidence-card visual language: category
 color, recorded state, safe reference, integrity metadata and expandable facts.
 Future artifact-specific viewers should extend this contract instead of
 embedding raw JSON or unrestricted logs.
+
+Checkpoint 17F removes the fixed eight-node assumption for validated runtime
+traces. Recorded governed operations become individual connected nodes and the
+canvas adapts to the projected topology in either orientation.
+
+Nodes remain process-centric: the action is the primary title and the
+responsible user, agent, policy service or tool boundary is embedded as a
+performer label. This keeps complex workflows readable while the separate
+Agents view remains available for an actor-centric representation.

@@ -388,6 +388,11 @@ the important verified metadata—category, state, safe reference, digest and
 bounded facts—without turning the browser into a raw trace or filesystem
 viewer. See [Checkpoint 17E](docs/CHECKPOINT17E.md).
 
+Checkpoint 17F replaces the fixed tool placeholder with actual recorded
+operation nodes and dynamically sizes both graph orientations. See
+[Checkpoint 17F](docs/CHECKPOINT17F.md) and the complete
+[interface product scope](docs/INTERFACE_PRODUCT_SCOPE.md).
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.

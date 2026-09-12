@@ -45,6 +45,8 @@ def test_projection_exposes_graph_but_not_trace_payloads(tmp_path) -> None:
     assert result.source == "validated_trace"
     assert result.read_only is True
     assert len(result.nodes) == 8
+    assert result.nodes[0].title == "Submit request"
+    assert result.nodes[0].performed_by == "User"
     assert "private operator request" not in payload
     assert "secret/location.geojson" not in payload
     assert "should-not-project" not in payload
@@ -138,3 +140,42 @@ def test_evidence_previews_expose_digest_but_not_approval_identity(tmp_path) -> 
     assert planner.details.evidence_previews[0].digest == "a" * 64
     assert approval.details.evidence_previews[0].reference == "approval record"
     assert "approval-private-id" not in result.model_dump_json(by_alias=True)
+
+
+def test_projection_topology_follows_recorded_tool_operations(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.tool_arguments = {"inspect_vector": {}, "load_postgis": {}, "validate_layer": {}}
+    trace.tool_results = {"inspect_vector": {}, "load_postgis": {}, "validate_layer": {}}
+    _write_trace(root, trace)
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    tools = [node for node in result.nodes if node.kind == "tool"]
+    assert [node.title for node in tools] == ["Inspect Vector", "Load Postgis", "Validate Layer"]
+    assert all(node.performed_by == "MCP tool boundary" for node in tools)
+    edge_pairs = [(edge.from_, edge.to) for edge in result.edges]
+    assert ("executor", "tool-1") in edge_pairs
+    assert ("tool-1", "tool-2") in edge_pairs
+    assert ("tool-2", "tool-3") in edge_pairs
+    assert ("tool-3", "validation") in edge_pairs
+
+
+def test_projection_redacts_unsafe_operation_name(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.tool_arguments = {"secret@example.com": {}}
+    trace.tool_results = {"secret@example.com": {}}
+    _write_trace(root, trace)
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    tool = next(node for node in result.nodes if node.kind == "tool")
+    assert tool.title == "Recorded tool 1"
+    assert "secret@example.com" not in result.model_dump_json(by_alias=True)
+
+
+def test_projection_rejects_excessive_operation_count(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.tool_arguments = {f"tool_{index}": {} for index in range(21)}
+    trace.tool_results = {}
+    _write_trace(root, trace)
+    with pytest.raises(InterfaceProjectionError, match="operation count"):
+        project_workflow_trace(task_id="demo-run", trace_root=root)

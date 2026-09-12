@@ -39,6 +39,14 @@ project follows Semantic Versioning after the initial public alpha.
 - Checkpoint 17E expandable safe evidence previews for trace, plan, approval,
   validation and artifact records, with digest display and basename-only
   artifact references.
+- Checkpoint 17F trace-derived operation topology, capped safe operation names,
+  recorded-order links and graph-size-driven horizontal and vertical layouts.
+- Process-first node titles with embedded performer labels, a semantic minimap,
+  wheel zoom with Shift-wheel horizontal navigation, and a selectable
+  edge-aligned workflow timeline.
+- A durable interface product-scope matrix covering planning, GIS tools,
+  PostGIS lifecycle, recipes, Snakemake, skills, evidence, release and the
+  existing bounded GeoServer capabilities.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion
