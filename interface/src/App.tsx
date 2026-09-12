@@ -37,7 +37,7 @@ export default function App() {
   const [zoom, setZoom] = useState(0.82);
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, width: 1, height: 1 });
-  const selected = useMemo(() => workflow.nodes.find((node) => node.id === selectedId)!, [selectedId]);
+  const selected = useMemo(() => workflow.nodes.find((node) => node.id === selectedId) ?? workflow.nodes[0], [selectedId, workflow.nodes]);
   const canvasSize = canvasSizes[orientation];
   const nodes = useMemo(() => workflow.nodes.map((node) => ({
     ...node,
@@ -108,7 +108,7 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17A</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17D</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -151,10 +151,13 @@ export default function App() {
       </section>
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{selected.title}</h2></div><span className={`type-chip kind-${selected.kind}`}>{labels[selected.kind]}</span></div>
-        <div className="status-card"><CheckCircle2 size={20}/><div><strong>{selected.status === "approved" ? "Human approved" : "Evidence verified"}</strong><span>Deterministic status</span></div></div>
+        <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>Evidence-backed status</span></div></div>
+        {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>
         <section className="detail-section"><h3>Evidence</h3><button className="evidence-file"><FileCheck2 size={17}/><span><strong>{selected.evidence}</strong><small>SHA-256 bound · immutable</small></span><ChevronDown size={14}/></button></section>
-        <section className="detail-section"><h3>Observed facts</h3><dl><div><dt>Result</dt><dd>{selected.status}</dd></div><div><dt>Model called</dt><dd>No</dd></div><div><dt>Mutation</dt><dd>{selected.kind === "tool" ? "Approved" : "None"}</dd></div></dl></section>
+        <section className="detail-section"><h3>Observed facts</h3><dl><div><dt>Result</dt><dd>{selected.status}</dd></div>{selected.details?.observedFacts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl></section>
+        {selected.details?.startedAt && selected.details.finishedAt && <section className="detail-section"><h3>Timing</h3><dl><div><dt>Started</dt><dd>{new Date(selected.details.startedAt).toLocaleString()}</dd></div><div><dt>Finished</dt><dd>{new Date(selected.details.finishedAt).toLocaleString()}</dd></div>{selected.details.durationMs !== null && selected.details.durationMs !== undefined && <div><dt>Duration</dt><dd>{selected.details.durationMs} ms</dd></div>}</dl></section>}
+        {!!selected.details?.findings.length && <section className="detail-section findings"><h3>Findings</h3>{selected.details.findings.map((finding) => <p key={finding}>{finding}</p>)}</section>}
         <div className="inspector-note"><ShieldCheck size={16}/><p>This view can inspect evidence, but cannot approve or execute work.</p></div>
       </aside>
     </div>

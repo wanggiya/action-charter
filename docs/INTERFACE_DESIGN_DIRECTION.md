@@ -106,3 +106,8 @@ independent evidence boundaries.
 
 This is a design commitment and backlog direction, not a claim that the richer
 interactions are already implemented.
+
+Checkpoint 17D completes the first evidence-backed inspector slice in step 4:
+safe summaries, aggregate facts, timing and findings are available on every
+projected node. Artifact navigation and richer responsive inspection remain
+future slices.

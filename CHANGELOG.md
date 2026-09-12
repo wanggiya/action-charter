@@ -34,6 +34,8 @@ project follows Semantic Versioning after the initial public alpha.
   limits, runtime validation and a safe demonstration fallback.
 - Checkpoint 17C capped workflow catalog export and a validated read-only run
   selector that loads only task-ID-bound same-origin projections.
+- Checkpoint 17D evidence-backed node inspector details with bounded aggregate
+  facts, timing and safe findings, validated in both Python and the browser.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

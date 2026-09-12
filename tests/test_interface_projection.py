@@ -49,6 +49,9 @@ def test_projection_exposes_graph_but_not_trace_payloads(tmp_path) -> None:
     assert "secret/location.geojson" not in payload
     assert "should-not-project" not in payload
     assert "approval-private-id" not in payload
+    assert all(node.details is not None for node in result.nodes)
+    assert result.nodes[0].details.observed_facts[0].label == "Context references"
+    assert result.nodes[0].details.observed_facts[0].value == "1"
 
 
 def test_projection_rejects_unbounded_identity(tmp_path) -> None:
@@ -107,3 +110,15 @@ def test_catalog_export_cli_reports_bounded_files(tmp_path) -> None:
     assert result.exit_code == 0
     assert json.loads(result.stdout)["projection_files"] == ["demo-run.json"]
     assert (output / "catalog.json").is_file()
+
+
+def test_detail_projection_contains_only_bounded_aggregate_facts(tmp_path) -> None:
+    root = tmp_path / "traces"
+    _write_trace(root, _trace())
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    executor = next(node for node in result.nodes if node.id == "executor")
+    evidence = next(node for node in result.nodes if node.id == "evidence")
+    assert executor.details.duration_ms == 0
+    assert {fact.label for fact in evidence.details.observed_facts} == {
+        "Artifacts recorded", "Warnings recorded", "Secrets redacted"
+    }
