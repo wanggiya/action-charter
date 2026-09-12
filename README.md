@@ -378,6 +378,11 @@ Checkpoint 17C adds a bounded run inventory and read-only header selector. See
 [Checkpoint 17C](docs/CHECKPOINT17C.md) to export all validated local traces in
 one command without remembering individual task IDs.
 
+Checkpoint 17D makes each projected node inspectable. Selecting a node shows a
+bounded summary, aggregate observed facts, timing and safe findings derived
+from the validated trace—never the original request, tool payloads, secrets or
+private paths. See [Checkpoint 17D](docs/CHECKPOINT17D.md).
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.

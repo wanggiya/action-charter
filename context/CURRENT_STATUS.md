@@ -1433,6 +1433,16 @@ catalog. The interface header lists those runs and switches the graph through
 task-ID-bound same-origin paths. No source trace, approval or execution state is
 modified.
 
+### Checkpoint 17D — Evidence-backed node inspector
+
+Status: implemented for review. Every projected workflow node now carries a
+strict optional detail record containing a bounded summary, at most ten
+aggregate observed facts, execution timing and at most ten safe findings. The
+React inspector renders these records and clears stale node selection when a
+different run is loaded. Python and browser schemas reject additional fields;
+request text, tool inputs and outputs, approval identities, artifact paths,
+secret values and private reasoning remain excluded.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

@@ -1,5 +1,7 @@
 """Strict browser-safe workflow projection schemas."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Literal
 
@@ -18,6 +20,25 @@ class InterfaceNode(BaseModel):
     status: Literal["verified", "approved", "complete", "failed", "pending"]
     authority: str = Field(min_length=1, max_length=120)
     evidence: str = Field(min_length=1, max_length=160)
+    details: "InterfaceNodeDetails | None" = None
+
+
+class InterfaceObservedFact(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(min_length=1, max_length=50)
+    value: str = Field(min_length=1, max_length=120)
+
+
+class InterfaceNodeDetails(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    summary: str = Field(min_length=1, max_length=240)
+    observed_facts: list[InterfaceObservedFact] = Field(default_factory=list, alias="observedFacts", max_length=10)
+    started_at: datetime | None = Field(default=None, alias="startedAt")
+    finished_at: datetime | None = Field(default=None, alias="finishedAt")
+    duration_ms: int | None = Field(default=None, alias="durationMs", ge=0)
+    findings: list[str] = Field(default_factory=list, max_length=10)
 
 
 class InterfaceEdge(BaseModel):
