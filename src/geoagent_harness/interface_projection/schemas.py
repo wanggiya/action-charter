@@ -1,5 +1,6 @@
 """Strict browser-safe workflow projection schemas."""
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -47,3 +48,32 @@ class InterfaceWorkflowProjection(BaseModel):
         if any(edge.from_ not in known or edge.to not in known for edge in self.edges):
             raise ValueError("interface edge references an unknown node")
         return self
+
+
+class InterfaceWorkflowSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    task_id: str = Field(alias="taskId", pattern=r"^[a-z0-9][a-z0-9_-]*$", max_length=81)
+    status: Literal["validated_success", "validation_failed", "execution_failed"]
+    finished_at: datetime = Field(alias="finishedAt")
+    projection_path: str = Field(alias="projectionPath", pattern=r"^/runtime/[a-z0-9][a-z0-9_-]*\.json$")
+
+
+class InterfaceWorkflowCatalog(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    schema_version: Literal["1.0"] = Field(default="1.0", alias="schemaVersion")
+    read_only: Literal[True] = Field(default=True, alias="readOnly")
+    workflows: list[InterfaceWorkflowSummary] = Field(max_length=50)
+
+
+class InterfaceProjectionExportResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = "1.0"
+    status: Literal["exported"] = "exported"
+    workflow_count: int = Field(ge=0, le=50)
+    catalog_file: Literal["catalog.json"] = "catalog.json"
+    projection_files: list[str] = Field(max_length=50)
+    source_modified: Literal[False] = False
+    execution_performed: Literal[False] = False

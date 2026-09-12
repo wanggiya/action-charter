@@ -7481,5 +7481,27 @@ def project_interface_workflow_command(
     ))
 
 
+@app.command("export-interface-workflows")
+def export_interface_workflows_command(
+    trace_root: Annotated[Path, typer.Option("--trace-root", help="Approved workflow trace root.")] = Path("traces"),
+    output_root: Annotated[Path, typer.Option("--output-root", help="Local interface runtime-output root.")] = Path("interface/public/runtime"),
+    pretty: Annotated[bool, typer.Option("--pretty")] = False,
+) -> None:
+    """Export a bounded run selector and sanitized workflow projections."""
+
+    from geoagent_harness.interface_projection import InterfaceProjectionError, export_workflow_catalog
+
+    try:
+        result = export_workflow_catalog(trace_root=trace_root, output_root=output_root)
+    except InterfaceProjectionError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(
+        result.model_dump(mode="json"),
+        indent=2 if pretty else None,
+        separators=None if pretty else (",", ":"),
+    ))
+
+
 if __name__ == "__main__":
     app()

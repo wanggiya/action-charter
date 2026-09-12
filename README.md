@@ -374,6 +374,10 @@ access, generate the bounded local projection described in
 [Checkpoint 17B](docs/CHECKPOINT17B.md). Invalid or absent runtime projections
 fall back to the sanitized demonstration graph.
 
+Checkpoint 17C adds a bounded run inventory and read-only header selector. See
+[Checkpoint 17C](docs/CHECKPOINT17C.md) to export all validated local traces in
+one command without remembering individual task IDs.
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.

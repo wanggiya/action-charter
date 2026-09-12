@@ -275,6 +275,10 @@ redacted projection from one exact validated workflow trace to the frontend
 graph contract. A live HTTP evidence service, run inventory and graph editing
 remain deferred.
 
+Checkpoint 17C status: implemented for review. It adds a capped offline run
+inventory, atomic derived-projection export and a strict read-only selector.
+Live HTTP serving, automatic refresh and proposal editing remain deferred.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.

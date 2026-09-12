@@ -1425,6 +1425,14 @@ schema validation and input/output size limits. The interface loads only a
 same-origin fixed runtime path, validates it again and falls back safely to its
 sanitized demonstration.
 
+### Checkpoint 17C — Bounded workflow run selector
+
+Status: implemented for review. A single operator command validates and exports
+up to 50 workflow traces as ignored sanitized runtime projections plus a strict
+catalog. The interface header lists those runs and switches the graph through
+task-ID-bound same-origin paths. No source trace, approval or execution state is
+modified.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

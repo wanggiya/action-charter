@@ -3,15 +3,25 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from geoagent_harness.trace import TraceError, WorkflowTrace, validate_task_id
 
-from .schemas import InterfaceEdge, InterfaceNode, InterfaceWorkflowProjection
+from .schemas import (
+    InterfaceEdge,
+    InterfaceNode,
+    InterfaceProjectionExportResult,
+    InterfaceWorkflowCatalog,
+    InterfaceWorkflowProjection,
+    InterfaceWorkflowSummary,
+)
 
 MAX_TRACE_BYTES = 1_000_000
+MAX_CATALOG_WORKFLOWS = 50
 
 
 class InterfaceProjectionError(RuntimeError):
@@ -70,4 +80,76 @@ def project_workflow_trace(*, task_id: str, trace_root: Path) -> InterfaceWorkfl
     return InterfaceWorkflowProjection(
         id=f"trace-{task_id}", title="Validated workflow trace", correlationId=task_id,
         nodes=nodes, edges=[InterfaceEdge.model_validate({"from": start, "to": end}) for start, end in pairs],
+    )
+
+
+def _atomic_json(path: Path, value: object) -> None:
+    payload = json.dumps(value, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+    temporary: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, prefix=".projection-", delete=False) as stream:
+            temporary = stream.name
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except OSError as exc:
+        if temporary:
+            try:
+                Path(temporary).unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise InterfaceProjectionError("interface projection could not be written") from exc
+
+
+def export_workflow_catalog(*, trace_root: Path, output_root: Path) -> InterfaceProjectionExportResult:
+    """Export a capped catalog and sanitized projections from validated traces."""
+
+    try:
+        if trace_root.is_symlink():
+            raise InterfaceProjectionError("trace root cannot be a symlink")
+        source_root = trace_root.resolve(strict=True)
+        if not source_root.is_dir():
+            raise InterfaceProjectionError("trace root must be a directory")
+        candidates = sorted(source_root.glob("*.json"))
+    except OSError as exc:
+        raise InterfaceProjectionError("trace inventory could not be read") from exc
+    if len(candidates) > MAX_CATALOG_WORKFLOWS:
+        raise InterfaceProjectionError("trace inventory exceeds the workflow limit")
+
+    projections: list[tuple[WorkflowTrace, InterfaceWorkflowProjection]] = []
+    for candidate in candidates:
+        if candidate.is_symlink() or candidate.stem != candidate.name[:-5]:
+            raise InterfaceProjectionError("trace inventory contains an unsafe entry")
+        projection = project_workflow_trace(task_id=candidate.stem, trace_root=source_root)
+        projections.append((_load_trace(candidate.stem, source_root), projection))
+    projections.sort(key=lambda item: (item[0].timestamps.finished_at, item[0].task_id), reverse=True)
+
+    if output_root.is_symlink():
+        raise InterfaceProjectionError("interface output root cannot be a symlink")
+    try:
+        output_root.mkdir(parents=True, exist_ok=True)
+        destination = output_root.resolve(strict=True)
+    except OSError as exc:
+        raise InterfaceProjectionError("interface output root is unavailable") from exc
+    if not destination.is_dir():
+        raise InterfaceProjectionError("interface output root must be a directory")
+
+    summaries: list[InterfaceWorkflowSummary] = []
+    projection_files: list[str] = []
+    for trace, projection in projections:
+        file_name = f"{trace.task_id}.json"
+        _atomic_json(destination / file_name, projection.model_dump(mode="json", by_alias=True))
+        projection_files.append(file_name)
+        summaries.append(InterfaceWorkflowSummary(
+            taskId=trace.task_id,
+            status=trace.final_status,
+            finishedAt=trace.timestamps.finished_at,
+            projectionPath=f"/runtime/{file_name}",
+        ))
+    catalog = InterfaceWorkflowCatalog(workflows=summaries)
+    _atomic_json(destination / "catalog.json", catalog.model_dump(mode="json", by_alias=True))
+    return InterfaceProjectionExportResult(
+        workflow_count=len(projection_files),
+        projection_files=projection_files,
     )
