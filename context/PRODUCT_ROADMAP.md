@@ -289,6 +289,20 @@ previews with explicit categories, status, digest metadata and basename-only
 artifact references. Full artifact-content rendering remains deferred until
 each artifact family has a dedicated sanitization contract.
 
+Checkpoint 17F status: implemented for review. It derives the operation chain
+from recorded tool calls, caps it at twenty operations, neutralizes unsafe
+operation labels and sizes both graph orientations from real topology.
+It also establishes process-first node labels with embedded performers, a
+matching semantic minimap and a selectable full-width process timeline. Live
+timestamps and explicit failure placement remain part of the execution-state
+interface slice.
+
+Checkpoint 17 owns the complete guided operating interface described in
+`docs/INTERFACE_PRODUCT_SCOPE.md`, including PostGIS, GIS adapters, recipes,
+Snakemake, skills and the currently implemented GeoServer inspection and
+publication boundaries. Checkpoint 18 follows with pilot operations and
+bounded memory; it is not a substitute for completing the interface.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.

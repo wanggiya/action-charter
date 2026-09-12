@@ -1453,6 +1453,24 @@ to basenames. Approval identity, raw trace content, payloads, private paths,
 secrets and unrestricted messages remain excluded. Older runtime projections
 remain compatible and show a regeneration prompt.
 
+### Checkpoint 17F — Trace-derived workflow topology
+
+Status: implemented for review. Runtime projections replace the single generic
+tool node with zero to twenty recorded operation nodes, preserving trace order
+without exposing arguments or results. Safe controlled operation identifiers
+become readable titles; unsafe identifiers receive neutral numbered labels.
+Edges connect the Executor through the recorded operation sequence into
+Validation. Horizontal and vertical canvas dimensions are calculated from the
+actual projected nodes rather than an eight-node template.
+Nodes are process-centric and label their performer. The minimap mirrors node
+category, state and shape; wheel input controls zoom; Shift plus wheel retains
+horizontal scrolling; and the corrected timeline spans its full width and
+selects each projected process node.
+
+The complete intended interface coverage is recorded in
+`docs/INTERFACE_PRODUCT_SCOPE.md`. Checkpoint 17 remains the guided product
+interface sequence; Checkpoint 18 remains pilot operations and bounded memory.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

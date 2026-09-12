@@ -9,22 +9,12 @@ import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow
 import { workflowSchema, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
-type Point = { x: number; y: number };
 type Viewport = { x: number; y: number; width: number; height: number };
 
 const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
 const icons: Record<NodeKind, typeof Bot> = { input: Map, agent: Bot, policy: ShieldCheck, approval: LockKeyhole, tool: Database, evidence: FileCheck2 };
-const canvasSizes: Record<Orientation, { width: number; height: number }> = {
-  horizontal: { width: 1530, height: 650 },
-  vertical: { width: 1050, height: 1030 },
-};
-const verticalPositions: Record<string, Point> = {
-  request: { x: 430, y: 35 }, planner: { x: 255, y: 205 }, policy: { x: 605, y: 205 },
-  approval: { x: 430, y: 375 }, executor: { x: 255, y: 545 }, mcp: { x: 605, y: 545 },
-  validation: { x: 430, y: 715 }, release: { x: 430, y: 885 },
-  evidence: { x: 430, y: 885 },
-};
+const nodeRadius: Record<NodeKind, number> = { input: 14, agent: 9, policy: 3, approval: 18, tool: 5, evidence: 12 };
 const minimapSize = { width: 140, height: 90 };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
@@ -38,11 +28,20 @@ export default function App() {
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, width: 1, height: 1 });
   const selected = useMemo(() => workflow.nodes.find((node) => node.id === selectedId) ?? workflow.nodes[0], [selectedId, workflow.nodes]);
-  const canvasSize = canvasSizes[orientation];
-  const nodes = useMemo(() => workflow.nodes.map((node) => ({
-    ...node,
-    ...(orientation === "vertical" ? verticalPositions[node.id] : { x: node.x, y: node.y }),
-  })), [orientation, workflow.nodes]);
+  const nodes = useMemo(() => {
+    if (orientation === "horizontal") return workflow.nodes;
+    const minimumX = Math.min(...workflow.nodes.map((node) => node.x));
+    const minimumY = Math.min(...workflow.nodes.map((node) => node.y));
+    return workflow.nodes.map((node) => ({
+      ...node,
+      x: 120 + ((node.y - minimumY) * 1.25),
+      y: 35 + ((node.x - minimumX) * 0.72),
+    }));
+  }, [orientation, workflow.nodes]);
+  const canvasSize = useMemo(() => ({
+    width: Math.max(720, Math.ceil(Math.max(...nodes.map((node) => node.x)) + 270)),
+    height: Math.max(620, Math.ceil(Math.max(...nodes.map((node) => node.y)) + 190)),
+  }), [nodes]);
 
   const updateViewport = useCallback(() => {
     const element = canvasWindowRef.current;
@@ -105,10 +104,21 @@ export default function App() {
     if (!element) return;
     element.scrollTo({ left: (canvasSize.width * zoom - element.clientWidth) / 2, top: (canvasSize.height * zoom - element.clientHeight) / 2, behavior: "smooth" });
   };
+  const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    const element = canvasWindowRef.current;
+    if (!element) return;
+    event.preventDefault();
+    if (event.shiftKey) {
+      element.scrollLeft += event.deltaY || event.deltaX;
+      updateViewport();
+      return;
+    }
+    setZoom((value) => clamp(value + (event.deltaY < 0 ? 0.08 : -0.08), 0.2, 1.1));
+  };
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17E</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17F</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -129,11 +139,11 @@ export default function App() {
           <div className="minimap" role="button" tabIndex={0} aria-label="Workflow minimap; click to pan or press Enter to center" onPointerDown={panFromMinimap} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); centerCanvas(); } }}>
             <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} aria-hidden="true">
               {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
-              {nodes.map((node) => <rect key={node.id} x={node.x} y={node.y} width="190" height="108" rx="14"/>)}
+              {nodes.map((node) => <rect className={`mini-node kind-${node.kind} status-${node.status}`} key={node.id} x={node.x} y={node.y} width="190" height="108" rx={nodeRadius[node.kind]}/>)}
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
           </div>
-          <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport}>
+          <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport} onWheel={handleCanvasWheel}>
             <div className="canvas-sizer" style={{ width: canvasSize.width * zoom, height: canvasSize.height * zoom }}>
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
               <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#468ac7"/></marker></defs>{workflow.edges.map((edge) => {
@@ -142,16 +152,17 @@ export default function App() {
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 return <path key={`${edge.from}-${edge.to}`} d={path} markerEnd="url(#arrow)"/>;
               })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; return <button key={node.id} className={`flow-node orientation-${orientation} kind-${node.kind} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{labels[node.kind]}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{node.title}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span>{node.evidence}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; return <button key={node.id} className={`flow-node orientation-${orientation} kind-${node.kind} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y, borderRadius: nodeRadius[node.kind] }} onClick={() => setSelectedId(node.id)}><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{labels[node.kind]}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{node.title}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{node.performedBy ?? labels[node.kind]}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
         </div>
-        <div className="timeline"><div className="timeline-title"><span>Execution timeline</span><small>correlation · {workflow.correlationId}</small></div><div className="timeline-track"><span className="track-fill"/><i style={{left:"8%"}}/><i style={{left:"28%"}}/><i style={{left:"49%"}}/><i style={{left:"72%"}}/><i style={{left:"94%"}}/></div><div className="timeline-labels"><span>Proposed</span><span>Approved</span><span>Executed</span><span>Validated</span><span>Released</span></div></div>
+        <div className="timeline"><div className="timeline-title"><span>Execution timeline</span><small>correlation · {workflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 108) }}><div className="timeline-track"><span className="track-fill"/>{nodes.map((node, index) => <button key={node.id} aria-label={`Inspect ${node.title}`} className={`timeline-marker status-${node.status} ${selected.id === node.id ? "selected" : ""}`} style={{ left: `${nodes.length === 1 ? 0 : (index / (nodes.length - 1)) * 100}%` }} onClick={() => setSelectedId(node.id)}/>)}</div><div className="timeline-labels" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(88px, 1fr))` }}>{nodes.map((node) => <button key={node.id} className={selected.id === node.id ? "selected" : ""} onClick={() => setSelectedId(node.id)}><strong>{node.title}</strong><small>{node.status}</small></button>)}</div></div></div></div>
       </section>
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{selected.title}</h2></div><span className={`type-chip kind-${selected.kind}`}>{labels[selected.kind]}</span></div>
         <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>Evidence-backed status</span></div></div>
+        <section className="detail-section"><h3>Performed by</h3><p className="performer"><Bot size={15}/>{selected.performedBy ?? labels[selected.kind]}</p></section>
         {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>
         <section className="detail-section"><h3>Evidence</h3>
