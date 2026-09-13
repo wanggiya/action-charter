@@ -47,6 +47,8 @@ def test_projection_exposes_graph_but_not_trace_payloads(tmp_path) -> None:
     assert len(result.nodes) == 8
     assert result.nodes[0].title == "Submit request"
     assert result.nodes[0].performed_by == "User"
+    assert result.nodes[0].category == "input"
+    assert result.nodes[0].group == "intake"
     assert "private operator request" not in payload
     assert "secret/location.geojson" not in payload
     assert "should-not-project" not in payload
@@ -152,6 +154,7 @@ def test_projection_topology_follows_recorded_tool_operations(tmp_path) -> None:
     tools = [node for node in result.nodes if node.kind == "tool"]
     assert [node.title for node in tools] == ["Inspect Vector", "Load Postgis", "Validate Layer"]
     assert all(node.performed_by == "MCP tool boundary" for node in tools)
+    assert all(node.category == "tool" and node.group == "execution" for node in tools)
     edge_pairs = [(edge.from_, edge.to) for edge in result.edges]
     assert ("executor", "tool-1") in edge_pairs
     assert ("tool-1", "tool-2") in edge_pairs

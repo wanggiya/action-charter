@@ -125,3 +125,32 @@ Nodes remain process-centric: the action is the primary title and the
 responsible user, agent, policy service or tool boundary is embedded as a
 performer label. This keeps complex workflows readable while the separate
 Agents view remains available for an actor-centric representation.
+
+Checkpoint 17G formalizes that direction. Process category controls color and
+visual identity, performer identifies responsibility, and owner group controls
+the surrounding container. The palette uses charcoal surfaces with moderate
+blue, cyan, purple, amber, orange, green and slate accents. Category color is
+limited to rails, icons, borders and selection states rather than filling the
+entire node.
+
+The semantic stroke and category text must remain clearly visible at normal
+zoom. Muting belongs primarily to secondary descriptions and inactive state,
+not to the main category border, action title or performer identity. Timeline
+events place state above the marker and the action label below it.
+
+Timeline success does not erase process identity: completed markers retain the
+category hue with moderate saturation. Validation green is reserved for
+validation semantics, while failure and pending states override category color.
+Ownership-frame padding must preserve visible separation between adjacent
+groups in both graph orientations.
+
+The theme applies to the whole application shell, not only the graph canvas:
+navigation, headings, controls, inspector sections, status surfaces and the
+timeline use the same charcoal, divider and typography tokens. Evidence uses a
+high-contrast off-white/slate identity. Agent-owned planning and execution
+actions receive a subtly squared upper-right corner.
+
+The next topology contract separates agent interaction/control edges from
+typed tool-data edges. Agents will occupy a coherent upper interaction lane;
+tool and data operations will sit below their owning agent group. This must be
+modeled in projection data so the graph does not imply false execution order.

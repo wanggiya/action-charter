@@ -15,6 +15,8 @@ class InterfaceNode(BaseModel):
     title: str = Field(min_length=1, max_length=80)
     subtitle: str = Field(min_length=1, max_length=120)
     kind: Literal["input", "agent", "policy", "approval", "tool", "evidence"]
+    category: Literal["input", "planning", "policy", "approval", "execution", "tool", "validation", "evidence"]
+    group: Literal["intake", "planning", "governance", "execution", "assurance"]
     x: int = Field(ge=0, le=4000)
     y: int = Field(ge=0, le=4000)
     status: Literal["verified", "approved", "complete", "failed", "pending"]

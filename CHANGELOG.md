@@ -47,6 +47,17 @@ project follows Semantic Versioning after the initial public alpha.
 - A durable interface product-scope matrix covering planning, GIS tools,
   PostGIS lifecycle, recipes, Snakemake, skills, evidence, release and the
   existing bounded GeoServer capabilities.
+- Checkpoint 17G semantic process categories separated from performer identity,
+  professional category accents, ownership group frames, matching minimap
+  semantics and corrected consistent node corner geometry.
+- Increased semantic border, label, icon and ownership-frame contrast, added
+  performer badges, and aligned each timeline status above its marker with the
+  process action below.
+- Separated adjacent ownership frames and changed successful timeline events
+  from uniform validation green to restrained process-category accents.
+- Completed the charcoal palette across navigation, headings, inspector and
+  controls; added non-passive wheel zoom, empty-canvas drag panning, responsive
+  inspector placement, off-white Evidence semantics and notched agent corners.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

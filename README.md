@@ -393,6 +393,11 @@ operation nodes and dynamically sizes both graph orientations. See
 [Checkpoint 17F](docs/CHECKPOINT17F.md) and the complete
 [interface product scope](docs/INTERFACE_PRODUCT_SCOPE.md).
 
+Checkpoint 17G establishes the semantic visual system: process category and
+performer are independent, related work appears in ownership frames, and graph,
+minimap and inspector share a restrained professional palette. See
+[Checkpoint 17G](docs/CHECKPOINT17G.md).
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.
