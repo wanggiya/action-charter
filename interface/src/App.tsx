@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
-import { workflowSchema, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
+import { workflowSchema, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
 type Viewport = { x: number; y: number; width: number; height: number };
@@ -14,12 +14,22 @@ type Viewport = { x: number; y: number; width: number; height: number };
 const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
 const icons: Record<NodeKind, typeof Bot> = { input: Map, agent: Bot, policy: ShieldCheck, approval: LockKeyhole, tool: Database, evidence: FileCheck2 };
-const nodeRadius: Record<NodeKind, number> = { input: 14, agent: 9, policy: 3, approval: 18, tool: 5, evidence: 12 };
+const fallbackCategory: Record<NodeKind, NodeCategory> = { input: "input", agent: "planning", policy: "policy", approval: "approval", tool: "tool", evidence: "evidence" };
+const groupLabels: Record<NodeGroup, string> = { intake: "Operator intake", planning: "Planner agent", governance: "Governance", execution: "Executor + tools", assurance: "Validation + evidence" };
+const legacyCategories: Record<string, NodeCategory> = { request: "input", planner: "planning", policy: "policy", approval: "approval", executor: "execution", mcp: "tool", validation: "validation", release: "evidence", evidence: "evidence" };
+const legacyGroups: Record<string, NodeGroup> = { request: "intake", planner: "planning", policy: "governance", approval: "governance", executor: "execution", mcp: "execution", validation: "assurance", release: "assurance", evidence: "assurance" };
+const legacyTitles: Record<string, string> = { request: "Submit request", planner: "Create plan", policy: "Evaluate policy", approval: "Record approval", executor: "Execute plan", mcp: "Run GIS tool", validation: "Validate result", release: "Record evidence", evidence: "Record evidence" };
+const legacyPerformers: Record<string, string> = { request: "User", planner: "Planner agent", policy: "Policy engine", approval: "Human operator", executor: "Executor agent", mcp: "MCP tool boundary", validation: "Validator", release: "Evidence service", evidence: "Evidence service" };
+const categoryOf = (node: WorkflowData["nodes"][number]) => node.category ?? legacyCategories[node.id] ?? fallbackCategory[node.kind];
+const groupOf = (node: WorkflowData["nodes"][number]) => node.group ?? legacyGroups[node.id];
+const titleOf = (node: WorkflowData["nodes"][number]) => node.category ? node.title : legacyTitles[node.id] ?? node.title;
+const performerOf = (node: WorkflowData["nodes"][number]) => node.performedBy ?? legacyPerformers[node.id] ?? labels[node.kind];
 const minimapSize = { width: 140, height: 90 };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
+  const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
@@ -42,6 +52,20 @@ export default function App() {
     width: Math.max(720, Math.ceil(Math.max(...nodes.map((node) => node.x)) + 270)),
     height: Math.max(620, Math.ceil(Math.max(...nodes.map((node) => node.y)) + 190)),
   }), [nodes]);
+  const groupFrames = useMemo(() => {
+    const groups = [...new Set(nodes.map(groupOf).filter((group): group is NodeGroup => Boolean(group)))];
+    return groups.map((group) => {
+      const members = nodes.filter((node) => groupOf(node) === group);
+      const minimumX = Math.min(...members.map((node) => node.x));
+      const minimumY = Math.min(...members.map((node) => node.y));
+      const maximumX = Math.max(...members.map((node) => node.x + 190));
+      const maximumY = Math.max(...members.map((node) => node.y + 108));
+      const horizontalPadding = 20;
+      const topPadding = group === "planning" ? 24 : group === "governance" ? 20 : 30;
+      const bottomPadding = group === "planning" ? 8 : 20;
+      return { group, x: minimumX - horizontalPadding, y: minimumY - topPadding, width: maximumX - minimumX + (horizontalPadding * 2), height: maximumY - minimumY + topPadding + bottomPadding };
+    });
+  }, [nodes]);
 
   const updateViewport = useCallback(() => {
     const element = canvasWindowRef.current;
@@ -104,7 +128,7 @@ export default function App() {
     if (!element) return;
     element.scrollTo({ left: (canvasSize.width * zoom - element.clientWidth) / 2, top: (canvasSize.height * zoom - element.clientHeight) / 2, behavior: "smooth" });
   };
-  const handleCanvasWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+  const handleCanvasWheel = useCallback((event: WheelEvent) => {
     const element = canvasWindowRef.current;
     if (!element) return;
     event.preventDefault();
@@ -114,11 +138,39 @@ export default function App() {
       return;
     }
     setZoom((value) => clamp(value + (event.deltaY < 0 ? 0.08 : -0.08), 0.2, 1.1));
+  }, [updateViewport]);
+  useEffect(() => {
+    const element = canvasWindowRef.current;
+    if (!element) return;
+    element.addEventListener("wheel", handleCanvasWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleCanvasWheel);
+  }, [handleCanvasWheel]);
+  const startCanvasPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    const element = canvasWindowRef.current;
+    if (!element || event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
+    canvasPanRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: element.scrollLeft, top: element.scrollTop };
+    element.setPointerCapture(event.pointerId);
+    element.classList.add("is-panning");
+  };
+  const moveCanvasPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    const element = canvasWindowRef.current;
+    const pan = canvasPanRef.current;
+    if (!element || !pan || pan.pointerId !== event.pointerId) return;
+    element.scrollLeft = pan.left - (event.clientX - pan.x);
+    element.scrollTop = pan.top - (event.clientY - pan.y);
+    updateViewport();
+  };
+  const endCanvasPan = (event: React.PointerEvent<HTMLDivElement>) => {
+    const element = canvasWindowRef.current;
+    if (!element || canvasPanRef.current?.pointerId !== event.pointerId) return;
+    canvasPanRef.current = null;
+    if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    element.classList.remove("is-panning");
   };
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17F</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17G</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -139,30 +191,31 @@ export default function App() {
           <div className="minimap" role="button" tabIndex={0} aria-label="Workflow minimap; click to pan or press Enter to center" onPointerDown={panFromMinimap} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); centerCanvas(); } }}>
             <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} aria-hidden="true">
               {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
-              {nodes.map((node) => <rect className={`mini-node kind-${node.kind} status-${node.status}`} key={node.id} x={node.x} y={node.y} width="190" height="108" rx={nodeRadius[node.kind]}/>)}
+              {nodes.map((node) => <rect className={`mini-node category-${categoryOf(node)} status-${node.status}`} key={node.id} x={node.x} y={node.y} width="190" height="108" rx="10"/>)}
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
           </div>
-          <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport} onWheel={handleCanvasWheel}>
+          <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport} onPointerDown={startCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan}>
             <div className="canvas-sizer" style={{ width: canvasSize.width * zoom, height: canvasSize.height * zoom }}>
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
+              {groupFrames.map((frame) => <div className={`node-group group-${frame.group}`} key={frame.group} style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}><span>{groupLabels[frame.group]}</span></div>)}
               <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#468ac7"/></marker></defs>{workflow.edges.map((edge) => {
                 const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; const horizontal = orientation === "horizontal";
                 const x1 = horizontal ? start.x + 190 : start.x + 95; const y1 = horizontal ? start.y + 54 : start.y + 108; const x2 = horizontal ? end.x : end.x + 95; const y2 = horizontal ? end.y + 54 : end.y; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 return <path key={`${edge.from}-${edge.to}`} d={path} markerEnd="url(#arrow)"/>;
               })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; return <button key={node.id} className={`flow-node orientation-${orientation} kind-${node.kind} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y, borderRadius: nodeRadius[node.kind] }} onClick={() => setSelectedId(node.id)}><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{labels[node.kind]}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{node.title}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{node.performedBy ?? labels[node.kind]}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-accent"/><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
         </div>
-        <div className="timeline"><div className="timeline-title"><span>Execution timeline</span><small>correlation · {workflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 108) }}><div className="timeline-track"><span className="track-fill"/>{nodes.map((node, index) => <button key={node.id} aria-label={`Inspect ${node.title}`} className={`timeline-marker status-${node.status} ${selected.id === node.id ? "selected" : ""}`} style={{ left: `${nodes.length === 1 ? 0 : (index / (nodes.length - 1)) * 100}%` }} onClick={() => setSelectedId(node.id)}/>)}</div><div className="timeline-labels" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(88px, 1fr))` }}>{nodes.map((node) => <button key={node.id} className={selected.id === node.id ? "selected" : ""} onClick={() => setSelectedId(node.id)}><strong>{node.title}</strong><small>{node.status}</small></button>)}</div></div></div></div>
+        <div className="timeline"><div className="timeline-title"><span>Execution timeline</span><small>correlation · {workflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
       </section>
       <aside className="inspector">
-        <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{selected.title}</h2></div><span className={`type-chip kind-${selected.kind}`}>{labels[selected.kind]}</span></div>
+        <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>
         <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>Evidence-backed status</span></div></div>
-        <section className="detail-section"><h3>Performed by</h3><p className="performer"><Bot size={15}/>{selected.performedBy ?? labels[selected.kind]}</p></section>
+        <section className="detail-section"><h3>Performed by</h3><p className="performer"><Bot size={15}/>{performerOf(selected)}</p></section>
         {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>
         <section className="detail-section"><h3>Evidence</h3>

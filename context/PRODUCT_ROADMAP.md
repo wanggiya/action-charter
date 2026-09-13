@@ -297,6 +297,15 @@ matching semantic minimap and a selectable full-width process timeline. Live
 timestamps and explicit failure placement remain part of the execution-state
 interface slice.
 
+Checkpoint 17G status: implemented for review. It separates semantic process
+category, owner group and performer; applies the shared professional node,
+group and minimap visual language; and retains legacy projection rendering.
+The next interface slice can build input and planning interactions against
+stable visual and schema semantics.
+The following structural slice must add typed control and data edges plus an
+agent interaction lane above owned tool/data operations before editable plans
+are introduced.
+
 Checkpoint 17 owns the complete guided operating interface described in
 `docs/INTERFACE_PRODUCT_SCOPE.md`, including PostGIS, GIS adapters, recipes,
 Snakemake, skills and the currently implemented GeoServer inspection and

@@ -1471,6 +1471,28 @@ The complete intended interface coverage is recorded in
 `docs/INTERFACE_PRODUCT_SCOPE.md`. Checkpoint 17 remains the guided product
 interface sequence; Checkpoint 18 remains pilot operations and bounded memory.
 
+### Checkpoint 17G — Semantic node design system
+
+Status: implemented for review. The projection now separates eight process
+categories from five owner groups and explicit performer labels. The interface
+renders restrained charcoal nodes with consistent geometry, category-colored
+accent rails, matching icons and minimap symbols, selected-state glow and
+semi-transparent ownership frames for intake, planning, governance, execution
+and assurance. Legacy projections receive deterministic display fallbacks.
+Human approval uses the same correctly clipped ten-pixel corner structure as
+other nodes while remaining visually distinct through its orange category.
+Category borders are two-pixel high-contrast strokes, action titles remain
+near-white, performer identities use outlined badges and the timeline aligns
+each status above its connected marker with the action below.
+Group-specific frame padding prevents the Planner and Governance containers
+from intersecting. Completed timeline events preserve category color through
+moderate tinted capsules and glows instead of rendering every step bright green.
+The theme now covers the complete application shell. Evidence uses an
+off-white/slate identity, agent-owned planning and execution actions have a
+distinct upper-right corner, and the graph supports non-passive wheel zoom and
+empty-canvas pointer panning. Tablet and phone layouts retain the inspector
+below the graph rather than removing it.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:
