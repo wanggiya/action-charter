@@ -1536,6 +1536,24 @@ backend-integrated Checkpoint 17 slices. The product target remains complete
 interface operation over the existing governed contracts, with the CLI retained
 as a first-class automation, CI, debugging and expert surface.
 
+### Checkpoint 17J — Typed proposal connection editing
+
+Status: implemented for review. Proposal edit now exposes the existing block
+field and deletion actions clearly in the Inspector and adds bounded directed
+connection creation and deletion. The editor offers control, governance, tool,
+data and evidence types, checks both endpoint socket families, rejects self
+connections, exact duplicates and cycles, and immediately updates socket fill
+and graph topology. Filled sockets are connected; hollow sockets are available.
+Connections can be created either through the accessible Inspector controls or
+by dragging an output socket onto a compatible unoccupied input socket. The
+performer is selected from bounded project roles while preserving recorded
+performers found in the current projection.
+
+The graph remains an uncommitted browser-memory proposal. It cannot save,
+compile, invoke Planner, evaluate backend policy, approve, execute, call MCP or
+write evidence. The next slice must define a canonical proposal contract and a
+safe persistence/compilation boundary before adding operational authority.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

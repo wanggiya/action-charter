@@ -420,6 +420,16 @@ nodes can be added, renamed, deleted and repositioned. The draft cannot approve
 or execute work and is discarded on exit. See
 [Checkpoint 17I](docs/CHECKPOINT17I.md).
 
+Checkpoint 17J makes the proposal topology editable. From the selected block,
+an operator can create a compatible typed connection, inspect its direction,
+or delete it. A connection can also be drawn directly by holding an output
+socket, dragging the live wire and releasing it on a compatible empty input.
+Duplicate, incompatible, occupied, self-referential and cyclic connections are
+rejected locally. Filled sockets are connected and hollow sockets remain
+available. Performer assignment uses bounded project roles. The proposal is
+still browser-local and cannot execute or persist.
+See [Checkpoint 17J](docs/CHECKPOINT17J.md).
+
 The completed interface is intended to operate the full governed lifecycle
 without requiring routine command-line use. The CLI remains supported for
 automation, CI, debugging and expert workflows; both surfaces will use the same

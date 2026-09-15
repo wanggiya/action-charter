@@ -76,6 +76,13 @@ project follows Semantic Versioning after the initial public alpha.
   remain immutable; Proposal mode creates a separate in-memory draft with node
   creation, deletion, field editing and orientation-aware dragging, while
   retaining no approval, tool, filesystem or execution authority.
+- Checkpoint 17J bounded typed-connection editing in browser-local proposals:
+  compatible source/target selection, duplicate and cycle rejection, explicit
+  incident-connection deletion, and filled connected versus hollow available
+  sockets. The editor still grants no persistence or execution authority.
+- Added Blueprint-style press-drag-release connection wiring with a live draft
+  wire, unoccupied compatible input enforcement, and bounded performer
+  selection while retaining the Inspector connection controls as a fallback.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion
