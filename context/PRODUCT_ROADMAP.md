@@ -306,6 +306,21 @@ The following structural slice must add typed control and data edges plus an
 agent interaction lane above owned tool/data operations before editable plans
 are introduced.
 
+Checkpoint 17H status: implemented for review. Typed control, governance,
+tool, data and evidence edges now drive a two-lane trace graph. Request and
+bounded Input Data enter the Planner separately. Planner and Executor use
+triangular interaction sockets and circular data/tool sockets. Executor enters
+the first recorded operation, recorded operation order forms the processing
+path, and only the final operation enters validation. Unrecorded optional
+components are omitted.
+Ports follow the selected layout axis and only matching hollow socket families
+connect. Selected-run projection failures are explicit rather than hidden by a
+shared demonstration fallback.
+Proposal-mode node placement and typed reconnection remain future editing work.
+Snakemake replay must become an explicit trace-producer field for complete
+historical projection; 17H displays it only from recorded runtime/operation
+metadata and never guesses from a task ID.
+
 Checkpoint 17 owns the complete guided operating interface described in
 `docs/INTERFACE_PRODUCT_SCOPE.md`, including PostGIS, GIS adapters, recipes,
 Snakemake, skills and the currently implemented GeoServer inspection and

@@ -2,19 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
   Database, FileCheck2, GitBranch, LockKeyhole, Map, Maximize2, Minus,
-  Plus, Search, ShieldCheck, Workflow, ZoomIn,
+  GripVertical, Plus, Search, ShieldCheck, Workflow, ZoomIn,
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
-import { workflowSchema, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
+import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
 type Viewport = { x: number; y: number; width: number; height: number };
+type OverlayName = "tools" | "legend";
+type OverlayPosition = { x: number; y: number };
 
 const demoWorkflow = workflowSchema.parse(workflowFixture);
-const labels: Record<NodeKind, string> = { input: "INPUT", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
-const icons: Record<NodeKind, typeof Bot> = { input: Map, agent: Bot, policy: ShieldCheck, approval: LockKeyhole, tool: Database, evidence: FileCheck2 };
-const fallbackCategory: Record<NodeKind, NodeCategory> = { input: "input", agent: "planning", policy: "policy", approval: "approval", tool: "tool", evidence: "evidence" };
+const labels: Record<NodeKind, string> = { input: "INPUT", data: "DATA", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
+const icons: Record<NodeKind, typeof Bot> = { input: Map, data: Database, agent: Bot, policy: ShieldCheck, approval: LockKeyhole, tool: Database, evidence: FileCheck2 };
+const fallbackCategory: Record<NodeKind, NodeCategory> = { input: "input", data: "input", agent: "planning", policy: "policy", approval: "approval", tool: "tool", evidence: "evidence" };
 const groupLabels: Record<NodeGroup, string> = { intake: "Operator intake", planning: "Planner agent", governance: "Governance", execution: "Executor + tools", assurance: "Validation + evidence" };
 const legacyCategories: Record<string, NodeCategory> = { request: "input", planner: "planning", policy: "policy", approval: "approval", executor: "execution", mcp: "tool", validation: "validation", release: "evidence", evidence: "evidence" };
 const legacyGroups: Record<string, NodeGroup> = { request: "intake", planner: "planning", policy: "governance", approval: "governance", executor: "execution", mcp: "execution", validation: "assurance", release: "assurance", evidence: "assurance" };
@@ -24,20 +26,48 @@ const categoryOf = (node: WorkflowData["nodes"][number]) => node.category ?? leg
 const groupOf = (node: WorkflowData["nodes"][number]) => node.group ?? legacyGroups[node.id];
 const titleOf = (node: WorkflowData["nodes"][number]) => node.category ? node.title : legacyTitles[node.id] ?? node.title;
 const performerOf = (node: WorkflowData["nodes"][number]) => node.performedBy ?? legacyPerformers[node.id] ?? labels[node.kind];
+const edgeKindOf = (edge: WorkflowData["edges"][number]): EdgeKind => {
+  if (edge.kind) return edge.kind;
+  if (edge.from === "validation" || edge.to === "release" || edge.to === "evidence") return "evidence";
+  if (edge.from === "policy" || edge.to === "approval") return "governance";
+  if (edge.from === "executor" || edge.from === "mcp" || edge.to === "mcp" || edge.to === "validation") return "data";
+  return "control";
+};
+type PortFamily = "control" | "governance" | "data" | "evidence";
+const portFamilyOf = (kind: EdgeKind): PortFamily => kind === "tool" ? "data" : kind;
+const portOffsets: Record<PortFamily, { horizontal: number; vertical: number }> = {
+  control: { horizontal: 32, vertical: 45 },
+  governance: { horizontal: 52, vertical: 78 },
+  data: { horizontal: 76, vertical: 112 },
+  evidence: { horizontal: 92, vertical: 145 },
+};
+const edgePoint = (node: WorkflowData["nodes"][number], role: "from" | "to", kind: EdgeKind, horizontal: boolean) => {
+  const offset = portOffsets[portFamilyOf(kind)];
+  return horizontal
+    ? { x: node.x + (role === "from" ? 182 : 8), y: node.y + offset.horizontal }
+    : { x: node.x + offset.vertical, y: node.y + (role === "from" ? 100 : 8) };
+};
 const minimapSize = { width: 140, height: 90 };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
   const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
+  const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
+  const [loadNotice, setLoadNotice] = useState("");
   const [selectedId, setSelectedId] = useState("approval");
   const [zoom, setZoom] = useState(0.82);
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, width: 1, height: 1 });
+  const [overlayPositions, setOverlayPositions] = useState<Record<OverlayName, OverlayPosition>>({ tools: { x: 0, y: 0 }, legend: { x: 0, y: 0 } });
   const selected = useMemo(() => workflow.nodes.find((node) => node.id === selectedId) ?? workflow.nodes[0], [selectedId, workflow.nodes]);
+  const runFacts = useMemo(() => ({
+    inputReferences: workflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
+    tools: workflow.nodes.filter((node) => node.kind === "tool").length,
+  }), [workflow.nodes]);
   const nodes = useMemo(() => {
     if (orientation === "horizontal") return workflow.nodes;
     const minimumX = Math.min(...workflow.nodes.map((node) => node.x));
@@ -102,7 +132,12 @@ export default function App() {
       setRuns(catalog);
       if (catalog.length) {
         setSelectedTaskId(catalog[0].taskId);
-        setWorkflow(await loadWorkflowProjection(demoWorkflow, catalog[0].taskId));
+        try {
+          setWorkflow(await loadWorkflowProjection(demoWorkflow, catalog[0].taskId));
+          setLoadNotice("");
+        } catch {
+          setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.");
+        }
       } else {
         setWorkflow(await loadWorkflowProjection(demoWorkflow));
       }
@@ -167,11 +202,27 @@ export default function App() {
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
     element.classList.remove("is-panning");
   };
+  const startOverlayDrag = (name: OverlayName, event: React.PointerEvent<HTMLSpanElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    overlayDragRef.current = { name, pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin: overlayPositions[name] };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveOverlay = (event: React.PointerEvent<HTMLSpanElement>) => {
+    const drag = overlayDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setOverlayPositions((positions) => ({ ...positions, [drag.name]: { x: drag.origin.x + event.clientX - drag.x, y: drag.origin.y + event.clientY - drag.y } }));
+  };
+  const endOverlayDrag = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (overlayDragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    overlayDragRef.current = null;
+  };
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17G</span></div>
-      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then(setWorkflow); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17H</span></div>
+      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
     </header>
     <div className="workspace">
@@ -179,18 +230,20 @@ export default function App() {
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
       </aside>
       <section className="flow-stage" aria-label="Governed workflow graph">
-        <div className="stage-heading"><div><p className="eyebrow">Governed workflow</p><h1>{workflow.title}</h1></div><div className="stage-meta"><span><span className="pulse"/> {workflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{nodes.length} nodes</span><span>{workflow.edges.length} links</span></div></div>
+        <div className="stage-heading"><div><p className="eyebrow">Governed workflow</p><h1>{workflow.title}</h1><p className="run-identity">{workflow.correlationId}</p>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-meta"><span><span className="pulse"/> {workflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div>
         <div className="canvas-frame">
-          <div className="canvas-tools">
+          <div className="canvas-tools draggable-overlay" style={{ transform: `translate(${overlayPositions.tools.x}px, ${overlayPositions.tools.y}px)` }}>
+            <span className="overlay-grip" title="Drag controls" onPointerDown={(event) => startOverlayDrag("tools", event)} onPointerMove={moveOverlay} onPointerUp={endOverlayDrag} onPointerCancel={endOverlayDrag}><GripVertical size={14}/></span>
             <button aria-label="Zoom in" title="Zoom in" onClick={() => setZoom((value) => Math.min(1.1, value + 0.08))}><Plus size={16}/></button>
             <button aria-label="Zoom out" title="Zoom out" onClick={() => setZoom((value) => Math.max(0.2, value - 0.08))}><Minus size={16}/></button>
             <button aria-label="Fit entire graph" title="Fit entire graph" onClick={fitGraph}><Maximize2 size={16}/></button>
             <button className="orientation-button" aria-label={`Switch to ${orientation === "horizontal" ? "vertical" : "horizontal"} layout`} title={`Switch to ${orientation === "horizontal" ? "vertical" : "horizontal"} layout`} onClick={toggleOrientation}>{orientation === "horizontal" ? <ArrowDown size={16}/> : <ArrowRight size={16}/>}</button>
             <span>{Math.round(zoom * 100)}%</span>
           </div>
+          <div className="edge-legend draggable-overlay" style={{ transform: `translate(${overlayPositions.legend.x}px, ${overlayPositions.legend.y}px)` }} aria-label="Connection legend"><span className="overlay-grip" title="Drag connection legend" onPointerDown={(event) => startOverlayDrag("legend", event)} onPointerMove={moveOverlay} onPointerUp={endOverlayDrag} onPointerCancel={endOverlayDrag}><GripVertical size={13}/></span><span className="legend-control">Agent control</span><span className="legend-governance">Governance</span><span className="legend-tool">Tool relation</span><span className="legend-data">Typed data</span><span className="legend-evidence">Evidence</span></div>
           <div className="minimap" role="button" tabIndex={0} aria-label="Workflow minimap; click to pan or press Enter to center" onPointerDown={panFromMinimap} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); centerCanvas(); } }}>
             <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} aria-hidden="true">
-              {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
+              {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line className={`edge-${edgeKindOf(edge)}`} key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
               {nodes.map((node) => <rect className={`mini-node category-${categoryOf(node)} status-${node.status}`} key={node.id} x={node.x} y={node.y} width="190" height="108" rx="10"/>)}
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
@@ -198,14 +251,16 @@ export default function App() {
           <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport} onPointerDown={startCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan}>
             <div className="canvas-sizer" style={{ width: canvasSize.width * zoom, height: canvasSize.height * zoom }}>
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
+              {orientation === "horizontal" && <><div className="lane-guide lane-control"><span>Agent / control lane</span></div><div className="lane-guide lane-data"><span>Tool / data lane</span></div></>}
               {groupFrames.map((frame) => <div className={`node-group group-${frame.group}`} key={frame.group} style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}><span>{groupLabels[frame.group]}</span></div>)}
-              <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#468ac7"/></marker></defs>{workflow.edges.map((edge) => {
+              <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow-control" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f4f7fb"/></marker><marker id="arrow-governance" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"/></marker></defs>{workflow.edges.map((edge) => {
                 const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; const horizontal = orientation === "horizontal";
-                const x1 = horizontal ? start.x + 190 : start.x + 95; const y1 = horizontal ? start.y + 54 : start.y + 108; const x2 = horizontal ? end.x : end.x + 95; const y2 = horizontal ? end.y + 54 : end.y; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
+                const edgeKind = edgeKindOf(edge); const startPoint = edgePoint(start, "from", edgeKind, horizontal); const endPoint = edgePoint(end, "to", edgeKind, horizontal); const { x: x1, y: y1 } = startPoint; const { x: x2, y: y2 } = endPoint; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
-                return <path key={`${edge.from}-${edge.to}`} d={path} markerEnd="url(#arrow)"/>;
+                const labelX = horizontal ? bend : (x1 + x2) / 2; const labelY = horizontal ? (y1 + y2) / 2 - 7 : bend - 7;
+                return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path} markerEnd={edgeKind === "control" ? "url(#arrow-control)" : edgeKind === "governance" ? "url(#arrow-governance)" : undefined}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
               })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-accent"/><span className="node-port in"/><span className="node-port out"/><span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(workflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(workflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const renderPort = (family: PortFamily, direction: "in" | "out") => family === "control" ? <svg key={`${direction}-${family}`} className={`typed-port control-port port-${family} ${direction}`} viewBox="0 0 16 16" aria-hidden="true"><polygon points="2,2 14,8 2,14"/></svg> : <span key={`${direction}-${family}`} className={`typed-port port-${family} ${direction}`}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{incoming.map((family) => renderPort(family, "in"))}{outgoing.map((family) => renderPort(family, "out"))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>

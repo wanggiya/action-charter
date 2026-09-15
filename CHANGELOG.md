@@ -58,6 +58,20 @@ project follows Semantic Versioning after the initial public alpha.
 - Completed the charcoal palette across navigation, headings, inspector and
   controls; added non-passive wheel zoom, empty-canvas drag panning, responsive
   inspector placement, off-white Evidence semantics and notched agent corners.
+- Checkpoint 17H typed control, governance, tool, data and evidence
+  connections; adjacent request and bounded input-data nodes; hollow
+  triangular agent sockets and circular data/tool sockets; separate upper
+  agent interaction and lower recorded-operation lanes; edge labels, legend and
+  minimap connections; axis-aware shape-compatible endpoints; explicit stale
+  runtime notices instead of silent demonstration fallback; and no unrecorded
+  optional components.
+- Simplified the minimap to thin lines and outline-only nodes, inset sockets
+  above their lines, constrained the graph beneath the inspector, removed the
+  extra rounded viewport border, and added draggable handles to graph controls
+  and the connection legend.
+- Connected Executor only to the first recorded operation and Validation only
+  to the last, and exposed Snakemake only when runtime or operation metadata
+  explicitly records it.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion
