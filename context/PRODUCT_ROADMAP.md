@@ -327,6 +327,18 @@ Snakemake, skills and the currently implemented GeoServer inspection and
 publication boundaries. Checkpoint 18 follows with pilot operations and
 bounded memory; it is not a substitute for completing the interface.
 
+Checkpoint 17I status: implemented for review. Evidence mode remains immutable;
+Proposal edit creates a separate in-memory draft and supports bounded node
+creation, field editing, deletion and orientation-aware movement. Draft changes
+cannot execute or persist. The next slices must add typed connection editing,
+request/input composition, backend proposal compilation, policy feedback,
+digest-bound approval, governed execution, live state and evidence navigation.
+
+The interface should eventually complete routine workflows without requiring
+the operator to type CLI commands. The CLI remains fully supported for scripts,
+CI, diagnostics and advanced operation. Both interfaces must share contracts;
+the browser must not reimplement or bypass the governed backend.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.

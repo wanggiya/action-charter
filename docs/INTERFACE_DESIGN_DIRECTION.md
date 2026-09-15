@@ -176,3 +176,14 @@ outlines and thin connections. Overlay controls expose drag handles, the graph
 is clipped beneath the inspector, and the viewport does not add a second
 rounded frame. Snakemake is projected only when recorded metadata supports it;
 execution-engine inference from names is prohibited.
+
+Checkpoint 17I introduces an explicit mode boundary. Evidence mode never
+changes projected nodes. Proposal mode operates on a deep browser-memory draft,
+uses a strong amber `Draft only` state, disables run selection, and permits
+bounded node addition, deletion, field editing and layout movement. Exiting
+discards the draft. Typed reconnection, persistence, planning, policy, approval
+and execution remain later backend-integrated slices.
+
+The final interface and CLI are peers over the same governed contracts. The
+interface should remove routine dependence on commands without removing the CLI
+or creating an alternate execution path.

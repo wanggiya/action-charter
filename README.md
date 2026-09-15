@@ -414,6 +414,17 @@ The projection includes only components supported by each trace. Snakemake is
 visible when its runtime or operation is explicitly recorded; older replay
 evidence without engine metadata cannot be inferred from a task name.
 
+Checkpoint 17I adds a separate proposal-editing foundation. Evidence view
+remains immutable, while Proposal edit creates a browser-local draft whose
+nodes can be added, renamed, deleted and repositioned. The draft cannot approve
+or execute work and is discarded on exit. See
+[Checkpoint 17I](docs/CHECKPOINT17I.md).
+
+The completed interface is intended to operate the full governed lifecycle
+without requiring routine command-line use. The CLI remains supported for
+automation, CI, debugging and expert workflows; both surfaces will use the same
+backend contracts and authority boundaries.
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.
