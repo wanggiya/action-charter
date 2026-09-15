@@ -14,6 +14,7 @@ type OverlayName = "tools" | "legend";
 type OverlayPosition = { x: number; y: number };
 type InterfaceMode = "evidence" | "proposal";
 type ProposalDraft = Omit<WorkflowData, "readOnly" | "source"> & { readOnly: false; source: "proposal_draft" };
+type ConnectionDrag = { pointerId: number; sourceId: string; family: PortFamily; edgeKind: EdgeKind; x: number; y: number };
 
 const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", data: "DATA", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
@@ -24,6 +25,7 @@ const legacyCategories: Record<string, NodeCategory> = { request: "input", plann
 const legacyGroups: Record<string, NodeGroup> = { request: "intake", planner: "planning", policy: "governance", approval: "governance", executor: "execution", mcp: "execution", validation: "assurance", release: "assurance", evidence: "assurance" };
 const legacyTitles: Record<string, string> = { request: "Submit request", planner: "Create plan", policy: "Evaluate policy", approval: "Record approval", executor: "Execute plan", mcp: "Run GIS tool", validation: "Validate result", release: "Record evidence", evidence: "Record evidence" };
 const legacyPerformers: Record<string, string> = { request: "User", planner: "Planner agent", policy: "Policy engine", approval: "Human operator", executor: "Executor agent", mcp: "MCP tool boundary", validation: "Validator", release: "Evidence service", evidence: "Evidence service" };
+const standardPerformers = ["Unassigned", "User", "Planner agent", "Policy engine", "Human operator", "Executor agent", "Validator", "Critic agent", "Builder agent", "Evidence service", "MCP tool boundary", "Snakemake runner"];
 const categoryOf = (node: WorkflowData["nodes"][number]) => node.category ?? legacyCategories[node.id] ?? fallbackCategory[node.kind];
 const groupOf = (node: WorkflowData["nodes"][number]) => node.group ?? legacyGroups[node.id];
 const titleOf = (node: WorkflowData["nodes"][number]) => node.category ? node.title : legacyTitles[node.id] ?? node.title;
@@ -38,9 +40,28 @@ const edgeKindOf = (edge: WorkflowData["edges"][number]): EdgeKind => {
 type PortFamily = "control" | "governance" | "data" | "evidence";
 const portFamilyOf = (kind: EdgeKind): PortFamily => kind === "tool" ? "data" : kind;
 const availablePortFamilies = (node: WorkflowData["nodes"][number]): PortFamily[] => {
-  if (node.kind === "agent") return ["control", "data"];
-  if (node.kind === "data" || node.kind === "tool") return ["data"];
-  return [];
+  const category = categoryOf(node);
+  if (category === "input") return ["control", "data"];
+  if (category === "planning" || category === "execution") return ["control", "data"];
+  if (category === "policy" || category === "approval") return ["control", "governance"];
+  if (category === "tool") return ["data"];
+  if (category === "validation") return ["data", "evidence"];
+  return ["evidence"];
+};
+const edgeWouldCreateCycle = (workflow: Pick<WorkflowData, "edges">, from: string, to: string) => {
+  const reachable = new Set([to]);
+  const pending = [to];
+  while (pending.length) {
+    const current = pending.pop()!;
+    for (const edge of workflow.edges.filter((candidate) => candidate.from === current)) {
+      if (edge.to === from) return true;
+      if (!reachable.has(edge.to)) {
+        reachable.add(edge.to);
+        pending.push(edge.to);
+      }
+    }
+  }
+  return false;
 };
 const portOffsets: Record<PortFamily, { horizontal: number; vertical: number }> = {
   control: { horizontal: 32, vertical: 45 },
@@ -61,12 +82,16 @@ export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
   const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
   const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
+  const connectionDragRef = useRef<ConnectionDrag | null>(null);
   const draftCounterRef = useRef(0);
   const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
   const [draft, setDraft] = useState<ProposalDraft | null>(null);
   const [mode, setMode] = useState<InterfaceMode>("evidence");
   const [newNodeKind, setNewNodeKind] = useState<NodeKind>("tool");
+  const [newEdgeKind, setNewEdgeKind] = useState<EdgeKind>("control");
+  const [newEdgeTargetId, setNewEdgeTargetId] = useState("");
+  const [connectionDrag, setConnectionDrag] = useState<ConnectionDrag | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [loadNotice, setLoadNotice] = useState("");
@@ -77,6 +102,7 @@ export default function App() {
   const [overlayPositions, setOverlayPositions] = useState<Record<OverlayName, OverlayPosition>>({ tools: { x: 0, y: 0 }, legend: { x: 0, y: 0 } });
   const displayedWorkflow = draft ?? workflow;
   const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
+  const performerOptions = useMemo(() => [...new Set([...standardPerformers, ...displayedWorkflow.nodes.map(performerOf)])].sort(), [displayedWorkflow.nodes]);
   const runFacts = useMemo(() => ({
     inputReferences: displayedWorkflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
     tools: displayedWorkflow.nodes.filter((node) => node.kind === "tool").length,
@@ -95,6 +121,17 @@ export default function App() {
     width: Math.max(720, Math.ceil(Math.max(...nodes.map((node) => node.x)) + 270)),
     height: Math.max(620, Math.ceil(Math.max(...nodes.map((node) => node.y)) + 190)),
   }), [nodes]);
+  const connectionPreviewPath = useMemo(() => {
+    if (!connectionDrag) return null;
+    const source = nodes.find((node) => node.id === connectionDrag.sourceId);
+    if (!source) return null;
+    const horizontal = orientation === "horizontal";
+    const start = edgePoint(source, "from", connectionDrag.edgeKind, horizontal);
+    const bend = horizontal ? (start.x + connectionDrag.x) / 2 : (start.y + connectionDrag.y) / 2;
+    return horizontal
+      ? `M ${start.x} ${start.y} C ${bend} ${start.y}, ${bend} ${connectionDrag.y}, ${connectionDrag.x} ${connectionDrag.y}`
+      : `M ${start.x} ${start.y} C ${start.x} ${bend}, ${connectionDrag.x} ${bend}, ${connectionDrag.x} ${connectionDrag.y}`;
+  }, [connectionDrag, nodes, orientation]);
   const groupFrames = useMemo(() => {
     const groups = [...new Set(nodes.map(groupOf).filter((group): group is NodeGroup => Boolean(group)))];
     return groups.map((group) => {
@@ -237,6 +274,8 @@ export default function App() {
     setLoadNotice("");
   };
   const closeProposal = () => {
+    connectionDragRef.current = null;
+    setConnectionDrag(null);
     setDraft(null);
     setMode("evidence");
     setSelectedId(workflow.nodes[0].id);
@@ -281,6 +320,67 @@ export default function App() {
     setDraft({ ...draft, nodes: remaining, edges: draft.edges.filter((edge) => edge.from !== selected.id && edge.to !== selected.id) });
     setSelectedId(remaining[0].id);
   };
+  const canConnect = (sourceId: string, targetId: string, kind: EdgeKind) => {
+    if (!draft || sourceId === targetId) return false;
+    const source = draft.nodes.find((node) => node.id === sourceId);
+    const target = draft.nodes.find((node) => node.id === targetId);
+    if (!source || !target) return false;
+    const family = portFamilyOf(kind);
+    const targetInputOccupied = draft.edges.some((edge) => edge.to === targetId && portFamilyOf(edgeKindOf(edge)) === family);
+    return availablePortFamilies(source).includes(family)
+      && availablePortFamilies(target).includes(family)
+      && !targetInputOccupied
+      && !draft.edges.some((edge) => edge.from === sourceId && edge.to === targetId && edgeKindOf(edge) === kind)
+      && !edgeWouldCreateCycle(draft, sourceId, targetId);
+  };
+  const connectionTarget = draft?.nodes.find((node) => node.id === newEdgeTargetId);
+  const connectionCompatible = Boolean(connectionTarget && canConnect(selected.id, connectionTarget.id, newEdgeKind));
+  const addDraftConnection = () => {
+    if (!draft || !connectionTarget || !connectionCompatible) return;
+    setDraft({ ...draft, edges: [...draft.edges, { from: selected.id, to: connectionTarget.id, kind: newEdgeKind, label: newEdgeKind }] });
+    setNewEdgeTargetId("");
+  };
+  const deleteDraftConnection = (index: number) => {
+    if (!draft) return;
+    setDraft({ ...draft, edges: draft.edges.filter((_, edgeIndex) => edgeIndex !== index) });
+  };
+  const pointerToCanvas = (clientX: number, clientY: number) => {
+    const element = canvasWindowRef.current;
+    if (!element) return { x: 0, y: 0 };
+    const bounds = element.getBoundingClientRect();
+    return { x: (clientX - bounds.left + element.scrollLeft) / zoom, y: (clientY - bounds.top + element.scrollTop) / zoom };
+  };
+  const startConnectionDrag = (nodeId: string, family: PortFamily, direction: "in" | "out", event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
+    event.stopPropagation();
+    if (mode !== "proposal" || direction !== "out") return;
+    const point = pointerToCanvas(event.clientX, event.clientY);
+    const kind = portFamilyOf(newEdgeKind) === family ? newEdgeKind : family;
+    const drag = { pointerId: event.pointerId, sourceId: nodeId, family, edgeKind: kind as EdgeKind, ...point };
+    connectionDragRef.current = drag;
+    setConnectionDrag(drag);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveConnectionDrag = (event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
+    const drag = connectionDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const next = { ...drag, ...pointerToCanvas(event.clientX, event.clientY) };
+    connectionDragRef.current = next;
+    setConnectionDrag(next);
+  };
+  const endConnectionDrag = (event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
+    const drag = connectionDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-port-direction="in"]');
+    const targetId = target?.dataset.portNode;
+    const targetFamily = target?.dataset.portFamily;
+    if (event.type !== "pointercancel" && draft && targetId && targetFamily === drag.family && canConnect(drag.sourceId, targetId, drag.edgeKind)) {
+      setDraft({ ...draft, edges: [...draft.edges, { from: drag.sourceId, to: targetId, kind: drag.edgeKind, label: drag.edgeKind }] });
+      setSelectedId(targetId);
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    connectionDragRef.current = null;
+    setConnectionDrag(null);
+  };
   const startNodeDrag = (node: WorkflowData["nodes"][number], event: React.PointerEvent<HTMLButtonElement>) => {
     if (mode !== "proposal") return;
     event.stopPropagation();
@@ -306,7 +406,7 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17H</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17J</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -345,8 +445,8 @@ export default function App() {
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 const labelX = horizontal ? bend : (x1 + x2) / 2; const labelY = horizontal ? (y1 + y2) / 2 - 7 : bend - 7;
                 return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
-              })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true"><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
+              })}{connectionDrag && connectionPreviewPath && <g className={`connection edge-${connectionDrag.edgeKind} draft-connection`}><path d={connectionPreviewPath}/></g>}</svg>
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true" data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
@@ -356,7 +456,25 @@ export default function App() {
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>
         <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>{mode === "proposal" ? "Uncommitted proposal state" : "Evidence-backed status"}</span></div></div>
-        {mode === "proposal" && <section className="detail-section proposal-fields"><h3>Edit draft node</h3><label>Title<input value={selected.title} maxLength={80} onChange={(event) => updateDraftNode(selected.id, { title: event.target.value || "Untitled node" })}/></label><label>Description<input value={selected.subtitle} maxLength={120} onChange={(event) => updateDraftNode(selected.id, { subtitle: event.target.value || "Draft node" })}/></label><label>Performer<input value={performerOf(selected)} maxLength={80} onChange={(event) => updateDraftNode(selected.id, { performedBy: event.target.value || "Unassigned" })}/></label><button className="delete-node" disabled={displayedWorkflow.nodes.length <= 1} onClick={deleteDraftNode}>Delete selected node</button></section>}
+        {mode === "proposal" && <>
+          <section className="detail-section proposal-fields">
+            <h3>Edit selected block</h3>
+            <p className="proposal-help">Changes remain in this browser-only draft.</p>
+            <label>Title<input value={selected.title} maxLength={80} onChange={(event) => updateDraftNode(selected.id, { title: event.target.value || "Untitled node" })}/></label>
+            <label>Description<input value={selected.subtitle} maxLength={120} onChange={(event) => updateDraftNode(selected.id, { subtitle: event.target.value || "Draft node" })}/></label>
+            <label>Performer<select value={performerOf(selected)} onChange={(event) => updateDraftNode(selected.id, { performedBy: event.target.value })}>{performerOptions.map((performer) => <option key={performer} value={performer}>{performer}</option>)}</select></label>
+            <button className="delete-node" disabled={displayedWorkflow.nodes.length <= 1} onClick={deleteDraftNode}>Delete selected block</button>
+          </section>
+          <section className="detail-section connection-editor">
+            <h3>Connect selected block</h3>
+            <p className="proposal-help">Create a typed, directed connection from this block.</p>
+            <label>Connection type<select value={newEdgeKind} onChange={(event) => setNewEdgeKind(event.target.value as EdgeKind)}>{(["control", "governance", "tool", "data", "evidence"] as EdgeKind[]).map((kind) => <option key={kind} value={kind}>{kind}</option>)}</select></label>
+            <label>Target block<select value={newEdgeTargetId} onChange={(event) => setNewEdgeTargetId(event.target.value)}><option value="">Select a target</option>{displayedWorkflow.nodes.filter((node) => node.id !== selected.id).map((node) => <option key={node.id} value={node.id}>{titleOf(node)}</option>)}</select></label>
+            {newEdgeTargetId && !connectionCompatible && <p className="connection-warning">That connection is incompatible, duplicated, or would create a cycle.</p>}
+            <button className="add-connection" disabled={!connectionCompatible} onClick={addDraftConnection}>Add typed connection</button>
+            <div className="connection-list"><h4>Connections on this block</h4>{displayedWorkflow.edges.map((edge, index) => edge.from === selected.id || edge.to === selected.id ? <div className="connection-row" key={`${edge.from}-${edge.to}-${edgeKindOf(edge)}-${index}`}><span><strong>{edgeKindOf(edge)}</strong>{edge.from === selected.id ? ` → ${titleOf(displayedWorkflow.nodes.find((node) => node.id === edge.to)!)}` : ` ← ${titleOf(displayedWorkflow.nodes.find((node) => node.id === edge.from)!)}`}</span><button aria-label={`Delete ${edgeKindOf(edge)} connection`} onClick={() => deleteDraftConnection(index)}>Delete</button></div> : null)}{!displayedWorkflow.edges.some((edge) => edge.from === selected.id || edge.to === selected.id) && <p className="connection-empty">No connections yet.</p>}</div>
+          </section>
+        </>}
         <section className="detail-section"><h3>Performed by</h3><p className="performer"><Bot size={15}/>{performerOf(selected)}</p></section>
         {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>

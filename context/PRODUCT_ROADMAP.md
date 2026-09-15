@@ -339,6 +339,12 @@ the operator to type CLI commands. The CLI remains fully supported for scripts,
 CI, diagnostics and advanced operation. Both interfaces must share contracts;
 the browser must not reimplement or bypass the governed backend.
 
+Checkpoint 17J status: implemented for review. Browser-local proposals now
+support compatible typed connection creation and incident-connection deletion,
+with explicit endpoint selection, duplicate rejection and cycle prevention.
+The next slice is the versioned proposal contract plus safe save/compile
+boundary; Planner, policy, approval and execution remain later governed slices.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.
