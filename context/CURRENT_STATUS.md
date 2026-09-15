@@ -1520,6 +1520,22 @@ dedicated drag handles. Snakemake appears only when explicitly present in trace
 runtime or operation metadata; older replay records require a producer-level
 execution-engine field rather than task-name inference.
 
+### Checkpoint 17I — Proposal edit mode foundation
+
+Status: implemented for review. The interface now exposes two explicit modes.
+Evidence view preserves the immutable 17H projection behavior. Proposal edit
+creates a separate browser-memory draft, disables run switching, and labels the
+surface as uncommitted. Within that draft, nodes may be added from the bounded
+type palette, selected, renamed, described, assigned a performer, repositioned
+in either orientation or deleted with their incident draft edges.
+
+The draft is discarded on exit. It cannot persist a proposal, reconnect typed
+ports, invoke Planner, evaluate policy, record approval, call MCP, execute a
+tool, access secrets or write evidence. Those capabilities require later
+backend-integrated Checkpoint 17 slices. The product target remains complete
+interface operation over the existing governed contracts, with the CLI retained
+as a first-class automation, CI, debugging and expert surface.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

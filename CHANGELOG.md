@@ -72,6 +72,10 @@ project follows Semantic Versioning after the initial public alpha.
 - Connected Executor only to the first recorded operation and Validation only
   to the last, and exposed Snakemake only when runtime or operation metadata
   explicitly records it.
+- Checkpoint 17I explicit Evidence and Proposal modes. Evidence projections
+  remain immutable; Proposal mode creates a separate in-memory draft with node
+  creation, deletion, field editing and orientation-aware dragging, while
+  retaining no approval, tool, filesystem or execution authority.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

@@ -12,6 +12,8 @@ type Orientation = "horizontal" | "vertical";
 type Viewport = { x: number; y: number; width: number; height: number };
 type OverlayName = "tools" | "legend";
 type OverlayPosition = { x: number; y: number };
+type InterfaceMode = "evidence" | "proposal";
+type ProposalDraft = Omit<WorkflowData, "readOnly" | "source"> & { readOnly: false; source: "proposal_draft" };
 
 const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", data: "DATA", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
@@ -35,6 +37,11 @@ const edgeKindOf = (edge: WorkflowData["edges"][number]): EdgeKind => {
 };
 type PortFamily = "control" | "governance" | "data" | "evidence";
 const portFamilyOf = (kind: EdgeKind): PortFamily => kind === "tool" ? "data" : kind;
+const availablePortFamilies = (node: WorkflowData["nodes"][number]): PortFamily[] => {
+  if (node.kind === "agent") return ["control", "data"];
+  if (node.kind === "data" || node.kind === "tool") return ["data"];
+  return [];
+};
 const portOffsets: Record<PortFamily, { horizontal: number; vertical: number }> = {
   control: { horizontal: 32, vertical: 45 },
   governance: { horizontal: 52, vertical: 78 },
@@ -53,8 +60,13 @@ const clamp = (value: number, minimum: number, maximum: number) => Math.min(maxi
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
   const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
+  const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
+  const draftCounterRef = useRef(0);
   const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
+  const [draft, setDraft] = useState<ProposalDraft | null>(null);
+  const [mode, setMode] = useState<InterfaceMode>("evidence");
+  const [newNodeKind, setNewNodeKind] = useState<NodeKind>("tool");
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [loadNotice, setLoadNotice] = useState("");
@@ -63,21 +75,22 @@ export default function App() {
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, width: 1, height: 1 });
   const [overlayPositions, setOverlayPositions] = useState<Record<OverlayName, OverlayPosition>>({ tools: { x: 0, y: 0 }, legend: { x: 0, y: 0 } });
-  const selected = useMemo(() => workflow.nodes.find((node) => node.id === selectedId) ?? workflow.nodes[0], [selectedId, workflow.nodes]);
+  const displayedWorkflow = draft ?? workflow;
+  const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
   const runFacts = useMemo(() => ({
-    inputReferences: workflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
-    tools: workflow.nodes.filter((node) => node.kind === "tool").length,
-  }), [workflow.nodes]);
+    inputReferences: displayedWorkflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
+    tools: displayedWorkflow.nodes.filter((node) => node.kind === "tool").length,
+  }), [displayedWorkflow.nodes]);
   const nodes = useMemo(() => {
-    if (orientation === "horizontal") return workflow.nodes;
-    const minimumX = Math.min(...workflow.nodes.map((node) => node.x));
-    const minimumY = Math.min(...workflow.nodes.map((node) => node.y));
-    return workflow.nodes.map((node) => ({
+    if (orientation === "horizontal") return displayedWorkflow.nodes;
+    const minimumX = Math.min(...displayedWorkflow.nodes.map((node) => node.x));
+    const minimumY = Math.min(...displayedWorkflow.nodes.map((node) => node.y));
+    return displayedWorkflow.nodes.map((node) => ({
       ...node,
       x: 120 + ((node.y - minimumY) * 1.25),
       y: 35 + ((node.x - minimumX) * 0.72),
     }));
-  }, [orientation, workflow.nodes]);
+  }, [displayedWorkflow.nodes, orientation]);
   const canvasSize = useMemo(() => ({
     width: Math.max(720, Math.ceil(Math.max(...nodes.map((node) => node.x)) + 270)),
     height: Math.max(620, Math.ceil(Math.max(...nodes.map((node) => node.y)) + 190)),
@@ -218,20 +231,93 @@ export default function App() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     overlayDragRef.current = null;
   };
+  const beginProposal = () => {
+    setDraft({ ...structuredClone(workflow), id: `${workflow.id}-draft`, title: `${workflow.title} draft`, readOnly: false, source: "proposal_draft" });
+    setMode("proposal");
+    setLoadNotice("");
+  };
+  const closeProposal = () => {
+    setDraft(null);
+    setMode("evidence");
+    setSelectedId(workflow.nodes[0].id);
+  };
+  const updateDraftNode = (nodeId: string, patch: Partial<WorkflowData["nodes"][number]>) => {
+    setDraft((current) => current ? { ...current, nodes: current.nodes.map((node) => node.id === nodeId ? { ...node, ...patch } : node) } : current);
+  };
+  const addDraftNode = () => {
+    if (!draft || draft.nodes.length >= 100) return;
+    draftCounterRef.current += 1;
+    const definitions: Record<NodeKind, { title: string; subtitle: string; category: NodeCategory; group: NodeGroup; performer: string }> = {
+      input: { title: "New request", subtitle: "Define operator intent", category: "input", group: "intake", performer: "User" },
+      data: { title: "New input data", subtitle: "Select a bounded input", category: "input", group: "intake", performer: "Input boundary" },
+      agent: { title: "New agent action", subtitle: "Define proposal responsibility", category: "planning", group: "planning", performer: "Agent" },
+      policy: { title: "New policy gate", subtitle: "Define deterministic checks", category: "policy", group: "governance", performer: "Policy engine" },
+      approval: { title: "New human gate", subtitle: "Define operator review", category: "approval", group: "governance", performer: "Human operator" },
+      tool: { title: "New tool action", subtitle: "Select an allowlisted capability", category: "tool", group: "execution", performer: "Tool boundary" },
+      evidence: { title: "New evidence step", subtitle: "Define recorded output", category: "evidence", group: "assurance", performer: "Evidence service" },
+    };
+    const definition = definitions[newNodeKind];
+    const node = {
+      id: `draft-${newNodeKind}-${draftCounterRef.current}`,
+      title: definition.title,
+      subtitle: definition.subtitle,
+      kind: newNodeKind,
+      category: definition.category,
+      group: definition.group,
+      x: 120 + ((draft.nodes.length % 5) * 220),
+      y: 180 + (Math.floor(draft.nodes.length / 5) * 150),
+      status: "pending" as const,
+      authority: "Proposal only",
+      performedBy: definition.performer,
+      evidence: "Not recorded",
+      details: null,
+    };
+    setDraft({ ...draft, nodes: [...draft.nodes, node] });
+    setSelectedId(node.id);
+  };
+  const deleteDraftNode = () => {
+    if (!draft || draft.nodes.length <= 1) return;
+    const remaining = draft.nodes.filter((node) => node.id !== selected.id);
+    setDraft({ ...draft, nodes: remaining, edges: draft.edges.filter((edge) => edge.from !== selected.id && edge.to !== selected.id) });
+    setSelectedId(remaining[0].id);
+  };
+  const startNodeDrag = (node: WorkflowData["nodes"][number], event: React.PointerEvent<HTMLButtonElement>) => {
+    if (mode !== "proposal") return;
+    event.stopPropagation();
+    const sourceNode = displayedWorkflow.nodes.find((candidate) => candidate.id === node.id) ?? node;
+    nodeDragRef.current = { pointerId: event.pointerId, nodeId: node.id, x: event.clientX, y: event.clientY, originX: sourceNode.x, originY: sourceNode.y, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveNode = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = nodeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId || mode !== "proposal") return;
+    const dx = (event.clientX - drag.x) / zoom;
+    const dy = (event.clientY - drag.y) / zoom;
+    drag.moved ||= Math.abs(dx) + Math.abs(dy) > 3;
+    const x = orientation === "horizontal" ? drag.originX + dx : drag.originX + (dy / 0.72);
+    const y = orientation === "horizontal" ? drag.originY + dy : drag.originY + (dx / 1.25);
+    updateDraftNode(drag.nodeId, { x: Math.round(clamp(x, 0, 4000)), y: Math.round(clamp(y, 0, 4000)) });
+  };
+  const endNodeDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (nodeDragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    nodeDragRef.current = null;
+  };
 
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17H</span></div>
-      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions"><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className="safe-mode"><ShieldCheck size={15}/><span>Read-only</span></div><div className="avatar">JQ</div></div>
+      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
+      <div className="top-actions"><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
     <div className="workspace">
       <aside className="rail">
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
       </aside>
       <section className="flow-stage" aria-label="Governed workflow graph">
-        <div className="stage-heading"><div><p className="eyebrow">Governed workflow</p><h1>{workflow.title}</h1><p className="run-identity">{workflow.correlationId}</p>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-meta"><span><span className="pulse"/> {workflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div>
+        <div className="stage-heading"><div><p className="eyebrow">{mode === "proposal" ? "Proposal editor" : "Governed workflow"}</p><h1>{displayedWorkflow.title}</h1><p className="run-identity">{displayedWorkflow.correlationId}</p>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-meta"><span><span className="pulse"/> {mode === "proposal" ? "Uncommitted draft" : displayedWorkflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div>
         <div className="canvas-frame">
+          {mode === "proposal" && <div className="proposal-toolbar"><strong>Draft only</strong><select aria-label="Node type" value={newNodeKind} onChange={(event) => setNewNodeKind(event.target.value as NodeKind)}>{Object.keys(labels).map((kind) => <option key={kind} value={kind}>{labels[kind as NodeKind]}</option>)}</select><button onClick={addDraftNode}><Plus size={14}/> Add node</button><span>No approval or execution authority</span></div>}
           <div className="canvas-tools draggable-overlay" style={{ transform: `translate(${overlayPositions.tools.x}px, ${overlayPositions.tools.y}px)` }}>
             <span className="overlay-grip" title="Drag controls" onPointerDown={(event) => startOverlayDrag("tools", event)} onPointerMove={moveOverlay} onPointerUp={endOverlayDrag} onPointerCancel={endOverlayDrag}><GripVertical size={14}/></span>
             <button aria-label="Zoom in" title="Zoom in" onClick={() => setZoom((value) => Math.min(1.1, value + 0.08))}><Plus size={16}/></button>
@@ -243,7 +329,7 @@ export default function App() {
           <div className="edge-legend draggable-overlay" style={{ transform: `translate(${overlayPositions.legend.x}px, ${overlayPositions.legend.y}px)` }} aria-label="Connection legend"><span className="overlay-grip" title="Drag connection legend" onPointerDown={(event) => startOverlayDrag("legend", event)} onPointerMove={moveOverlay} onPointerUp={endOverlayDrag} onPointerCancel={endOverlayDrag}><GripVertical size={13}/></span><span className="legend-control">Agent control</span><span className="legend-governance">Governance</span><span className="legend-tool">Tool relation</span><span className="legend-data">Typed data</span><span className="legend-evidence">Evidence</span></div>
           <div className="minimap" role="button" tabIndex={0} aria-label="Workflow minimap; click to pan or press Enter to center" onPointerDown={panFromMinimap} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); centerCanvas(); } }}>
             <svg viewBox={`0 0 ${canvasSize.width} ${canvasSize.height}`} aria-hidden="true">
-              {workflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line className={`edge-${edgeKindOf(edge)}`} key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
+              {displayedWorkflow.edges.map((edge) => { const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; return <line className={`edge-${edgeKindOf(edge)}`} key={`${edge.from}-${edge.to}`} x1={start.x + 95} y1={start.y + 54} x2={end.x + 95} y2={end.y + 54}/>; })}
               {nodes.map((node) => <rect className={`mini-node category-${categoryOf(node)} status-${node.status}`} key={node.id} x={node.x} y={node.y} width="190" height="108" rx="10"/>)}
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
@@ -253,23 +339,24 @@ export default function App() {
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
               {orientation === "horizontal" && <><div className="lane-guide lane-control"><span>Agent / control lane</span></div><div className="lane-guide lane-data"><span>Tool / data lane</span></div></>}
               {groupFrames.map((frame) => <div className={`node-group group-${frame.group}`} key={frame.group} style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}><span>{groupLabels[frame.group]}</span></div>)}
-              <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true"><defs><marker id="arrow-control" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f4f7fb"/></marker><marker id="arrow-governance" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"/></marker></defs>{workflow.edges.map((edge) => {
+              <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true">{displayedWorkflow.edges.map((edge) => {
                 const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; const horizontal = orientation === "horizontal";
                 const edgeKind = edgeKindOf(edge); const startPoint = edgePoint(start, "from", edgeKind, horizontal); const endPoint = edgePoint(end, "to", edgeKind, horizontal); const { x: x1, y: y1 } = startPoint; const { x: x2, y: y2 } = endPoint; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
                 const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
                 const labelX = horizontal ? bend : (x1 + x2) / 2; const labelY = horizontal ? (y1 + y2) / 2 - 7 : bend - 7;
-                return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path} markerEnd={edgeKind === "control" ? "url(#arrow-control)" : edgeKind === "governance" ? "url(#arrow-governance)" : undefined}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
+                return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
               })}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(workflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(workflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const renderPort = (family: PortFamily, direction: "in" | "out") => family === "control" ? <svg key={`${direction}-${family}`} className={`typed-port control-port port-${family} ${direction}`} viewBox="0 0 16 16" aria-hidden="true"><polygon points="2,2 14,8 2,14"/></svg> : <span key={`${direction}-${family}`} className={`typed-port port-${family} ${direction}`}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{incoming.map((family) => renderPort(family, "in"))}{outgoing.map((family) => renderPort(family, "out"))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true"><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
         </div>
-        <div className="timeline"><div className="timeline-title"><span>Execution timeline</span><small>correlation · {workflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
+        <div className="timeline"><div className="timeline-title"><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>correlation · {displayedWorkflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
       </section>
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>
-        <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>Evidence-backed status</span></div></div>
+        <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>{mode === "proposal" ? "Uncommitted proposal state" : "Evidence-backed status"}</span></div></div>
+        {mode === "proposal" && <section className="detail-section proposal-fields"><h3>Edit draft node</h3><label>Title<input value={selected.title} maxLength={80} onChange={(event) => updateDraftNode(selected.id, { title: event.target.value || "Untitled node" })}/></label><label>Description<input value={selected.subtitle} maxLength={120} onChange={(event) => updateDraftNode(selected.id, { subtitle: event.target.value || "Draft node" })}/></label><label>Performer<input value={performerOf(selected)} maxLength={80} onChange={(event) => updateDraftNode(selected.id, { performedBy: event.target.value || "Unassigned" })}/></label><button className="delete-node" disabled={displayedWorkflow.nodes.length <= 1} onClick={deleteDraftNode}>Delete selected node</button></section>}
         <section className="detail-section"><h3>Performed by</h3><p className="performer"><Bot size={15}/>{performerOf(selected)}</p></section>
         {selected.details && <section className="detail-section"><h3>Summary</h3><p>{selected.details.summary}</p></section>}
         <section className="detail-section"><h3>Authority boundary</h3><p>{selected.authority}</p><div className="boundary-line"><LockKeyhole size={15}/><span>No unrestricted execution</span></div></section>
@@ -282,7 +369,7 @@ export default function App() {
         <section className="detail-section"><h3>Observed facts</h3><dl><div><dt>Result</dt><dd>{selected.status}</dd></div>{selected.details?.observedFacts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl></section>
         {selected.details?.startedAt && selected.details.finishedAt && <section className="detail-section"><h3>Timing</h3><dl><div><dt>Started</dt><dd>{new Date(selected.details.startedAt).toLocaleString()}</dd></div><div><dt>Finished</dt><dd>{new Date(selected.details.finishedAt).toLocaleString()}</dd></div>{selected.details.durationMs !== null && selected.details.durationMs !== undefined && <div><dt>Duration</dt><dd>{selected.details.durationMs} ms</dd></div>}</dl></section>}
         {!!selected.details?.findings.length && <section className="detail-section findings"><h3>Findings</h3>{selected.details.findings.map((finding) => <p key={finding}>{finding}</p>)}</section>}
-        <div className="inspector-note"><ShieldCheck size={16}/><p>This view can inspect evidence, but cannot approve or execute work.</p></div>
+        <div className={`inspector-note ${mode === "proposal" ? "draft-note" : ""}`}><ShieldCheck size={16}/><p>{mode === "proposal" ? "This draft exists only in browser memory. It cannot approve, execute, call tools, or modify evidence." : "This view can inspect evidence, but cannot approve or execute work."}</p></div>
       </aside>
     </div>
   </main>;
