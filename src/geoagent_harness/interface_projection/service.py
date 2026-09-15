@@ -121,6 +121,11 @@ def project_workflow_trace(*, task_id: str, trace_root: Path) -> InterfaceWorkfl
     ]
 
     operation_names = list(dict.fromkeys([*trace.tool_arguments, *trace.tool_results]))
+    if (
+        any(name.casefold() == "snakemake" for name in trace.versions)
+        and not any("snakemake" in name.casefold() for name in operation_names)
+    ):
+        operation_names.insert(0, "snakemake")
     if len(operation_names) > MAX_PROJECTED_OPERATIONS:
         raise InterfaceProjectionError("workflow operation count exceeds the projection limit")
 
@@ -128,8 +133,11 @@ def project_workflow_trace(*, task_id: str, trace_root: Path) -> InterfaceWorkfl
     for index, operation_name in enumerate(operation_names, start=1):
         safe_name = operation_name if _SAFE_OPERATION_NAME.fullmatch(operation_name) else None
         title = safe_name.replace("_", " ").replace("-", " ").title() if safe_name else f"Recorded tool {index}"
-        call_recorded = operation_name in trace.tool_arguments
-        result_recorded = operation_name in trace.tool_results
+        engine_recorded = operation_name == "snakemake" and "snakemake" in {
+            name.casefold() for name in trace.versions
+        }
+        call_recorded = operation_name in trace.tool_arguments or engine_recorded
+        result_recorded = operation_name in trace.tool_results or engine_recorded
         operation_failed = trace.failure is not None and index == len(operation_names)
         operation_nodes.append(InterfaceNode(
             id=f"tool-{index}",
@@ -138,40 +146,67 @@ def project_workflow_trace(*, task_id: str, trace_root: Path) -> InterfaceWorkfl
             kind="tool",
             category="tool",
             group="execution",
-            x=1045 + ((index - 1) * 240),
-            y=250,
+            x=840 + ((index - 1) * 240),
+            y=360,
             status="failed" if operation_failed else ("complete" if result_recorded else "pending"),
             authority="Typed tool contract",
             performedBy="MCP tool boundary",
             evidence=evidence_name,
             details=InterfaceNodeDetails(
                 summary="This node represents one recorded tool operation. Arguments and result payloads remain excluded.",
-                observedFacts=[fact("Call recorded", call_recorded), fact("Result recorded", result_recorded), fact("Sequence", index)],
+                observedFacts=[fact("Call recorded", call_recorded), fact("Result recorded", result_recorded), fact("Recorded order", index)],
             ),
         ))
 
-    validation_x = 1045 + (max(1, len(operation_nodes)) * 240)
+    validation_x = 840 + (max(1, len(operation_nodes)) * 240)
     evidence_x = validation_x + 245
 
-    nodes = [
-        InterfaceNode(id="request", title="Submit request", subtitle="Redacted governed input", kind="input", category="input", group="intake", x=60, y=250, status="complete", authority="Operator input", performedBy="User", evidence=evidence_name, details=InterfaceNodeDetails(summary="A validated request entered the governed workflow. Its text and context remain redacted.", observedFacts=[fact("Context references", len(trace.context_references)), fact("Selected skills", len(trace.selected_skills))])),
-        InterfaceNode(id="planner", title="Create plan", subtitle="Digest-bound proposal", kind="agent", category="planning", group="planning", x=300, y=105, status=plan, authority="Proposal only", performedBy="Planner agent", evidence="plan digest", details=InterfaceNodeDetails(summary="The Planner could propose bounded work but could not execute it.", observedFacts=[fact("Plan recorded", bool(trace.plan_sha256)), fact("Digest algorithm", "SHA-256")], evidencePreviews=[plan_preview])),
-        InterfaceNode(id="policy", title="Evaluate policy", subtitle="Deterministic checks", kind="policy", category="policy", group="governance", x=300, y=390, status=final, authority="No model authority", performedBy="Policy engine", evidence=evidence_name, details=InterfaceNodeDetails(summary="Deterministic workflow policy produced the recorded final classification.", observedFacts=[fact("Final status", trace.final_status), fact("Model authority", "None")])),
-        InterfaceNode(id="approval", title="Record approval", subtitle="Reviewed operator decision", kind="approval", category="approval", group="governance", x=555, y=250, status=approval, authority="Operator only", performedBy="Human operator", evidence="approval record", details=InterfaceNodeDetails(summary="The projection reports approval presence without exposing the approval identifier.", observedFacts=[fact("Approval recorded", bool(trace.approval_id)), fact("Approved steps", len(trace.approved_step_ids))], evidencePreviews=[approval_preview])),
-        InterfaceNode(id="executor", title="Execute plan", subtitle="Exact approved scope", kind="agent", category="execution", group="execution", x=805, y=250, status=tools, authority="Execution envelope", performedBy="Executor agent", evidence=evidence_name, details=InterfaceNodeDetails(summary="The Executor remained limited to the recorded approved workflow envelope.", observedFacts=[fact("Tool operations", len(operation_names)), fact("Failure recorded", bool(trace.failure))], **common_time)),
-        *operation_nodes,
-        InterfaceNode(id="validation", title="Validate result", subtitle="Recorded deterministic result", kind="policy", category="validation", group="assurance", x=validation_x, y=250, status=validation, authority="Deterministic", performedBy="Validator", evidence=evidence_name, details=InterfaceNodeDetails(summary="Validation status is derived from the validated trace rather than an executor claim.", observedFacts=[fact("Validation present", trace.validation_results is not None), fact("Final status", trace.final_status)], findings=([f"{trace.failure.stage.value}: {trace.failure.code}"] if trace.failure else []), evidencePreviews=[validation_preview])),
-        InterfaceNode(id="evidence", title="Record evidence", subtitle="Sanitized projection source", kind="evidence", category="evidence", group="assurance", x=evidence_x, y=250, status=final, authority="Read-only", performedBy="Evidence service", evidence=evidence_name, details=InterfaceNodeDetails(summary="This node identifies the sanitized trace projection without exposing artifact paths or payloads.", observedFacts=[fact("Artifacts recorded", len(trace.artifacts)), fact("Warnings recorded", len(trace.warnings)), fact("Secrets redacted", trace.secrets_redacted)], evidencePreviews=[trace_preview, plan_preview, approval_preview, validation_preview, *artifact_previews], **common_time)),
-    ]
-    pairs = [("request", "planner"), ("request", "policy"), ("planner", "approval"), ("policy", "approval"), ("approval", "executor")]
-    previous = "executor"
-    for operation_node in operation_nodes:
-        pairs.append((previous, operation_node.id))
+    nodes = [InterfaceNode(id="request", title="Submit request", subtitle="Redacted governed intent", kind="input", category="input", group="intake", x=60, y=70, status="complete", authority="Operator input", performedBy="User", evidence=evidence_name, details=InterfaceNodeDetails(summary="A validated request entered the governed workflow. Its text remains redacted.", observedFacts=[fact("Selected skills", len(trace.selected_skills))]))]
+    if trace.context_references:
+        nodes.append(InterfaceNode(id="input-data", title="Referenced input data", subtitle="Bounded context boundary", kind="data", category="input", group="intake", x=60, y=260, status="complete", authority="Read-only input boundary", performedBy="Input boundary", evidence=evidence_name, details=InterfaceNodeDetails(summary="The Planner received bounded input references. Paths and payloads remain excluded.", observedFacts=[fact("Context references", len(trace.context_references)), fact("Path exposure", "None")])))
+    if trace.plan_sha256:
+        nodes.append(InterfaceNode(id="planner", title="Create plan", subtitle="Digest-bound proposal", kind="agent", category="planning", group="planning", x=330, y=70, status=plan, authority="Proposal only", performedBy="Planner agent", evidence="plan digest", details=InterfaceNodeDetails(summary="The Planner could inspect bounded inputs and propose work, but could not execute it.", observedFacts=[fact("Plan recorded", True), fact("Digest algorithm", "SHA-256"), fact("Input references", len(trace.context_references))], evidencePreviews=[plan_preview])))
+    if trace.approval_id:
+        nodes.append(InterfaceNode(id="approval", title="Record approval", subtitle="Reviewed operator decision", kind="approval", category="approval", group="governance", x=585, y=70, status=approval, authority="Operator only", performedBy="Human operator", evidence="approval record", details=InterfaceNodeDetails(summary="The projection reports approval presence without exposing the approval identifier.", observedFacts=[fact("Approval recorded", True), fact("Approved steps", len(trace.approved_step_ids))], evidencePreviews=[approval_preview])))
+    if operation_nodes or trace.failure:
+        nodes.append(InterfaceNode(id="executor", title="Execute plan", subtitle="Exact approved scope", kind="agent", category="execution", group="execution", x=840, y=70, status=tools, authority="Execution envelope", performedBy="Executor agent", evidence=evidence_name, details=InterfaceNodeDetails(summary="The Executor remained limited to the recorded approved workflow envelope.", observedFacts=[fact("Recorded operations", len(operation_names)), fact("Failure recorded", bool(trace.failure))], **common_time)))
+    nodes.extend(operation_nodes)
+    if trace.validation_results is not None:
+        nodes.append(InterfaceNode(id="validation", title="Validate result", subtitle="Recorded deterministic result", kind="policy", category="validation", group="assurance", x=validation_x, y=360, status=validation, authority="Deterministic", performedBy="Validator", evidence=evidence_name, details=InterfaceNodeDetails(summary="Validation status is derived from the validated trace rather than an executor claim.", observedFacts=[fact("Validation present", True), fact("Final status", trace.final_status)], findings=([f"{trace.failure.stage.value}: {trace.failure.code}"] if trace.failure else []), evidencePreviews=[validation_preview])))
+    projected_previews = [trace_preview]
+    if trace.plan_sha256:
+        projected_previews.append(plan_preview)
+    if trace.approval_id:
+        projected_previews.append(approval_preview)
+    if trace.validation_results is not None:
+        projected_previews.append(validation_preview)
+    projected_previews.extend(artifact_previews)
+    nodes.append(InterfaceNode(id="evidence", title="Record evidence", subtitle="Sanitized projection source", kind="evidence", category="evidence", group="assurance", x=evidence_x, y=360, status=final, authority="Read-only", performedBy="Evidence service", evidence=evidence_name, details=InterfaceNodeDetails(summary="This node identifies the sanitized trace projection without exposing artifact paths or payloads.", observedFacts=[fact("Artifacts recorded", len(trace.artifacts)), fact("Warnings recorded", len(trace.warnings)), fact("Secrets redacted", trace.secrets_redacted)], evidencePreviews=projected_previews, **common_time)))
+
+    node_ids = {node.id for node in nodes}
+    edges: list[InterfaceEdge] = []
+    participants = [node_id for node_id in ("request", "planner", "approval", "executor") if node_id in node_ids]
+    for start, end in zip(participants, participants[1:]):
+        label = {
+            ("request", "planner"): "request",
+            ("planner", "approval"): "proposal",
+            ("approval", "executor"): "approved scope",
+        }.get((start, end), "reviewed handoff")
+        edges.append(InterfaceEdge.model_validate({"from": start, "to": end, "kind": "control", "label": label}))
+    if "input-data" in node_ids:
+        input_target = "planner" if "planner" in node_ids else next((node_id for node_id in ("executor", "validation") if node_id in node_ids), "evidence")
+        edges.append(InterfaceEdge.model_validate({"from": "input-data", "to": input_target, "kind": "data", "label": "bounded inputs"}))
+    previous = "executor" if "executor" in node_ids else participants[-1]
+    for index, operation_node in enumerate(operation_nodes):
+        edges.append(InterfaceEdge.model_validate({"from": previous, "to": operation_node.id, "kind": "tool" if index == 0 else "data", "label": "bounded call" if index == 0 else "recorded order"}))
         previous = operation_node.id
-    pairs.extend([(previous, "validation"), ("validation", "evidence")])
+    if "validation" in node_ids:
+        edges.append(InterfaceEdge.model_validate({"from": previous, "to": "validation", "kind": "data", "label": "final result"}))
+        previous = "validation"
+    edges.append(InterfaceEdge.model_validate({"from": previous, "to": "evidence", "kind": "evidence", "label": "verified record"}))
     return InterfaceWorkflowProjection(
         id=f"trace-{task_id}", title="Validated workflow trace", correlationId=task_id,
-        nodes=nodes, edges=[InterfaceEdge.model_validate({"from": start, "to": end}) for start, end in pairs],
+        nodes=nodes, edges=edges,
     )
 
 

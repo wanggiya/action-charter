@@ -49,13 +49,15 @@ def test_projection_exposes_graph_but_not_trace_payloads(tmp_path) -> None:
     assert result.nodes[0].performed_by == "User"
     assert result.nodes[0].category == "input"
     assert result.nodes[0].group == "intake"
+    input_data = next(node for node in result.nodes if node.id == "input-data")
+    assert input_data.kind == "data"
+    assert input_data.details.observed_facts[0].value == "1"
     assert "private operator request" not in payload
     assert "secret/location.geojson" not in payload
     assert "should-not-project" not in payload
     assert "approval-private-id" not in payload
     assert all(node.details is not None for node in result.nodes)
-    assert result.nodes[0].details.observed_facts[0].label == "Context references"
-    assert result.nodes[0].details.observed_facts[0].value == "1"
+    assert result.nodes[0].details.observed_facts[0].label == "Selected skills"
 
 
 def test_projection_rejects_unbounded_identity(tmp_path) -> None:
@@ -82,7 +84,7 @@ def test_projection_json_uses_frontend_field_names(tmp_path) -> None:
     assert payload["schemaVersion"] == "1.0"
     assert payload["correlationId"] == "demo-run"
     assert payload["readOnly"] is True
-    assert payload["edges"][0] == {"from": "request", "to": "planner"}
+    assert payload["edges"][0] == {"from": "request", "to": "planner", "kind": "control", "label": "request"}
 
 
 def test_projection_cli_emits_browser_contract(tmp_path) -> None:
@@ -157,9 +159,61 @@ def test_projection_topology_follows_recorded_tool_operations(tmp_path) -> None:
     assert all(node.category == "tool" and node.group == "execution" for node in tools)
     edge_pairs = [(edge.from_, edge.to) for edge in result.edges]
     assert ("executor", "tool-1") in edge_pairs
+    assert ("request", "planner") in edge_pairs
+    assert ("input-data", "planner") in edge_pairs
+    assert ("planner", "approval") in edge_pairs
+    assert ("approval", "executor") in edge_pairs
+    assert ("executor", "tool-1") in edge_pairs
     assert ("tool-1", "tool-2") in edge_pairs
     assert ("tool-2", "tool-3") in edge_pairs
     assert ("tool-3", "validation") in edge_pairs
+    assert ("tool-1", "validation") not in edge_pairs
+    assert ("tool-2", "validation") not in edge_pairs
+    edge_kinds = {(edge.from_, edge.to): edge.kind for edge in result.edges}
+    assert edge_kinds[("approval", "executor")] == "control"
+    assert edge_kinds[("input-data", "planner")] == "data"
+    assert edge_kinds[("executor", "tool-1")] == "tool"
+    assert edge_kinds[("tool-1", "tool-2")] == "data"
+    assert edge_kinds[("validation", "evidence")] == "evidence"
+
+
+def test_projection_without_tools_omits_executor_and_keeps_validation_connected(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.tool_arguments = {}
+    trace.tool_results = {}
+    _write_trace(root, trace)
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    edge_kinds = {(edge.from_, edge.to): edge.kind for edge in result.edges}
+    assert not any(node.id == "executor" for node in result.nodes)
+    assert edge_kinds[("approval", "validation")] == "data"
+
+
+def test_projection_omits_unrecorded_optional_components(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.context_references = []
+    trace.plan_sha256 = None
+    trace.approval_id = None
+    trace.approved_step_ids = []
+    trace.tool_arguments = {}
+    trace.tool_results = {}
+    trace.validation_results = None
+    _write_trace(root, trace)
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    assert [node.id for node in result.nodes] == ["request", "evidence"]
+    assert [(edge.from_, edge.to) for edge in result.edges] == [("request", "evidence")]
+
+
+def test_projection_includes_explicitly_recorded_snakemake_runtime(tmp_path) -> None:
+    root = tmp_path / "traces"
+    trace = _trace()
+    trace.versions["snakemake"] = "9.11.0"
+    _write_trace(root, trace)
+    result = project_workflow_trace(task_id="demo-run", trace_root=root)
+    tools = [node for node in result.nodes if node.kind == "tool"]
+    assert tools[0].title == "Snakemake"
+    assert ("executor", tools[0].id) in [(edge.from_, edge.to) for edge in result.edges]
 
 
 def test_projection_redacts_unsafe_operation_name(tmp_path) -> None:

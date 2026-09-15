@@ -1493,6 +1493,33 @@ distinct upper-right corner, and the graph supports non-passive wheel zoom and
 empty-canvas pointer panning. Tablet and phone layouts retain the inspector
 below the graph rather than removing it.
 
+### Checkpoint 17H — Typed graph lanes and connections
+
+Status: implemented for review. Projection edges now require a bounded label
+and one of five meanings: control, governance, tool, data or evidence. User
+Request and a separately sanitized Input Data node both enter the Planner.
+Planner and Executor expose hollow triangular control sockets plus circular
+data/tool sockets, while policy and human approval remain in Governance.
+Executor connects only to the first recorded operation, operation nodes follow
+recorded trace order, and only the last operation feeds validation. Optional
+stages without corresponding trace evidence are omitted. Each connection has
+a distinct color, line style, socket treatment,
+label, legend entry and minimap representation. Run-specific input-reference
+and tool counts plus correlation identity remain visible. Horizontal sockets
+occupy left/right sides; vertical sockets occupy top/bottom sides. Every edge
+uses matching hollow endpoint shapes. Catalog-selected runs no longer silently
+fall back to the demonstration when their ignored runtime projection is stale
+or invalid; the interface asks the operator to re-export it. Legacy browser
+projections receive deterministic edge fallbacks. Completed traces remain
+non-draggable; layout editing is reserved for future proposal mode.
+
+The minimap uses outlines and thin edges. Ports sit inside node borders above
+their lines, the graph cannot paint over the inspector, the redundant rounded
+viewport border is removed, and the controls and legend can be moved through
+dedicated drag handles. Snakemake appears only when explicitly present in trace
+runtime or operation metadata; older replay records require a producer-level
+execution-engine field rather than task-name inference.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:

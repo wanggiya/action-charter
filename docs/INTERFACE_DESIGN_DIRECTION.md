@@ -154,3 +154,25 @@ The next topology contract separates agent interaction/control edges from
 typed tool-data edges. Agents will occupy a coherent upper interaction lane;
 tool and data operations will sit below their owning agent group. This must be
 modeled in projection data so the graph does not imply false execution order.
+
+Checkpoint 17H implements that contract for completed traces. Control edges are
+solid off-white with arrows, governance edges are dashed amber with arrows,
+tool relationships are dashed teal without control arrows, typed data edges
+are cyan without control arrows and evidence edges are dotted off-white.
+User Request and bounded Input Data enter Planner through different socket
+families. Planner and Executor use hollow triangular interaction sockets and
+circular data/tool sockets. Executor connects to the first recorded operation,
+the recorded operation path continues in trace order, and only the final result
+connects to validation. Components without supporting trace fields are omitted.
+Horizontal layouts place sockets on left/right sides and
+vertical layouts place them on top/bottom sides. Connections always use the
+same hollow endpoint shape at both ends and sockets render above lines.
+Selected-run load failures are explicit rather than silently replaced by the
+demonstration. Completed evidence views stay fixed; future proposal mode may
+move nodes and reconnect only compatible typed sockets.
+
+The minimap is intentionally schematic: transparent node interiors, semantic
+outlines and thin connections. Overlay controls expose drag handles, the graph
+is clipped beneath the inspector, and the viewport does not add a second
+rounded frame. Snakemake is projected only when recorded metadata supports it;
+execution-engine inference from names is prohibited.

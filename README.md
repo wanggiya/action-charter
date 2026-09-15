@@ -398,6 +398,22 @@ performer are independent, related work appears in ownership frames, and graph,
 minimap and inspector share a restrained professional palette. See
 [Checkpoint 17G](docs/CHECKPOINT17G.md).
 
+Checkpoint 17H separates agent/control interaction from tool/data flow using a
+typed edge contract and distinct graph lanes. User Request and referenced
+Input Data enter the Planner separately; hollow triangular sockets identify
+agent interaction, circular sockets identify data/tool relationships, and
+Executor connects only to the first recorded operation. Operations then follow
+trace order and only the final operation connects to validation.
+Sockets use left/right sides horizontally and top/bottom sides vertically.
+After updating the projection contract, re-export ignored runtime JSON files;
+catalog-selected runs now report stale or invalid projections instead of
+silently displaying the same demonstration graph. See
+[Checkpoint 17H](docs/CHECKPOINT17H.md).
+
+The projection includes only components supported by each trace. Snakemake is
+visible when its runtime or operation is explicitly recorded; older replay
+evidence without engine metadata cannot be inferred from a task name.
+
 ## Contributing
 
 Contributions are welcome when they preserve ActionCharter's trust boundaries.

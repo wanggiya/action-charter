@@ -14,7 +14,7 @@ class InterfaceNode(BaseModel):
     id: str = Field(pattern=r"^[a-z][a-z0-9_-]*$", max_length=80)
     title: str = Field(min_length=1, max_length=80)
     subtitle: str = Field(min_length=1, max_length=120)
-    kind: Literal["input", "agent", "policy", "approval", "tool", "evidence"]
+    kind: Literal["input", "data", "agent", "policy", "approval", "tool", "evidence"]
     category: Literal["input", "planning", "policy", "approval", "execution", "tool", "validation", "evidence"]
     group: Literal["intake", "planning", "governance", "execution", "assurance"]
     x: int = Field(ge=0, le=4000)
@@ -65,6 +65,8 @@ class InterfaceEdge(BaseModel):
 
     from_: str = Field(alias="from", pattern=r"^[a-z][a-z0-9_-]*$")
     to: str = Field(pattern=r"^[a-z][a-z0-9_-]*$")
+    kind: Literal["control", "governance", "tool", "data", "evidence"]
+    label: str = Field(min_length=1, max_length=40)
 
 
 class InterfaceWorkflowProjection(BaseModel):
