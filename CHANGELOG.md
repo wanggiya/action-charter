@@ -83,6 +83,24 @@ project follows Semantic Versioning after the initial public alpha.
 - Added Blueprint-style press-drag-release connection wiring with a live draft
   wire, unoccupied compatible input enforcement, and bounded performer
   selection while retaining the Inspector connection controls as a fallback.
+- Checkpoint 17K reuses the trusted CLI recipe-template catalog in the browser,
+  validates a bounded runtime catalog projection, renders selected template
+  steps and dependencies as a proposal graph, collects required parameters,
+  and downloads a CLI-compatible non-executable recipe proposal. Structurally
+  edited template graphs are withheld from download until a graph contract can
+  represent them exactly.
+- Moved template selection out of the node Inspector into a dedicated top-bar
+  template workspace with explanatory workflow/recipe/skill concepts, readable
+  recipe cards, included-skill and required-input summaries, and responsive
+  request/parameter controls. Added the CLI/interface equivalence test strategy.
+- Added a versioned Checkpoint 17L vector-conversion proposal and regression
+  test as the first CLI/interface parity baseline. The baseline validates the
+  trusted catalog and deterministically compiles without save, approval or
+  execution authority.
+- Added the Checkpoint 17M loopback-only typed interface service and a visible
+  Compile proposal action. The service reuses the existing trusted catalog,
+  skill registry, Pydantic proposal contract and deterministic compiler while
+  withholding filesystem, shell, save, approval and execution authority.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

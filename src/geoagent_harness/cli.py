@@ -28,6 +28,32 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+
+@app.command("serve-interface-api")
+def serve_interface_api_command(
+    project_root: Annotated[
+        Path,
+        typer.Option("--project-root", help="Trusted ActionCharter project root."),
+    ] = Path("."),
+    host: Annotated[
+        str,
+        typer.Option("--host", help="Loopback host; only 127.0.0.1 is accepted."),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int,
+        typer.Option("--port", min=1, max=65535),
+    ] = 8765,
+) -> None:
+    """Serve non-mutating typed operations to the local interface."""
+
+    from geoagent_harness.interface_api import InterfaceApiError, serve_interface_api
+
+    try:
+        serve_interface_api(project_root=project_root, host=host, port=port)
+    except (InterfaceApiError, OSError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
 def _raise_typed_failure(
     exception: BaseException,
     *,

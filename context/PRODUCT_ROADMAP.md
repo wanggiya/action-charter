@@ -345,6 +345,20 @@ with explicit endpoint selection, duplicate rejection and cycle prevention.
 The next slice is the versioned proposal contract plus safe save/compile
 boundary; Planner, policy, approval and execution remain later governed slices.
 
+Checkpoint 17K status: implemented for review. The validated CLI recipe catalog
+is projected into the browser without introducing a second template source.
+Operators can select a trusted template, enter required parameters, inspect its
+declared graph and download the same non-executable proposal contract consumed
+by the CLI compiler. The next slice adds a loopback-only typed assessment and
+compilation service; explicit persistence, policy, approval, execution, live
+state and evidence remain separate later gates.
+
+Template discovery belongs in a dedicated top-level workspace near workflow
+selection, not inside selected-node inspection. Capability maturity will be
+tested through paired cases: establish a governed CLI baseline, then run a
+comparable interface case with different safe identifiers and targets and
+compare normalized contracts, gates, validation and evidence.
+
 The graph foundation includes measured fit-to-viewport, a live pannable
 minimap, and user-selectable horizontal or vertical layouts, with vertical as
 the narrow-screen default.
@@ -568,3 +582,24 @@ one fixed PUT to the authoritative feature-type resource only after digest-bound
 Execution revalidates the unchanged pre-state, validates the resulting state,
 and compensates failed transitions; independent read-only verification produces bounded findings. Workspace,
 store, feature-type, style and deletion administration remain out of scope.
+### Checkpoint 17L — CLI/interface parity baseline
+
+- Commit one safe RecipeProposal fixture and its trusted catalog source.
+- Prove deterministic, non-mutating compilation through the CLI and tests.
+- Compare the future interface result by normalized contract semantics.
+- Keep save, approval, execution, validation and evidence as later explicit
+  authority increments.
+
+Next: add a loopback-only typed proposal assessment/compilation service. It
+must call existing Python domain services directly, accept no arbitrary command
+or path, and perform no persistence or execution.
+### Checkpoint 17M — loopback proposal compilation
+
+- Serve trusted catalog and deterministic compilation on `127.0.0.1` only.
+- Validate bounded requests and responses with existing backend and browser
+  contracts.
+- Display compiled step order and approval/validation gate counts.
+- Retain explicit no-save, no-approval and no-execution claims.
+
+Next: reviewed recipe persistence through a distinct typed endpoint and visible
+operator action. Do not combine persistence with approval or execution.

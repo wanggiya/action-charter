@@ -1,6 +1,6 @@
 # ActionCharter interface
 
-Checkpoint 17A is a read-only workflow explorer. It renders a bounded JSON fixture as a blueprint-style node graph and validates that fixture before rendering it.
+The Checkpoint 17 interface provides immutable evidence inspection and a separate browser-local proposal editor. It renders schema-validated workflow projections as a Blueprint-style node graph, supports draft block and typed-connection editing, and can create a non-executable proposal from the existing trusted recipe-template catalog.
 
 ## Technology
 
@@ -28,6 +28,17 @@ pnpm --version
 
 Paths under `/mnt/c/`, executables ending in `.cmd`, or a command that starts `CMD.EXE` indicate that Windows Node/pnpm is being used from WSL. Install Node and pnpm inside the WSL distribution, then open a new shell.
 
+## Export local runtime projections
+
+From the repository root, export the trusted recipe catalog before starting the interface:
+
+```bash
+mkdir -p interface/public/runtime
+.venv/bin/geoagent recipe-template-catalog --project-root . --pretty > interface/public/runtime/recipe-templates.json
+```
+
+The generated runtime file is ignored by Git.
+
 ## Run
 
 ```bash
@@ -37,4 +48,16 @@ pnpm build
 pnpm dev
 ```
 
-Open the local URL printed by Vite. The demo is intentionally non-mutating: it cannot approve, execute, install packages, open sockets, or contact ActionCharter services.
+Open the local URL printed by Vite. Evidence mode is immutable. Proposal edits remain in browser memory and are discarded on exit. A downloaded template proposal must still pass the existing backend compiler and later approval/execution gates. The interface cannot currently approve, execute, install packages, open arbitrary sockets, or contact ActionCharter services.
+## Local typed API
+
+Proposal compilation requires the Checkpoint 17M loopback service. Start it
+from the repository root:
+
+```bash
+.venv/bin/geoagent serve-interface-api --project-root .
+```
+
+Then start this Vite application in another terminal. Vite proxies `/api` to
+`127.0.0.1:8765`. The service compiles proposals in memory only; it cannot save,
+approve or execute them.

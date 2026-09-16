@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
   Database, FileCheck2, GitBranch, LockKeyhole, Map, Maximize2, Minus,
-  GripVertical, Plus, Search, ShieldCheck, Workflow, ZoomIn,
+  GripVertical, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, ZoomIn,
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
+import { loadRecipeTemplates } from "./lib/load-recipe-templates";
+import { compileRecipeProposal, type InterfaceCompilation } from "./lib/interface-api";
+import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
 type Orientation = "horizontal" | "vertical";
@@ -77,6 +80,7 @@ const edgePoint = (node: WorkflowData["nodes"][number], role: "from" | "to", kin
 };
 const minimapSize = { width: 140, height: 90 };
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
+const topologySignature = (workflow: Pick<ProposalDraft, "nodes" | "edges">) => JSON.stringify({ nodes: workflow.nodes.map(({ id, kind, category }) => ({ id, kind, category })), edges: workflow.edges.map(({ from, to, kind }) => ({ from, to, kind })) });
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
@@ -92,6 +96,16 @@ export default function App() {
   const [newEdgeKind, setNewEdgeKind] = useState<EdgeKind>("control");
   const [newEdgeTargetId, setNewEdgeTargetId] = useState("");
   const [connectionDrag, setConnectionDrag] = useState<ConnectionDrag | null>(null);
+  const [recipeTemplates, setRecipeTemplates] = useState<RecipeTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templateParameters, setTemplateParameters] = useState<Record<string, string>>({});
+  const [proposalRequest, setProposalRequest] = useState("");
+  const [templateNotice, setTemplateNotice] = useState("");
+  const [compilation, setCompilation] = useState<InterfaceCompilation | null>(null);
+  const [compilationPending, setCompilationPending] = useState(false);
+  const [templatePanelOpen, setTemplatePanelOpen] = useState(false);
+  const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [loadNotice, setLoadNotice] = useState("");
@@ -103,6 +117,7 @@ export default function App() {
   const displayedWorkflow = draft ?? workflow;
   const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
   const performerOptions = useMemo(() => [...new Set([...standardPerformers, ...displayedWorkflow.nodes.map(performerOf)])].sort(), [displayedWorkflow.nodes]);
+  const selectedTemplate = useMemo(() => recipeTemplates.find((template) => template.template_id === selectedTemplateId), [recipeTemplates, selectedTemplateId]);
   const runFacts = useMemo(() => ({
     inputReferences: displayedWorkflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
     tools: displayedWorkflow.nodes.filter((node) => node.kind === "tool").length,
@@ -193,6 +208,14 @@ export default function App() {
       }
     })();
   }, []);
+  useEffect(() => {
+    void loadRecipeTemplates().then((templates) => {
+      setRecipeTemplates(templates);
+      setSelectedTemplateId(templates[0]?.template_id ?? "");
+      setTemplateParameters(Object.fromEntries((templates[0]?.required_parameters ?? []).map((name) => [name, ""])));
+      setTemplateNotice("");
+    }).catch(() => setTemplateNotice("Export the trusted recipe catalog before using templates."));
+  }, []);
   useEffect(() => { requestAnimationFrame(updateViewport); }, [orientation, updateViewport, zoom]);
   useEffect(() => { requestAnimationFrame(fitGraph); }, [fitGraph, orientation]);
 
@@ -268,7 +291,91 @@ export default function App() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     overlayDragRef.current = null;
   };
+  const applyRecipeTemplate = () => {
+    if (!selectedTemplate) return;
+    const stepNodes: ProposalDraft["nodes"] = selectedTemplate.steps.map((step, index) => ({
+      id: `template_${step.step_id}`,
+      title: step.skill_id.replaceAll("_", " "),
+      subtitle: `Trusted skill · ${step.output_ids.join(", ")}`,
+      kind: "tool",
+      category: "tool",
+      group: "execution",
+      x: 720 + (index * 220),
+      y: 330,
+      status: "pending",
+      authority: "Template proposal only",
+      performedBy: "MCP tool boundary",
+      evidence: "Not recorded",
+      details: null,
+    }));
+    const templateNodes: ProposalDraft["nodes"] = [
+      { id: "template_request", title: "Describe outcome", subtitle: proposalRequest || selectedTemplate.template_id.replaceAll("_", " "), kind: "input", category: "input", group: "intake", x: 60, y: 80, status: "pending", authority: "Operator proposal", performedBy: "User", evidence: "Not recorded", details: null },
+      { id: "template_data", title: "Template parameters", subtitle: selectedTemplate.required_parameters.join(", "), kind: "data", category: "input", group: "intake", x: 60, y: 330, status: "pending", authority: "Bounded parameter selection", performedBy: "User", evidence: "Not recorded", details: null },
+      { id: "template_planner", title: "Review proposal", subtitle: selectedTemplate.template_id, kind: "agent", category: "planning", group: "planning", x: 360, y: 150, status: "pending", authority: "Planning only", performedBy: "Planner agent", evidence: "Not recorded", details: null },
+      ...stepNodes,
+      { id: "template_validation", title: "Validate outputs", subtitle: "Deterministic postconditions", kind: "evidence", category: "validation", group: "assurance", x: 720 + (selectedTemplate.steps.length * 220), y: 150, status: "pending", authority: "Validation only", performedBy: "Validator", evidence: "Not recorded", details: null },
+    ];
+    const stepEdges: ProposalDraft["edges"] = selectedTemplate.steps.flatMap((step) => step.depends_on.length
+      ? step.depends_on.map((dependency) => ({ from: `template_${dependency}`, to: `template_${step.step_id}`, kind: "data" as const, label: "dependency" }))
+      : [{ from: "template_planner", to: `template_${step.step_id}`, kind: "data" as const, label: "proposed step" }]);
+    const dependedOn = new Set(selectedTemplate.steps.flatMap((step) => step.depends_on));
+    const leafEdges: ProposalDraft["edges"] = selectedTemplate.steps.filter((step) => !dependedOn.has(step.step_id)).map((step) => ({ from: `template_${step.step_id}`, to: "template_validation", kind: "data" as const, label: "validate" }));
+    const templateDraft: ProposalDraft = { schemaVersion: "1.0", id: `${selectedTemplate.template_id}-draft`, title: `${selectedTemplate.template_id.replaceAll("_", " ")} proposal`, correlationId: `template-${selectedTemplate.template_id}`, readOnly: false, source: "proposal_draft", nodes: templateNodes, edges: [{ from: "template_request", to: "template_planner", kind: "control", label: "request" }, { from: "template_data", to: "template_planner", kind: "data", label: "parameters" }, ...stepEdges, ...leafEdges] };
+    setDraft(templateDraft);
+    setTemplateTopologyBaseline(topologySignature(templateDraft));
+    setLoadedTemplateId(selectedTemplate.template_id);
+    setMode("proposal");
+    setSelectedId("template_request");
+    setTemplatePanelOpen(false);
+    setTemplateNotice("Template loaded as an uncommitted graph proposal.");
+  };
+  const buildRecipeProposal = (): BrowserRecipeProposal | null => {
+    if (!selectedTemplate) return null;
+    if (mode === "proposal" && loadedTemplateId && loadedTemplateId !== selectedTemplate.template_id) {
+      setTemplateNotice("Load the selected template graph before downloading its proposal.");
+      return null;
+    }
+    if (templateTopologyBaseline && draft && topologySignature(draft) !== templateTopologyBaseline) {
+      setTemplateNotice("This graph topology was edited. The current CLI proposal contract cannot represent those structural edits yet.");
+      return null;
+    }
+    const missing = selectedTemplate.required_parameters.filter((name) => !templateParameters[name]?.trim());
+    if (!proposalRequest.trim() || missing.length) {
+      setTemplateNotice(!proposalRequest.trim() ? "Describe the requested outcome before downloading." : `Complete required parameters: ${missing.join(", ")}`);
+      return null;
+    }
+    return browserRecipeProposalSchema.parse({ schema_version: "1.0", status: "proposed_not_compiled", original_request: proposalRequest.trim(), summary: `Operator-selected trusted template: ${selectedTemplate.template_id}`, recipe_id_hint: `${selectedTemplate.template_id}_proposal`, selection: { template_id: selectedTemplate.template_id, parameters: Object.fromEntries(selectedTemplate.required_parameters.map((name) => [name, templateParameters[name].trim()])) }, assumptions: [], missing_information: [], warnings: ["Browser-authored proposal; backend validation and compilation are still required."], compilation_performed: false, execution_requested: false, approval_performed: false, execution_performed: false });
+  };
+  const downloadRecipeProposal = () => {
+    const proposal = buildRecipeProposal();
+    if (!proposal || !selectedTemplate) return;
+    const url = URL.createObjectURL(new Blob([`${JSON.stringify(proposal, null, 2)}\n`], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${selectedTemplate.template_id}-proposal.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setTemplateNotice("Proposal downloaded for backend validation; nothing was executed.");
+  };
+  const compileTemplateProposal = async () => {
+    const proposal = buildRecipeProposal();
+    if (!proposal) return;
+    setCompilationPending(true);
+    setCompilation(null);
+    setTemplateNotice("Compiling through the local typed service…");
+    try {
+      const result = await compileRecipeProposal(proposal);
+      setCompilation(result);
+      setTemplateNotice("Compilation passed. Nothing was saved, approved, or executed.");
+    } catch (error) {
+      setTemplateNotice(error instanceof Error ? error.message : "Proposal compilation failed.");
+    } finally {
+      setCompilationPending(false);
+    }
+  };
   const beginProposal = () => {
+    setTemplateTopologyBaseline(null);
+    setLoadedTemplateId(null);
     setDraft({ ...structuredClone(workflow), id: `${workflow.id}-draft`, title: `${workflow.title} draft`, readOnly: false, source: "proposal_draft" });
     setMode("proposal");
     setLoadNotice("");
@@ -276,6 +383,8 @@ export default function App() {
   const closeProposal = () => {
     connectionDragRef.current = null;
     setConnectionDrag(null);
+    setTemplateTopologyBaseline(null);
+    setLoadedTemplateId(null);
     setDraft(null);
     setMode("evidence");
     setSelectedId(workflow.nodes[0].id);
@@ -406,10 +515,28 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17J</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17M</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions"><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
+      <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
+    {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
+      <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
+        <header className="template-workspace-head"><div><p className="eyebrow">Reusable governed starting points</p><h2 id="template-title">Choose a recipe template</h2><p>Select a recipe, review the skills it uses, provide its inputs, then preview the workflow graph.</p></div><button aria-label="Close templates" onClick={() => setTemplatePanelOpen(false)}><X size={18}/></button></header>
+        <div className="concept-strip"><article><strong>Workflow</strong><span>One planned or recorded process from request through validation and evidence.</span></article><article><strong>Recipe</strong><span>A reusable, parameterized workflow definition with fixed governed steps.</span></article><article><strong>Skill</strong><span>One bounded capability a recipe step may invoke, such as inspecting a raster.</span></article></div>
+        {recipeTemplates.length ? <div className="template-layout">
+          <div className="template-gallery" role="list" aria-label="Trusted recipe templates">{recipeTemplates.map((template) => <button role="listitem" className={`template-card ${selectedTemplateId === template.template_id ? "selected" : ""}`} key={template.template_id} onClick={() => { setSelectedTemplateId(template.template_id); setTemplateParameters(Object.fromEntries(template.required_parameters.map((name) => [name, ""]))); setTemplateNotice(""); setCompilation(null); }}><span className="template-card-title"><LayoutTemplate size={16}/><strong>{template.template_id.replaceAll("_", " ")}</strong></span><span>{template.steps.length} governed step{template.steps.length === 1 ? "" : "s"}</span><small>Skills: {template.skill_ids.map((skill) => skill.replaceAll("_", " ")).join(" · ")}</small><small>Inputs: {template.required_parameters.map((name) => name.replaceAll("_", " ")).join(" · ")}</small></button>)}</div>
+          <div className="template-form">
+            <div className="template-selection-summary"><span>Selected recipe</span><strong>{selectedTemplate?.template_id.replaceAll("_", " ")}</strong><small>{selectedTemplate?.assessment_policy === "none" ? "Standard deterministic checks" : `${selectedTemplate?.assessment_policy.replaceAll("_", " ")} assessment`}</small></div>
+            <label>Requested outcome<textarea value={proposalRequest} maxLength={8000} rows={4} placeholder="Describe what this workflow should accomplish" onChange={(event) => setProposalRequest(event.target.value)}/></label>
+            {selectedTemplate?.required_parameters.map((name) => <label key={name}>{name.replaceAll("_", " ")}<input value={templateParameters[name] ?? ""} maxLength={2000} placeholder={name} onChange={(event) => setTemplateParameters((current) => ({ ...current, [name]: event.target.value }))}/></label>)}
+            {templateNotice && <p className="template-notice">{templateNotice}</p>}
+            <p className="template-boundary">Compilation is available through the loopback-only typed service. Save, approval, and execution remain unavailable.</p>
+            <div className="template-actions"><button onClick={applyRecipeTemplate}>Preview workflow graph</button><button disabled={compilationPending} onClick={() => void compileTemplateProposal()}>{compilationPending ? "Compiling…" : "Compile proposal"}</button><button onClick={downloadRecipeProposal}>Download proposal</button></div>
+            {compilation && <section className="compilation-result"><div><CheckCircle2 size={17}/><span><strong>Compilation passed</strong><small>{compilation.result.recipe.recipe_id}</small></span></div><dl><div><dt>Ordered steps</dt><dd>{compilation.result.recipe_validation.topological_step_ids.length}</dd></div><div><dt>Approval gates</dt><dd>{compilation.result.recipe_validation.approval_required_step_ids.length}</dd></div><div><dt>Validation gates</dt><dd>{compilation.result.recipe_validation.validation_required_step_ids.length}</dd></div></dl><ol>{compilation.result.recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span></li>)}</ol><p><LockKeyhole size={13}/> Not saved · not approved · not executed</p></section>}
+          </div>
+        </div> : <div className="template-unavailable"><strong>No validated template catalog loaded</strong><p>Export the trusted catalog into the ignored interface runtime directory, then reload this page.</p><code>.venv/bin/geoagent recipe-template-catalog --project-root . --pretty</code></div>}
+      </section>
+    </div>}
     <div className="workspace">
       <aside className="rail">
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
