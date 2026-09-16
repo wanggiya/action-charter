@@ -1786,3 +1786,34 @@ or executed. Vite proxies `/api` to this service, and the Templates workspace
 now provides a Compile proposal button with an ordered-step and gate summary.
 The static runtime catalog remains an offline browsing fallback. Persistence,
 approval, execution, validation and evidence actions remain unavailable.
+## Checkpoint 17N — digest-bound reviewed recipe storage
+
+Checkpoint 17N adds the first persistent interface operation after 17M's
+non-mutating compilation. The Templates workspace displays the exact compiled
+recipe SHA-256 and ordered steps, clears stale review state whenever the
+request changes, and requires a separate operator confirmation and save action.
+The loopback service validates the exact request, recompiles against the
+trusted registry, verifies the displayed digest, and uses the existing
+redacting write-once storage beneath `workflow-recipes/`. The browser cannot
+select a path, duplicate recipes cannot overwrite existing state, generated
+JSON remains ignored by Git, and saving performs no approval or execution.
+## Checkpoint 17O — stored recipe inventory
+
+Checkpoint 17O preserves the 17N save result until the operator explicitly
+selects Done — view saved recipes, then transitions to a read-only inventory
+also available from a persistent top-bar Recipes control. The loopback service
+loads at most 200 canonical recipes beneath the fixed root and returns only safe
+identity, digest, ordered skill and future approval/validation gate summaries.
+It rejects symlinks, escaped or invalid artifacts and policy failures. Recipe
+arguments and approval identities remain excluded, and inventory performs no
+mutation, approval or execution.
+## Checkpoint 17P — exact approval-request preparation
+
+Checkpoint 17P adds a Prepare approval request action to each eligible stored
+recipe. The loopback service accepts only the canonical filename and confirmed
+recipe digest, reloads and rehashes the artifact beneath the fixed root, reruns
+deterministic policy, and returns the complete required approval scope plus a
+separate canonical request digest. The interface shows the exact steps and
+skills in a prepared-only card. No approver, decision, reason, expiry or
+correction is collected; no approval evidence is written and no execution is
+possible.

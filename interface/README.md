@@ -61,3 +61,9 @@ from the repository root:
 Then start this Vite application in another terminal. Vite proxies `/api` to
 `127.0.0.1:8765`. The service compiles proposals in memory only; it cannot save,
 approve or execute them.
+
+After successful compilation, the interface can immutably save the reviewed
+recipe. It requires confirmation of the displayed SHA-256 and step order, then
+the backend recompiles and checks the digest again. Saved recipe JSON is local
+runtime state under `workflow-recipes/` and is ignored by Git. This does not
+approve or execute the recipe.

@@ -139,6 +139,23 @@ corepack pnpm@10.17.1 --dir interface dev
 The interface can now preview, download and compile a trusted-template
 proposal. It still cannot save, approve or execute one.
 
+[Checkpoint 17N](docs/CHECKPOINT17N.md) adds a separate reviewed-save action.
+The interface displays the complete compiled step order and recipe SHA-256,
+requires explicit operator confirmation, then recompiles and verifies that
+digest before immutable storage under `workflow-recipes/`. Saving still grants
+no approval or execution authority.
+
+[Checkpoint 17O](docs/CHECKPOINT17O.md) adds a read-only inventory of immutable
+stored recipes. The successful save card now provides **Done — view saved
+recipes**, and the top bar provides a persistent **Recipes** control. Inventory
+cards show exact digests, ordered skills and future approval/validation gates
+without exposing arguments or granting approval or execution authority.
+
+[Checkpoint 17P](docs/CHECKPOINT17P.md) lets an operator prepare an exact
+approval request for one stored recipe. It revalidates the canonical recipe and
+policy, binds every required step to the recipe digest, and displays a separate
+approval-request digest. Preparation records no decision and cannot execute.
+
 ## Complete PostGIS reference lifecycle
 
 Checkpoints 15A–15K provide the strongest end-to-end demonstration of the

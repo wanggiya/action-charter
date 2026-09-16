@@ -603,3 +603,31 @@ or path, and perform no persistence or execution.
 
 Next: reviewed recipe persistence through a distinct typed endpoint and visible
 operator action. Do not combine persistence with approval or execution.
+### Checkpoint 17N — digest-bound reviewed recipe storage
+
+- Display the exact compiled recipe digest and ordered steps.
+- Require a separate explicit operator review confirmation.
+- Recompile and verify the digest immediately before immutable storage.
+- Write only beneath the fixed ignored recipe root with no overwrite.
+- Preserve `approval_performed=false` and `execution_performed=false`.
+
+Next: inventory stored recipes and prepare a separate exact approval action.
+Do not combine approval recording with execution.
+### Checkpoint 17O — stored recipe inventory
+
+- Keep save evidence visible until an explicit operator transition.
+- Provide a persistent read-only Recipes inventory.
+- Show exact digest, ordered skills and future approval/validation gates.
+- Exclude arguments, identities and execution controls.
+
+Next: prepare an exact approval request for a selected stored recipe, while
+keeping decision recording and execution as separate later actions.
+### Checkpoint 17P — exact approval-request preparation
+
+- Select one canonical stored recipe by safe filename and digest.
+- Rehash it and rerun deterministic policy.
+- Bind all required approval steps into a canonical request digest.
+- Display the exact scope without accepting or recording a decision.
+
+Next: explicit append-only human decision recording bound to the prepared
+request and recipe digest. Execution remains a later separate gate.

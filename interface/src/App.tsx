@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
   Database, FileCheck2, GitBranch, LockKeyhole, Map, Maximize2, Minus,
-  GripVertical, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, ZoomIn,
+  GripVertical, LayoutList, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, ZoomIn,
 } from "lucide-react";
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, type InterfaceCompilation } from "./lib/interface-api";
+import { compileRecipeProposal, loadSavedRecipes, prepareRecipeApproval, saveReviewedRecipe, type InterfaceCompilation, type PreparedApprovalRequest, type SavedInterfaceRecipe, type SavedRecipeInventory } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -87,6 +87,7 @@ export default function App() {
   const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
   const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
   const connectionDragRef = useRef<ConnectionDrag | null>(null);
+  const approvalRequestRef = useRef<HTMLElement>(null);
   const draftCounterRef = useRef(0);
   const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
@@ -100,10 +101,19 @@ export default function App() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateParameters, setTemplateParameters] = useState<Record<string, string>>({});
   const [proposalRequest, setProposalRequest] = useState("");
+  const [recipeIdHint, setRecipeIdHint] = useState("");
   const [templateNotice, setTemplateNotice] = useState("");
   const [compilation, setCompilation] = useState<InterfaceCompilation | null>(null);
   const [compilationPending, setCompilationPending] = useState(false);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const [savePending, setSavePending] = useState(false);
+  const [savedRecipe, setSavedRecipe] = useState<SavedInterfaceRecipe | null>(null);
   const [templatePanelOpen, setTemplatePanelOpen] = useState(false);
+  const [recipePanelOpen, setRecipePanelOpen] = useState(false);
+  const [recipeInventory, setRecipeInventory] = useState<SavedRecipeInventory | null>(null);
+  const [recipeInventoryNotice, setRecipeInventoryNotice] = useState("");
+  const [preparedApproval, setPreparedApproval] = useState<PreparedApprovalRequest | null>(null);
+  const [approvalPreparationPending, setApprovalPreparationPending] = useState(false);
   const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
@@ -213,6 +223,7 @@ export default function App() {
       setRecipeTemplates(templates);
       setSelectedTemplateId(templates[0]?.template_id ?? "");
       setTemplateParameters(Object.fromEntries((templates[0]?.required_parameters ?? []).map((name) => [name, ""])));
+      setRecipeIdHint(templates[0] ? `${templates[0].template_id}_proposal` : "");
       setTemplateNotice("");
     }).catch(() => setTemplateNotice("Export the trusted recipe catalog before using templates."));
   }, []);
@@ -344,7 +355,11 @@ export default function App() {
       setTemplateNotice(!proposalRequest.trim() ? "Describe the requested outcome before downloading." : `Complete required parameters: ${missing.join(", ")}`);
       return null;
     }
-    return browserRecipeProposalSchema.parse({ schema_version: "1.0", status: "proposed_not_compiled", original_request: proposalRequest.trim(), summary: `Operator-selected trusted template: ${selectedTemplate.template_id}`, recipe_id_hint: `${selectedTemplate.template_id}_proposal`, selection: { template_id: selectedTemplate.template_id, parameters: Object.fromEntries(selectedTemplate.required_parameters.map((name) => [name, templateParameters[name].trim()])) }, assumptions: [], missing_information: [], warnings: ["Browser-authored proposal; backend validation and compilation are still required."], compilation_performed: false, execution_requested: false, approval_performed: false, execution_performed: false });
+    if (!/^[a-z0-9][a-z0-9_-]{0,100}$/.test(recipeIdHint.trim())) {
+      setTemplateNotice("Recipe ID must use lowercase letters, numbers, underscores, or hyphens.");
+      return null;
+    }
+    return browserRecipeProposalSchema.parse({ schema_version: "1.0", status: "proposed_not_compiled", original_request: proposalRequest.trim(), summary: `Operator-selected trusted template: ${selectedTemplate.template_id}`, recipe_id_hint: recipeIdHint.trim(), selection: { template_id: selectedTemplate.template_id, parameters: Object.fromEntries(selectedTemplate.required_parameters.map((name) => [name, templateParameters[name].trim()])) }, assumptions: [], missing_information: [], warnings: ["Browser-authored proposal; backend validation and compilation are still required."], compilation_performed: false, execution_requested: false, approval_performed: false, execution_performed: false });
   };
   const downloadRecipeProposal = () => {
     const proposal = buildRecipeProposal();
@@ -362,6 +377,8 @@ export default function App() {
     if (!proposal) return;
     setCompilationPending(true);
     setCompilation(null);
+    setReviewConfirmed(false);
+    setSavedRecipe(null);
     setTemplateNotice("Compiling through the local typed service…");
     try {
       const result = await compileRecipeProposal(proposal);
@@ -371,6 +388,55 @@ export default function App() {
       setTemplateNotice(error instanceof Error ? error.message : "Proposal compilation failed.");
     } finally {
       setCompilationPending(false);
+    }
+  };
+  const saveCompiledRecipe = async () => {
+    if (!compilation || !reviewConfirmed) return;
+    const proposal = buildRecipeProposal();
+    if (!proposal) return;
+    setSavePending(true);
+    setSavedRecipe(null);
+    setTemplateNotice("Recompiling and checking the reviewed digest before immutable storage…");
+    try {
+      const stored = await saveReviewedRecipe(proposal, compilation.recipe_sha256);
+      setSavedRecipe(stored);
+      setTemplateNotice("Reviewed recipe stored immutably. It is not approved and was not executed.");
+    } catch (error) {
+      setTemplateNotice(error instanceof Error ? error.message : "Reviewed recipe could not be stored.");
+    } finally {
+      setSavePending(false);
+    }
+  };
+  const openSavedRecipes = async () => {
+    setTemplatePanelOpen(false);
+    setRecipePanelOpen(true);
+    setRecipeInventoryNotice("Loading immutable recipes…");
+    setPreparedApproval(null);
+    try {
+      const inventory = await loadSavedRecipes();
+      setRecipeInventory(inventory);
+      setRecipeInventoryNotice("");
+    } catch {
+      setRecipeInventory(null);
+      setRecipeInventoryNotice("Saved recipes could not be loaded. Confirm that the local interface service is running.");
+    }
+  };
+  const prepareApproval = async (recipeFilename: string, recipeSha256: string) => {
+    setApprovalPreparationPending(true);
+    setPreparedApproval(null);
+    setRecipeInventoryNotice("Revalidating the stored recipe and preparing an exact approval request…");
+    try {
+      const request = await prepareRecipeApproval(recipeFilename, recipeSha256);
+      setPreparedApproval(request);
+      setRecipeInventoryNotice("");
+      requestAnimationFrame(() => {
+        approvalRequestRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        approvalRequestRef.current?.focus({ preventScroll: true });
+      });
+    } catch (error) {
+      setRecipeInventoryNotice(error instanceof Error ? error.message : "Approval request could not be prepared.");
+    } finally {
+      setApprovalPreparationPending(false);
     }
   };
   const beginProposal = () => {
@@ -515,28 +581,30 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17M</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17P</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
+      <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
         <header className="template-workspace-head"><div><p className="eyebrow">Reusable governed starting points</p><h2 id="template-title">Choose a recipe template</h2><p>Select a recipe, review the skills it uses, provide its inputs, then preview the workflow graph.</p></div><button aria-label="Close templates" onClick={() => setTemplatePanelOpen(false)}><X size={18}/></button></header>
         <div className="concept-strip"><article><strong>Workflow</strong><span>One planned or recorded process from request through validation and evidence.</span></article><article><strong>Recipe</strong><span>A reusable, parameterized workflow definition with fixed governed steps.</span></article><article><strong>Skill</strong><span>One bounded capability a recipe step may invoke, such as inspecting a raster.</span></article></div>
         {recipeTemplates.length ? <div className="template-layout">
-          <div className="template-gallery" role="list" aria-label="Trusted recipe templates">{recipeTemplates.map((template) => <button role="listitem" className={`template-card ${selectedTemplateId === template.template_id ? "selected" : ""}`} key={template.template_id} onClick={() => { setSelectedTemplateId(template.template_id); setTemplateParameters(Object.fromEntries(template.required_parameters.map((name) => [name, ""]))); setTemplateNotice(""); setCompilation(null); }}><span className="template-card-title"><LayoutTemplate size={16}/><strong>{template.template_id.replaceAll("_", " ")}</strong></span><span>{template.steps.length} governed step{template.steps.length === 1 ? "" : "s"}</span><small>Skills: {template.skill_ids.map((skill) => skill.replaceAll("_", " ")).join(" · ")}</small><small>Inputs: {template.required_parameters.map((name) => name.replaceAll("_", " ")).join(" · ")}</small></button>)}</div>
+          <div className="template-gallery" role="list" aria-label="Trusted recipe templates">{recipeTemplates.map((template) => <button role="listitem" className={`template-card ${selectedTemplateId === template.template_id ? "selected" : ""}`} key={template.template_id} onClick={() => { setSelectedTemplateId(template.template_id); setTemplateParameters(Object.fromEntries(template.required_parameters.map((name) => [name, ""]))); setRecipeIdHint(`${template.template_id}_proposal`); setTemplateNotice(""); setCompilation(null); setReviewConfirmed(false); setSavedRecipe(null); }}><span className="template-card-title"><LayoutTemplate size={16}/><strong>{template.template_id.replaceAll("_", " ")}</strong></span><span>{template.steps.length} governed step{template.steps.length === 1 ? "" : "s"}</span><small>Skills: {template.skill_ids.map((skill) => skill.replaceAll("_", " ")).join(" · ")}</small><small>Inputs: {template.required_parameters.map((name) => name.replaceAll("_", " ")).join(" · ")}</small></button>)}</div>
           <div className="template-form">
             <div className="template-selection-summary"><span>Selected recipe</span><strong>{selectedTemplate?.template_id.replaceAll("_", " ")}</strong><small>{selectedTemplate?.assessment_policy === "none" ? "Standard deterministic checks" : `${selectedTemplate?.assessment_policy.replaceAll("_", " ")} assessment`}</small></div>
-            <label>Requested outcome<textarea value={proposalRequest} maxLength={8000} rows={4} placeholder="Describe what this workflow should accomplish" onChange={(event) => setProposalRequest(event.target.value)}/></label>
-            {selectedTemplate?.required_parameters.map((name) => <label key={name}>{name.replaceAll("_", " ")}<input value={templateParameters[name] ?? ""} maxLength={2000} placeholder={name} onChange={(event) => setTemplateParameters((current) => ({ ...current, [name]: event.target.value }))}/></label>)}
+            <label>Recipe ID<input value={recipeIdHint} maxLength={101} placeholder="unique_recipe_id" onChange={(event) => { setRecipeIdHint(event.target.value); setCompilation(null); setReviewConfirmed(false); setSavedRecipe(null); }}/></label>
+            <label>Requested outcome<textarea value={proposalRequest} maxLength={8000} rows={4} placeholder="Describe what this workflow should accomplish" onChange={(event) => { setProposalRequest(event.target.value); setCompilation(null); setReviewConfirmed(false); setSavedRecipe(null); }}/></label>
+            {selectedTemplate?.required_parameters.map((name) => <label key={name}>{name.replaceAll("_", " ")}<input value={templateParameters[name] ?? ""} maxLength={2000} placeholder={name} onChange={(event) => { setTemplateParameters((current) => ({ ...current, [name]: event.target.value })); setCompilation(null); setReviewConfirmed(false); setSavedRecipe(null); }}/></label>)}
             {templateNotice && <p className="template-notice">{templateNotice}</p>}
             <p className="template-boundary">Compilation is available through the loopback-only typed service. Save, approval, and execution remain unavailable.</p>
             <div className="template-actions"><button onClick={applyRecipeTemplate}>Preview workflow graph</button><button disabled={compilationPending} onClick={() => void compileTemplateProposal()}>{compilationPending ? "Compiling…" : "Compile proposal"}</button><button onClick={downloadRecipeProposal}>Download proposal</button></div>
-            {compilation && <section className="compilation-result"><div><CheckCircle2 size={17}/><span><strong>Compilation passed</strong><small>{compilation.result.recipe.recipe_id}</small></span></div><dl><div><dt>Ordered steps</dt><dd>{compilation.result.recipe_validation.topological_step_ids.length}</dd></div><div><dt>Approval gates</dt><dd>{compilation.result.recipe_validation.approval_required_step_ids.length}</dd></div><div><dt>Validation gates</dt><dd>{compilation.result.recipe_validation.validation_required_step_ids.length}</dd></div></dl><ol>{compilation.result.recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span></li>)}</ol><p><LockKeyhole size={13}/> Not saved · not approved · not executed</p></section>}
+            {compilation && <section className="compilation-result"><div><CheckCircle2 size={17}/><span><strong>Compilation passed</strong><small>{compilation.result.recipe.recipe_id}</small></span></div><div className="review-digest"><span>Recipe SHA-256</span><code title={compilation.recipe_sha256}>{compilation.recipe_sha256}</code></div><dl><div><dt>Ordered steps</dt><dd>{compilation.result.recipe_validation.topological_step_ids.length}</dd></div><div><dt>Approval gates</dt><dd>{compilation.result.recipe_validation.approval_required_step_ids.length}</dd></div><div><dt>Validation gates</dt><dd>{compilation.result.recipe_validation.validation_required_step_ids.length}</dd></div></dl><ol>{compilation.result.recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span></li>)}</ol><p><LockKeyhole size={13}/> Not saved · not approved · not executed</p><label className="review-confirm"><input type="checkbox" checked={reviewConfirmed} disabled={Boolean(savedRecipe)} onChange={(event) => setReviewConfirmed(event.target.checked)}/><span>I reviewed this exact recipe digest and step order.</span></label><button className="save-reviewed" disabled={!reviewConfirmed || savePending || Boolean(savedRecipe)} onClick={() => void saveCompiledRecipe()}>{savePending ? "Verifying and saving…" : savedRecipe ? "Recipe stored" : "Save reviewed recipe"}</button>{savedRecipe && <div className="saved-recipe"><CheckCircle2 size={15}/><span><strong>Stored immutably</strong><small>{savedRecipe.recipe_filename}</small></span><button onClick={() => void openSavedRecipes()}>Done — view saved recipes</button></div>}</section>}
           </div>
         </div> : <div className="template-unavailable"><strong>No validated template catalog loaded</strong><p>Export the trusted catalog into the ignored interface runtime directory, then reload this page.</p><code>.venv/bin/geoagent recipe-template-catalog --project-root . --pretty</code></div>}
       </section>
     </div>}
+    {recipePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setRecipePanelOpen(false); }}><section className="recipe-workspace" role="dialog" aria-modal="true" aria-labelledby="recipes-title"><header className="template-workspace-head"><div><p className="eyebrow">Immutable local definitions</p><h2 id="recipes-title">Saved recipes</h2><p>Inspect exact identities and prepare a digest-bound approval request. Preparing does not record approval or execute anything.</p></div><button aria-label="Close saved recipes" onClick={() => setRecipePanelOpen(false)}><X size={18}/></button></header>{recipeInventoryNotice && <p className="recipe-inventory-notice">{recipeInventoryNotice}</p>}{recipeInventory && <div className="recipe-inventory"><div className="recipe-inventory-summary"><strong>{recipeInventory.recipe_count}</strong><span>immutable recipe{recipeInventory.recipe_count === 1 ? "" : "s"}</span><small>No approval or execution performed</small></div>{recipeInventory.recipes.length ? <div className="recipe-cards">{preparedApproval && <section ref={approvalRequestRef} tabIndex={-1} className="approval-request"><header><ShieldCheck size={18}/><span><strong>Approval request prepared</strong><small>{preparedApproval.recipe_id}</small></span></header><div><span>Request SHA-256</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code></div><div><span>Recipe SHA-256</span><code title={preparedApproval.recipe_sha256}>{preparedApproval.recipe_sha256}</code></div><h3>Exact approval scope</h3><ul>{preparedApproval.approval_required_step_ids.map((stepId) => { const step = preparedApproval.steps.find((candidate) => candidate.step_id === stepId); return <li key={stepId}><code>{stepId}</code><span>{step?.skill_id.replaceAll("_", " ")}</span></li>; })}</ul><p><LockKeyhole size={13}/> Prepared only · no decision recorded · nothing executed</p></section>}{recipeInventory.recipes.map((recipe) => <article className={`recipe-card ${preparedApproval?.recipe_sha256 === recipe.recipe_sha256 ? "selected" : ""}`} key={recipe.recipe_sha256}><header><LayoutList size={16}/><span><strong>{recipe.recipe_id}</strong><small>{recipe.recipe_filename}</small></span></header><div className="recipe-card-digest"><span>SHA-256</span><code title={recipe.recipe_sha256}>{recipe.recipe_sha256}</code></div><ol>{recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span>{recipe.approval_required_step_ids.includes(step.step_id) && <em>Approval required</em>}</li>)}</ol><footer><span>{recipe.validation_required_step_ids.length} validation gate{recipe.validation_required_step_ids.length === 1 ? "" : "s"}</span><button disabled={approvalPreparationPending || !recipe.approval_required_step_ids.length} onClick={() => void prepareApproval(recipe.recipe_filename, recipe.recipe_sha256)}>{approvalPreparationPending ? "Preparing…" : "Prepare approval request"}</button></footer></article>)}</div> : <div className="recipe-inventory-empty"><LayoutList size={22}/><strong>No saved recipes yet</strong><span>Compile and explicitly save a reviewed template proposal first.</span></div>}</div>}</section></div>}
     <div className="workspace">
       <aside className="rail">
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
@@ -544,7 +612,7 @@ export default function App() {
       <section className="flow-stage" aria-label="Governed workflow graph">
         <div className="stage-heading"><div><p className="eyebrow">{mode === "proposal" ? "Proposal editor" : "Governed workflow"}</p><h1>{displayedWorkflow.title}</h1><p className="run-identity">{displayedWorkflow.correlationId}</p>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-meta"><span><span className="pulse"/> {mode === "proposal" ? "Uncommitted draft" : displayedWorkflow.source === "validated_trace" ? "Validated trace" : "Demonstration"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div>
         <div className="canvas-frame">
-          {mode === "proposal" && <div className="proposal-toolbar"><strong>Draft only</strong><select aria-label="Node type" value={newNodeKind} onChange={(event) => setNewNodeKind(event.target.value as NodeKind)}>{Object.keys(labels).map((kind) => <option key={kind} value={kind}>{labels[kind as NodeKind]}</option>)}</select><button onClick={addDraftNode}><Plus size={14}/> Add node</button><span>No approval or execution authority</span></div>}
+          {mode === "proposal" && <div className="proposal-toolbar"><strong>Draft only</strong>{loadedTemplateId && <button className="return-template" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={14}/> Back to template setup</button>}<select aria-label="Node type" value={newNodeKind} onChange={(event) => setNewNodeKind(event.target.value as NodeKind)}>{Object.keys(labels).map((kind) => <option key={kind} value={kind}>{labels[kind as NodeKind]}</option>)}</select><button onClick={addDraftNode}><Plus size={14}/> Add node</button><span>No approval or execution authority</span></div>}
           <div className="canvas-tools draggable-overlay" style={{ transform: `translate(${overlayPositions.tools.x}px, ${overlayPositions.tools.y}px)` }}>
             <span className="overlay-grip" title="Drag controls" onPointerDown={(event) => startOverlayDrag("tools", event)} onPointerMove={moveOverlay} onPointerUp={endOverlayDrag} onPointerCancel={endOverlayDrag}><GripVertical size={14}/></span>
             <button aria-label="Zoom in" title="Zoom in" onClick={() => setZoom((value) => Math.min(1.1, value + 0.08))}><Plus size={16}/></button>

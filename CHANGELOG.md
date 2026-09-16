@@ -101,6 +101,24 @@ project follows Semantic Versioning after the initial public alpha.
   Compile proposal action. The service reuses the existing trusted catalog,
   skill registry, Pydantic proposal contract and deterministic compiler while
   withholding filesystem, shell, save, approval and execution authority.
+- Added Checkpoint 17N digest-bound reviewed recipe storage. The interface
+  requires a separate confirmation and save action after compilation; the
+  backend recompiles, verifies the displayed recipe digest, writes immutably
+  beneath the fixed recipe root, and performs no approval or execution.
+- Added Checkpoint 17O read-only stored-recipe inventory, a persistent Recipes
+  control, and an explicit post-save transition that preserves the success
+  result until the operator chooses to continue. Inventory exposes bounded
+  identity, ordered skills and gate summaries only.
+- Added Checkpoint 17P read-only approval-request preparation for one exact
+  stored recipe. The service rehashes the recipe, reruns deterministic policy,
+  binds the required steps into a canonical request digest, and records no
+  human decision or execution.
+- Corrected 17P navigation by adding an explicit return from graph preview to
+  template setup and automatically scrolling and focusing the prepared
+  approval result in long recipe inventories.
+- Promoted the prepared-only, no-decision and no-execution statement into a
+  large high-contrast authority banner so the current boundary cannot be
+  mistaken for a recorded approval.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion
