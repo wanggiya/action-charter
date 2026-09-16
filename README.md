@@ -103,6 +103,59 @@ candidate generation, bounded materialization, offline tests, review,
 digest-bound promotion, activation, and post-activation verification. Generated
 code remains untrusted until those deterministic controls succeed.
 
+## Skills, recipes, and workflows
+
+These terms describe different layers and should not be used interchangeably:
+
+| Concept | Meaning | Example |
+|---|---|---|
+| Skill | One bounded capability with a typed contract and policy boundary | `inspect_raster` |
+| Recipe | A reusable, parameterized definition that connects trusted skills | Inspect a raster, convert it, then validate the result |
+| Workflow | One proposed, approved, running, or completed instance with specific inputs, state, timing, and evidence | Convert `dem.tif` to EPSG:3857 in a particular run |
+
+A recipe may contain several skill steps. A workflow may be created from a
+recipe, but it becomes a distinct run with its own plan, approval requirements,
+results, validation, and evidence. Interface templates select trusted recipes;
+they do not install skills or represent completed workflows. See
+[Core concepts and equivalence testing](docs/CORE_CONCEPTS.md).
+
+The first versioned CLI/interface parity scenario is documented in
+[Checkpoint 17L](docs/CHECKPOINT17L.md). It compiles one trusted vector
+conversion proposal without saving, approving or executing it, establishing
+the baseline for the next typed interface-service slice.
+
+[Checkpoint 17M](docs/CHECKPOINT17M.md) adds the first live interface backend:
+a loopback-only typed service for loading the trusted template catalog and
+compiling an exact proposal in memory. Start it alongside Vite:
+
+```bash
+# terminal 1
+.venv/bin/geoagent serve-interface-api --project-root .
+
+# terminal 2
+corepack pnpm@10.17.1 --dir interface dev
+```
+
+The interface can now preview, download and compile a trusted-template
+proposal. It still cannot save, approve or execute one.
+
+[Checkpoint 17N](docs/CHECKPOINT17N.md) adds a separate reviewed-save action.
+The interface displays the complete compiled step order and recipe SHA-256,
+requires explicit operator confirmation, then recompiles and verifies that
+digest before immutable storage under `workflow-recipes/`. Saving still grants
+no approval or execution authority.
+
+[Checkpoint 17O](docs/CHECKPOINT17O.md) adds a read-only inventory of immutable
+stored recipes. The successful save card now provides **Done — view saved
+recipes**, and the top bar provides a persistent **Recipes** control. Inventory
+cards show exact digests, ordered skills and future approval/validation gates
+without exposing arguments or granting approval or execution authority.
+
+[Checkpoint 17P](docs/CHECKPOINT17P.md) lets an operator prepare an exact
+approval request for one stored recipe. It revalidates the canonical recipe and
+policy, binds every required step to the recipe digest, and displays a separate
+approval-request digest. Preparation records no decision and cannot execute.
+
 ## Complete PostGIS reference lifecycle
 
 Checkpoints 15A–15K provide the strongest end-to-end demonstration of the
@@ -429,6 +482,13 @@ rejected locally. Filled sockets are connected and hollow sockets remain
 available. Performer assignment uses bounded project roles. The proposal is
 still browser-local and cannot execute or persist.
 See [Checkpoint 17J](docs/CHECKPOINT17J.md).
+
+Checkpoint 17K connects the interface to the repository's existing trusted
+recipe templates. Export `context/RECIPE_TEMPLATES.yaml` through the existing
+`recipe-template-catalog` CLI command, then select a template and fill its
+required parameters in the Inspector. The interface renders its declared step
+graph and can download a validated, non-executable proposal accepted by the
+existing proposal compiler. See [Checkpoint 17K](docs/CHECKPOINT17K.md).
 
 The completed interface is intended to operate the full governed lifecycle
 without requiring routine command-line use. The CLI remains supported for

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "status": "proposed_not_compiled",
+  "original_request": "Inspect the sample points and convert them to a GeoPackage for the Checkpoint 17L CLI parity baseline.",
+  "summary": "Inspect sample_points.geojson and convert it to a separate parity-pilot GeoPackage.",
+  "recipe_id_hint": "checkpoint17l-cli-vector-conversion",
+  "selection": {
+    "template_id": "inspect_and_convert_vector",
+    "parameters": {
+      "path": "data/input/sample_points.geojson",
+      "target_path": "data/output/checkpoint17l_cli_vector_conversion.gpkg",
+      "target_format": "geopackage"
+    }
+  },
+  "assumptions": [],
+  "missing_information": [],
+  "warnings": [],
+  "compilation_performed": false,
+  "execution_requested": false,
+  "approval_performed": false,
+  "execution_performed": false
+}

@@ -1554,6 +1554,29 @@ compile, invoke Planner, evaluate backend policy, approve, execute, call MCP or
 write evidence. The next slice must define a canonical proposal contract and a
 safe persistence/compilation boundary before adding operational authority.
 
+### Checkpoint 17K — Trusted template proposal bridge
+
+Status: implemented for review. The interface now consumes a capped,
+schema-validated runtime projection emitted by the existing
+`recipe-template-catalog` command from `context/RECIPE_TEMPLATES.yaml`. It can
+select one of the five trusted templates, collect required parameters, render
+the declared steps and dependencies, and download a strict non-executable
+`RecipeProposal` document compatible with the existing CLI compiler.
+
+The generated browser catalog remains ignored. Missing request/parameter values
+withhold download. Structural changes to a loaded template graph also withhold
+download because the current recipe proposal contract cannot faithfully encode
+arbitrary graph edits. No proposal is saved, compiled, approved or executed in
+the browser. The next slice is a loopback-only typed service for deterministic
+assessment and compilation of this exact shared contract.
+
+Template selection now opens from a dedicated top-bar button into a focused
+workspace above the graph. It is no longer mixed with selected-node details in
+the Inspector. The workspace explains workflow, recipe and skill distinctions
+and shows each recipe's steps, included skills and required inputs. Core concept
+documentation also records CLI/interface equivalence testing with separate safe
+identifiers and targets.
+
 ### Previously proposed Checkpoint 18 — Pilot operations and bounded memory
 
 Planned:
@@ -1741,3 +1764,56 @@ claims. A rollback becomes verified only when the independently observed final
 state matches the exact governed restoration plan. This closes the complete
 15A–15K promotion and rollback lifecycle. The full regression after completion
 passed 1,153 tests.
+## Checkpoint 17L — CLI/interface parity baseline
+
+Checkpoint 17L adds a committed, non-secret vector-conversion proposal under
+`examples/interface-parity/` and regression coverage that compiles it through
+the same trusted template and skill registry used by the CLI. The baseline
+proves ordered inspection and conversion steps, deterministic policy validity,
+and the exact steps requiring approval and validation while confirming that no
+recipe is saved, no approval is issued and no execution occurs. Generated
+catalog projections and compilation responses remain outside Git. The next
+slice is a loopback-only typed interface assessment/compilation service over
+this exact contract; persistence and execution remain later, separate gates.
+## Checkpoint 17M — loopback proposal compilation
+
+Checkpoint 17M adds a standard-library HTTP service bound only to
+`127.0.0.1`. The service exposes health, trusted recipe-template catalog and
+in-memory RecipeProposal compilation through strict typed routes, bounded JSON,
+origin checks and redacted failures. It calls the existing catalog, registry
+and compiler services directly and verifies that no recipe was saved, approved
+or executed. Vite proxies `/api` to this service, and the Templates workspace
+now provides a Compile proposal button with an ordered-step and gate summary.
+The static runtime catalog remains an offline browsing fallback. Persistence,
+approval, execution, validation and evidence actions remain unavailable.
+## Checkpoint 17N — digest-bound reviewed recipe storage
+
+Checkpoint 17N adds the first persistent interface operation after 17M's
+non-mutating compilation. The Templates workspace displays the exact compiled
+recipe SHA-256 and ordered steps, clears stale review state whenever the
+request changes, and requires a separate operator confirmation and save action.
+The loopback service validates the exact request, recompiles against the
+trusted registry, verifies the displayed digest, and uses the existing
+redacting write-once storage beneath `workflow-recipes/`. The browser cannot
+select a path, duplicate recipes cannot overwrite existing state, generated
+JSON remains ignored by Git, and saving performs no approval or execution.
+## Checkpoint 17O — stored recipe inventory
+
+Checkpoint 17O preserves the 17N save result until the operator explicitly
+selects Done — view saved recipes, then transitions to a read-only inventory
+also available from a persistent top-bar Recipes control. The loopback service
+loads at most 200 canonical recipes beneath the fixed root and returns only safe
+identity, digest, ordered skill and future approval/validation gate summaries.
+It rejects symlinks, escaped or invalid artifacts and policy failures. Recipe
+arguments and approval identities remain excluded, and inventory performs no
+mutation, approval or execution.
+## Checkpoint 17P — exact approval-request preparation
+
+Checkpoint 17P adds a Prepare approval request action to each eligible stored
+recipe. The loopback service accepts only the canonical filename and confirmed
+recipe digest, reloads and rehashes the artifact beneath the fixed root, reruns
+deterministic policy, and returns the complete required approval scope plus a
+separate canonical request digest. The interface shows the exact steps and
+skills in a prepared-only card. No approver, decision, reason, expiry or
+correction is collected; no approval evidence is written and no execution is
+possible.
