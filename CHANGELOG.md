@@ -5,6 +5,9 @@ project follows Semantic Versioning after the initial public alpha.
 
 ## [Unreleased]
 
+- Added Checkpoint 17R large authority-outcome cards and independent, non-executing
+  verification of immutable recipe approvals against current deterministic policy.
+
 ### Changed
 
 - Adopted ActionCharter as the public project and distribution name.
@@ -119,6 +122,10 @@ project follows Semantic Versioning after the initial public alpha.
 - Promoted the prepared-only, no-decision and no-execution statement into a
   large high-contrast authority banner so the current boundary cannot be
   mistaken for a recorded approval.
+- Added Checkpoint 17Q explicit append-only approve/deny recording bound to the
+  exact prepared request and recipe digests. Required steps are derived
+  server-side, operator text is redacted, and recording provides no execution
+  authority.
 
 - A complete governed PostGIS candidate-to-current lifecycle: bounded
   inspection, deterministic comparison and assessment, digest-bound promotion

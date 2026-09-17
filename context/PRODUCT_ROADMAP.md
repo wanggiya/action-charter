@@ -631,3 +631,23 @@ keeping decision recording and execution as separate later actions.
 
 Next: explicit append-only human decision recording bound to the prepared
 request and recipe digest. Execution remains a later separate gate.
+### Checkpoint 17Q — append-only recipe approval decision
+
+- Collect an explicit approve or deny decision in a separate drawer.
+- Bind it to the exact prepared request and canonical recipe digests.
+- Derive required steps server-side and redact operator text.
+- Persist append-only approval evidence with optional bounded expiry.
+- Continue to expose no execution action.
+
+Next: independently verify the recorded approval against the immutable recipe
+and current deterministic policy before any execution control exists.
+### Checkpoint 17R — independent recipe approval verification
+
+- Promote append-only evidence and nothing-executed outcomes into large status cards.
+- Reload the immutable recipe and approval from fixed roots.
+- Recompute the recipe digest and rerun deterministic policy.
+- Verify decision, expiry and exact required-step scope without modifying evidence.
+- Continue to expose no execution action.
+
+Next: add a deterministic execution preview that names the exact approved recipe,
+steps, tools, inputs and evidence destinations before execution authority exists.

@@ -1,6 +1,6 @@
 # Current Status
 
-Last updated: 2026-09-11
+Last updated: 2026-09-16
 
 ## Project summary
 
@@ -25,6 +25,7 @@ The current system combines:
 * immutable Critic records and authoritative release packages;
 * natural-language recipe proposals;
 * guided operator review and explicit recipe storage;
+* prominent append-only authority outcomes and independent recipe-approval verification;
 * bounded PostGIS inspection, comparison and deterministic change assessment;
 * digest-bound promotion and rollback planning and approval;
 * serializable promotion and rollback execution; and
@@ -1817,3 +1818,13 @@ separate canonical request digest. The interface shows the exact steps and
 skills in a prepared-only card. No approver, decision, reason, expiry or
 correction is collected; no approval evidence is written and no execution is
 possible.
+## Checkpoint 17Q — append-only recipe approval decision
+
+Checkpoint 17Q adds a distinct Human decision drawer after 17P preparation.
+The operator may approve or deny, identify the approver, provide a required
+reason and optional bounded expiry, then explicitly confirm the displayed
+request digest and fixed step scope. The loopback service reprepares the
+request, recomputes both digests, reruns policy and derives steps server-side
+before using the existing redacting append-only approval service. The stored
+result exposes a safe filename, decision, scope and expiry and explicitly
+reports that nothing executed. Execution controls remain absent.

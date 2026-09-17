@@ -5,11 +5,14 @@ from http.server import ThreadingHTTPServer
 import json
 from pathlib import Path
 from threading import Thread
+from datetime import datetime, timezone
 
 import pytest
 
 from geoagent_harness.interface_api import (
     InterfaceApiError,
+    record_interface_recipe_approval,
+    verify_interface_recipe_approval,
     compile_interface_recipe_proposal,
     interface_recipe_template_catalog,
     interface_saved_recipe_inventory,
@@ -18,6 +21,8 @@ from geoagent_harness.interface_api import (
     serve_interface_api,
 )
 from geoagent_harness.interface_api.server import _handler
+from geoagent_harness.interface_api.server import InterfaceApprovalDecision
+from geoagent_harness.interface_api.server import InterfaceApprovalVerificationRequest
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -122,6 +127,65 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
             project_root=PROJECT_ROOT,
             recipe_root=recipe_root,
         )
+
+    approval_root = tmp_path / "approvals"
+    decision = InterfaceApprovalDecision.model_validate({
+        "action": "record_recipe_approval",
+        "recipe_filename": stored["recipe_filename"],
+        "confirmed_recipe_sha256": stored["recipe_sha256"],
+        "confirmed_approval_request_sha256": approval_request["approval_request_sha256"],
+        "decision": "approved",
+        "approver": "interface operator",
+        "reason": "Reviewed the exact conversion step and target.",
+        "valid_for_minutes": 60,
+    })
+    recorded = record_interface_recipe_approval(
+        decision,
+        project_root=PROJECT_ROOT,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc),
+    )
+    assert recorded["status"] == "recorded"
+    assert recorded["decision"] == "approved"
+    assert recorded["approved_step_ids"] == ["step_2"]
+    assert recorded["approval_recorded"] is True
+    assert recorded["execution_performed"] is False
+    assert [path.name for path in approval_root.iterdir()] == [
+        recorded["approval_filename"]
+    ]
+
+    verification = verify_interface_recipe_approval(
+        InterfaceApprovalVerificationRequest.model_validate({
+            "action": "verify_recipe_approval",
+            "recipe_filename": stored["recipe_filename"],
+            "confirmed_recipe_sha256": stored["recipe_sha256"],
+            "confirmed_approval_request_sha256": approval_request["approval_request_sha256"],
+            "approval_filename": recorded["approval_filename"],
+        }),
+        project_root=PROJECT_ROOT,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )
+    assert verification["status"] == "verified"
+    assert verification["approved"] is True
+    assert verification["required_step_ids"] == ["step_2"]
+    assert verification["independent_verification_performed"] is True
+    assert verification["approval_modified"] is False
+    assert verification["execution_performed"] is False
+
+    mismatch_root = tmp_path / "mismatched-approvals"
+    with pytest.raises(InterfaceApiError, match="request digest no longer matches"):
+        record_interface_recipe_approval(
+            decision.model_copy(update={
+                "confirmed_approval_request_sha256": "0" * 64,
+            }),
+            project_root=PROJECT_ROOT,
+            recipe_root=recipe_root,
+            approval_root=mismatch_root,
+        )
+    assert not mismatch_root.exists()
 
     with pytest.raises(InterfaceApiError, match="digest no longer matches"):
         save_interface_reviewed_recipe(
