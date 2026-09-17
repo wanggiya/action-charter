@@ -156,6 +156,15 @@ approval request for one stored recipe. It revalidates the canonical recipe and
 policy, binds every required step to the recipe digest, and displays a separate
 approval-request digest. Preparation records no decision and cannot execute.
 
+[Checkpoint 17Q](docs/CHECKPOINT17Q.md) adds a separate append-only human
+approve/deny action. The backend reprepares the request, verifies both digests,
+derives the step scope server-side, redacts operator text, and stores approval
+evidence beneath `approvals/`. Recording a decision still cannot execute.
+The interface then independently reloads and verifies the exact recipe and approval
+against current policy. Large authority cards distinguish append-only evidence,
+verified approval scope, and the separate fact that nothing has executed. See
+`docs/CHECKPOINT17R.md`.
+
 ## Complete PostGIS reference lifecycle
 
 Checkpoints 15A–15K provide the strongest end-to-end demonstration of the

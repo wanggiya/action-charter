@@ -8,9 +8,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable
+from typing import Any, Callable, Literal
+from datetime import datetime, timedelta, timezone
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from geoagent_harness.recipe_catalog import (
     RecipeTemplateCatalogError,
@@ -26,12 +27,16 @@ from geoagent_harness.skill_registry import (
     load_skill_registry,
 )
 from geoagent_harness.recipes import (
+    RecipeApprovalError,
     RecipePolicyError,
     RecipeStorageError,
     load_recipe,
     recipe_sha256,
     save_recipe,
     validate_recipe_policy,
+    create_recipe_approval,
+    load_recipe_approval,
+    verify_recipe_approval,
 )
 
 
@@ -45,6 +50,33 @@ LOOPBACK_HOST = "127.0.0.1"
 
 class InterfaceApiError(RuntimeError):
     """Raised when the bounded interface API cannot fulfill a request."""
+
+
+class InterfaceApprovalDecision(BaseModel):
+    """Exact human decision accepted by the local interface boundary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["record_recipe_approval"]
+    recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
+    confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    decision: Literal["approved", "denied"]
+    approver: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    valid_for_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
+class InterfaceApprovalVerificationRequest(BaseModel):
+    """Exact recorded decision selected for independent verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["verify_recipe_approval"]
+    recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
+    confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approval_filename: str = Field(pattern=r"^recipe-approval-[a-z0-9-]+\.json$")
 
 
 def _trusted_root(project_root: Path) -> Path:
@@ -229,9 +261,122 @@ def prepare_interface_recipe_approval(
     }
 
 
+def record_interface_recipe_approval(
+    request: InterfaceApprovalDecision,
+    *,
+    project_root: Path,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Reprepare and append one exact human decision without execution."""
+
+    prepared = prepare_interface_recipe_approval(
+        recipe_filename=request.recipe_filename,
+        confirmed_recipe_sha256=request.confirmed_recipe_sha256,
+        project_root=project_root,
+        recipe_root=recipe_root,
+    )
+    if prepared["approval_request_sha256"] != request.confirmed_approval_request_sha256:
+        raise InterfaceApiError("prepared approval request digest no longer matches")
+    root = _trusted_root(project_root)
+    recipes = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    if approvals.is_symlink():
+        raise InterfaceApiError("approval root cannot be a symlink")
+    recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
+    active_now = now or datetime.now(timezone.utc)
+    expires_at = (
+        active_now + timedelta(minutes=request.valid_for_minutes)
+        if request.valid_for_minutes is not None
+        else None
+    )
+    record, path = create_recipe_approval(
+        recipe=recipe,
+        registry=load_skill_registry(root),
+        step_ids=prepared["approval_required_step_ids"],
+        decision=request.decision,
+        approver=request.approver,
+        reason=request.reason,
+        approval_root=approvals,
+        expires_at=expires_at,
+        now=active_now,
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "recorded",
+        "approval_id": record.approval_id,
+        "approval_filename": path.name,
+        "recipe_sha256": record.recipe_sha256,
+        "approval_request_sha256": request.confirmed_approval_request_sha256,
+        "decision": record.decision,
+        "approved_step_ids": record.step_ids,
+        "created_at": record.created_at.isoformat(),
+        "expires_at": record.expires_at.isoformat() if record.expires_at else None,
+        "secrets_redacted": record.secrets_redacted,
+        "approval_recorded": True,
+        "execution_performed": False,
+    }
+
+
+def verify_interface_recipe_approval(
+    request: InterfaceApprovalVerificationRequest,
+    *,
+    project_root: Path,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Independently verify stored recipe and approval evidence without execution."""
+
+    prepared = prepare_interface_recipe_approval(
+        recipe_filename=request.recipe_filename,
+        confirmed_recipe_sha256=request.confirmed_recipe_sha256,
+        project_root=project_root,
+        recipe_root=recipe_root,
+    )
+    if prepared["approval_request_sha256"] != request.confirmed_approval_request_sha256:
+        raise InterfaceApiError("prepared approval request digest no longer matches")
+    root = _trusted_root(project_root)
+    recipes = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    if approvals.is_symlink():
+        raise InterfaceApiError("approval root cannot be a symlink")
+    recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
+    approval = load_recipe_approval(
+        approvals / request.approval_filename,
+        approval_root=approvals,
+    )
+    verification = verify_recipe_approval(
+        approval=approval,
+        recipe=recipe,
+        registry=load_skill_registry(root),
+        now=now,
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "verified",
+        "approval_id": approval.approval_id,
+        "approval_filename": request.approval_filename,
+        "recipe_id": recipe.recipe_id,
+        "recipe_sha256": verification.recipe_sha256,
+        "approval_request_sha256": request.confirmed_approval_request_sha256,
+        "decision": approval.decision,
+        "approved": verification.approved,
+        "required_step_ids": verification.required_step_ids,
+        "approved_step_ids": verification.approved_step_ids,
+        "missing_step_ids": verification.missing_step_ids,
+        "reason": verification.reason,
+        "independent_verification_performed": True,
+        "approval_modified": False,
+        "execution_performed": False,
+    }
+
+
 def _handler(
     project_root: Path,
     recipe_root: Path | None = None,
+    approval_root: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     class InterfaceRequestHandler(BaseHTTPRequestHandler):
         server_version = "ActionCharterInterface/1.0"
@@ -269,7 +414,7 @@ def _handler(
                     "schema_version": "1.0",
                     "status": "ready",
                     "bound_to_loopback": True,
-                    "write_authority": False,
+                    "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": False,
                 })
                 return
@@ -304,6 +449,8 @@ def _handler(
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/recipe-proposals/save-reviewed",
                 "/api/v1/recipes/prepare-approval",
+                "/api/v1/recipes/record-approval",
+                "/api/v1/recipes/verify-approval",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -334,7 +481,7 @@ def _handler(
                         project_root=project_root,
                         recipe_root=recipe_root,
                     )
-                else:
+                elif self.path == "/api/v1/recipes/prepare-approval":
                     if not isinstance(payload, dict) or set(payload) != {
                         "recipe_filename",
                         "confirmed_recipe_sha256",
@@ -346,6 +493,22 @@ def _handler(
                         confirmed_recipe_sha256=payload["confirmed_recipe_sha256"],
                         project_root=project_root,
                         recipe_root=recipe_root,
+                    )
+                elif self.path == "/api/v1/recipes/record-approval":
+                    decision = InterfaceApprovalDecision.model_validate(payload)
+                    response = record_interface_recipe_approval(
+                        decision,
+                        project_root=project_root,
+                        recipe_root=recipe_root,
+                        approval_root=approval_root,
+                    )
+                else:
+                    verification_request = InterfaceApprovalVerificationRequest.model_validate(payload)
+                    response = verify_interface_recipe_approval(
+                        verification_request,
+                        project_root=project_root,
+                        recipe_root=recipe_root,
+                        approval_root=approval_root,
                     )
             except (json.JSONDecodeError, ValidationError):
                 self._send(HTTPStatus.BAD_REQUEST, {"error": "recipe proposal is invalid"})
@@ -359,6 +522,9 @@ def _handler(
                 return
             except RecipeStorageError:
                 self._send(HTTPStatus.CONFLICT, {"error": "reviewed recipe could not be stored immutably"})
+                return
+            except RecipeApprovalError:
+                self._send(HTTPStatus.CONFLICT, {"error": "recipe approval could not be recorded"})
                 return
             except (SkillRegistryError, OSError, ValueError):
                 self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted compilation service is unavailable"})

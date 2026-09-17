@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, loadSavedRecipes, prepareRecipeApproval, saveReviewedRecipe, type InterfaceCompilation, type PreparedApprovalRequest, type SavedInterfaceRecipe, type SavedRecipeInventory } from "./lib/interface-api";
+import { compileRecipeProposal, loadSavedRecipes, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type InterfaceCompilation, type PreparedApprovalRequest, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -114,6 +114,17 @@ export default function App() {
   const [recipeInventoryNotice, setRecipeInventoryNotice] = useState("");
   const [preparedApproval, setPreparedApproval] = useState<PreparedApprovalRequest | null>(null);
   const [approvalPreparationPending, setApprovalPreparationPending] = useState(false);
+  const [approvalDecision, setApprovalDecision] = useState<"approved" | "denied">("approved");
+  const [approvalApprover, setApprovalApprover] = useState("");
+  const [approvalReason, setApprovalReason] = useState("");
+  const [approvalValidMinutes, setApprovalValidMinutes] = useState("60");
+  const [approvalConfirmed, setApprovalConfirmed] = useState(false);
+  const [approvalRecording, setApprovalRecording] = useState(false);
+  const [recordedApproval, setRecordedApproval] = useState<RecordedRecipeApproval | null>(null);
+  const [approvalDecisionNotice, setApprovalDecisionNotice] = useState("");
+  const [approvalVerification, setApprovalVerification] = useState<VerifiedRecipeApproval | null>(null);
+  const [approvalVerifying, setApprovalVerifying] = useState(false);
+  const [approvalVerificationNotice, setApprovalVerificationNotice] = useState("");
   const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
@@ -412,6 +423,11 @@ export default function App() {
     setRecipePanelOpen(true);
     setRecipeInventoryNotice("Loading immutable recipes…");
     setPreparedApproval(null);
+    setRecordedApproval(null);
+    setApprovalVerification(null);
+    setApprovalVerificationNotice("");
+    setApprovalConfirmed(false);
+    setApprovalDecisionNotice("");
     try {
       const inventory = await loadSavedRecipes();
       setRecipeInventory(inventory);
@@ -428,6 +444,11 @@ export default function App() {
     try {
       const request = await prepareRecipeApproval(recipeFilename, recipeSha256);
       setPreparedApproval(request);
+      setRecordedApproval(null);
+      setApprovalVerification(null);
+      setApprovalVerificationNotice("");
+      setApprovalConfirmed(false);
+      setApprovalDecisionNotice("");
       setRecipeInventoryNotice("");
       requestAnimationFrame(() => {
         approvalRequestRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -437,6 +458,44 @@ export default function App() {
       setRecipeInventoryNotice(error instanceof Error ? error.message : "Approval request could not be prepared.");
     } finally {
       setApprovalPreparationPending(false);
+    }
+  };
+  const recordApprovalDecision = async () => {
+    if (!preparedApproval || !approvalConfirmed || recordedApproval) return;
+    if (!approvalApprover.trim() || !approvalReason.trim()) {
+      setApprovalDecisionNotice("Approver and reason are required.");
+      return;
+    }
+    const minutes = approvalValidMinutes.trim() ? Number(approvalValidMinutes) : null;
+    if (minutes !== null && (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)) {
+      setApprovalDecisionNotice("Expiration must be a whole number from 1 to 1440 minutes.");
+      return;
+    }
+    setApprovalRecording(true);
+    setApprovalDecisionNotice("Revalidating the prepared request before append-only recording…");
+    try {
+      const result = await recordRecipeApproval({ request: preparedApproval, decision: approvalDecision, approver: approvalApprover.trim(), reason: approvalReason.trim(), validForMinutes: minutes });
+      setRecordedApproval(result);
+      setApprovalDecisionNotice("Decision recorded. Nothing was executed.");
+    } catch (error) {
+      setApprovalDecisionNotice(error instanceof Error ? error.message : "Approval decision could not be recorded.");
+    } finally {
+      setApprovalRecording(false);
+    }
+  };
+  const verifyApprovalDecision = async () => {
+    if (!preparedApproval || !recordedApproval || approvalVerifying) return;
+    setApprovalVerifying(true);
+    setApprovalVerificationNotice("Re-reading immutable recipe and approval evidence…");
+    try {
+      const result = await verifyRecordedRecipeApproval(preparedApproval, recordedApproval);
+      setApprovalVerification(result);
+      setApprovalVerificationNotice("");
+    } catch (error) {
+      setApprovalVerification(null);
+      setApprovalVerificationNotice(error instanceof Error ? error.message : "Approval verification failed.");
+    } finally {
+      setApprovalVerifying(false);
     }
   };
   const beginProposal = () => {
@@ -581,7 +640,7 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17P</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17R</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -605,6 +664,13 @@ export default function App() {
       </section>
     </div>}
     {recipePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setRecipePanelOpen(false); }}><section className="recipe-workspace" role="dialog" aria-modal="true" aria-labelledby="recipes-title"><header className="template-workspace-head"><div><p className="eyebrow">Immutable local definitions</p><h2 id="recipes-title">Saved recipes</h2><p>Inspect exact identities and prepare a digest-bound approval request. Preparing does not record approval or execute anything.</p></div><button aria-label="Close saved recipes" onClick={() => setRecipePanelOpen(false)}><X size={18}/></button></header>{recipeInventoryNotice && <p className="recipe-inventory-notice">{recipeInventoryNotice}</p>}{recipeInventory && <div className="recipe-inventory"><div className="recipe-inventory-summary"><strong>{recipeInventory.recipe_count}</strong><span>immutable recipe{recipeInventory.recipe_count === 1 ? "" : "s"}</span><small>No approval or execution performed</small></div>{recipeInventory.recipes.length ? <div className="recipe-cards">{preparedApproval && <section ref={approvalRequestRef} tabIndex={-1} className="approval-request"><header><ShieldCheck size={18}/><span><strong>Approval request prepared</strong><small>{preparedApproval.recipe_id}</small></span></header><div><span>Request SHA-256</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code></div><div><span>Recipe SHA-256</span><code title={preparedApproval.recipe_sha256}>{preparedApproval.recipe_sha256}</code></div><h3>Exact approval scope</h3><ul>{preparedApproval.approval_required_step_ids.map((stepId) => { const step = preparedApproval.steps.find((candidate) => candidate.step_id === stepId); return <li key={stepId}><code>{stepId}</code><span>{step?.skill_id.replaceAll("_", " ")}</span></li>; })}</ul><p><LockKeyhole size={13}/> Prepared only · no decision recorded · nothing executed</p></section>}{recipeInventory.recipes.map((recipe) => <article className={`recipe-card ${preparedApproval?.recipe_sha256 === recipe.recipe_sha256 ? "selected" : ""}`} key={recipe.recipe_sha256}><header><LayoutList size={16}/><span><strong>{recipe.recipe_id}</strong><small>{recipe.recipe_filename}</small></span></header><div className="recipe-card-digest"><span>SHA-256</span><code title={recipe.recipe_sha256}>{recipe.recipe_sha256}</code></div><ol>{recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span>{recipe.approval_required_step_ids.includes(step.step_id) && <em>Approval required</em>}</li>)}</ol><footer><span>{recipe.validation_required_step_ids.length} validation gate{recipe.validation_required_step_ids.length === 1 ? "" : "s"}</span><button disabled={approvalPreparationPending || !recipe.approval_required_step_ids.length} onClick={() => void prepareApproval(recipe.recipe_filename, recipe.recipe_sha256)}>{approvalPreparationPending ? "Preparing…" : "Prepare approval request"}</button></footer></article>)}</div> : <div className="recipe-inventory-empty"><LayoutList size={22}/><strong>No saved recipes yet</strong><span>Compile and explicitly save a reviewed template proposal first.</span></div>}</div>}</section></div>}
+    {recipePanelOpen && preparedApproval && <aside className="approval-decision-drawer" aria-label="Record human approval decision"><header><div><p className="eyebrow">Human decision</p><h2>Record approval</h2></div><span className="decision-no-execute"><LockKeyhole size={14}/> No execution</span></header>{recordedApproval ? <div className={`recorded-decision decision-${recordedApproval.decision}`}><CheckCircle2 size={22}/><strong>{recordedApproval.decision === "approved" ? "Approval recorded" : "Denial recorded"}</strong><small>{recordedApproval.approval_filename}</small><dl><div><dt>Decision</dt><dd>{recordedApproval.decision}</dd></div><div><dt>Steps</dt><dd>{recordedApproval.approved_step_ids.join(", ")}</dd></div><div><dt>Expires</dt><dd>{recordedApproval.expires_at ? new Date(recordedApproval.expires_at).toLocaleString() : "No expiry"}</dd></div></dl><p><ShieldCheck size={14}/> Append-only evidence created · nothing executed</p></div> : <><div className="decision-binding"><span>Bound request</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code><small>{preparedApproval.approval_required_step_ids.join(", ")}</small></div><label>Decision<select value={approvalDecision} onChange={(event) => { setApprovalDecision(event.target.value as "approved" | "denied"); setApprovalConfirmed(false); }}><option value="approved">Approve exact steps</option><option value="denied">Deny request</option></select></label><label>Approver<input value={approvalApprover} maxLength={200} placeholder="Operator name or role" onChange={(event) => { setApprovalApprover(event.target.value); setApprovalConfirmed(false); }}/></label><label>Reason<textarea value={approvalReason} maxLength={2000} rows={4} placeholder="Why is this decision appropriate?" onChange={(event) => { setApprovalReason(event.target.value); setApprovalConfirmed(false); }}/></label><label>Valid for minutes <small>Leave blank for no expiry; maximum 1440</small><input value={approvalValidMinutes} inputMode="numeric" placeholder="60" onChange={(event) => { setApprovalValidMinutes(event.target.value); setApprovalConfirmed(false); }}/></label><label className="decision-confirm"><input type="checkbox" checked={approvalConfirmed} onChange={(event) => setApprovalConfirmed(event.target.checked)}/><span>I confirm this decision applies to the displayed request digest and exact step scope.</span></label>{approvalDecisionNotice && <p className="decision-notice">{approvalDecisionNotice}</p>}<button className={`record-decision decision-${approvalDecision}`} disabled={!approvalConfirmed || approvalRecording} onClick={() => void recordApprovalDecision()}>{approvalRecording ? "Revalidating and recording…" : approvalDecision === "approved" ? "Record approval" : "Record denial"}</button><p className="decision-boundary"><ShieldCheck size={14}/> This writes approval evidence only. It cannot execute the recipe.</p></>}</aside>}
+    {recipePanelOpen && recordedApproval && <section className={`authority-outcome-dock decision-${recordedApproval.decision}`} aria-live="polite">
+      <div className="authority-outcome-primary"><ShieldCheck size={26}/><span><small>Authority evidence</small><strong>Append-only {recordedApproval.decision} recorded</strong><em>{recordedApproval.approval_filename}</em></span></div>
+      <div className="authority-outcome-safety"><LockKeyhole size={24}/><span><small>Execution boundary</small><strong>Nothing executed</strong><em>No tool or workflow run was started.</em></span></div>
+      {approvalVerification ? <div className={`authority-verification ${approvalVerification.approved ? "verified-approved" : "verified-blocked"}`}><CheckCircle2 size={24}/><span><small>Independent verification</small><strong>{approvalVerification.approved ? "Approval verified" : "Execution remains blocked"}</strong><em>{approvalVerification.reason}</em></span></div> : <button className="verify-approval" disabled={approvalVerifying} onClick={() => void verifyApprovalDecision()}>{approvalVerifying ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}
+      {approvalVerificationNotice && <p>{approvalVerificationNotice}</p>}
+    </section>}
     <div className="workspace">
       <aside className="rail">
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>

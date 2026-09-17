@@ -7,6 +7,8 @@ from geoagent_harness.interface_api.server import (
     interface_recipe_template_catalog,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
+    record_interface_recipe_approval,
+    verify_interface_recipe_approval,
     save_interface_reviewed_recipe,
     serve_interface_api,
 )
@@ -18,6 +20,8 @@ __all__ = [
     "interface_recipe_template_catalog",
     "interface_saved_recipe_inventory",
     "prepare_interface_recipe_approval",
+    "record_interface_recipe_approval",
+    "verify_interface_recipe_approval",
     "save_interface_reviewed_recipe",
     "serve_interface_api",
 ]
