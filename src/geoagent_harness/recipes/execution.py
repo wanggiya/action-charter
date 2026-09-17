@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from geoagent_harness.recipes.approval import (
     RecipeApprovalError,
     verify_recipe_approval,
@@ -33,6 +35,7 @@ def build_recipe_execution_envelope(
     recipe: WorkflowRecipe,
     approval: RecipeApprovalRecord,
     registry: SkillRegistry,
+    now: datetime | None = None,
 ) -> RecipeExecutionEnvelope:
     """Build a non-executed envelope from exact approval."""
 
@@ -45,6 +48,7 @@ def build_recipe_execution_envelope(
             approval=approval,
             recipe=recipe,
             registry=registry,
+            now=now,
         )
     except (
         RecipeApprovalError,
