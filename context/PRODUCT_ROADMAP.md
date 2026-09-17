@@ -651,3 +651,13 @@ and current deterministic policy before any execution control exists.
 
 Next: add a deterministic execution preview that names the exact approved recipe,
 steps, tools, inputs and evidence destinations before execution authority exists.
+### Checkpoint 17S — exact execution preview
+
+- Reverify the immutable recipe and approval immediately before preview.
+- Build the existing governed recipe execution envelope.
+- Show ordered skills, access classes, dependencies, redacted arguments and outputs.
+- Show validation requirements and future run/evidence destination roots.
+- Expose no execution action or execution authority.
+
+Next: add one separately confirmed execution action for the exact previewed
+envelope, with live state and fail-closed evidence persistence.

@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, loadSavedRecipes, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type InterfaceCompilation, type PreparedApprovalRequest, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
+import { compileRecipeProposal, loadSavedRecipes, prepareExecutionPreview, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type ExecutionPreview, type InterfaceCompilation, type PreparedApprovalRequest, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -125,6 +125,8 @@ export default function App() {
   const [approvalVerification, setApprovalVerification] = useState<VerifiedRecipeApproval | null>(null);
   const [approvalVerifying, setApprovalVerifying] = useState(false);
   const [approvalVerificationNotice, setApprovalVerificationNotice] = useState("");
+  const [executionPreview, setExecutionPreview] = useState<ExecutionPreview | null>(null);
+  const [executionPreviewPending, setExecutionPreviewPending] = useState(false);
   const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
@@ -426,6 +428,7 @@ export default function App() {
     setRecordedApproval(null);
     setApprovalVerification(null);
     setApprovalVerificationNotice("");
+    setExecutionPreview(null);
     setApprovalConfirmed(false);
     setApprovalDecisionNotice("");
     try {
@@ -447,6 +450,7 @@ export default function App() {
       setRecordedApproval(null);
       setApprovalVerification(null);
       setApprovalVerificationNotice("");
+      setExecutionPreview(null);
       setApprovalConfirmed(false);
       setApprovalDecisionNotice("");
       setRecipeInventoryNotice("");
@@ -496,6 +500,20 @@ export default function App() {
       setApprovalVerificationNotice(error instanceof Error ? error.message : "Approval verification failed.");
     } finally {
       setApprovalVerifying(false);
+    }
+  };
+  const previewApprovedExecution = async () => {
+    if (!preparedApproval || !recordedApproval || !approvalVerification?.approved || executionPreviewPending) return;
+    setExecutionPreviewPending(true);
+    setApprovalVerificationNotice("Rebuilding the exact non-executing envelope…");
+    try {
+      setExecutionPreview(await prepareExecutionPreview(preparedApproval, recordedApproval));
+      setApprovalVerificationNotice("");
+    } catch (error) {
+      setExecutionPreview(null);
+      setApprovalVerificationNotice(error instanceof Error ? error.message : "Execution preview failed.");
+    } finally {
+      setExecutionPreviewPending(false);
     }
   };
   const beginProposal = () => {
@@ -640,7 +658,7 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17R</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17S</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
       <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
@@ -669,7 +687,14 @@ export default function App() {
       <div className="authority-outcome-primary"><ShieldCheck size={26}/><span><small>Authority evidence</small><strong>Append-only {recordedApproval.decision} recorded</strong><em>{recordedApproval.approval_filename}</em></span></div>
       <div className="authority-outcome-safety"><LockKeyhole size={24}/><span><small>Execution boundary</small><strong>Nothing executed</strong><em>No tool or workflow run was started.</em></span></div>
       {approvalVerification ? <div className={`authority-verification ${approvalVerification.approved ? "verified-approved" : "verified-blocked"}`}><CheckCircle2 size={24}/><span><small>Independent verification</small><strong>{approvalVerification.approved ? "Approval verified" : "Execution remains blocked"}</strong><em>{approvalVerification.reason}</em></span></div> : <button className="verify-approval" disabled={approvalVerifying} onClick={() => void verifyApprovalDecision()}>{approvalVerifying ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}
+      {approvalVerification?.approved && !executionPreview && <button className="preview-execution" disabled={executionPreviewPending} onClick={() => void previewApprovedExecution()}>{executionPreviewPending ? "Preparing exact preview…" : "Preview approved execution"}</button>}
       {approvalVerificationNotice && <p>{approvalVerificationNotice}</p>}
+    </section>}
+    {recipePanelOpen && executionPreview && <section className="execution-preview-panel" aria-label="Non-executing execution preview">
+      <header><div><p className="eyebrow">Exact execution envelope</p><h2>Execution preview</h2></div><span><LockKeyhole size={14}/> Preview only</span></header>
+      <div className="preview-identities"><div><small>Recipe</small><strong>{executionPreview.recipe_id}</strong><code title={executionPreview.recipe_sha256}>{executionPreview.recipe_sha256}</code></div><div><small>Approval</small><strong>{executionPreview.approval_id}</strong><code>{executionPreview.approval_filename}</code></div></div>
+      <ol>{executionPreview.steps.map((step) => <li key={step.step_id}><span className="preview-position">{step.position}</span><div><strong>{step.skill_id.replaceAll("_", " ")}</strong><small>{step.access?.replaceAll("_", " ")} · {step.validation_required ? "validation required" : "no post-write validation"}</small><dl>{Object.entries(step.arguments).map(([name, value]) => <div key={name}><dt>{name.replaceAll("_", " ")}</dt><dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd></div>)}</dl><em>Outputs: {step.output_ids.join(", ") || "none declared"}</em></div></li>)}</ol>
+      <footer><div><small>Evidence destinations</small><strong>{executionPreview.evidence_destinations.join(" · ")}</strong></div><div className="preview-not-executed"><LockKeyhole size={19}/><span><strong>Nothing executed</strong><small>No execution control exists in Checkpoint 17S.</small></span></div></footer>
     </section>}
     <div className="workspace">
       <aside className="rail">

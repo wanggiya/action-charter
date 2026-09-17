@@ -164,6 +164,10 @@ The interface then independently reloads and verifies the exact recipe and appro
 against current policy. Large authority cards distinguish append-only evidence,
 verified approval scope, and the separate fact that nothing has executed. See
 `docs/CHECKPOINT17R.md`.
+After verification, the interface can build and inspect the exact governed
+execution envelope—including ordered skills, redacted arguments, declared outputs,
+validation requirements and evidence roots—without running it. See
+`docs/CHECKPOINT17S.md`.
 
 ## Complete PostGIS reference lifecycle
 

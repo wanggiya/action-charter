@@ -5,6 +5,9 @@ project follows Semantic Versioning after the initial public alpha.
 
 ## [Unreleased]
 
+- Added Checkpoint 17S exact execution-envelope previews with ordered skill,
+  argument, output, validation and evidence-destination inspection while keeping
+  execution unavailable.
 - Added Checkpoint 17R large authority-outcome cards and independent, non-executing
   verification of immutable recipe approvals against current deterministic policy.
 

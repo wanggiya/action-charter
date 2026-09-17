@@ -26,6 +26,7 @@ from geoagent_harness.skill_registry import (
     SkillRegistryError,
     load_skill_registry,
 )
+from geoagent_harness.redaction import redact_value
 from geoagent_harness.recipes import (
     RecipeApprovalError,
     RecipePolicyError,
@@ -37,6 +38,7 @@ from geoagent_harness.recipes import (
     create_recipe_approval,
     load_recipe_approval,
     verify_recipe_approval,
+    build_recipe_execution_envelope,
 )
 
 
@@ -73,6 +75,18 @@ class InterfaceApprovalVerificationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     action: Literal["verify_recipe_approval"]
+    recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
+    confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approval_filename: str = Field(pattern=r"^recipe-approval-[a-z0-9-]+\.json$")
+
+
+class InterfaceExecutionPreviewRequest(BaseModel):
+    """Exact verified artifacts selected for a non-executing preview."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["prepare_execution_preview"]
     recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
     confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -373,6 +387,82 @@ def verify_interface_recipe_approval(
     }
 
 
+def prepare_interface_execution_preview(
+    request: InterfaceExecutionPreviewRequest,
+    *,
+    project_root: Path,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Build the existing execution envelope and project it without running it."""
+
+    verified = verify_interface_recipe_approval(
+        InterfaceApprovalVerificationRequest(
+            action="verify_recipe_approval",
+            recipe_filename=request.recipe_filename,
+            confirmed_recipe_sha256=request.confirmed_recipe_sha256,
+            confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+            approval_filename=request.approval_filename,
+        ),
+        project_root=project_root,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=now,
+    )
+    if not verified["approved"]:
+        raise InterfaceApiError("recorded approval does not authorize execution")
+    root = _trusted_root(project_root)
+    recipes = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
+    approval = load_recipe_approval(
+        approvals / request.approval_filename,
+        approval_root=approvals,
+    )
+    registry = load_skill_registry(root)
+    envelope = build_recipe_execution_envelope(
+        recipe=recipe,
+        approval=approval,
+        registry=registry,
+        now=now,
+    )
+    steps = []
+    for position, step in enumerate(envelope.steps, start=1):
+        skill = registry.get_skill(step.skill_id)
+        steps.append({
+            "position": position,
+            "step_id": step.step_id,
+            "skill_id": step.skill_id,
+            "skill_kind": skill.kind.value if skill.kind else None,
+            "access": skill.access.value if skill.access else None,
+            "approval_required": skill.approval_required,
+            "validation_required": skill.validation_required,
+            "depends_on": step.depends_on,
+            "arguments": redact_value(step.arguments),
+            "output_ids": step.output_ids,
+        })
+    return {
+        "schema_version": "1.0",
+        "status": "previewed_not_executed",
+        "recipe_id": envelope.recipe_id,
+        "recipe_filename": request.recipe_filename,
+        "recipe_sha256": envelope.recipe_sha256,
+        "approval_id": envelope.approval_id,
+        "approval_filename": request.approval_filename,
+        "approval_request_sha256": request.confirmed_approval_request_sha256,
+        "tool_name": envelope.tool_name,
+        "approved_step_ids": envelope.approved_step_ids,
+        "topological_step_ids": envelope.topological_step_ids,
+        "steps": steps,
+        "evidence_destinations": ["recipe-runs/", "recipe-evidence/"],
+        "approval_reverified": True,
+        "secrets_redacted": True,
+        "execution_available": False,
+        "execution_performed": False,
+    }
+
+
 def _handler(
     project_root: Path,
     recipe_root: Path | None = None,
@@ -451,6 +541,7 @@ def _handler(
                 "/api/v1/recipes/prepare-approval",
                 "/api/v1/recipes/record-approval",
                 "/api/v1/recipes/verify-approval",
+                "/api/v1/recipes/preview-execution",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -502,10 +593,18 @@ def _handler(
                         recipe_root=recipe_root,
                         approval_root=approval_root,
                     )
-                else:
+                elif self.path == "/api/v1/recipes/verify-approval":
                     verification_request = InterfaceApprovalVerificationRequest.model_validate(payload)
                     response = verify_interface_recipe_approval(
                         verification_request,
+                        project_root=project_root,
+                        recipe_root=recipe_root,
+                        approval_root=approval_root,
+                    )
+                else:
+                    preview_request = InterfaceExecutionPreviewRequest.model_validate(payload)
+                    response = prepare_interface_execution_preview(
+                        preview_request,
                         project_root=project_root,
                         recipe_root=recipe_root,
                         approval_root=approval_root,

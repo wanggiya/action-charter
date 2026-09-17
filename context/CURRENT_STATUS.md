@@ -26,6 +26,7 @@ The current system combines:
 * natural-language recipe proposals;
 * guided operator review and explicit recipe storage;
 * prominent append-only authority outcomes and independent recipe-approval verification;
+* exact, redacted execution-envelope preview with execution authority withheld;
 * bounded PostGIS inspection, comparison and deterministic change assessment;
 * digest-bound promotion and rollback planning and approval;
 * serializable promotion and rollback execution; and

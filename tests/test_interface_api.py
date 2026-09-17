@@ -17,12 +17,14 @@ from geoagent_harness.interface_api import (
     interface_recipe_template_catalog,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
+    prepare_interface_execution_preview,
     save_interface_reviewed_recipe,
     serve_interface_api,
 )
 from geoagent_harness.interface_api.server import _handler
 from geoagent_harness.interface_api.server import InterfaceApprovalDecision
 from geoagent_harness.interface_api.server import InterfaceApprovalVerificationRequest
+from geoagent_harness.interface_api.server import InterfaceExecutionPreviewRequest
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -174,6 +176,30 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
     assert verification["independent_verification_performed"] is True
     assert verification["approval_modified"] is False
     assert verification["execution_performed"] is False
+
+    preview = prepare_interface_execution_preview(
+        InterfaceExecutionPreviewRequest.model_validate({
+            "action": "prepare_execution_preview",
+            "recipe_filename": stored["recipe_filename"],
+            "confirmed_recipe_sha256": stored["recipe_sha256"],
+            "confirmed_approval_request_sha256": approval_request["approval_request_sha256"],
+            "approval_filename": recorded["approval_filename"],
+        }),
+        project_root=PROJECT_ROOT,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )
+    assert preview["status"] == "previewed_not_executed"
+    assert preview["topological_step_ids"] == ["step_1", "step_2"]
+    assert [step["skill_id"] for step in preview["steps"]] == [
+        "inspect_vector", "convert_vector"
+    ]
+    assert preview["steps"][1]["access"] == "artifact_write"
+    assert preview["steps"][1]["validation_required"] is True
+    assert preview["evidence_destinations"] == ["recipe-runs/", "recipe-evidence/"]
+    assert preview["execution_available"] is False
+    assert preview["execution_performed"] is False
 
     mismatch_root = tmp_path / "mismatched-approvals"
     with pytest.raises(InterfaceApiError, match="request digest no longer matches"):
