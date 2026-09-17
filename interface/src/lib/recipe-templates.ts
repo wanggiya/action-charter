@@ -14,6 +14,7 @@ export const recipeTemplateSchema = z.object({
   assessment_policy: z.enum(["none", "vector_conversion", "raster_conversion"]),
   skill_ids: z.array(safeIdentifier).min(1).max(20),
   required_parameters: z.array(safeIdentifier).min(1).max(20),
+  optional_parameters: z.array(safeIdentifier).max(20).default([]),
   steps: z.array(recipeTemplateStepSchema).min(1).max(20),
 });
 

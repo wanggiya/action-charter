@@ -44,7 +44,7 @@ def serve_interface_api_command(
         typer.Option("--port", min=1, max=65535),
     ] = 8765,
 ) -> None:
-    """Serve non-mutating typed operations to the local interface."""
+    """Serve typed local interface operations with execution disabled by default."""
 
     from geoagent_harness.interface_api import InterfaceApiError, serve_interface_api
 

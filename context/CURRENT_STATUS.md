@@ -27,6 +27,9 @@ The current system combines:
 * guided operator review and explicit recipe storage;
 * prominent append-only authority outcomes and independent recipe-approval verification;
 * exact, redacted execution-envelope preview with execution authority withheld;
+* separately confirmed execution of an exact preview through the existing governed recipe runner;
+* single-active-gate interface presentation with explicit optional recipe parameters;
+* bounded execution-outcome and validation-fact inspection inside the completed-run panel;
 * bounded PostGIS inspection, comparison and deterministic change assessment;
 * digest-bound promotion and rollback planning and approval;
 * serializable promotion and rollback execution; and
