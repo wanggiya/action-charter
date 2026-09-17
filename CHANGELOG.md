@@ -5,6 +5,17 @@ project follows Semantic Versioning after the initial public alpha.
 
 ## [Unreleased]
 
+- Added Checkpoint 17T first governed interface execution, disabled by default,
+  digest-confirmed, server-reverified, allowlisted, validated and durably evidenced.
+- Exposed optional template parameters including vector `target_format`, reduced
+  the interface to one active process panel, and enlarged execution artifact results.
+- Added bounded, redacted per-step outcome and validation visualization to the
+  completed interface run instead of showing only status and artifact paths.
+- Matched optional selector styling to the existing form, added a close control
+  for the complete approval flow, and tested target-format enforcement through
+  the real deterministic proposal compiler.
+- Reserved approval-header space so the close control cannot cover the
+  `No execution` authority indicator.
 - Added Checkpoint 17S exact execution-envelope previews with ordered skill,
   argument, output, validation and evidence-destination inspection while keeping
   execution unavailable.

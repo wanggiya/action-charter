@@ -1,4 +1,4 @@
-"""Small fail-closed HTTP boundary for non-mutating interface operations."""
+"""Small fail-closed HTTP boundary for governed interface operations."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from threading import Lock
 from typing import Any, Callable, Literal
 from datetime import datetime, timedelta, timezone
 
@@ -27,6 +28,11 @@ from geoagent_harness.skill_registry import (
     load_skill_registry,
 )
 from geoagent_harness.redaction import redact_value
+from geoagent_harness.mcp_server.approved_recipe import (
+    ApprovedRecipeError,
+    run_approved_recipe as execute_approved_recipe,
+)
+from geoagent_harness.mcp_server.settings import load_settings
 from geoagent_harness.recipes import (
     RecipeApprovalError,
     RecipePolicyError,
@@ -48,6 +54,23 @@ SAFE_RECIPE_FILENAME = re.compile(
     r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$"
 )
 LOOPBACK_HOST = "127.0.0.1"
+_EXECUTION_LOCK = Lock()
+_ACTIVE_EXECUTIONS: set[tuple[str, str]] = set()
+MAX_INTERFACE_OUTCOME_BYTES = 16_384
+
+
+def _bounded_outcome(value: object) -> object:
+    """Return a redacted bounded result projection for interface inspection."""
+
+    projected = redact_value(value)
+    encoded = json.dumps(projected, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    if len(encoded) > MAX_INTERFACE_OUTCOME_BYTES:
+        return {
+            "outcome_available": True,
+            "projection_truncated": True,
+            "message": "Outcome is too large for the interface projection; inspect durable evidence.",
+        }
+    return projected
 
 
 class InterfaceApiError(RuntimeError):
@@ -93,6 +116,20 @@ class InterfaceExecutionPreviewRequest(BaseModel):
     approval_filename: str = Field(pattern=r"^recipe-approval-[a-z0-9-]+\.json$")
 
 
+class InterfaceRecipeExecutionRequest(BaseModel):
+    """One explicit confirmation of an exact previewed execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["execute_exact_preview"]
+    recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
+    confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approval_filename: str = Field(pattern=r"^recipe-approval-[a-z0-9-]+\.json$")
+    confirmed_execution_preview_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmation: Literal["execute_exact_preview"]
+
+
 def _trusted_root(project_root: Path) -> Path:
     try:
         resolved = project_root.resolve(strict=True)
@@ -107,9 +144,22 @@ def interface_recipe_template_catalog(project_root: Path) -> dict[str, Any]:
     """Return the same validated non-executing catalog projection as the CLI."""
 
     catalog = load_recipe_template_catalog(_trusted_root(project_root))
+    optional_by_profile = {
+        "vector_inspection": ["source_layer"],
+        "raster_inspection": [],
+        "raster_conversion": ["resampling"],
+        "vector_conversion": ["source_layer", "target_layer", "target_format"],
+        "vector_postgis": ["source_layer"],
+    }
     return {
         "schema_version": catalog.schema_version,
-        "templates": [template.model_dump(mode="json") for template in catalog.templates],
+        "templates": [
+            {
+                **template.model_dump(mode="json"),
+                "optional_parameters": optional_by_profile[template.parameter_profile],
+            }
+            for template in catalog.templates
+        ],
         "catalog_validated": True,
         "files_modified": False,
         "execution_performed": False,
@@ -208,6 +258,10 @@ def interface_saved_recipe_inventory(
                 "recipe_id": recipe.recipe_id,
                 "recipe_sha256": recipe_sha256(recipe),
                 "recipe_filename": path.name,
+                "saved_at": datetime.fromtimestamp(
+                    path.stat().st_mtime,
+                    timezone.utc,
+                ).isoformat(),
                 "steps": [
                     {"step_id": step.step_id, "skill_id": step.skill_id}
                     for step in recipe.steps
@@ -442,7 +496,7 @@ def prepare_interface_execution_preview(
             "arguments": redact_value(step.arguments),
             "output_ids": step.output_ids,
         })
-    return {
+    preview = {
         "schema_version": "1.0",
         "status": "previewed_not_executed",
         "recipe_id": envelope.recipe_id,
@@ -458,8 +512,115 @@ def prepare_interface_execution_preview(
         "evidence_destinations": ["recipe-runs/", "recipe-evidence/"],
         "approval_reverified": True,
         "secrets_redacted": True,
-        "execution_available": False,
+        "execution_available": load_settings().enable_write_tools,
         "execution_performed": False,
+    }
+    canonical = json.dumps(preview, sort_keys=True, separators=(",", ":"))
+    return {
+        **preview,
+        "execution_preview_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    }
+
+
+def execute_interface_recipe(
+    request: InterfaceRecipeExecutionRequest,
+    *,
+    project_root: Path,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+) -> dict[str, Any]:
+    """Execute one exact confirmed preview through the existing governed boundary."""
+
+    preview_request = InterfaceExecutionPreviewRequest(
+        action="prepare_execution_preview",
+        recipe_filename=request.recipe_filename,
+        confirmed_recipe_sha256=request.confirmed_recipe_sha256,
+        confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+        approval_filename=request.approval_filename,
+    )
+    preview = prepare_interface_execution_preview(
+        preview_request,
+        project_root=project_root,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+    )
+    if preview["execution_preview_sha256"] != request.confirmed_execution_preview_sha256:
+        raise InterfaceApiError("execution preview digest no longer matches")
+    if not preview["execution_available"]:
+        raise InterfaceApiError("write tools are disabled for interface execution")
+    root = _trusted_root(project_root)
+    recipes = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
+    approval = load_recipe_approval(
+        approvals / request.approval_filename,
+        approval_root=approvals,
+    )
+    registry = load_skill_registry(root)
+    envelope = build_recipe_execution_envelope(
+        recipe=recipe,
+        approval=approval,
+        registry=registry,
+    )
+    configured = load_settings()
+
+    def project_path(path: Path) -> Path:
+        return path if path.is_absolute() else root / path
+
+    settings = configured.model_copy(update={
+        "project_root": root,
+        "recipe_root": recipes,
+        "approval_root": approvals,
+        "input_root": project_path(configured.input_root),
+        "output_root": project_path(configured.output_root),
+        "contract_root": project_path(configured.contract_root),
+        "report_root": project_path(configured.report_root),
+        "recipe_run_root": project_path(configured.recipe_run_root),
+        "recipe_evidence_root": project_path(configured.recipe_evidence_root),
+    })
+    execution_key = (envelope.recipe_sha256, envelope.approval_id)
+    with _EXECUTION_LOCK:
+        if execution_key in _ACTIVE_EXECUTIONS:
+            raise InterfaceApiError("this exact recipe execution is already in progress")
+        _ACTIVE_EXECUTIONS.add(execution_key)
+    try:
+        result = execute_approved_recipe(
+            execution_envelope=envelope.model_dump(mode="json"),
+            recipe_filename=request.recipe_filename,
+            approval_filename=request.approval_filename,
+            settings=settings,
+        )
+    finally:
+        with _EXECUTION_LOCK:
+            _ACTIVE_EXECUTIONS.discard(execution_key)
+    record = result.execution_record
+    return {
+        "schema_version": "1.0",
+        "status": record.final_status,
+        "recipe_id": record.recipe_id,
+        "recipe_sha256": record.recipe_sha256,
+        "approval_id": record.approval_id,
+        "execution_preview_sha256": request.confirmed_execution_preview_sha256,
+        "step_results": [
+            {
+                "step_id": step.step_id,
+                "skill_id": step.skill_id,
+                "status": step.status,
+                "validation_performed": step.validation_performed,
+                "output_ids": step.execution.output_ids,
+                "outcome": _bounded_outcome(step.execution.result),
+                "validation_outcome": _bounded_outcome(step.validation_result) if step.validation_result is not None else None,
+            }
+            for step in result.run_result.step_results
+        ],
+        "run_result_sha256": record.run_result_sha256,
+        "run_result_path": record.run_result_path,
+        "evidence_sha256": record.evidence_sha256,
+        "evidence_path": record.evidence_path,
+        "report_path": record.report_path,
+        "execution_performed": True,
+        "evidence_recorded": True,
+        "report_written": True,
     }
 
 
@@ -500,12 +661,14 @@ def _handler(
             if self._reject_origin():
                 return
             if self.path == "/api/v1/health":
+                execution_enabled = load_settings().enable_write_tools
                 self._send(HTTPStatus.OK, {
                     "schema_version": "1.0",
                     "status": "ready",
                     "bound_to_loopback": True,
                     "write_authority": "bounded_recipe_and_approval_evidence",
-                    "execution_authority": False,
+                    "execution_authority": execution_enabled,
+                    "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
                 return
             if self.path == "/api/v1/recipe-templates":
@@ -542,6 +705,7 @@ def _handler(
                 "/api/v1/recipes/record-approval",
                 "/api/v1/recipes/verify-approval",
                 "/api/v1/recipes/preview-execution",
+                "/api/v1/recipes/execute",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -601,10 +765,18 @@ def _handler(
                         recipe_root=recipe_root,
                         approval_root=approval_root,
                     )
-                else:
+                elif self.path == "/api/v1/recipes/preview-execution":
                     preview_request = InterfaceExecutionPreviewRequest.model_validate(payload)
                     response = prepare_interface_execution_preview(
                         preview_request,
+                        project_root=project_root,
+                        recipe_root=recipe_root,
+                        approval_root=approval_root,
+                    )
+                else:
+                    execution_request = InterfaceRecipeExecutionRequest.model_validate(payload)
+                    response = execute_interface_recipe(
+                        execution_request,
                         project_root=project_root,
                         recipe_root=recipe_root,
                         approval_root=approval_root,
@@ -624,6 +796,9 @@ def _handler(
                 return
             except RecipeApprovalError:
                 self._send(HTTPStatus.CONFLICT, {"error": "recipe approval could not be recorded"})
+                return
+            except ApprovedRecipeError:
+                self._send(HTTPStatus.CONFLICT, {"error": "approved recipe execution failed; inspect evidence and outputs"})
                 return
             except (SkillRegistryError, OSError, ValueError):
                 self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted compilation service is unavailable"})

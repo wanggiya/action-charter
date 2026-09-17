@@ -661,3 +661,14 @@ steps, tools, inputs and evidence destinations before execution authority exists
 
 Next: add one separately confirmed execution action for the exact previewed
 envelope, with live state and fail-closed evidence persistence.
+### Checkpoint 17T — first governed interface execution
+
+- Require explicit confirmation of the exact execution-preview SHA-256.
+- Keep execution disabled unless `ENABLE_WRITE_TOOLS=true` is explicit at startup.
+- Rebuild recipe, approval, policy, preview and execution envelope server-side.
+- Invoke the existing allowlisted approved-recipe boundary.
+- Persist and display run, evidence and report identities.
+- Prevent concurrent duplicate execution in one interface-service process.
+
+Next: add live step progress, durable execution state, failure localization,
+interruption handling and safe retry/recovery guidance.

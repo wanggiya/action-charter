@@ -168,6 +168,11 @@ After verification, the interface can build and inspect the exact governed
 execution envelope—including ordered skills, redacted arguments, declared outputs,
 validation requirements and evidence roots—without running it. See
 `docs/CHECKPOINT17S.md`.
+Checkpoint 17T adds the first interface execution action for that exact preview.
+It remains disabled by default, requires explicit write-tool startup authority and
+operator confirmation, revalidates every artifact server-side, dispatches only
+registered recipe skills, and records run, evidence and report artifacts. See
+`docs/CHECKPOINT17T.md`.
 
 ## Complete PostGIS reference lifecycle
 

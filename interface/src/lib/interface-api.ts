@@ -54,6 +54,7 @@ const savedRecipeInventorySchema = z.object({
     recipe_id: z.string().min(1).max(120),
     recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
     recipe_filename: z.string().regex(/^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$/),
+    saved_at: z.string().datetime({ offset: true }),
     steps: z.array(z.object({
       step_id: z.string().min(1).max(120),
       skill_id: z.string().min(1).max(120),
@@ -131,6 +132,7 @@ export type VerifiedRecipeApproval = z.infer<typeof verifiedApprovalSchema>;
 const executionPreviewSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.literal("previewed_not_executed"),
+  execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   recipe_id: z.string().min(1).max(120),
   recipe_filename: z.string().regex(/^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$/),
   recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -155,11 +157,39 @@ const executionPreviewSchema = z.object({
   evidence_destinations: z.array(z.string().max(200)).min(1).max(10),
   approval_reverified: z.literal(true),
   secrets_redacted: z.literal(true),
-  execution_available: z.literal(false),
+  execution_available: z.boolean(),
   execution_performed: z.literal(false),
 });
 
 export type ExecutionPreview = z.infer<typeof executionPreviewSchema>;
+
+const recipeExecutionSchema = z.object({
+  schema_version: z.literal("1.0"),
+  status: z.enum(["validated_success", "validation_failed"]),
+  recipe_id: z.string().min(1).max(120),
+  recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  approval_id: z.string().min(1).max(120),
+  execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  step_results: z.array(z.object({
+    step_id: z.string().min(1).max(120),
+    skill_id: z.string().min(1).max(120),
+    status: z.enum(["completed", "validated_success", "validation_failed"]),
+    validation_performed: z.boolean(),
+    output_ids: z.array(z.string().max(120)).max(100),
+    outcome: z.unknown(),
+    validation_outcome: z.unknown().nullable(),
+  })).min(1).max(100),
+  run_result_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  run_result_path: z.string().min(1).max(2000),
+  evidence_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  evidence_path: z.string().min(1).max(2000),
+  report_path: z.string().min(1).max(2000),
+  execution_performed: z.literal(true),
+  evidence_recorded: z.literal(true),
+  report_written: z.literal(true),
+});
+
+export type RecipeExecutionResult = z.infer<typeof recipeExecutionSchema>;
 
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
@@ -328,4 +358,32 @@ export async function prepareExecutionPreview(
     throw new Error(message.success ? message.data.error : "execution preview failed");
   }
   return executionPreviewSchema.parse(payload);
+}
+
+export async function executeExactPreview(
+  request: PreparedApprovalRequest,
+  recorded: RecordedRecipeApproval,
+  preview: ExecutionPreview,
+): Promise<RecipeExecutionResult> {
+  const response = await fetch("/api/v1/recipes/execute", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "execute_exact_preview",
+      recipe_filename: request.recipe_filename,
+      confirmed_recipe_sha256: request.recipe_sha256,
+      confirmed_approval_request_sha256: request.approval_request_sha256,
+      approval_filename: recorded.approval_filename,
+      confirmed_execution_preview_sha256: preview.execution_preview_sha256,
+      confirmation: "execute_exact_preview",
+    }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(300) }).safeParse(payload);
+    throw new Error(message.success ? message.data.error : "approved execution failed");
+  }
+  return recipeExecutionSchema.parse(payload);
 }
