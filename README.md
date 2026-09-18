@@ -168,6 +168,15 @@ After verification, the interface can build and inspect the exact governed
 execution envelope—including ordered skills, redacted arguments, declared outputs,
 validation requirements and evidence roots—without running it. See
 `docs/CHECKPOINT17S.md`.
+
+[Checkpoint 17T](docs/CHECKPOINT17T.md) adds explicitly confirmed execution of
+one exact approved preview when write tools were enabled at API startup.
+[Checkpoint 17U](docs/CHECKPOINT17U.md) makes runner progress atomic, durable
+and restart-aware, including failed-step and interruption localization.
+[Checkpoint 17V](docs/CHECKPOINT17V.md) adds the read-only **Runs** inventory so
+completed, failed, interrupted or active attempts can be reopened as their
+run-specific graph after a browser or API restart. Reopening never retries or
+executes a recipe.
 Checkpoint 17T adds the first interface execution action for that exact preview.
 It remains disabled by default, requires explicit write-tool startup authority and
 operator confirmation, revalidates every artifact server-side, dispatches only

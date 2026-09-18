@@ -3,7 +3,7 @@
 from __future__ import annotations
 from pathlib import Path
 
-from typing import Any
+from typing import Any, Callable
 
 from geoagent_harness.mcp_server.settings import (
     MCPSettings,
@@ -152,6 +152,7 @@ def run_approved_recipe(
     approval: RecipeApprovalRecord,
     registry: SkillRegistry,
     settings: MCPSettings,
+    progress_callback: Callable[[str, str, str], None] | None = None,
 ) -> RecipeRunResult:
     """Execute and validate one exact approved recipe."""
 
@@ -209,6 +210,9 @@ def run_approved_recipe(
         step = steps_by_id[step_id]
         skill = skills_by_step[step_id]
 
+        if progress_callback is not None:
+            progress_callback(step_id, step.skill_id, "running")
+
         missing_dependencies = [
             dependency
             for dependency in step.depends_on
@@ -232,6 +236,8 @@ def run_approved_recipe(
                 settings=settings,
             )
         except RecipeDispatchError as exc:
+            if progress_callback is not None:
+                progress_callback(step_id, step.skill_id, "failed")
             raise RecipeRunError(
                 f"recipe step {step_id!r} "
                 "failed dispatch"
@@ -250,6 +256,8 @@ def run_approved_recipe(
                 )
             )
             completed.add(step_id)
+            if progress_callback is not None:
+                progress_callback(step_id, step.skill_id, "completed")
             continue
 
         expected_verifier = (
@@ -343,6 +351,9 @@ def run_approved_recipe(
                 )
             )
 
+            if progress_callback is not None:
+                progress_callback(step_id, step.skill_id, "validation_failed")
+
             return RecipeRunResult(
                 recipe_id=recipe.recipe_id,
                 recipe_sha256=(
@@ -377,6 +388,8 @@ def run_approved_recipe(
                 validation_performed=True,
             )
         )
+        if progress_callback is not None:
+            progress_callback(step_id, step.skill_id, "validated_success")
 
     expected_validations = {
         step_id

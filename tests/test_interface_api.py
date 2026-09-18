@@ -17,6 +17,7 @@ from geoagent_harness.interface_api import (
     verify_interface_recipe_approval,
     compile_interface_recipe_proposal,
     interface_recipe_template_catalog,
+    interface_execution_inventory,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
     prepare_interface_execution_preview,
@@ -262,10 +263,18 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
         SimpleNamespace(step_id="step_1", skill_id="inspect_vector", status="completed", validation_performed=False, execution=SimpleNamespace(output_ids=["source_metadata"], result={"feature_count": 3}), validation_result=None),
         SimpleNamespace(step_id="step_2", skill_id="convert_vector", status="validated_success", validation_performed=True, execution=SimpleNamespace(output_ids=["converted_vector"], result={"target": "data/output/test.gpkg"}), validation_result={"passed": True}),
     ])
+    def fake_execute(**kwargs):
+        progress = kwargs["progress_callback"]
+        progress("step_1", "inspect_vector", "running")
+        progress("step_1", "inspect_vector", "completed")
+        progress("step_2", "convert_vector", "running")
+        progress("step_2", "convert_vector", "validated_success")
+        return SimpleNamespace(execution_record=fake_record, run_result=fake_run)
+
     monkeypatch.setattr(
         interface_api_module,
         "execute_approved_recipe",
-        lambda **_kwargs: SimpleNamespace(execution_record=fake_record, run_result=fake_run),
+        fake_execute,
     )
     executed = execute_interface_recipe(
         InterfaceRecipeExecutionRequest.model_validate({
@@ -280,11 +289,29 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
         project_root=PROJECT_ROOT,
         recipe_root=recipe_root,
         approval_root=approval_root,
+        progress_root=tmp_path / "execution-progress",
     )
     assert executed["status"] == "validated_success"
     assert executed["execution_performed"] is True
     assert executed["evidence_recorded"] is True
     assert executed["report_written"] is True
+    progress = interface_api_module._EXECUTION_PROGRESS[
+        enabled_preview["execution_preview_sha256"]
+    ]
+    assert progress["status"] == "validated_success"
+    assert [step["status"] for step in progress["steps"]] == [
+        "completed",
+        "validated_success",
+    ]
+    assert progress["failed_step_id"] is None
+    assert progress["interruption_detected"] is False
+    assert progress["recovery_guidance"] is None
+    progress_artifact = (
+        tmp_path
+        / "execution-progress"
+        / f'{enabled_preview["execution_preview_sha256"]}.json'
+    )
+    assert json.loads(progress_artifact.read_text(encoding="utf-8")) == progress
     assert executed["step_results"][0]["outcome"] == {"feature_count": 3}
     assert executed["step_results"][1]["validation_outcome"] == {"passed": True}
 
@@ -308,6 +335,136 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
             recipe_root=tmp_path / "mismatch",
         )
     assert not (tmp_path / "mismatch").exists()
+
+
+def test_durable_running_progress_is_classified_as_interrupted(
+    tmp_path: Path,
+) -> None:
+    digest = "a" * 64
+    progress_root = tmp_path / "execution-progress"
+    state = {
+        "schema_version": "1.0",
+        "status": "running",
+        "execution_preview_sha256": digest,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "recovery_guidance": None,
+        "steps": [
+            {"step_id": "step_1", "skill_id": "inspect_vector", "status": "completed"},
+            {"step_id": "step_2", "skill_id": "convert_vector", "status": "running"},
+        ],
+        "execution_performed": False,
+    }
+    interface_api_module._persist_execution_progress(
+        PROJECT_ROOT,
+        state,
+        progress_root=progress_root,
+    )
+    interface_api_module._ACTIVE_PROGRESS.discard(digest)
+
+    loaded = interface_api_module._load_execution_progress(
+        PROJECT_ROOT,
+        digest,
+        progress_root=progress_root,
+    )
+
+    assert loaded is not None
+    assert loaded["status"] == "interrupted"
+    assert loaded["interruption_detected"] is True
+    assert loaded["failed_step_id"] == "step_2"
+    assert loaded["steps"][1]["status"] == "interrupted"
+    assert "fresh target and new approval" in loaded["recovery_guidance"]
+    assert json.loads((progress_root / f"{digest}.json").read_text())["status"] == "interrupted"
+
+
+def test_active_durable_progress_remains_running(tmp_path: Path) -> None:
+    digest = "b" * 64
+    progress_root = tmp_path / "execution-progress"
+    state = {
+        "schema_version": "1.0",
+        "status": "running",
+        "execution_preview_sha256": digest,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": None,
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "recovery_guidance": None,
+        "steps": [{"step_id": "step_1", "skill_id": "inspect_vector", "status": "running"}],
+        "execution_performed": False,
+    }
+    interface_api_module._persist_execution_progress(
+        PROJECT_ROOT,
+        state,
+        progress_root=progress_root,
+    )
+    interface_api_module._ACTIVE_PROGRESS.add(digest)
+    try:
+        loaded = interface_api_module._load_execution_progress(
+            PROJECT_ROOT,
+            digest,
+            progress_root=progress_root,
+        )
+    finally:
+        interface_api_module._ACTIVE_PROGRESS.discard(digest)
+
+    assert loaded is not None
+    assert loaded["status"] == "running"
+    assert loaded["steps"][0]["status"] == "running"
+
+
+def test_execution_inventory_reopens_durable_attempts_without_execution(
+    tmp_path: Path,
+) -> None:
+    progress_root = tmp_path / "execution-progress"
+    digest = "c" * 64
+    state = {
+        "schema_version": "1.0",
+        "status": "validated_success",
+        "execution_preview_sha256": digest,
+        "recipe_id": "inventory_recipe",
+        "recipe_filename": f"inventory_recipe.{('d' * 64)}.json",
+        "recipe_sha256": "d" * 64,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "recovery_guidance": None,
+        "steps": [{
+            "step_id": "step_1",
+            "skill_id": "inspect_vector",
+            "depends_on": [],
+            "status": "completed",
+        }],
+        "execution_performed": True,
+    }
+    interface_api_module._persist_execution_progress(
+        PROJECT_ROOT,
+        state,
+        progress_root=progress_root,
+    )
+
+    inventory = interface_execution_inventory(
+        PROJECT_ROOT,
+        progress_root=progress_root,
+    )
+
+    assert inventory["attempt_count"] == 1
+    assert inventory["inventory_truncated"] is False
+    assert inventory["execution_performed"] is False
+    assert inventory["attempts"][0] == {
+        "execution_preview_sha256": digest,
+        "status": "validated_success",
+        "recipe_id": "inventory_recipe",
+        "recipe_filename": f"inventory_recipe.{('d' * 64)}.json",
+        "recipe_sha256": "d" * 64,
+        "started_at": state["started_at"],
+        "finished_at": state["finished_at"],
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "step_count": 1,
+    }
 
 
 def test_interface_server_refuses_non_loopback_binding() -> None:

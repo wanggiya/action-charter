@@ -6,8 +6,10 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import tempfile
 from threading import Lock
 from typing import Any, Callable, Literal
 from datetime import datetime, timedelta, timezone
@@ -50,13 +52,159 @@ from geoagent_harness.recipes import (
 
 MAX_INTERFACE_REQUEST_BYTES = 65_536
 MAX_INTERFACE_RECIPES = 200
+MAX_INTERFACE_EXECUTION_ATTEMPTS = 200
 SAFE_RECIPE_FILENAME = re.compile(
     r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$"
 )
 LOOPBACK_HOST = "127.0.0.1"
 _EXECUTION_LOCK = Lock()
 _ACTIVE_EXECUTIONS: set[tuple[str, str]] = set()
+_ACTIVE_PROGRESS: set[str] = set()
+_EXECUTION_PROGRESS: dict[str, dict[str, Any]] = {}
 MAX_INTERFACE_OUTCOME_BYTES = 16_384
+
+
+def _progress_path(
+    project_root: Path,
+    digest: str,
+    *,
+    progress_root: Path | None = None,
+) -> Path:
+    if not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise InterfaceApiError("execution progress digest is invalid")
+    root = (
+        progress_root
+        if progress_root is not None
+        else _trusted_root(project_root) / "workflow-state" / "interface-executions"
+    )
+    if root.exists() and root.is_symlink():
+        raise InterfaceApiError("execution progress root cannot be a symlink")
+    root.mkdir(parents=True, exist_ok=True)
+    resolved = root.resolve(strict=True)
+    if resolved.parent.is_symlink():
+        raise InterfaceApiError("execution progress parent cannot be a symlink")
+    return resolved / f"{digest}.json"
+
+
+def _persist_execution_progress(
+    project_root: Path,
+    state: dict[str, Any],
+    *,
+    progress_root: Path | None = None,
+) -> None:
+    digest = str(state["execution_preview_sha256"])
+    destination = _progress_path(project_root, digest, progress_root=progress_root)
+    content = json.dumps(state, indent=2, sort_keys=True) + "\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{digest}.",
+        suffix=".tmp",
+        dir=destination.parent,
+        text=True,
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _load_execution_progress(
+    project_root: Path,
+    digest: str,
+    *,
+    progress_root: Path | None = None,
+) -> dict[str, Any] | None:
+    path = _progress_path(project_root, digest, progress_root=progress_root)
+    if not path.exists():
+        return None
+    if path.is_symlink() or path.resolve().parent != path.parent.resolve():
+        raise InterfaceApiError("execution progress artifact is unsafe")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or payload.get("execution_preview_sha256") != digest:
+        raise InterfaceApiError("execution progress artifact is invalid")
+    if payload.get("status") == "running" and digest not in _ACTIVE_PROGRESS:
+        payload["status"] = "interrupted"
+        payload["finished_at"] = datetime.now(timezone.utc).isoformat()
+        payload["interruption_detected"] = True
+        payload["recovery_guidance"] = (
+            "Execution was interrupted. Inspect outputs and durable evidence; "
+            "use a fresh target and new approval before retrying any write step."
+        )
+        for step in payload.get("steps", []):
+            if isinstance(step, dict) and step.get("status") == "running":
+                step["status"] = "interrupted"
+                payload["failed_step_id"] = step.get("step_id")
+        _persist_execution_progress(
+            project_root,
+            payload,
+            progress_root=progress_root,
+        )
+    return payload
+
+
+def interface_execution_inventory(
+    project_root: Path,
+    *,
+    progress_root: Path | None = None,
+) -> dict[str, Any]:
+    """Return bounded durable attempt summaries without execution authority."""
+
+    root = (
+        progress_root
+        if progress_root is not None
+        else _trusted_root(project_root) / "workflow-state" / "interface-executions"
+    )
+    if not root.exists():
+        return {
+            "schema_version": "1.0",
+            "attempts": [],
+            "attempt_count": 0,
+            "inventory_truncated": False,
+            "execution_performed": False,
+        }
+    if root.is_symlink() or not root.is_dir():
+        raise InterfaceApiError("execution progress root is unsafe")
+    paths = sorted(
+        root.glob("*.json"),
+        key=lambda candidate: candidate.lstat().st_mtime,
+        reverse=True,
+    )
+    truncated = len(paths) > MAX_INTERFACE_EXECUTION_ATTEMPTS
+    attempts = []
+    for path in paths[:MAX_INTERFACE_EXECUTION_ATTEMPTS]:
+        if path.is_symlink() or not re.fullmatch(r"[a-f0-9]{64}\.json", path.name):
+            raise InterfaceApiError("execution progress artifact is unsafe")
+        digest = path.stem
+        state = _load_execution_progress(
+            project_root,
+            digest,
+            progress_root=root,
+        )
+        if state is None:
+            continue
+        attempts.append({
+            "execution_preview_sha256": digest,
+            "status": state.get("status"),
+            "recipe_id": state.get("recipe_id"),
+            "recipe_filename": state.get("recipe_filename"),
+            "recipe_sha256": state.get("recipe_sha256"),
+            "started_at": state.get("started_at"),
+            "finished_at": state.get("finished_at"),
+            "failed_step_id": state.get("failed_step_id"),
+            "interruption_detected": bool(state.get("interruption_detected", False)),
+            "step_count": len(state.get("steps", [])),
+        })
+    return {
+        "schema_version": "1.0",
+        "attempts": attempts,
+        "attempt_count": len(attempts),
+        "inventory_truncated": truncated,
+        "execution_performed": False,
+    }
 
 
 def _bounded_outcome(value: object) -> object:
@@ -314,7 +462,11 @@ def prepare_interface_recipe_approval(
         "recipe_filename": recipe_filename,
         "recipe_sha256": digest,
         "steps": [
-            {"step_id": step.step_id, "skill_id": step.skill_id}
+            {
+                "step_id": step.step_id,
+                "skill_id": step.skill_id,
+                "depends_on": step.depends_on,
+            }
             for step in recipe.steps
         ],
         "approval_required_step_ids": policy.approval_required_step_ids,
@@ -528,6 +680,7 @@ def execute_interface_recipe(
     project_root: Path,
     recipe_root: Path | None = None,
     approval_root: Path | None = None,
+    progress_root: Path | None = None,
 ) -> dict[str, Any]:
     """Execute one exact confirmed preview through the existing governed boundary."""
 
@@ -579,20 +732,93 @@ def execute_interface_recipe(
         "recipe_evidence_root": project_path(configured.recipe_evidence_root),
     })
     execution_key = (envelope.recipe_sha256, envelope.approval_id)
+    progress_key = request.confirmed_execution_preview_sha256
     with _EXECUTION_LOCK:
         if execution_key in _ACTIVE_EXECUTIONS:
             raise InterfaceApiError("this exact recipe execution is already in progress")
         _ACTIVE_EXECUTIONS.add(execution_key)
+        _ACTIVE_PROGRESS.add(progress_key)
+        _EXECUTION_PROGRESS[progress_key] = {
+            "schema_version": "1.0",
+            "status": "running",
+            "execution_preview_sha256": progress_key,
+            "recipe_id": envelope.recipe_id,
+            "recipe_filename": request.recipe_filename,
+            "recipe_sha256": envelope.recipe_sha256,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "finished_at": None,
+            "failed_step_id": None,
+            "interruption_detected": False,
+            "recovery_guidance": None,
+            "steps": [
+                {
+                    "step_id": step.step_id,
+                    "skill_id": step.skill_id,
+                    "depends_on": step.depends_on,
+                    "status": "queued",
+                }
+                for step in envelope.steps
+            ],
+            "execution_performed": False,
+        }
+        initial_progress = json.loads(json.dumps(_EXECUTION_PROGRESS[progress_key]))
+    try:
+        _persist_execution_progress(root, initial_progress, progress_root=progress_root)
+    except Exception:
+        with _EXECUTION_LOCK:
+            _ACTIVE_EXECUTIONS.discard(execution_key)
+            _ACTIVE_PROGRESS.discard(progress_key)
+            _EXECUTION_PROGRESS.pop(progress_key, None)
+        raise
+
+    def progress_callback(step_id: str, skill_id: str, status: str) -> None:
+        with _EXECUTION_LOCK:
+            state = _EXECUTION_PROGRESS[progress_key]
+            for item in state["steps"]:
+                if item["step_id"] == step_id and item["skill_id"] == skill_id:
+                    item["status"] = status
+                    break
+            if status in {"failed", "validation_failed"}:
+                state["failed_step_id"] = step_id
+            snapshot = json.loads(json.dumps(state))
+        _persist_execution_progress(root, snapshot, progress_root=progress_root)
+
     try:
         result = execute_approved_recipe(
             execution_envelope=envelope.model_dump(mode="json"),
             recipe_filename=request.recipe_filename,
             approval_filename=request.approval_filename,
             settings=settings,
+            progress_callback=progress_callback,
         )
+    except Exception:
+        with _EXECUTION_LOCK:
+            state = _EXECUTION_PROGRESS[progress_key]
+            state["status"] = "failed"
+            state["finished_at"] = datetime.now(timezone.utc).isoformat()
+            state["failed_step_id"] = state["failed_step_id"] or next(
+                (item["step_id"] for item in state["steps"] if item["status"] == "running"),
+                None,
+            )
+            state["recovery_guidance"] = (
+                "Inspect the failed step and durable evidence before creating "
+                "a new approval for any retry."
+            )
+            failed_snapshot = json.loads(json.dumps(state))
+        _persist_execution_progress(root, failed_snapshot, progress_root=progress_root)
+        raise
     finally:
         with _EXECUTION_LOCK:
             _ACTIVE_EXECUTIONS.discard(execution_key)
+            _ACTIVE_PROGRESS.discard(progress_key)
+    with _EXECUTION_LOCK:
+        state = _EXECUTION_PROGRESS[progress_key]
+        state["status"] = result.execution_record.final_status
+        state["finished_at"] = datetime.now(timezone.utc).isoformat()
+        state["failed_step_id"] = getattr(result.run_result, "failed_step_id", None)
+        state["execution_performed"] = True
+        final_snapshot = json.loads(json.dumps(state))
+    _persist_execution_progress(root, final_snapshot, progress_root=progress_root)
     record = result.execution_record
     return {
         "schema_version": "1.0",
@@ -670,6 +896,41 @@ def _handler(
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            if self.path == "/api/v1/executions":
+                try:
+                    self._send(
+                        HTTPStatus.OK,
+                        interface_execution_inventory(project_root),
+                    )
+                except (InterfaceApiError, OSError, ValueError, json.JSONDecodeError):
+                    self._send(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": "execution inventory is unavailable"},
+                    )
+                return
+            progress_match = re.fullmatch(r"/api/v1/executions/([a-f0-9]{64})", self.path)
+            if progress_match:
+                digest = progress_match.group(1)
+                with _EXECUTION_LOCK:
+                    progress = _EXECUTION_PROGRESS.get(digest)
+                    payload = json.loads(json.dumps(progress)) if progress is not None else None
+                if payload is None:
+                    try:
+                        payload = _load_execution_progress(project_root, digest)
+                    except (InterfaceApiError, OSError, ValueError, json.JSONDecodeError):
+                        self._send(
+                            HTTPStatus.SERVICE_UNAVAILABLE,
+                            {"error": "execution progress is unavailable"},
+                        )
+                        return
+                    if payload is not None:
+                        with _EXECUTION_LOCK:
+                            _EXECUTION_PROGRESS[digest] = payload
+                if payload is None:
+                    self._send(HTTPStatus.NOT_FOUND, {"error": "execution progress is not available"})
+                else:
+                    self._send(HTTPStatus.OK, payload)
                 return
             if self.path == "/api/v1/recipe-templates":
                 try:

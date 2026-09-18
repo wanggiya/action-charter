@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -159,6 +159,7 @@ def run_approved_recipe(
     recipe_filename: str,
     approval_filename: str,
     settings: MCPSettings | None = None,
+    progress_callback: Callable[[str, str, str], None] | None = None,
 ) -> PersistedRecipeExecutionResult:
     """Verify exact artifacts, then execute the recipe."""
 
@@ -196,6 +197,7 @@ def run_approved_recipe(
             approval=approval,
             registry=registry,
             settings=active,
+            progress_callback=progress_callback,
         )
     except (
         RecipeApprovalError,
@@ -243,4 +245,3 @@ def run_approved_recipe(
         run_result=result,
         execution_record=execution_record,
     )
-
