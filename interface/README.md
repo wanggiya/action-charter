@@ -11,7 +11,12 @@ The Checkpoint 17 interface provides immutable evidence inspection and a separat
 - Lucide React provides icons.
 - Plain CSS provides the visual system; there is no Tailwind dependency.
 
-This directory has no backend, database, authentication system, OpenAI integration, Cloudflare configuration, or deployment configuration. The `.openai` directory from the earlier draft was a hosting manifest from a site starter and is intentionally absent.
+This directory remains a browser client and contains no database,
+authentication system, OpenAI integration, Cloudflare configuration, or
+deployment configuration. Its `/api` requests are proxied only to the separate
+loopback ActionCharter interface service. The `.openai` directory from the
+earlier draft was a hosting manifest from a site starter and is intentionally
+absent.
 
 ## Prerequisites
 
@@ -48,10 +53,16 @@ pnpm build
 pnpm dev
 ```
 
-Open the local URL printed by Vite. Evidence mode is immutable. Proposal edits remain in browser memory and are discarded on exit. A downloaded template proposal must still pass the existing backend compiler and later approval/execution gates. The interface cannot currently approve, execute, install packages, open arbitrary sockets, or contact ActionCharter services.
+Open the local URL printed by Vite. Evidence mode is immutable. Proposal edits
+remain in browser memory and are discarded on exit. The loopback service can
+compile and store reviewed recipes, record and verify approval, preview exact
+execution, and—only when explicitly started with write tools enabled—execute
+that exact approved preview through the existing governed runner. The interface
+cannot install packages, open arbitrary sockets, or bypass any policy,
+approval, validation, or evidence boundary.
 ## Local typed API
 
-Proposal compilation requires the Checkpoint 17M loopback service. Start it
+Governed interface operations require the loopback service. Start it
 from the repository root:
 
 ```bash
@@ -59,11 +70,16 @@ from the repository root:
 ```
 
 Then start this Vite application in another terminal. Vite proxies `/api` to
-`127.0.0.1:8765`. The service compiles proposals in memory only; it cannot save,
-approve or execute them.
+`127.0.0.1:8765`. Execution remains disabled unless the service process is
+started with `ENABLE_WRITE_TOOLS=true`; the health endpoint reports that fact.
 
 After successful compilation, the interface can immutably save the reviewed
 recipe. It requires confirmation of the displayed SHA-256 and step order, then
 the backend recompiles and checks the digest again. Saved recipe JSON is local
 runtime state under `workflow-recipes/` and is ignored by Git. This does not
 approve or execute the recipe.
+
+The top-level **Runs** workspace reads bounded durable progress from
+`workflow-state/interface-executions/`. It can restore an eligible attempt's
+run-specific graph after restarting the browser or API. This inventory is
+observational only and cannot resume, retry, approve, or execute an attempt.

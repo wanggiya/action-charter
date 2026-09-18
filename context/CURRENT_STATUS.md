@@ -1845,3 +1845,13 @@ guidance. It never resumes or retries a write automatically. Approved, denied,
 failed and interrupted remain distinct outcomes; denied and interrupted use a
 red stop treatment in the interface. The authoritative execution result and
 durable evidence remain the only source of a validated-success claim.
+
+## Checkpoint 17V — durable execution attempt browser
+
+Checkpoint 17V adds a bounded read-only inventory over the durable 17U progress
+records and a visible Runs workspace in the main interface. New attempts retain
+the immutable recipe identity and exact step dependencies needed to reconstruct
+their run-specific graph. An operator can reopen completed, failed, interrupted
+or active state after closing the browser or restarting the local API. Reopening
+cannot approve, resume, retry or execute anything; legacy records without enough
+identity remain listed but their graph action is disabled.

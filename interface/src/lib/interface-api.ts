@@ -196,6 +196,9 @@ const executionProgressSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
   execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  recipe_id: z.string().min(1).max(120).nullable().optional(),
+  recipe_filename: z.string().max(240).nullable().optional(),
+  recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable().optional(),
   started_at: z.string().datetime({ offset: true }),
   finished_at: z.string().datetime({ offset: true }).nullable(),
   failed_step_id: z.string().max(120).nullable(),
@@ -204,12 +207,34 @@ const executionProgressSchema = z.object({
   steps: z.array(z.object({
     step_id: z.string().min(1).max(120),
     skill_id: z.string().min(1).max(120),
+    depends_on: z.array(z.string().min(1).max(120)).max(100).default([]),
     status: z.enum(["queued", "running", "completed", "validated_success", "validation_failed", "failed", "interrupted"]),
   })).min(1).max(100),
   execution_performed: z.boolean(),
 });
 
 export type ExecutionProgress = z.infer<typeof executionProgressSchema>;
+
+const executionInventorySchema = z.object({
+  schema_version: z.literal("1.0"),
+  attempts: z.array(z.object({
+    execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
+    recipe_id: z.string().min(1).max(120).nullable(),
+    recipe_filename: z.string().max(240).nullable(),
+    recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+    started_at: z.string().datetime({ offset: true }),
+    finished_at: z.string().datetime({ offset: true }).nullable(),
+    failed_step_id: z.string().max(120).nullable(),
+    interruption_detected: z.boolean(),
+    step_count: z.number().int().positive().max(100),
+  })).max(200),
+  attempt_count: z.number().int().nonnegative().max(200),
+  inventory_truncated: z.boolean(),
+  execution_performed: z.literal(false),
+});
+
+export type ExecutionInventory = z.infer<typeof executionInventorySchema>;
 
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
@@ -418,4 +443,14 @@ export async function loadExecutionProgress(executionPreviewSha256: string): Pro
   const payload = await boundedJson(response);
   if (!response.ok) throw new Error("execution progress is unavailable");
   return executionProgressSchema.parse(payload);
+}
+
+export async function loadExecutionInventory(): Promise<ExecutionInventory> {
+  const response = await fetch("/api/v1/executions", {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("execution inventory is unavailable");
+  return executionInventorySchema.parse(payload);
 }

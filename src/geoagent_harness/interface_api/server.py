@@ -52,6 +52,7 @@ from geoagent_harness.recipes import (
 
 MAX_INTERFACE_REQUEST_BYTES = 65_536
 MAX_INTERFACE_RECIPES = 200
+MAX_INTERFACE_EXECUTION_ATTEMPTS = 200
 SAFE_RECIPE_FILENAME = re.compile(
     r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$"
 )
@@ -143,6 +144,67 @@ def _load_execution_progress(
             progress_root=progress_root,
         )
     return payload
+
+
+def interface_execution_inventory(
+    project_root: Path,
+    *,
+    progress_root: Path | None = None,
+) -> dict[str, Any]:
+    """Return bounded durable attempt summaries without execution authority."""
+
+    root = (
+        progress_root
+        if progress_root is not None
+        else _trusted_root(project_root) / "workflow-state" / "interface-executions"
+    )
+    if not root.exists():
+        return {
+            "schema_version": "1.0",
+            "attempts": [],
+            "attempt_count": 0,
+            "inventory_truncated": False,
+            "execution_performed": False,
+        }
+    if root.is_symlink() or not root.is_dir():
+        raise InterfaceApiError("execution progress root is unsafe")
+    paths = sorted(
+        root.glob("*.json"),
+        key=lambda candidate: candidate.lstat().st_mtime,
+        reverse=True,
+    )
+    truncated = len(paths) > MAX_INTERFACE_EXECUTION_ATTEMPTS
+    attempts = []
+    for path in paths[:MAX_INTERFACE_EXECUTION_ATTEMPTS]:
+        if path.is_symlink() or not re.fullmatch(r"[a-f0-9]{64}\.json", path.name):
+            raise InterfaceApiError("execution progress artifact is unsafe")
+        digest = path.stem
+        state = _load_execution_progress(
+            project_root,
+            digest,
+            progress_root=root,
+        )
+        if state is None:
+            continue
+        attempts.append({
+            "execution_preview_sha256": digest,
+            "status": state.get("status"),
+            "recipe_id": state.get("recipe_id"),
+            "recipe_filename": state.get("recipe_filename"),
+            "recipe_sha256": state.get("recipe_sha256"),
+            "started_at": state.get("started_at"),
+            "finished_at": state.get("finished_at"),
+            "failed_step_id": state.get("failed_step_id"),
+            "interruption_detected": bool(state.get("interruption_detected", False)),
+            "step_count": len(state.get("steps", [])),
+        })
+    return {
+        "schema_version": "1.0",
+        "attempts": attempts,
+        "attempt_count": len(attempts),
+        "inventory_truncated": truncated,
+        "execution_performed": False,
+    }
 
 
 def _bounded_outcome(value: object) -> object:
@@ -680,6 +742,9 @@ def execute_interface_recipe(
             "schema_version": "1.0",
             "status": "running",
             "execution_preview_sha256": progress_key,
+            "recipe_id": envelope.recipe_id,
+            "recipe_filename": request.recipe_filename,
+            "recipe_sha256": envelope.recipe_sha256,
             "started_at": datetime.now(timezone.utc).isoformat(),
             "finished_at": None,
             "failed_step_id": None,
@@ -689,6 +754,7 @@ def execute_interface_recipe(
                 {
                     "step_id": step.step_id,
                     "skill_id": step.skill_id,
+                    "depends_on": step.depends_on,
                     "status": "queued",
                 }
                 for step in envelope.steps
@@ -830,6 +896,18 @@ def _handler(
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            if self.path == "/api/v1/executions":
+                try:
+                    self._send(
+                        HTTPStatus.OK,
+                        interface_execution_inventory(project_root),
+                    )
+                except (InterfaceApiError, OSError, ValueError, json.JSONDecodeError):
+                    self._send(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": "execution inventory is unavailable"},
+                    )
                 return
             progress_match = re.fullmatch(r"/api/v1/executions/([a-f0-9]{64})", self.path)
             if progress_match:

@@ -17,6 +17,7 @@ from geoagent_harness.interface_api import (
     verify_interface_recipe_approval,
     compile_interface_recipe_proposal,
     interface_recipe_template_catalog,
+    interface_execution_inventory,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
     prepare_interface_execution_preview,
@@ -411,6 +412,59 @@ def test_active_durable_progress_remains_running(tmp_path: Path) -> None:
     assert loaded is not None
     assert loaded["status"] == "running"
     assert loaded["steps"][0]["status"] == "running"
+
+
+def test_execution_inventory_reopens_durable_attempts_without_execution(
+    tmp_path: Path,
+) -> None:
+    progress_root = tmp_path / "execution-progress"
+    digest = "c" * 64
+    state = {
+        "schema_version": "1.0",
+        "status": "validated_success",
+        "execution_preview_sha256": digest,
+        "recipe_id": "inventory_recipe",
+        "recipe_filename": f"inventory_recipe.{('d' * 64)}.json",
+        "recipe_sha256": "d" * 64,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "recovery_guidance": None,
+        "steps": [{
+            "step_id": "step_1",
+            "skill_id": "inspect_vector",
+            "depends_on": [],
+            "status": "completed",
+        }],
+        "execution_performed": True,
+    }
+    interface_api_module._persist_execution_progress(
+        PROJECT_ROOT,
+        state,
+        progress_root=progress_root,
+    )
+
+    inventory = interface_execution_inventory(
+        PROJECT_ROOT,
+        progress_root=progress_root,
+    )
+
+    assert inventory["attempt_count"] == 1
+    assert inventory["inventory_truncated"] is False
+    assert inventory["execution_performed"] is False
+    assert inventory["attempts"][0] == {
+        "execution_preview_sha256": digest,
+        "status": "validated_success",
+        "recipe_id": "inventory_recipe",
+        "recipe_filename": f"inventory_recipe.{('d' * 64)}.json",
+        "recipe_sha256": "d" * 64,
+        "started_at": state["started_at"],
+        "finished_at": state["finished_at"],
+        "failed_step_id": None,
+        "interruption_detected": False,
+        "step_count": 1,
+    }
 
 
 def test_interface_server_refuses_non_loopback_binding() -> None:

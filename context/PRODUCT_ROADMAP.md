@@ -682,3 +682,12 @@ completed, failed and interrupted states and marks the known failure or
 interruption location. Atomic progress snapshots survive API restarts and
 provide fail-closed recovery guidance. Elapsed time, durable run inventory,
 browser-session restoration and separately approved retry remain future work.
+
+### Checkpoint 17V — durable attempt inventory and graph restoration
+
+Status: implemented for review. The loopback API enumerates at most 200 safe
+progress artifacts beneath the fixed execution-state root and returns bounded
+identity and status summaries. The interface exposes a Runs workspace and can
+reconstruct a run-specific read-only graph from recipe identity, skills and
+dependencies stored with new attempts. Reopening has no approval, retry or
+execution authority. A separately approved retry design remains future work.
