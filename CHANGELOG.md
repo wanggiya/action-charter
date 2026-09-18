@@ -1,5 +1,24 @@
 # Changelog
 
+## Checkpoint 17U-A
+
+- Added real runner-backed live execution progress to the guided interface.
+- Added digest-bound progress lookup and explicit step failure localization.
+- Connected saved recipe, approval, execution, validation and evidence state to
+  one live read-only workflow graph derived from the exact recipe dependencies.
+- Added resumable gate navigation, separate input-data projection, corrected
+  control sockets and non-overlapping governance/execution layout.
+- Removed whole-graph rerendering from each approval text-field keystroke.
+- Distinguished denied human authority from failed execution and added an
+  explicit active-workflow exit control.
+- Persisted interface execution progress atomically, classified abandoned
+  running attempts as interrupted after restart, and surfaced fail-closed
+  recovery guidance without automatic retry.
+- Changed the denied workflow state to a red stop treatment while preserving
+  its distinct governance semantics.
+- Kept final success claims bound to the authoritative governed execution
+  response; progress state cannot create a success claim.
+
 All notable changes to ActionCharter will be documented in this file. The
 project follows Semantic Versioning after the initial public alpha.
 

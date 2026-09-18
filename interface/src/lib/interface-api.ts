@@ -81,6 +81,7 @@ const approvalRequestSchema = z.object({
   steps: z.array(z.object({
     step_id: z.string().min(1).max(120),
     skill_id: z.string().min(1).max(120),
+    depends_on: z.array(z.string().min(1).max(120)).max(100).default([]),
   })).min(1).max(100),
   approval_required_step_ids: z.array(z.string().max(120)).min(1).max(100),
   validation_required_step_ids: z.array(z.string().max(120)).max(100),
@@ -190,6 +191,25 @@ const recipeExecutionSchema = z.object({
 });
 
 export type RecipeExecutionResult = z.infer<typeof recipeExecutionSchema>;
+
+const executionProgressSchema = z.object({
+  schema_version: z.literal("1.0"),
+  status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
+  execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  started_at: z.string().datetime({ offset: true }),
+  finished_at: z.string().datetime({ offset: true }).nullable(),
+  failed_step_id: z.string().max(120).nullable(),
+  interruption_detected: z.boolean(),
+  recovery_guidance: z.string().max(1000).nullable(),
+  steps: z.array(z.object({
+    step_id: z.string().min(1).max(120),
+    skill_id: z.string().min(1).max(120),
+    status: z.enum(["queued", "running", "completed", "validated_success", "validation_failed", "failed", "interrupted"]),
+  })).min(1).max(100),
+  execution_performed: z.boolean(),
+});
+
+export type ExecutionProgress = z.infer<typeof executionProgressSchema>;
 
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
@@ -386,4 +406,16 @@ export async function executeExactPreview(
     throw new Error(message.success ? message.data.error : "approved execution failed");
   }
   return recipeExecutionSchema.parse(payload);
+}
+
+export async function loadExecutionProgress(executionPreviewSha256: string): Promise<ExecutionProgress | null> {
+  const digest = z.string().regex(/^[a-f0-9]{64}$/).parse(executionPreviewSha256);
+  const response = await fetch(`/api/v1/executions/${digest}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+  if (response.status === 404) return null;
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("execution progress is unavailable");
+  return executionProgressSchema.parse(payload);
 }

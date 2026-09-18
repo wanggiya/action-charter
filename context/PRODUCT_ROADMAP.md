@@ -672,3 +672,13 @@ envelope, with live state and fail-closed evidence persistence.
 
 Next: add live step progress, durable execution state, failure localization,
 interruption handling and safe retry/recovery guidance.
+
+### Checkpoint 17U — live execution state and recovery
+
+Checkpoint 17U-A status: implemented for review. The real recipe runner emits
+typed step transitions, and the loopback interface projects them through an
+exact execution-preview digest lookup. The interface displays queued, running,
+completed, failed and interrupted states and marks the known failure or
+interruption location. Atomic progress snapshots survive API restarts and
+provide fail-closed recovery guidance. Elapsed time, durable run inventory,
+browser-session restoration and separately approved retry remain future work.

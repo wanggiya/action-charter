@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, executeExactPreview, loadSavedRecipes, prepareExecutionPreview, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type ExecutionPreview, type InterfaceCompilation, type PreparedApprovalRequest, type RecipeExecutionResult, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
+import { compileRecipeProposal, executeExactPreview, loadExecutionProgress, loadSavedRecipes, prepareExecutionPreview, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type PreparedApprovalRequest, type RecipeExecutionResult, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -17,6 +17,7 @@ type OverlayName = "tools" | "legend";
 type OverlayPosition = { x: number; y: number };
 type InterfaceMode = "evidence" | "proposal";
 type RecipeSort = "time_desc" | "time_asc" | "name_asc" | "name_desc";
+type ActiveRecipe = { recipeId: string; recipeSha256: string; steps: Array<{ step_id: string; skill_id: string; depends_on: string[] }> };
 type ProposalDraft = Omit<WorkflowData, "readOnly" | "source"> & { readOnly: false; source: "proposal_draft" };
 type ConnectionDrag = { pointerId: number; sourceId: string; family: PortFamily; edgeKind: EdgeKind; x: number; y: number };
 
@@ -140,6 +141,9 @@ export default function App() {
   const [approvalApprover, setApprovalApprover] = useState("");
   const [approvalReason, setApprovalReason] = useState("");
   const [approvalValidMinutes, setApprovalValidMinutes] = useState("60");
+  const approvalApproverRef = useRef<HTMLInputElement>(null);
+  const approvalReasonRef = useRef<HTMLTextAreaElement>(null);
+  const approvalValidMinutesRef = useRef<HTMLInputElement>(null);
   const [approvalConfirmed, setApprovalConfirmed] = useState(false);
   const [approvalRecording, setApprovalRecording] = useState(false);
   const [recordedApproval, setRecordedApproval] = useState<RecordedRecipeApproval | null>(null);
@@ -154,6 +158,8 @@ export default function App() {
   const [executionResult, setExecutionResult] = useState<RecipeExecutionResult | null>(null);
   const [executionNotice, setExecutionNotice] = useState("");
   const [executionFailure, setExecutionFailure] = useState("");
+  const [executionProgress, setExecutionProgress] = useState<ExecutionProgress | null>(null);
+  const [activeRecipe, setActiveRecipe] = useState<ActiveRecipe | null>(null);
   const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
   const [runs, setRuns] = useState<WorkflowSummary[]>([]);
@@ -164,7 +170,38 @@ export default function App() {
   const [orientation, setOrientation] = useState<Orientation>(() => window.matchMedia("(max-width: 680px)").matches ? "vertical" : "horizontal");
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, width: 1, height: 1 });
   const [overlayPositions, setOverlayPositions] = useState<Record<OverlayName, OverlayPosition>>({ tools: { x: 0, y: 0 }, legend: { x: 0, y: 0 } });
-  const displayedWorkflow = draft ?? workflow;
+  const activeRecipeWorkflow = useMemo<WorkflowData | null>(() => {
+    if (!activeRecipe) return null;
+    type NodeStatus = WorkflowData["nodes"][number]["status"];
+    const progressByStep = new globalThis.Map(executionProgress?.steps.map((step) => [step.step_id, step.status] as const) ?? []);
+    const stepStatus = (stepId: string): NodeStatus => {
+      const status = progressByStep.get(stepId);
+      if (status === "interrupted") return "interrupted";
+      if (status === "failed" || status === "validation_failed") return "failed";
+      if (status === "completed" || status === "validated_success") return "complete";
+      return "pending";
+    };
+    const approvalStatus: NodeStatus = recordedApproval?.decision === "denied" ? "denied" : recordedApproval?.decision === "approved" ? "approved" : "pending";
+    const executionStatus: NodeStatus = executionProgress?.status === "interrupted" ? "interrupted" : executionFailure || executionProgress?.status === "failed" ? "failed" : executionResult ? "complete" : executionProgress?.status === "running" ? "pending" : "pending";
+    const validationStatus: NodeStatus = executionResult?.status === "validated_success" ? "verified" : executionResult?.status === "validation_failed" ? "failed" : "pending";
+    const stepNodes: WorkflowData["nodes"] = activeRecipe.steps.map((step, index) => ({ id: `active_${step.step_id}`, title: step.skill_id.replaceAll("_", " "), subtitle: progressByStep.get(step.step_id)?.replaceAll("_", " ") ?? "Awaiting governed execution", kind: "tool", category: "tool", group: "execution", x: 1050 + index * 220, y: 350, status: stepStatus(step.step_id), authority: "Exact approved recipe step", performedBy: "MCP tool boundary", evidence: executionResult ? "Run evidence recorded" : "Not recorded", details: null }));
+    const nodes: WorkflowData["nodes"] = [
+      { id: "active_request", title: "User request", subtitle: activeRecipe.recipeId, kind: "input", category: "input", group: "intake", x: 50, y: 90, status: "complete", authority: "Operator-authored request", performedBy: "User", evidence: "Recipe identity", details: null },
+      { id: "active_data", title: "Input data", subtitle: "Inputs bound in immutable recipe", kind: "data", category: "input", group: "intake", x: 50, y: 350, status: "complete", authority: "Recipe-bound paths and layers", performedBy: "User", evidence: activeRecipe.recipeSha256, details: null },
+      { id: "active_planner", title: "Compile recipe", subtitle: "Typed trusted-template compilation", kind: "agent", category: "planning", group: "planning", x: 310, y: 90, status: "complete", authority: "Planning only", performedBy: "Planner agent", evidence: activeRecipe.recipeSha256, details: null },
+      { id: "active_policy", title: "Validate policy", subtitle: "Deterministic recipe policy", kind: "policy", category: "policy", group: "governance", x: 550, y: 90, status: "verified", authority: "Deterministic policy", performedBy: "Policy engine", evidence: activeRecipe.recipeSha256, details: null },
+      { id: "active_approval", title: "Human approval", subtitle: recordedApproval ? recordedApproval.decision : preparedApproval ? "Request prepared" : "Not prepared", kind: "approval", category: "approval", group: "governance", x: 760, y: 90, status: approvalStatus, authority: "Human decision required", performedBy: "Human operator", evidence: recordedApproval?.approval_filename ?? "Not recorded", details: null },
+      { id: "active_executor", title: "Governed execution", subtitle: executionProgress?.status.replaceAll("_", " ") ?? "Not started", kind: "agent", category: "execution", group: "execution", x: 1050, y: 90, status: executionStatus, authority: "Exact approved envelope", performedBy: "Executor agent", evidence: executionResult?.run_result_path ?? "Not recorded", details: null },
+      ...stepNodes,
+      { id: "active_validation", title: "Validate outputs", subtitle: executionResult?.status.replaceAll("_", " ") ?? "Awaiting outputs", kind: "evidence", category: "validation", group: "assurance", x: 1070 + activeRecipe.steps.length * 220, y: 90, status: validationStatus, authority: "Deterministic verification", performedBy: "Validator", evidence: executionResult?.evidence_path ?? "Not recorded", details: null },
+      { id: "active_evidence", title: "Record evidence", subtitle: executionResult ? "Durable run evidence" : "Awaiting completed run", kind: "evidence", category: "evidence", group: "assurance", x: 1300 + activeRecipe.steps.length * 220, y: 90, status: executionResult ? "complete" : executionFailure ? "failed" : "pending", authority: "Append-only evidence", performedBy: "Evidence service", evidence: executionResult?.report_path ?? "Not recorded", details: null },
+    ];
+    const dependencyEdges: WorkflowData["edges"] = activeRecipe.steps.flatMap((step) => step.depends_on.length ? step.depends_on.map((dependency) => ({ from: `active_${dependency}`, to: `active_${step.step_id}`, kind: "data" as const, label: "dependency" })) : [{ from: "active_executor", to: `active_${step.step_id}`, kind: "data" as const, label: "dispatch" }]);
+    const dependedOn = new Set(activeRecipe.steps.flatMap((step) => step.depends_on));
+    const leafSteps = activeRecipe.steps.filter((step) => !dependedOn.has(step.step_id));
+    return { schemaVersion: "1.0", id: `active-${activeRecipe.recipeId}`, title: `${activeRecipe.recipeId.replaceAll("_", " ")} · governed run`, correlationId: activeRecipe.recipeSha256.slice(0, 16), readOnly: true, source: "validated_trace", nodes, edges: [{ from: "active_request", to: "active_planner", kind: "control", label: "request" }, { from: "active_data", to: "active_planner", kind: "data", label: "inputs" }, { from: "active_planner", to: "active_policy", kind: "control", label: "proposal" }, { from: "active_policy", to: "active_approval", kind: "control", label: "policy" }, { from: "active_approval", to: "active_executor", kind: "control", label: "authority" }, ...dependencyEdges, ...leafSteps.map((step) => ({ from: `active_${step.step_id}`, to: "active_validation", kind: "data" as const, label: "validate" })), { from: "active_validation", to: "active_evidence", kind: "evidence", label: "record" }] };
+  }, [activeRecipe, executionFailure, executionProgress, executionResult, preparedApproval, recordedApproval]);
+  const displayedWorkflow = draft ?? activeRecipeWorkflow ?? workflow;
   const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
   const performerOptions = useMemo(() => [...new Set([...standardPerformers, ...displayedWorkflow.nodes.map(performerOf)])].sort(), [displayedWorkflow.nodes]);
   const selectedTemplate = useMemo(() => recipeTemplates.find((template) => template.template_id === selectedTemplateId), [recipeTemplates, selectedTemplateId]);
@@ -454,6 +491,10 @@ export default function App() {
     try {
       const stored = await saveReviewedRecipe(proposal, compilation.recipe_sha256);
       setSavedRecipe(stored);
+      setActiveRecipe({ recipeId: stored.recipe_id, recipeSha256: stored.recipe_sha256, steps: compilation.result.recipe.steps.map((step) => ({ step_id: step.step_id, skill_id: step.skill_id, depends_on: step.depends_on })) });
+      setDraft(null);
+      setMode("evidence");
+      setSelectedId("active_request");
       setTemplateNotice("Reviewed recipe stored immutably. It is not approved and was not executed.");
     } catch (error) {
       setTemplateNotice(error instanceof Error ? error.message : "Reviewed recipe could not be stored.");
@@ -474,6 +515,7 @@ export default function App() {
     setExecutionResult(null);
     setExecutionNotice("");
     setExecutionFailure("");
+    setExecutionProgress(null);
     setApprovalConfirmed(false);
     setApprovalDecisionNotice("");
     try {
@@ -487,16 +529,27 @@ export default function App() {
   };
   const closeRecipeFlow = () => {
     setRecipePanelOpen(false);
+  };
+  const exitActiveWorkflow = () => {
+    setRecipePanelOpen(false);
+    setTemplatePanelOpen(false);
+    setActiveRecipe(null);
     setPreparedApproval(null);
     setRecordedApproval(null);
     setApprovalVerification(null);
-    setExecutionPreview(null);
-    setExecutionResult(null);
-    setApprovalConfirmed(false);
-    setApprovalDecisionNotice("");
     setApprovalVerificationNotice("");
+    setExecutionPreview(null);
+    setExecutionConfirmed(false);
+    setExecutionResult(null);
     setExecutionNotice("");
     setExecutionFailure("");
+    setExecutionProgress(null);
+    setApprovalConfirmed(false);
+    setApprovalDecisionNotice("");
+    setApprovalDecision("approved");
+    setDraft(null);
+    setMode("evidence");
+    setSelectedId(workflow.nodes[0].id);
   };
   const prepareApproval = async (recipeFilename: string, recipeSha256: string) => {
     setApprovalPreparationPending(true);
@@ -505,6 +558,10 @@ export default function App() {
     try {
       const request = await prepareRecipeApproval(recipeFilename, recipeSha256);
       setPreparedApproval(request);
+      setActiveRecipe({ recipeId: request.recipe_id, recipeSha256: request.recipe_sha256, steps: request.steps.map((step) => ({ step_id: step.step_id, skill_id: step.skill_id, depends_on: step.depends_on })) });
+      setDraft(null);
+      setMode("evidence");
+      setSelectedId("active_approval");
       setRecordedApproval(null);
       setApprovalVerification(null);
       setApprovalVerificationNotice("");
@@ -513,6 +570,7 @@ export default function App() {
       setExecutionResult(null);
       setExecutionNotice("");
       setExecutionFailure("");
+      setExecutionProgress(null);
       setApprovalConfirmed(false);
       setApprovalDecisionNotice("");
       setRecipeInventoryNotice("");
@@ -528,11 +586,14 @@ export default function App() {
   };
   const recordApprovalDecision = async () => {
     if (!preparedApproval || !approvalConfirmed || recordedApproval) return;
-    if (!approvalApprover.trim() || !approvalReason.trim()) {
+    const approver = approvalApproverRef.current?.value.trim() ?? approvalApprover.trim();
+    const reason = approvalReasonRef.current?.value.trim() ?? approvalReason.trim();
+    const validMinutes = approvalValidMinutesRef.current?.value.trim() ?? approvalValidMinutes.trim();
+    if (!approver || !reason) {
       setApprovalDecisionNotice("Approver and reason are required.");
       return;
     }
-    const minutes = approvalValidMinutes.trim() ? Number(approvalValidMinutes) : null;
+    const minutes = validMinutes ? Number(validMinutes) : null;
     if (minutes !== null && (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)) {
       setApprovalDecisionNotice("Expiration must be a whole number from 1 to 1440 minutes.");
       return;
@@ -540,8 +601,9 @@ export default function App() {
     setApprovalRecording(true);
     setApprovalDecisionNotice("Revalidating the prepared request before append-only recording…");
     try {
-      const result = await recordRecipeApproval({ request: preparedApproval, decision: approvalDecision, approver: approvalApprover.trim(), reason: approvalReason.trim(), validForMinutes: minutes });
+      const result = await recordRecipeApproval({ request: preparedApproval, decision: approvalDecision, approver, reason, validForMinutes: minutes });
       setRecordedApproval(result);
+      setSelectedId("active_approval");
       setApprovalDecisionNotice("Decision recorded. Nothing was executed.");
     } catch (error) {
       setApprovalDecisionNotice(error instanceof Error ? error.message : "Approval decision could not be recorded.");
@@ -573,6 +635,7 @@ export default function App() {
       setExecutionConfirmed(false);
       setExecutionResult(null);
       setExecutionFailure("");
+      setExecutionProgress(null);
       setApprovalVerificationNotice("");
     } catch (error) {
       setExecutionPreview(null);
@@ -585,14 +648,31 @@ export default function App() {
     if (!preparedApproval || !recordedApproval || !executionPreview || !executionConfirmed || executionPending || executionResult) return;
     setExecutionPending(true);
     setExecutionFailure("");
+    setExecutionProgress(null);
     setExecutionNotice("Executing the exact verified envelope and recording durable evidence…");
+    const refreshProgress = async () => {
+      try {
+        const progress = await loadExecutionProgress(executionPreview.execution_preview_sha256);
+        if (progress) setExecutionProgress(progress);
+        return progress;
+      } catch {
+        // The authoritative execution request still determines the final result.
+        return null;
+      }
+    };
+    const progressTimer = window.setInterval(() => void refreshProgress(), 250);
     try {
       setExecutionResult(await executeExactPreview(preparedApproval, recordedApproval, executionPreview));
+      await refreshProgress();
+      setSelectedId("active_validation");
       setExecutionNotice("");
     } catch (error) {
+      const finalProgress = await refreshProgress();
       setExecutionNotice("");
       setExecutionFailure(error instanceof Error ? error.message : "Approved execution failed. Inspect outputs and evidence before retrying.");
+      setSelectedId(finalProgress?.failed_step_id ? `active_${finalProgress.failed_step_id}` : "active_executor");
     } finally {
+      window.clearInterval(progressTimer);
       setExecutionPending(false);
     }
   };
@@ -740,7 +820,7 @@ export default function App() {
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17T</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions"><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
+      <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => setRecipePanelOpen(true)}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
@@ -757,13 +837,13 @@ export default function App() {
             {templateNotice && <p className="template-notice">{templateNotice}</p>}
             <p className="template-boundary">Compilation is available through the loopback-only typed service. Save, approval, and execution remain unavailable.</p>
             <div className="template-actions"><button onClick={applyRecipeTemplate}>Preview workflow graph</button><button disabled={compilationPending} onClick={() => void compileTemplateProposal()}>{compilationPending ? "Compiling…" : "Compile proposal"}</button><button onClick={downloadRecipeProposal}>Download proposal</button></div>
-            {compilation && <section className="compilation-result"><div><CheckCircle2 size={17}/><span><strong>Compilation passed</strong><small>{compilation.result.recipe.recipe_id}</small></span></div><div className="review-digest"><span>Recipe SHA-256</span><code title={compilation.recipe_sha256}>{compilation.recipe_sha256}</code></div><dl><div><dt>Ordered steps</dt><dd>{compilation.result.recipe_validation.topological_step_ids.length}</dd></div><div><dt>Approval gates</dt><dd>{compilation.result.recipe_validation.approval_required_step_ids.length}</dd></div><div><dt>Validation gates</dt><dd>{compilation.result.recipe_validation.validation_required_step_ids.length}</dd></div></dl><ol>{compilation.result.recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span></li>)}</ol><p><LockKeyhole size={13}/> Not saved · not approved · not executed</p><label className="review-confirm"><input type="checkbox" checked={reviewConfirmed} disabled={Boolean(savedRecipe)} onChange={(event) => setReviewConfirmed(event.target.checked)}/><span>I reviewed this exact recipe digest and step order.</span></label><button className="save-reviewed" disabled={!reviewConfirmed || savePending || Boolean(savedRecipe)} onClick={() => void saveCompiledRecipe()}>{savePending ? "Verifying and saving…" : savedRecipe ? "Recipe stored" : "Save reviewed recipe"}</button>{savedRecipe && <div className="saved-recipe"><CheckCircle2 size={15}/><span><strong>Stored immutably</strong><small>{savedRecipe.recipe_filename}</small></span><button onClick={() => void openSavedRecipes()}>Done — view saved recipes</button></div>}</section>}
+            {compilation && <section className="compilation-result"><div><CheckCircle2 size={17}/><span><strong>Compilation passed</strong><small>{compilation.result.recipe.recipe_id}</small></span></div><div className="review-digest"><span>Recipe SHA-256</span><code title={compilation.recipe_sha256}>{compilation.recipe_sha256}</code></div><dl><div><dt>Ordered steps</dt><dd>{compilation.result.recipe_validation.topological_step_ids.length}</dd></div><div><dt>Approval gates</dt><dd>{compilation.result.recipe_validation.approval_required_step_ids.length}</dd></div><div><dt>Validation gates</dt><dd>{compilation.result.recipe_validation.validation_required_step_ids.length}</dd></div></dl><ol>{compilation.result.recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span></li>)}</ol><p><LockKeyhole size={13}/> Not saved · not approved · not executed</p><label className="review-confirm"><input type="checkbox" checked={reviewConfirmed} disabled={Boolean(savedRecipe)} onChange={(event) => setReviewConfirmed(event.target.checked)}/><span>I reviewed this exact recipe digest and step order.</span></label><button className="save-reviewed" disabled={!reviewConfirmed || savePending || Boolean(savedRecipe)} onClick={() => void saveCompiledRecipe()}>{savePending ? "Verifying and saving…" : savedRecipe ? "Recipe stored" : "Save reviewed recipe"}</button>{savedRecipe && <div className="saved-recipe"><CheckCircle2 size={15}/><span><strong>Stored immutably</strong><small>{savedRecipe.recipe_filename}</small></span><button onClick={() => setTemplatePanelOpen(false)}>View governed graph</button><button onClick={() => void openSavedRecipes()}>View saved recipes</button></div>}</section>}
           </div>
         </div> : <div className="template-unavailable"><strong>No validated template catalog loaded</strong><p>Export the trusted catalog into the ignored interface runtime directory, then reload this page.</p><code>.venv/bin/geoagent recipe-template-catalog --project-root . --pretty</code></div>}
       </section>
     </div>}
     {recipePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setRecipePanelOpen(false); }}><section className="recipe-workspace" role="dialog" aria-modal="true" aria-labelledby="recipes-title"><header className="template-workspace-head"><div><p className="eyebrow">Immutable local definitions</p><h2 id="recipes-title">Saved recipes</h2><p>Inspect exact identities and prepare a digest-bound approval request. Preparing does not record approval or execute anything.</p></div><button aria-label="Close saved recipes" onClick={() => setRecipePanelOpen(false)}><X size={18}/></button></header>{recipeInventoryNotice && <p className="recipe-inventory-notice">{recipeInventoryNotice}</p>}{recipeInventory && <div className="recipe-inventory"><div className="recipe-inventory-summary"><strong>{recipeInventory.recipe_count}</strong><span>immutable recipe{recipeInventory.recipe_count === 1 ? "" : "s"}</span><small>No approval or execution performed</small><label className="recipe-sort">Order recipes<select value={recipeSort} onChange={(event) => setRecipeSort(event.target.value as RecipeSort)}><option value="time_desc">Newest first</option><option value="time_asc">Oldest first</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option></select></label></div>{recipeInventory.recipes.length ? <div className="recipe-cards">{preparedApproval && <section ref={approvalRequestRef} tabIndex={-1} className="approval-request"><header><ShieldCheck size={18}/><span><strong>Approval request prepared</strong><small>{preparedApproval.recipe_id}</small></span></header><div><span>Request SHA-256</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code></div><div><span>Recipe SHA-256</span><code title={preparedApproval.recipe_sha256}>{preparedApproval.recipe_sha256}</code></div><h3>Exact approval scope</h3><ul>{preparedApproval.approval_required_step_ids.map((stepId) => { const step = preparedApproval.steps.find((candidate) => candidate.step_id === stepId); return <li key={stepId}><code>{stepId}</code><span>{step?.skill_id.replaceAll("_", " ")}</span></li>; })}</ul><p><LockKeyhole size={13}/> Prepared only · no decision recorded · nothing executed</p></section>}{sortedRecipes.map((recipe) => <article className={`recipe-card ${preparedApproval?.recipe_sha256 === recipe.recipe_sha256 ? "selected" : ""}`} key={recipe.recipe_sha256}><header><LayoutList size={16}/><span><strong>{recipe.recipe_id}</strong><small>{recipe.recipe_filename}</small></span><time dateTime={recipe.saved_at}>{new Date(recipe.saved_at).toLocaleString()}</time></header><div className="recipe-card-digest"><span>SHA-256</span><code title={recipe.recipe_sha256}>{recipe.recipe_sha256}</code></div><ol>{recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span>{recipe.approval_required_step_ids.includes(step.step_id) && <em>Approval required</em>}</li>)}</ol><footer><span>{recipe.validation_required_step_ids.length} validation gate{recipe.validation_required_step_ids.length === 1 ? "" : "s"}</span><button disabled={approvalPreparationPending || !recipe.approval_required_step_ids.length} onClick={() => void prepareApproval(recipe.recipe_filename, recipe.recipe_sha256)}>{approvalPreparationPending ? "Preparing…" : "Prepare approval request"}</button></footer></article>)}</div> : <div className="recipe-inventory-empty"><LayoutList size={22}/><strong>No saved recipes yet</strong><span>Compile and explicitly save a reviewed template proposal first.</span></div>}</div>}</section></div>}
-    {recipePanelOpen && preparedApproval && <aside className="approval-decision-drawer" aria-label="Record human approval decision"><header><div><p className="eyebrow">Human decision</p><h2>Record approval</h2></div><span className="decision-no-execute"><LockKeyhole size={14}/> No execution</span></header>{recordedApproval ? <div className={`recorded-decision decision-${recordedApproval.decision}`}><CheckCircle2 size={22}/><strong>{recordedApproval.decision === "approved" ? "Approval recorded" : "Denial recorded"}</strong><small>{recordedApproval.approval_filename}</small><dl><div><dt>Decision</dt><dd>{recordedApproval.decision}</dd></div><div><dt>Steps</dt><dd>{recordedApproval.approved_step_ids.join(", ")}</dd></div><div><dt>Expires</dt><dd>{recordedApproval.expires_at ? new Date(recordedApproval.expires_at).toLocaleString() : "No expiry"}</dd></div></dl><p><ShieldCheck size={14}/> Append-only evidence created · nothing executed</p></div> : <><div className="decision-binding"><span>Bound request</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code><small>{preparedApproval.approval_required_step_ids.join(", ")}</small></div><label>Decision<select value={approvalDecision} onChange={(event) => { setApprovalDecision(event.target.value as "approved" | "denied"); setApprovalConfirmed(false); }}><option value="approved">Approve exact steps</option><option value="denied">Deny request</option></select></label><label>Approver<input value={approvalApprover} maxLength={200} placeholder="Operator name or role" onChange={(event) => { setApprovalApprover(event.target.value); setApprovalConfirmed(false); }}/></label><label>Reason<textarea value={approvalReason} maxLength={2000} rows={4} placeholder="Why is this decision appropriate?" onChange={(event) => { setApprovalReason(event.target.value); setApprovalConfirmed(false); }}/></label><label>Valid for minutes <small>Leave blank for no expiry; maximum 1440</small><input value={approvalValidMinutes} inputMode="numeric" placeholder="60" onChange={(event) => { setApprovalValidMinutes(event.target.value); setApprovalConfirmed(false); }}/></label><label className="decision-confirm"><input type="checkbox" checked={approvalConfirmed} onChange={(event) => setApprovalConfirmed(event.target.checked)}/><span>I confirm this decision applies to the displayed request digest and exact step scope.</span></label>{approvalDecisionNotice && <p className="decision-notice">{approvalDecisionNotice}</p>}<button className={`record-decision decision-${approvalDecision}`} disabled={!approvalConfirmed || approvalRecording} onClick={() => void recordApprovalDecision()}>{approvalRecording ? "Revalidating and recording…" : approvalDecision === "approved" ? "Record approval" : "Record denial"}</button><p className="decision-boundary"><ShieldCheck size={14}/> This writes approval evidence only. It cannot execute the recipe.</p></>}</aside>}
+    {recipePanelOpen && preparedApproval && <aside className="approval-decision-drawer" aria-label="Record human approval decision"><header><div><p className="eyebrow">Human decision</p><h2>Record approval</h2></div><span className="decision-no-execute"><LockKeyhole size={14}/> No execution</span></header>{recordedApproval ? <div className={`recorded-decision decision-${recordedApproval.decision}`}><CheckCircle2 size={22}/><strong>{recordedApproval.decision === "approved" ? "Approval recorded" : "Denial recorded"}</strong><small>{recordedApproval.approval_filename}</small><dl><div><dt>Decision</dt><dd>{recordedApproval.decision}</dd></div><div><dt>Steps</dt><dd>{recordedApproval.approved_step_ids.join(", ")}</dd></div><div><dt>Expires</dt><dd>{recordedApproval.expires_at ? new Date(recordedApproval.expires_at).toLocaleString() : "No expiry"}</dd></div></dl><p><ShieldCheck size={14}/> Append-only evidence created · nothing executed</p></div> : <><div className="decision-binding"><span>Bound request</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code><small>{preparedApproval.approval_required_step_ids.join(", ")}</small></div><label>Decision<select value={approvalDecision} onChange={(event) => { setApprovalDecision(event.target.value as "approved" | "denied"); setApprovalConfirmed(false); }}><option value="approved">Approve exact steps</option><option value="denied">Deny request</option></select></label><label>Approver<input ref={approvalApproverRef} defaultValue={approvalApprover} maxLength={200} placeholder="Operator name or role" onBlur={(event) => { setApprovalApprover(event.target.value); setApprovalConfirmed(false); }}/></label><label>Reason<textarea ref={approvalReasonRef} defaultValue={approvalReason} maxLength={2000} rows={4} placeholder="Why is this decision appropriate?" onBlur={(event) => { setApprovalReason(event.target.value); setApprovalConfirmed(false); }}/></label><label>Valid for minutes <small>Leave blank for no expiry; maximum 1440</small><input ref={approvalValidMinutesRef} defaultValue={approvalValidMinutes} inputMode="numeric" placeholder="60" onBlur={(event) => { setApprovalValidMinutes(event.target.value); setApprovalConfirmed(false); }}/></label><label className="decision-confirm"><input type="checkbox" checked={approvalConfirmed} onChange={(event) => setApprovalConfirmed(event.target.checked)}/><span>I confirm this decision applies to the displayed request digest and exact step scope.</span></label>{approvalDecisionNotice && <p className="decision-notice">{approvalDecisionNotice}</p>}<button className={`record-decision decision-${approvalDecision}`} disabled={!approvalConfirmed || approvalRecording} onClick={() => void recordApprovalDecision()}>{approvalRecording ? "Revalidating and recording…" : approvalDecision === "approved" ? "Record approval" : "Record denial"}</button><p className="decision-boundary"><ShieldCheck size={14}/> This writes approval evidence only. It cannot execute the recipe.</p></>}</aside>}
     {recipePanelOpen && preparedApproval && <button className="close-recipe-flow" aria-label="Close recipe workflow" title="Close recipe workflow" onClick={closeRecipeFlow}><X size={18}/></button>}
     {recipePanelOpen && recordedApproval && <section className={`authority-outcome-dock decision-${recordedApproval.decision}`} aria-live="polite">
       <div className="authority-outcome-primary"><ShieldCheck size={26}/><span><small>Authority evidence</small><strong>Append-only {recordedApproval.decision} recorded</strong><em>{recordedApproval.approval_filename}</em></span></div>
@@ -771,6 +851,7 @@ export default function App() {
       {approvalVerification ? <div className={`authority-verification ${approvalVerification.approved ? "verified-approved" : "verified-blocked"}`}><CheckCircle2 size={24}/><span><small>Independent verification</small><strong>{approvalVerification.approved ? "Approval verified" : "Execution remains blocked"}</strong><em>{approvalVerification.reason}</em></span></div> : <button className="verify-approval" disabled={approvalVerifying} onClick={() => void verifyApprovalDecision()}>{approvalVerifying ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}
       {approvalVerification?.approved && !executionPreview && <button className="preview-execution" disabled={executionPreviewPending} onClick={() => void previewApprovedExecution()}>{executionPreviewPending ? "Preparing exact preview…" : "Preview approved execution"}</button>}
       {approvalVerificationNotice && <p>{approvalVerificationNotice}</p>}
+      <button className="view-live-workflow" onClick={() => setRecipePanelOpen(false)}>View live workflow graph</button>
     </section>}
     {recipePanelOpen && executionPreview && <section className="execution-preview-panel" aria-label="Non-executing execution preview">
       <header><div><p className="eyebrow">Exact execution envelope</p><h2>Execution preview</h2></div><span><LockKeyhole size={14}/> Preview only</span></header>
@@ -779,6 +860,7 @@ export default function App() {
       <footer><div><small>Evidence destinations</small><strong>{executionPreview.evidence_destinations.join(" · ")}</strong></div>{executionResult ? <div className={`execution-complete ${executionResult.status}`}>{executionResult.status === "validated_success" ? <CheckCircle2 size={20}/> : <XCircle size={20}/>}<span><strong>{executionResult.status === "validated_success" ? "Execution validated" : "Validation failed"}</strong><small>Evidence and report were recorded.</small></span></div> : <div className="preview-not-executed"><LockKeyhole size={19}/><span><strong>Not executed yet</strong><small>{executionPreview.execution_available ? "A separate confirmation is required." : "Restart the API with write tools explicitly enabled."}</small></span></div>}</footer>
       {!executionResult && <section className="execution-confirmation"><label><input type="checkbox" checked={executionConfirmed} disabled={!executionPreview.execution_available || executionPending} onChange={(event) => setExecutionConfirmed(event.target.checked)}/><span>I reviewed this exact preview digest and authorize this one governed execution.</span></label><code title={executionPreview.execution_preview_sha256}>{executionPreview.execution_preview_sha256}</code><button disabled={!executionPreview.execution_available || !executionConfirmed || executionPending} onClick={() => void runExactPreview()}>{executionPending ? "Executing and recording evidence…" : "Execute exact approved preview"}</button>{executionNotice && <p>{executionNotice}</p>}</section>}
       {executionFailure && <section className="execution-failure-verdict" role="alert" aria-live="assertive"><XCircle size={38}/><span><small>Final execution status</small><strong>EXECUTION FAILED</strong><em>{executionFailure}</em><b>No success was recorded. Review the target and prepare a fresh governed run before retrying.</b></span></section>}
+      {executionProgress && <section className={`execution-progress progress-${executionProgress.status}`} aria-live="polite"><header><span><small>Live execution state</small><strong>{executionProgress.status.replaceAll("_", " ")}</strong></span><time dateTime={executionProgress.started_at}>Started {new Date(executionProgress.started_at).toLocaleTimeString()}</time></header><ol>{executionProgress.steps.map((step) => <li key={step.step_id} className={`progress-step status-${step.status}`}><span className="progress-step-marker">{step.status === "running" ? <CircleDot size={17}/> : step.status === "failed" || step.status === "validation_failed" || step.status === "interrupted" ? <XCircle size={17}/> : <CheckCircle2 size={17}/>}</span><span><strong>{step.step_id} · {step.skill_id.replaceAll("_", " ")}</strong><small>{step.status.replaceAll("_", " ")}{executionProgress.failed_step_id === step.step_id ? executionProgress.status === "interrupted" ? " · interruption location" : " · failure location" : ""}</small></span></li>)}</ol>{executionProgress.failed_step_id && <p><XCircle size={16}/> {executionProgress.status === "interrupted" ? "Interruption localized to" : "Failure localized to"} <strong>{executionProgress.failed_step_id}</strong></p>}{executionProgress.recovery_guidance && <p className="recovery-guidance"><ShieldCheck size={16}/><span><strong>Safe recovery</strong>{executionProgress.recovery_guidance}</span></p>}</section>}
       {executionResult && <section className={`execution-result result-${executionResult.status}`} aria-live="assertive"><header className="execution-verdict">{executionResult.status === "validated_success" ? <CheckCircle2 size={34}/> : <XCircle size={34}/>}<span><small>Final execution status</small><strong>{executionResult.status === "validated_success" ? "SUCCESS — OUTPUT VALIDATED" : "FAILURE — VALIDATION DID NOT PASS"}</strong><em>{executionResult.status === "validated_success" ? "The approved recipe ran and its deterministic checks passed." : "Do not treat the produced output as a successful result."}</em></span></header><ol>{executionResult.step_results.map((step) => <li key={step.step_id}><div className="execution-step-line">{step.status === "validation_failed" ? <XCircle size={15}/> : <CheckCircle2 size={15}/>}<strong>{step.step_id} · {step.skill_id.replaceAll("_", " ")}</strong><small>{step.status} · validation {step.validation_performed ? "performed" : "not required"}</small></div><div className="execution-outcome"><h3>Outcome</h3>{outcomeFacts(step.outcome).map(([name, value]) => <div key={name}><span>{name}</span><strong>{value}</strong></div>)}{step.validation_outcome !== null && <><h3>Validation</h3>{outcomeFacts(step.validation_outcome).map(([name, value]) => <div key={`validation-${name}`}><span>{name}</span><strong>{value}</strong></div>)}</>}</div></li>)}</ol><dl>{[["Run result", executionResult.run_result_path], ["Evidence", executionResult.evidence_path], ["Report", executionResult.report_path]].map(([label, path]) => { const parts = evidencePathParts(path); return <div key={label}><dt>{label}</dt><dd><strong>{parts.filename}</strong><small>{parts.directory}</small></dd></div>; })}</dl></section>}
     </section>}
     <div className="workspace">
@@ -817,7 +899,7 @@ export default function App() {
                 const labelX = horizontal ? bend : (x1 + x2) / 2; const labelY = horizontal ? (y1 + y2) / 2 - 7 : bend - 7;
                 return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
               })}{connectionDrag && connectionPreviewPath && <g className={`connection edge-${connectionDrag.edgeKind} draft-connection`}><path d={connectionPreviewPath}/></g>}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true" data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state"><CheckCircle2 size={13}/>{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true" data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state">{node.status === "failed" || node.status === "denied" || node.status === "interrupted" ? <XCircle size={13}/> : <CheckCircle2 size={13}/ >}{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>

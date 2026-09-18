@@ -1832,3 +1832,16 @@ request, recomputes both digests, reruns policy and derives steps server-side
 before using the existing redacting append-only approval service. The stored
 result exposes a safe filename, decision, scope and expiry and explicitly
 reports that nothing executed. Execution controls remain absent.
+
+## Checkpoint 17U — durable live execution state
+
+Checkpoint 17U projects real recipe-runner transitions into the active workflow
+graph and a step-level execution panel. Progress is keyed by the confirmed
+execution-preview SHA-256 and atomically persisted beneath the fixed
+`workflow-state/interface-executions/` root. If the API restarts while a
+snapshot still says `running`, the next inspection classifies the attempt as
+`interrupted`, localizes the active step and presents fail-closed recovery
+guidance. It never resumes or retries a write automatically. Approved, denied,
+failed and interrupted remain distinct outcomes; denied and interrupted use a
+red stop treatment in the interface. The authoritative execution result and
+durable evidence remain the only source of a validated-success claim.
