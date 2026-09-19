@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Collection
 
 from geoagent_harness.agent_manifest import (
     load_agent_manifest,
@@ -29,12 +30,14 @@ def plan_task(
     project_root: Path,
     agents_root: Path,
     model_client: ModelClientProtocol | None = None,
+    allowed_skill_ids: Collection[str] | None = None,
 ) -> PlannerResult:
     """Build context, call the model, and validate its plan."""
 
     context_pack = build_context_pack(
         original_request,
         project_root,
+        allowed_skill_ids=allowed_skill_ids,
     )
 
     manifest = load_agent_manifest(

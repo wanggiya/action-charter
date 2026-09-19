@@ -65,3 +65,21 @@ def test_prompt_contains_no_original_secret() -> None:
 
     assert "private-value" not in serialized
     assert "[REDACTED]" in serialized
+
+
+def test_prompt_uses_compact_selected_context() -> None:
+    context = build_context_pack(
+        "Inspect data/input/sample_points.geojson.",
+        PROJECT_ROOT,
+        allowed_skill_ids=["inspect_vector"],
+    )
+    manifest = load_agent_manifest("planner", PROJECT_ROOT / "agents")
+
+    request = build_planner_request(context, manifest)
+    user = json.loads(request.messages[1].content)
+
+    assert [skill["id"] for skill in user["selected_skills"]] == ["inspect_vector"]
+    assert "project_summary" not in user
+    assert "architecture" not in user
+    assert "current_status" not in user
+    assert len(request.messages[1].content) < 5000

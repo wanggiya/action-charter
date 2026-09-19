@@ -139,3 +139,22 @@ def test_context_pack_uses_validated_skill_registry() -> None:
         "geoagent_harness.skills.convert_vector."
         "validation:validate_vector_conversion"
     )
+
+
+def test_context_pack_honors_exact_planner_skill_selection() -> None:
+    pack = build_context_pack(
+        "Inspect a vector and do not generate a report.",
+        PROJECT_ROOT,
+        allowed_skill_ids=["inspect_vector"],
+    )
+
+    assert [skill.id for skill in pack.available_skills] == ["inspect_vector"]
+
+
+def test_context_pack_rejects_unknown_selected_planner_skill() -> None:
+    with pytest.raises(ContextPackError, match="not implemented and approved"):
+        build_context_pack(
+            "Use an unknown capability.",
+            PROJECT_ROOT,
+            allowed_skill_ids=["invented_skill"],
+        )

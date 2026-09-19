@@ -90,7 +90,16 @@ def build_planner_request(
 
     user_payload = {
         "task": "Create a plan. Do not execute it.",
-        "context_pack": context_pack.as_prompt_payload(),
+        "original_request": context_pack.original_request,
+        "datasets": [
+            dataset.model_dump(mode="json")
+            for dataset in context_pack.datasets
+        ],
+        "selected_skills": [
+            skill.model_dump(mode="json")
+            for skill in context_pack.available_skills
+        ],
+        "warnings": context_pack.warnings,
     }
 
     return ModelRequest(

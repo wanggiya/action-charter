@@ -14,7 +14,7 @@ from threading import Lock
 from typing import Any, Callable, Literal
 from datetime import datetime, timedelta, timezone
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from geoagent_harness.recipe_catalog import (
     RecipeTemplateCatalogError,
@@ -30,6 +30,23 @@ from geoagent_harness.skill_registry import (
     load_skill_registry,
 )
 from geoagent_harness.redaction import redact_value
+from geoagent_harness.context_pack import ContextPackError
+from geoagent_harness.model import ModelClientError, ModelSettingsError
+from geoagent_harness.planner import (
+    PlannerAgentError,
+    PlannerPolicyError,
+    PlannerResult,
+    validate_plan_policy,
+)
+from geoagent_harness.executor import ExecutorPolicyError, build_execution_envelope
+from geoagent_harness.approvals import (
+    ApprovalError,
+    create_approval,
+    load_approval,
+    load_planner_result,
+    plan_sha256,
+    verify_approval,
+)
 from geoagent_harness.mcp_server.approved_recipe import (
     ApprovedRecipeError,
     run_approved_recipe as execute_approved_recipe,
@@ -52,6 +69,8 @@ from geoagent_harness.recipes import (
 
 MAX_INTERFACE_REQUEST_BYTES = 65_536
 MAX_INTERFACE_RECIPES = 200
+MAX_INTERFACE_PLANS = 200
+MAX_INTERFACE_PLAN_APPROVALS = 500
 MAX_INTERFACE_EXECUTION_ATTEMPTS = 200
 SAFE_RECIPE_FILENAME = re.compile(
     r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$"
@@ -278,6 +297,88 @@ class InterfaceRecipeExecutionRequest(BaseModel):
     confirmation: Literal["execute_exact_preview"]
 
 
+class InterfacePlanRequest(BaseModel):
+    """One bounded natural-language request for the existing planner agent."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["plan_task"]
+    request: str = Field(min_length=1, max_length=8000)
+    allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
+
+    @field_validator("allowed_skill_ids")
+    @classmethod
+    def skill_ids_are_unique_and_safe(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("allowed skill IDs must be unique")
+        if any(not re.fullmatch(r"[a-z][a-z0-9_]*", item) for item in value):
+            raise ValueError("allowed skill ID is invalid")
+        return value
+
+
+class InterfaceReviewedPlanSaveRequest(BaseModel):
+    """Exact validated Planner result selected for immutable storage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["save_reviewed_plan"]
+    confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
+    planner_result: PlannerResult
+
+    @field_validator("allowed_skill_ids")
+    @classmethod
+    def skill_ids_are_unique_and_safe(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("allowed skill IDs must be unique")
+        if any(not re.fullmatch(r"[a-z][a-z0-9_]*", item) for item in value):
+            raise ValueError("allowed skill ID is invalid")
+        return value
+
+
+class InterfacePlanApprovalPreparationRequest(BaseModel):
+    """Exact immutable plan selected for non-writing approval preparation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["prepare_plan_approval"]
+    plan_filename: str = Field(pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
+    confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class InterfacePlanApprovalDecisionRequest(BaseModel):
+    """One explicit human decision bound to an exact prepared plan request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["record_plan_approval"]
+    plan_filename: str = Field(pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
+    confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    decision: Literal["approved", "denied"]
+    approver: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    valid_for_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
+class InterfacePlanApprovalVerificationRequest(BaseModel):
+    """Exact recorded plan decision selected for independent verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["verify_plan_approval"]
+    plan_filename: str = Field(pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
+    confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_approval_request_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    approval_filename: str = Field(pattern=r"^approval-[0-9]{8}t[0-9]{6}z-[a-f0-9]{8}\.json$")
+
+
+class InterfacePlanExecutionPreviewRequest(InterfacePlanApprovalVerificationRequest):
+    """Exact verified evidence selected for non-executing envelope preview."""
+
+    action: Literal["preview_plan_execution"]
+
+
 def _trusted_root(project_root: Path) -> Path:
     try:
         resolved = project_root.resolve(strict=True)
@@ -314,6 +415,423 @@ def interface_recipe_template_catalog(project_root: Path) -> dict[str, Any]:
     }
 
 
+def plan_interface_task(
+    request: InterfacePlanRequest,
+    *,
+    project_root: Path,
+    agents_root: Path | None = None,
+) -> dict[str, Any]:
+    """Call the existing planner without persistence, approval, or execution."""
+
+    from geoagent_harness.planner import plan_task
+
+    root = _trusted_root(project_root)
+    trusted_agents = agents_root if agents_root is not None else root / "agents"
+    result = plan_task(
+        original_request=request.request,
+        project_root=root,
+        agents_root=trusted_agents,
+        allowed_skill_ids=request.allowed_skill_ids,
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "planned_not_saved",
+        "agent_id": result.agent_id,
+        "model": result.model,
+        "original_request": result.original_request,
+        "allowed_skill_ids": request.allowed_skill_ids,
+        "context_references": result.context_references,
+        "plan": result.plan.model_dump(mode="json"),
+        "plan_sha256": plan_sha256(result.plan),
+        "warnings": result.warnings,
+        "plan_saved": False,
+        "approval_performed": False,
+        "execution_performed": False,
+    }
+
+
+def save_interface_reviewed_plan(
+    request: InterfaceReviewedPlanSaveRequest,
+    *,
+    project_root: Path,
+    plan_root: Path | None = None,
+) -> dict[str, Any]:
+    """Revalidate and immutably store one exact reviewed Planner result."""
+
+    root = _trusted_root(project_root)
+    registry = load_skill_registry(root)
+    implemented = {skill.id for skill in registry.implemented_skills()}
+    selected = set(request.allowed_skill_ids)
+    if not selected.issubset(implemented):
+        raise InterfaceApiError("reviewed plan includes an unavailable skill selection")
+    validate_plan_policy(request.planner_result.plan, available_skills=selected)
+    digest = plan_sha256(request.planner_result.plan)
+    if digest != request.confirmed_plan_sha256:
+        raise InterfaceApiError("reviewed plan digest no longer matches")
+
+    destination = plan_root if plan_root is not None else root / "plans"
+    if destination.exists() and destination.is_symlink():
+        raise InterfaceApiError("plan root cannot be a symlink")
+    destination.mkdir(parents=True, exist_ok=True)
+    if destination.is_symlink() or not destination.is_dir():
+        raise InterfaceApiError("plan root is unsafe")
+    resolved_destination = destination.resolve(strict=True)
+    if plan_root is None and resolved_destination.parent != root:
+        raise InterfaceApiError("plan root is outside the trusted project")
+
+    filename = f"planner-plan.{digest}.json"
+    path = resolved_destination / filename
+    content = request.planner_result.model_dump_json(indent=2) + "\n"
+    if path.exists():
+        if path.is_symlink() or not path.is_file():
+            raise InterfaceApiError("existing reviewed plan artifact is unsafe")
+        try:
+            existing = load_planner_result(
+                path=path,
+                plan_root=resolved_destination,
+            )
+        except ApprovalError as exc:
+            raise InterfaceApiError("existing reviewed plan artifact is invalid") from exc
+        if existing != request.planner_result:
+            raise InterfaceApiError("existing reviewed plan does not match exact result")
+        return {
+            "schema_version": "1.0",
+            "status": "already_stored",
+            "plan_sha256": digest,
+            "plan_filename": filename,
+            "plan_saved": True,
+            "plan_modified": False,
+            "approval_performed": False,
+            "execution_performed": False,
+        }
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as exc:
+        raise InterfaceApiError("reviewed plan already exists") from exc
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+
+    return {
+        "schema_version": "1.0",
+        "status": "stored",
+        "plan_sha256": digest,
+        "plan_filename": filename,
+        "plan_saved": True,
+        "plan_modified": True,
+        "approval_performed": False,
+        "execution_performed": False,
+    }
+
+
+def prepare_interface_plan_approval(
+    request: InterfacePlanApprovalPreparationRequest,
+    *,
+    project_root: Path,
+    plan_root: Path | None = None,
+) -> dict[str, Any]:
+    """Prepare exact plan approval scope without recording a decision."""
+
+    root = _trusted_root(project_root)
+    destination = plan_root if plan_root is not None else root / "plans"
+    if destination.is_symlink() or not destination.is_dir():
+        raise InterfaceApiError("plan root is unsafe or unavailable")
+    resolved_destination = destination.resolve(strict=True)
+    path = resolved_destination / request.plan_filename
+    if path.is_symlink() or path.parent != resolved_destination:
+        raise InterfaceApiError("plan artifact is unsafe")
+    try:
+        planner_result = load_planner_result(path=path, plan_root=resolved_destination)
+    except ApprovalError as exc:
+        raise InterfaceApiError("stored plan is unavailable or invalid") from exc
+    digest = plan_sha256(planner_result.plan)
+    if digest != request.confirmed_plan_sha256:
+        raise InterfaceApiError("stored plan digest no longer matches")
+    implemented = {
+        skill.id for skill in load_skill_registry(root).implemented_skills()
+    }
+    validate_plan_policy(planner_result.plan, available_skills=implemented)
+    required = [
+        step.step_id for step in planner_result.plan.steps if step.requires_approval
+    ]
+    basis = {
+        "schema_version": "1.0",
+        "plan_filename": request.plan_filename,
+        "plan_sha256": digest,
+        "approval_required_step_ids": required,
+    }
+    request_digest = hashlib.sha256(json.dumps(
+        basis, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+    ).encode("utf-8")).hexdigest()
+    return {
+        **basis,
+        "status": "prepared_not_recorded" if required else "approval_not_required",
+        "approval_request_sha256": request_digest,
+        "steps": [{
+            "step_id": step.step_id,
+            "skill": step.skill,
+            "purpose": step.purpose,
+            "arguments": redact_value(step.arguments),
+            "requires_approval": step.requires_approval,
+            "validation_required": step.validation_required,
+        } for step in planner_result.plan.steps],
+        "approval_recorded": False,
+        "execution_performed": False,
+    }
+
+
+def record_interface_plan_approval(
+    request: InterfacePlanApprovalDecisionRequest,
+    *,
+    project_root: Path,
+    plan_root: Path | None = None,
+    approval_root: Path | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Append one exact plan decision without executing the plan."""
+
+    preparation = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=request.plan_filename,
+            confirmed_plan_sha256=request.confirmed_plan_sha256,
+        ),
+        project_root=project_root,
+        plan_root=plan_root,
+    )
+    if preparation["approval_request_sha256"] != request.confirmed_approval_request_sha256:
+        raise InterfaceApiError("plan approval request digest no longer matches")
+    required = preparation["approval_required_step_ids"]
+    if not required:
+        raise InterfaceApiError("read-only plan does not require an approval record")
+
+    root = _trusted_root(project_root)
+    plans = plan_root if plan_root is not None else root / "plans"
+    planner_result = load_planner_result(
+        path=plans.resolve(strict=True) / request.plan_filename,
+        plan_root=plans.resolve(strict=True),
+    )
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    if approvals.exists() and approvals.is_symlink():
+        raise InterfaceApiError("approval root cannot be a symlink")
+    active_now = now or datetime.now(timezone.utc)
+    expires_at = (
+        active_now + timedelta(minutes=request.valid_for_minutes)
+        if request.valid_for_minutes is not None else None
+    )
+    try:
+        record, path = create_approval(
+            planner_result=planner_result,
+            step_ids=required,
+            decision=request.decision,
+            approver=request.approver,
+            reason=request.reason,
+            approval_root=approvals,
+            project_root=root,
+            expires_at=expires_at,
+            now=active_now,
+        )
+    except ApprovalError as exc:
+        raise InterfaceApiError("plan approval could not be recorded") from exc
+    return {
+        "schema_version": "1.0",
+        "status": "recorded",
+        "decision": record.decision,
+        "approval_id": record.approval_id,
+        "approval_filename": path.name,
+        "plan_sha256": record.plan_sha256,
+        "approved_step_ids": record.step_ids if record.decision == "approved" else [],
+        "expires_at": record.expires_at.isoformat() if record.expires_at else None,
+        "secrets_redacted": record.secrets_redacted,
+        "approval_recorded": True,
+        "execution_performed": False,
+    }
+
+
+def verify_interface_plan_approval(
+    request: InterfacePlanApprovalVerificationRequest,
+    *,
+    project_root: Path,
+    plan_root: Path | None = None,
+    approval_root: Path | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Independently verify immutable plan and decision evidence."""
+
+    preparation = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=request.plan_filename,
+            confirmed_plan_sha256=request.confirmed_plan_sha256,
+        ),
+        project_root=project_root,
+        plan_root=plan_root,
+    )
+    if preparation["approval_request_sha256"] != request.confirmed_approval_request_sha256:
+        raise InterfaceApiError("plan approval request digest no longer matches")
+    required = preparation["approval_required_step_ids"]
+    if not required:
+        raise InterfaceApiError("read-only plan has no approval to verify")
+    root = _trusted_root(project_root)
+    plans = plan_root if plan_root is not None else root / "plans"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    if approvals.is_symlink() or not approvals.is_dir():
+        raise InterfaceApiError("approval root is unsafe or unavailable")
+    resolved_approvals = approvals.resolve(strict=True)
+    approval_path = resolved_approvals / request.approval_filename
+    if approval_path.is_symlink() or approval_path.parent != resolved_approvals:
+        raise InterfaceApiError("approval artifact is unsafe")
+    try:
+        planner_result = load_planner_result(
+            path=plans.resolve(strict=True) / request.plan_filename,
+            plan_root=plans.resolve(strict=True),
+        )
+        approval = load_approval(
+            path=approval_path,
+            approval_root=resolved_approvals,
+        )
+    except ApprovalError as exc:
+        raise InterfaceApiError("plan approval evidence is unavailable or invalid") from exc
+    verification = verify_approval(
+        approval=approval,
+        plan=planner_result.plan,
+        required_step_ids=required,
+        now=now,
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "verified",
+        "approved": verification.approved,
+        "decision": approval.decision,
+        "approval_id": approval.approval_id,
+        "plan_sha256": verification.plan_sha256,
+        "verified_step_ids": verification.approved_step_ids,
+        "reason": verification.reason,
+        "independent_verification_performed": True,
+        "plan_modified": False,
+        "approval_modified": False,
+        "execution_performed": False,
+    }
+
+
+def preview_interface_plan_execution(
+    request: InterfacePlanExecutionPreviewRequest,
+    *, project_root: Path,
+    plan_root: Path | None = None,
+    approval_root: Path | None = None,
+) -> dict[str, Any]:
+    """Build the existing fixed execution envelope without executing it."""
+
+    root = _trusted_root(project_root)
+    plans = plan_root if plan_root is not None else root / "plans"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    verification = verify_interface_plan_approval(
+        InterfacePlanApprovalVerificationRequest(
+            action="verify_plan_approval",
+            plan_filename=request.plan_filename,
+            confirmed_plan_sha256=request.confirmed_plan_sha256,
+            confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+            approval_filename=request.approval_filename,
+        ), project_root=root, plan_root=plans, approval_root=approvals,
+    )
+    if not verification["approved"]:
+        raise InterfaceApiError("verified plan authority does not permit execution preview")
+    try:
+        planner_result = load_planner_result(path=plans.resolve() / request.plan_filename, plan_root=plans.resolve())
+        approval = load_approval(path=approvals.resolve() / request.approval_filename, approval_root=approvals.resolve())
+        envelope = build_execution_envelope(
+            planner_result=planner_result,
+            approval=approval,
+            allowed_schemas=load_settings().allowed_schemas,
+        )
+    except (ApprovalError, ExecutorPolicyError, ValueError) as exc:
+        raise InterfaceApiError(f"plan cannot enter the supported execution envelope: {exc}") from exc
+    payload = envelope.model_dump(mode="json")
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return {
+        "schema_version": "1.0", "status": "previewed_not_executed",
+        "execution_preview_sha256": digest, "envelope": payload,
+        "execution_available": False, "execution_performed": False,
+    }
+
+
+def interface_planner_skill_catalog(project_root: Path) -> dict[str, Any]:
+    """Return safe implemented skills for explicit planner selection."""
+
+    registry = load_skill_registry(_trusted_root(project_root))
+    skills = []
+    for skill in registry.implemented_skills():
+        skills.append({
+            "id": skill.id,
+            "kind": skill.kind.value if skill.kind else None,
+            "access": skill.access.value if skill.access else None,
+            "approval_required": bool(skill.approval_required),
+            "validation_required": bool(skill.validation_required),
+        })
+    return {
+        "schema_version": "1.0",
+        "skills": skills,
+        "skill_count": len(skills),
+        "catalog_validated": True,
+        "execution_performed": False,
+    }
+
+
+def interface_saved_plan_inventory(
+    project_root: Path,
+    *, plan_root: Path | None = None,
+    approval_root: Path | None = None,
+) -> dict[str, Any]:
+    """Return bounded validated plans and matching approval summaries."""
+
+    root = _trusted_root(project_root)
+    plans = plan_root if plan_root is not None else root / "plans"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    if plans.is_symlink() or (plans.exists() and not plans.is_dir()):
+        raise InterfaceApiError("plan root is unsafe")
+    if approvals.is_symlink() or (approvals.exists() and not approvals.is_dir()):
+        raise InterfaceApiError("approval root is unsafe")
+    approval_by_plan: dict[str, list[dict[str, Any]]] = {}
+    if approvals.exists():
+        approval_paths = sorted(approvals.glob("approval-*.json"))
+        if len(approval_paths) > MAX_INTERFACE_PLAN_APPROVALS:
+            raise InterfaceApiError("plan approval inventory exceeds its limit")
+        for path in approval_paths:
+            if path.is_symlink():
+                raise InterfaceApiError("approval inventory contains an unsafe artifact")
+            record = load_approval(path=path, approval_root=approvals)
+            approval_by_plan.setdefault(record.plan_sha256, []).append({
+                "approval_id": record.approval_id,
+                "approval_filename": path.name,
+                "decision": record.decision,
+                "step_ids": record.step_ids,
+                "created_at": record.created_at.isoformat(),
+                "expires_at": record.expires_at.isoformat() if record.expires_at else None,
+            })
+    items = []
+    if plans.exists():
+        paths = sorted(plans.glob("planner-plan.*.json"), key=lambda value: value.stat().st_mtime, reverse=True)
+        if len(paths) > MAX_INTERFACE_PLANS:
+            raise InterfaceApiError("saved plan inventory exceeds its limit")
+        for path in paths:
+            if path.is_symlink():
+                raise InterfaceApiError("plan inventory contains an unsafe artifact")
+            result = load_planner_result(path=path, plan_root=plans)
+            digest = plan_sha256(result.plan)
+            if path.name != f"planner-plan.{digest}.json":
+                raise InterfaceApiError("saved plan filename does not match its digest")
+            items.append({
+                "plan_filename": path.name, "plan_sha256": digest,
+                "saved_at": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
+                "planner_result": result.model_dump(mode="json"),
+                "approvals": approval_by_plan.get(digest, []),
+            })
+    return {"schema_version": "1.0", "status": "inspected", "plans": items, "plan_count": len(items), "files_modified": False, "execution_performed": False}
 def compile_interface_recipe_proposal(
     payload: object,
     *,
@@ -938,6 +1456,24 @@ def _handler(
                 except (InterfaceApiError, RecipeTemplateCatalogError):
                     self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted template catalog is unavailable"})
                 return
+            if self.path == "/api/v1/planner-skills":
+                try:
+                    self._send(
+                        HTTPStatus.OK,
+                        interface_planner_skill_catalog(project_root),
+                    )
+                except (InterfaceApiError, SkillRegistryError, OSError, ValueError):
+                    self._send(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": "planner skill catalog is unavailable"},
+                    )
+                return
+            if self.path == "/api/v1/plans":
+                try:
+                    self._send(HTTPStatus.OK, interface_saved_plan_inventory(project_root))
+                except (InterfaceApiError, ApprovalError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "saved plan inventory is unavailable"})
+                return
             if self.path == "/api/v1/recipes":
                 try:
                     self._send(HTTPStatus.OK, interface_saved_recipe_inventory(
@@ -967,6 +1503,12 @@ def _handler(
                 "/api/v1/recipes/verify-approval",
                 "/api/v1/recipes/preview-execution",
                 "/api/v1/recipes/execute",
+                "/api/v1/plans/create",
+                "/api/v1/plans/save-reviewed",
+                "/api/v1/plans/prepare-approval",
+                "/api/v1/plans/record-approval",
+                "/api/v1/plans/verify-approval",
+                "/api/v1/plans/preview-execution",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -984,6 +1526,38 @@ def _handler(
                 payload = json.loads(self.rfile.read(length))
                 if self.path == "/api/v1/recipe-proposals/compile":
                     response = compile_interface_recipe_proposal(payload, project_root=project_root)
+                elif self.path == "/api/v1/plans/create":
+                    response = plan_interface_task(
+                        InterfacePlanRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/plans/save-reviewed":
+                    response = save_interface_reviewed_plan(
+                        InterfaceReviewedPlanSaveRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/plans/prepare-approval":
+                    response = prepare_interface_plan_approval(
+                        InterfacePlanApprovalPreparationRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/plans/record-approval":
+                    response = record_interface_plan_approval(
+                        InterfacePlanApprovalDecisionRequest.model_validate(payload),
+                        project_root=project_root,
+                        approval_root=approval_root,
+                    )
+                elif self.path == "/api/v1/plans/verify-approval":
+                    response = verify_interface_plan_approval(
+                        InterfacePlanApprovalVerificationRequest.model_validate(payload),
+                        project_root=project_root,
+                        approval_root=approval_root,
+                    )
+                elif self.path == "/api/v1/plans/preview-execution":
+                    response = preview_interface_plan_execution(
+                        InterfacePlanExecutionPreviewRequest.model_validate(payload),
+                        project_root=project_root, approval_root=approval_root,
+                    )
                 elif self.path == "/api/v1/recipe-proposals/save-reviewed":
                     if not isinstance(payload, dict) or set(payload) != {
                         "proposal",
@@ -1049,7 +1623,10 @@ def _handler(
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "recipe proposal could not be compiled"})
                 return
             except InterfaceApiError as exc:
-                status = HTTPStatus.CONFLICT if "digest no longer matches" in str(exc) else HTTPStatus.BAD_REQUEST
+                status = HTTPStatus.CONFLICT if (
+                    "digest no longer matches" in str(exc)
+                    or "already exists" in str(exc)
+                ) else HTTPStatus.BAD_REQUEST
                 self._send(status, {"error": str(exc)})
                 return
             except RecipeStorageError:
@@ -1060,6 +1637,27 @@ def _handler(
                 return
             except ApprovedRecipeError:
                 self._send(HTTPStatus.CONFLICT, {"error": "approved recipe execution failed; inspect evidence and outputs"})
+                return
+            except PlannerAgentError as exc:
+                message = str(exc)
+                if "invalid JSON" in message:
+                    error = "planner model returned invalid JSON"
+                elif "invalid plan schema" in message:
+                    error = "planner model returned an invalid plan schema"
+                elif "deterministic policy" in message:
+                    error = "planner plan was rejected by deterministic policy"
+                else:
+                    error = "planner could not produce a validated plan"
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": error})
+                return
+            except PlannerPolicyError:
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "reviewed plan was rejected by deterministic policy"})
+                return
+            except (ContextPackError, ModelClientError, ModelSettingsError):
+                self._send(
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    {"error": "planner could not produce a validated plan"},
+                )
                 return
             except (SkillRegistryError, OSError, ValueError):
                 self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted compilation service is unavailable"})

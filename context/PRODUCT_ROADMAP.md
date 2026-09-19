@@ -691,3 +691,64 @@ identity and status summaries. The interface exposes a Runs workspace and can
 reconstruct a run-specific read-only graph from recipe identity, skills and
 dependencies stored with new attempts. Reopening has no approval, retry or
 execution authority. A separately approved retry design remains future work.
+
+### Checkpoint 17W — Planner Agent interface entry point
+
+Status: implemented for review. A top-level Plan workspace sends one bounded
+request through the existing Planner Agent, trusted context pack, configured
+model client and schema validation. It displays proposed steps and approval
+requirements and can project the validated result as a planning-only graph.
+It does not persist, approve or execute the plan. Local 4B-model validation led
+to a correction in the same checkpoint: lexical skill inference was replaced
+with explicit registry-verified selection, and the generation payload was
+reduced to the request, relevant datasets and selected skills.
+
+### Checkpoint 17X — reviewed Planner-result storage
+
+Checkpoint 17X status: implemented for review. The Plan workspace now displays
+the canonical digest for an exact validated result and requires explicit review
+before a distinct save action. The backend revalidates the full Planner-result
+schema, selected implemented skills, deterministic policy and digest, then
+creates one non-overwriting CLI-compatible artifact beneath `plans/`.
+
+No approval or execution occurs. Next: prepare and record an exact human plan
+decision bound to the immutable result.
+
+### Checkpoint 17Y — exact plan-approval preparation
+
+Checkpoint 17Y status: implemented for review. A stored Planner result can now
+be reloaded and revalidated to derive its exact approval-required step scope and
+canonical request digest. Read-only plans report that approval is not required.
+No decision is recorded and no execution occurs. Next: append-only approve or
+deny recording for plans whose trusted scope requires human authority.
+
+### Checkpoint 17Z — append-only plan decision
+
+Checkpoint 17Z status: implemented for review. Plans with trusted
+approval-required steps now expose an explicit approve-or-deny form. The server
+reprepares the exact request and derives scope before using the existing
+append-only approval service. Read-only plans cannot produce approval records.
+No execution occurs. Next: independently verify recorded plan authority.
+
+### Checkpoint 17AA — plan-decision inspection and verification
+
+Checkpoint 17AA status: implemented for review. Exact secret-redacted arguments
+and approval/validation flags are visible before a plan decision. A separate
+verification action rereads immutable plan and approval evidence and checks
+digest, decision, expiry, and complete required-step coverage. Neither artifact
+is modified and nothing executes. Next: non-executing Planner envelope preview.
+
+### Checkpoint 17AB — Planner execution-envelope preview
+
+Status: implemented for review. Verified plan authority can be translated by
+the existing Executor policy into a typed non-executing envelope. The currently
+supported shape remains the fixed vector-to-PostGIS four-step vertical slice;
+other valid plans are rejected rather than falsely presented as executable.
+Next: restart-safe plan/approval inventory before exact execution authority.
+
+### Checkpoint 17AC — restart-safe plan restoration
+
+Status: implemented for review. Recent immutable plans and matching decisions
+can be restored without regeneration or duplicate approval. Restored decisions
+require fresh independent verification. Next: expand typed Executor support
+beyond the fixed PostGIS slice before adding exact execution authority.
