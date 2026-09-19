@@ -1,5 +1,79 @@
 # Changelog
 
+## Checkpoint 17AC
+
+- Corrected saved-plan selection and replaced the horizontal strip with a
+  compact auto-collapsing, vertically scrolling and sortable navigator.
+- Added a bounded saved-plan inventory with matching decision evidence.
+- Added restart-safe restoration of exact plan, prepared scope, and latest
+  append-only decision while requiring fresh independent verification.
+- Kept inventory and restoration read-only and non-executing.
+
+## Checkpoint 17AB
+
+- Rendered preview rejection locally as a large persistent `PREVIEW BLOCKED`
+  result instead of an off-screen general Planner notice.
+- Added a non-executing Planner envelope preview using existing Executor policy.
+- Explicitly reject approved plans outside the currently supported four-step
+  PostGIS vertical slice instead of presenting false execution readiness.
+- Kept execution unavailable and reported the exact preview digest.
+
+## Checkpoint 17AA
+
+- Added visible step arguments and approval/validation flags before plan
+  decisions.
+- Added independent verification of immutable plan and approval evidence,
+  including decision, expiry, digest, and required-step coverage.
+- Kept verification non-mutating and non-executing.
+
+## Checkpoint 17Z
+
+- Corrected repeated reviewed-plan saves so an exact already-stored artifact
+  resumes the interface flow without being overwritten.
+- Added append-only approve or deny recording for exact prepared Planner-result
+  requests.
+- Reprepared and revalidated immutable plan evidence before recording, with
+  server-derived scope and stale-request rejection.
+- Prevented approval records for read-only plans and kept both decisions
+  strictly separate from execution.
+
+## Checkpoint 17Y
+
+- Added exact, non-writing approval-request preparation for immutable Planner
+  results.
+- Revalidated plan identity and policy server-side and derived approval scope
+  from the trusted plan rather than browser input.
+- Distinguished read-only plans that require no approval from plans awaiting a
+  human decision; neither path executes work.
+
+## Checkpoint 17X
+
+- Added explicit review and canonical SHA-256 confirmation before a Planner
+  result can be stored.
+- Added immutable, non-overwriting full `PlannerResult` persistence beneath the
+  fixed `plans/` root with policy revalidation and symlink rejection.
+- Kept plan storage separate from human approval and execution while preserving
+  compatibility with the existing CLI approval loader.
+
+## Checkpoint 17W
+
+- Connected a new Plan workspace to the existing Planner Agent and configured
+  model service rather than introducing a browser-only planning simulation.
+- Added strict request and response schemas, bounded failures, and explicit
+  planning-only authority with no persistence, approval, or execution.
+- Added a Blueprint-style projection of the validated planner result.
+- Replaced lexical Planner authority with explicit registry-verified skill
+  selection and reduced the model payload to task, relevant datasets and exact
+  selected-skill metadata after local-model validation exposed prompt dilution.
+- Added distinct safe interface errors for invalid JSON, invalid plan schema and
+  deterministic policy rejection.
+- Replaced the fixed Planner checkbox grid with a scalable searchable skill
+  picker, request-based recommendations, selected-skill chips and keyboard
+  navigation while keeping recommendations non-authoritative.
+- Documented grouped CLI-to-interface parity so remaining operational families
+  can be implemented without exposing a shell or pretending unsupported
+  commands are available.
+
 ## Checkpoint 17V
 
 - Added a bounded read-only inventory of durable interface execution attempts.

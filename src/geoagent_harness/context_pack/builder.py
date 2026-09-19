@@ -7,6 +7,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from collections.abc import Collection
 
 import yaml
 
@@ -169,6 +170,7 @@ def _load_datasets(
 def _load_skills(
     content: str,
     request_tokens: set[str],
+    allowed_skill_ids: Collection[str] | None = None,
 ) -> list[SkillContext]:
     try:
         registry = parse_skill_registry(content)
@@ -185,6 +187,19 @@ def _load_skills(
         )
         for skill in registry.implemented_skills()
     ]
+
+    if allowed_skill_ids is not None:
+        requested = set(allowed_skill_ids)
+        implemented_ids = {skill.id for skill in implemented}
+        unknown = requested - implemented_ids
+        if unknown:
+            raise ContextPackError(
+                "selected skills are not implemented and approved: "
+                + ", ".join(sorted(unknown))
+            )
+        if not requested:
+            raise ContextPackError("at least one planner skill must be selected")
+        return [skill for skill in implemented if skill.id in requested]
 
     relevant = [
         skill
@@ -250,6 +265,8 @@ def _load_decisions(
 def build_context_pack(
     original_request: str,
     project_root: Path = Path("."),
+    *,
+    allowed_skill_ids: Collection[str] | None = None,
 ) -> TaskContextPack:
     """Build one bounded context pack from fixed context files."""
 
@@ -304,6 +321,7 @@ def build_context_pack(
         available_skills=_load_skills(
             contents["context/SKILLS_INDEX.yaml"],
             request_tokens,
+            allowed_skill_ids,
         ),
         decisions=_load_decisions(
             contents["context/DECISIONS.jsonl"],

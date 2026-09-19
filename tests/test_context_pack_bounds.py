@@ -82,4 +82,6 @@ def test_planner_prompt_remains_bounded_as_status_grows(
     )
     assert total_characters < 60_000
     user_payload = json.loads(request.messages[1].content)
-    assert user_payload["context_pack"]["warnings"] == pack.warnings
+    assert user_payload["warnings"] == pack.warnings
+    assert "context_pack" not in user_payload
+    assert "current_status" not in user_payload

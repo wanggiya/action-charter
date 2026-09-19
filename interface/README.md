@@ -83,3 +83,11 @@ The top-level **Runs** workspace reads bounded durable progress from
 `workflow-state/interface-executions/`. It can restore an eligible attempt's
 run-specific graph after restarting the browser or API. This inventory is
 observational only and cannot resume, retry, approve, or execute an attempt.
+
+The top-level **Plan** workspace calls the existing Planner Agent through the
+loopback service and configured model provider. It returns a schema-validated,
+planning-only result and visual graph. It does not save, approve, or execute the
+plan; those remain separate authority increments. The operator explicitly
+selects the exact implemented skills the Planner may use. The backend verifies
+those IDs against the trusted registry and sends only that compact selection to
+the model.

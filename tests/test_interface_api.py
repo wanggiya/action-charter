@@ -18,6 +18,13 @@ from geoagent_harness.interface_api import (
     compile_interface_recipe_proposal,
     interface_recipe_template_catalog,
     interface_execution_inventory,
+    interface_planner_skill_catalog,
+    interface_saved_plan_inventory,
+    plan_interface_task,
+    save_interface_reviewed_plan,
+    prepare_interface_plan_approval,
+    record_interface_plan_approval,
+    verify_interface_plan_approval,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
     prepare_interface_execution_preview,
@@ -30,6 +37,13 @@ from geoagent_harness.interface_api.server import InterfaceApprovalDecision
 from geoagent_harness.interface_api.server import InterfaceApprovalVerificationRequest
 from geoagent_harness.interface_api.server import InterfaceExecutionPreviewRequest
 from geoagent_harness.interface_api.server import InterfaceRecipeExecutionRequest
+from geoagent_harness.interface_api.server import InterfacePlanRequest
+from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveRequest
+from geoagent_harness.interface_api.server import InterfacePlanApprovalPreparationRequest
+from geoagent_harness.interface_api.server import InterfacePlanApprovalDecisionRequest
+from geoagent_harness.interface_api.server import InterfacePlanApprovalVerificationRequest
+from geoagent_harness.approvals import load_planner_result, plan_sha256
+from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
 from geoagent_harness.recipe_proposals import RecipeCompilationError
 
@@ -45,6 +59,311 @@ PROPOSAL_FILE = (
 
 def proposal_payload() -> dict[str, object]:
     return json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
+
+
+def test_interface_planner_uses_existing_service_without_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import geoagent_harness.planner as planner_module
+
+    request_text = "Inspect sample_points and propose a validated workflow."
+    plan_payload = {
+        "schema_version": "1.0",
+        "status": "planned",
+        "summary": "Inspect the approved input.",
+        "steps": [{
+            "step_id": "step_1",
+            "skill": "inspect_vector",
+            "purpose": "Inspect metadata.",
+            "arguments": {"path": "data/input/sample_points.geojson"},
+            "requires_approval": False,
+            "expected_artifacts": [],
+            "validation_required": False,
+        }],
+        "assumptions": [],
+        "risks": [],
+        "execution_performed": False,
+        "validation_performed": False,
+    }
+    captured: dict[str, object] = {}
+
+    def fake_plan_task(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            agent_id="planner",
+            model="qwen-test",
+            original_request=request_text,
+            context_references=["context/PROJECT_SUMMARY.md"],
+            plan=SimpleNamespace(model_dump=lambda **_kwargs: plan_payload),
+            warnings=[],
+        )
+
+    monkeypatch.setattr(planner_module, "plan_task", fake_plan_task)
+    result = plan_interface_task(
+        InterfacePlanRequest(
+            action="plan_task",
+            request=request_text,
+            allowed_skill_ids=["inspect_vector"],
+        ),
+        project_root=PROJECT_ROOT,
+    )
+
+    assert captured["original_request"] == request_text
+    assert captured["allowed_skill_ids"] == ["inspect_vector"]
+    assert captured["project_root"] == PROJECT_ROOT.resolve()
+    assert result["status"] == "planned_not_saved"
+    assert result["allowed_skill_ids"] == ["inspect_vector"]
+    assert result["plan"] == plan_payload
+    assert len(result["plan_sha256"]) == 64
+    assert result["plan_saved"] is False
+    assert result["approval_performed"] is False
+    assert result["execution_performed"] is False
+
+
+def reviewed_plan_request() -> InterfaceReviewedPlanSaveRequest:
+    result = PlannerResult.model_validate({
+        "agent_id": "planner",
+        "model": "qwen-test",
+        "original_request": "Inspect the approved sample vector. Plan only.",
+        "context_references": ["context/DATASET_CATALOG.json"],
+        "plan": {
+            "schema_version": "1.0",
+            "status": "planned",
+            "summary": "Inspect the approved input.",
+            "steps": [{
+                "step_id": "step_1",
+                "skill": "inspect_vector",
+                "purpose": "Inspect metadata.",
+                "arguments": {"path": "data/input/sample_points.geojson"},
+                "requires_approval": False,
+                "expected_artifacts": ["inspection result"],
+                "validation_required": False,
+            }],
+            "assumptions": [],
+            "risks": [],
+            "execution_performed": False,
+            "validation_performed": False,
+        },
+        "warnings": [],
+    })
+    return InterfaceReviewedPlanSaveRequest(
+        action="save_reviewed_plan",
+        confirmed_plan_sha256=plan_sha256(result.plan),
+        allowed_skill_ids=["inspect_vector"],
+        planner_result=result,
+    )
+
+
+def reviewed_write_plan_request() -> InterfaceReviewedPlanSaveRequest:
+    payload = reviewed_plan_request().planner_result.model_dump(mode="json")
+    payload["original_request"] = "Convert the approved sample vector. Plan only."
+    payload["plan"]["summary"] = "Convert the approved input."
+    payload["plan"]["steps"] = [{
+        "step_id": "step_1",
+        "skill": "convert_vector",
+        "purpose": "Create a GeoPackage output.",
+        "arguments": {
+            "source": "data/input/sample_points.geojson",
+            "target": "data/output/planner_test.gpkg",
+        },
+        "requires_approval": True,
+        "expected_artifacts": ["converted vector"],
+        "validation_required": True,
+    }]
+    result = PlannerResult.model_validate(payload)
+    return InterfaceReviewedPlanSaveRequest(
+        action="save_reviewed_plan",
+        confirmed_plan_sha256=plan_sha256(result.plan),
+        allowed_skill_ids=["convert_vector"],
+        planner_result=result,
+    )
+
+
+def test_reviewed_plan_save_is_immutable_and_cli_compatible(tmp_path: Path) -> None:
+    request = reviewed_plan_request()
+    plan_root = tmp_path / "plans"
+
+    stored = save_interface_reviewed_plan(
+        request,
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+    )
+
+    assert stored["status"] == "stored"
+    assert stored["plan_sha256"] == request.confirmed_plan_sha256
+    assert stored["plan_saved"] is True
+    assert stored["plan_modified"] is True
+    assert stored["approval_performed"] is False
+    assert stored["execution_performed"] is False
+    loaded = load_planner_result(
+        path=plan_root / stored["plan_filename"],
+        plan_root=plan_root,
+    )
+    assert loaded == request.planner_result
+
+    prepared = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+    )
+    assert prepared["status"] == "approval_not_required"
+    assert prepared["approval_required_step_ids"] == []
+    assert prepared["approval_recorded"] is False
+    assert prepared["execution_performed"] is False
+    assert len(prepared["approval_request_sha256"]) == 64
+
+    inventory = interface_saved_plan_inventory(
+        PROJECT_ROOT, plan_root=plan_root, approval_root=tmp_path / "approvals",
+    )
+    assert inventory["plan_count"] == 1
+    assert inventory["plans"][0]["plan_sha256"] == stored["plan_sha256"]
+    assert inventory["plans"][0]["planner_result"]["plan"]["steps"][0]["skill"] == "inspect_vector"
+    assert inventory["plans"][0]["approvals"] == []
+    assert inventory["execution_performed"] is False
+
+    original_mtime = (plan_root / stored["plan_filename"]).stat().st_mtime_ns
+    repeated = save_interface_reviewed_plan(
+        request,
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+    )
+    assert repeated["status"] == "already_stored"
+    assert repeated["plan_modified"] is False
+    assert (plan_root / stored["plan_filename"]).stat().st_mtime_ns == original_mtime
+
+
+def test_reviewed_plan_save_rejects_digest_drift_and_symlink_root(tmp_path: Path) -> None:
+    request = reviewed_plan_request()
+    with pytest.raises(InterfaceApiError, match="digest no longer matches"):
+        save_interface_reviewed_plan(
+            request.model_copy(update={"confirmed_plan_sha256": "0" * 64}),
+            project_root=PROJECT_ROOT,
+            plan_root=tmp_path / "mismatch",
+        )
+    assert not (tmp_path / "mismatch").exists()
+
+    real_root = tmp_path / "real-plans"
+    real_root.mkdir()
+    linked_root = tmp_path / "linked-plans"
+    linked_root.symlink_to(real_root, target_is_directory=True)
+    with pytest.raises(InterfaceApiError, match="cannot be a symlink"):
+        save_interface_reviewed_plan(
+            request,
+            project_root=PROJECT_ROOT,
+            plan_root=linked_root,
+        )
+    assert not list(real_root.iterdir())
+
+
+def test_plan_approval_preparation_rejects_digest_drift(tmp_path: Path) -> None:
+    request = reviewed_plan_request()
+    plan_root = tmp_path / "plans"
+    stored = save_interface_reviewed_plan(
+        request, project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    with pytest.raises(InterfaceApiError, match="digest no longer matches"):
+        prepare_interface_plan_approval(
+            InterfacePlanApprovalPreparationRequest(
+                action="prepare_plan_approval",
+                plan_filename=stored["plan_filename"],
+                confirmed_plan_sha256="0" * 64,
+            ),
+            project_root=PROJECT_ROOT,
+            plan_root=plan_root,
+        )
+
+
+def test_plan_decision_is_append_only_and_bound_to_prepared_scope(tmp_path: Path) -> None:
+    request = reviewed_write_plan_request()
+    plan_root = tmp_path / "plans"
+    approval_root = tmp_path / "approvals"
+    stored = save_interface_reviewed_plan(
+        request, project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    prepared = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+    )
+    assert prepared["approval_required_step_ids"] == ["step_1"]
+    assert prepared["steps"][0]["arguments"]["target"] == "data/output/planner_test.gpkg"
+    assert prepared["steps"][0]["requires_approval"] is True
+    assert prepared["steps"][0]["validation_required"] is True
+    recorded = record_interface_plan_approval(
+        InterfacePlanApprovalDecisionRequest(
+            action="record_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            decision="approved",
+            approver="test operator",
+            reason="Reviewed exact conversion scope.",
+            valid_for_minutes=60,
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc),
+    )
+    assert recorded["decision"] == "approved"
+    assert recorded["approved_step_ids"] == ["step_1"]
+    assert recorded["approval_recorded"] is True
+    assert recorded["execution_performed"] is False
+    assert (approval_root / recorded["approval_filename"]).is_file()
+
+    verified = verify_interface_plan_approval(
+        InterfacePlanApprovalVerificationRequest(
+            action="verify_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            approval_filename=recorded["approval_filename"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 19, 12, 1, tzinfo=timezone.utc),
+    )
+    assert verified["approved"] is True
+    assert verified["verified_step_ids"] == ["step_1"]
+    assert verified["independent_verification_performed"] is True
+    assert verified["plan_modified"] is False
+    assert verified["approval_modified"] is False
+    assert verified["execution_performed"] is False
+
+    with pytest.raises(InterfaceApiError, match="request digest no longer matches"):
+        record_interface_plan_approval(
+            InterfacePlanApprovalDecisionRequest(
+                action="record_plan_approval",
+                plan_filename=stored["plan_filename"],
+                confirmed_plan_sha256=stored["plan_sha256"],
+                confirmed_approval_request_sha256="0" * 64,
+                decision="denied",
+                approver="test operator",
+                reason="Stale request.",
+            ),
+            project_root=PROJECT_ROOT,
+            plan_root=plan_root,
+            approval_root=approval_root,
+        )
+
+
+def test_interface_planner_catalog_exposes_only_implemented_safe_metadata() -> None:
+    catalog = interface_planner_skill_catalog(PROJECT_ROOT)
+
+    assert catalog["catalog_validated"] is True
+    assert catalog["execution_performed"] is False
+    assert catalog["skill_count"] == len(catalog["skills"])
+    assert "inspect_vector" in {skill["id"] for skill in catalog["skills"]}
+    assert all("entrypoint" not in skill for skill in catalog["skills"])
 
 
 def test_interface_catalog_is_validated_and_non_executing() -> None:

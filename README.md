@@ -177,6 +177,35 @@ and restart-aware, including failed-step and interruption localization.
 completed, failed, interrupted or active attempts can be reopened as their
 run-specific graph after a browser or API restart. Reopening never retries or
 executes a recipe.
+
+[Checkpoint 17W](docs/CHECKPOINT17W.md) adds the first live Planner Agent entry
+point: a natural-language request is processed by the existing trusted context,
+agent manifest, configured model client and plan schema validator, then rendered
+as a planning-only graph. See [interface and CLI parity](docs/INTERFACE_CLI_PARITY.md)
+for the remaining governed workflow families.
+[Checkpoint 17X](docs/CHECKPOINT17X.md) adds a separate reviewed-save boundary
+for that validated result. The interface displays the canonical plan SHA-256,
+requires explicit review, reruns schema and deterministic policy checks, and
+stores the full CLI-compatible `PlannerResult` immutably beneath `plans/`.
+Saving does not approve or execute the plan.
+[Checkpoint 17Y](docs/CHECKPOINT17Y.md) can then prepare the exact approval
+scope from the immutable plan. It revalidates the stored result and reports
+read-only plans as approval-not-required without pretending a decision exists.
+Preparation records no approval and performs no execution.
+[Checkpoint 17Z](docs/CHECKPOINT17Z.md) adds the distinct append-only human
+decision for plans containing approval-required steps. Approve and deny both
+remain evidence-only operations; read-only plans cannot create meaningless
+approval records.
+[Checkpoint 17AA](docs/CHECKPOINT17AA.md) exposes exact step arguments and both
+approval and validation flags before the decision, then independently verifies
+the recorded evidence without modifying artifacts or executing the plan.
+[Checkpoint 17AB](docs/CHECKPOINT17AB.md) previews the existing typed Executor
+envelope for the supported four-step PostGIS workflow. Unsupported plan shapes
+fail explicitly; previewing never executes work.
+[Checkpoint 17AC](docs/CHECKPOINT17AC.md) restores saved Planner results and
+their latest decision after browser or API restart, without model regeneration
+or duplicate approval. Restored evidence must be independently verified again.
+
 Checkpoint 17T adds the first interface execution action for that exact preview.
 It remains disabled by default, requires explicit write-tool startup authority and
 operator confirmation, revalidates every artifact server-side, dispatches only

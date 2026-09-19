@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, executeExactPreview, loadExecutionInventory, loadExecutionProgress, loadSavedRecipes, prepareExecutionPreview, prepareRecipeApproval, recordRecipeApproval, saveReviewedRecipe, verifyRecordedRecipeApproval, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type PreparedApprovalRequest, type RecipeExecutionResult, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedRecipeInventory, type VerifiedRecipeApproval } from "./lib/interface-api";
+import { compileRecipeProposal, createPlannerPlan, executeExactPreview, loadExecutionInventory, loadExecutionProgress, loadPlannerSkills, loadSavedPlans, loadSavedRecipes, prepareExecutionPreview, preparePlannerApproval, previewPlannerExecution, prepareRecipeApproval, recordPlannerApproval, recordRecipeApproval, saveReviewedPlannerPlan, saveReviewedRecipe, verifyPlannerApproval, verifyRecordedRecipeApproval, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type InterfacePlannerResult, type PlanExecutionPreview, type PlannerSkillCatalog, type PreparedApprovalRequest, type PreparedPlanApproval, type RecipeExecutionResult, type RecordedPlanApproval, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedPlanInventory, type SavedPlannerResult, type SavedRecipeInventory, type VerifiedPlanApproval, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -103,6 +103,60 @@ const evidencePathParts = (path: string) => {
     ? { filename: normalized, directory: "Project root" }
     : { filename: normalized.slice(separator + 1), directory: normalized.slice(0, separator) || "/" };
 };
+const searchableSkillText = (skill: PlannerSkillCatalog["skills"][number]) =>
+  `${skill.id} ${skill.id.replaceAll("_", " ")} ${skill.kind ?? ""} ${skill.access ?? ""}`.toLowerCase();
+const skillRecommendationScore = (skill: PlannerSkillCatalog["skills"][number], request: string) => {
+  const text = request.toLowerCase();
+  const tokens = new Set(text.match(/[a-z0-9]+/g) ?? []);
+  const skillTokens = skill.id.split("_");
+  let score = skillTokens.filter((token) => tokens.has(token)).length * 3;
+  if (/\b(geojson|gpkg|shapefile|vector|feature)\b/.test(text) && skill.id.includes("vector")) score += 2;
+  if (/\b(tif|tiff|raster|imagery)\b/.test(text) && skill.id.includes("raster")) score += 2;
+  if (/\bpostgis\b/.test(text) && skill.id.includes("postgis")) score += 3;
+  if (/\bgeoserver\b/.test(text) && skill.id.includes("geoserver")) score += 3;
+  if (/\binspect\b/.test(text) && skill.id.startsWith("inspect_")) score += 4;
+  if (/\b(convert|conversion)\b/.test(text) && skill.id.startsWith("convert_")) score += 4;
+  if (/\b(load|import)\b/.test(text) && skill.id.startsWith("load_")) score += 4;
+  if (/\b(validate|validation|verify)\b/.test(text) && /validate|verify/.test(skill.id)) score += 4;
+  if (/\b(report|reporting)\b/.test(text) && skill.id.includes("report")) score += 4;
+  return score;
+};
+const plannerWorkflow = (result: InterfacePlannerResult): WorkflowData => {
+  const stepNodes: WorkflowData["nodes"] = result.plan.steps.map((step, index) => ({
+    id: `planned_${step.step_id}`,
+    title: step.skill.replaceAll("_", " "),
+    subtitle: step.purpose,
+    kind: "tool",
+    category: "tool",
+    group: "execution",
+    x: 620 + index * 230,
+    y: 330,
+    status: "pending",
+    authority: step.requires_approval ? "Human approval required" : "Proposed only",
+    performedBy: "Not executed",
+    evidence: step.expected_artifacts.join(", ") || "No artifact created",
+    details: null,
+  }));
+  return {
+    schemaVersion: "1.0",
+    id: `planner-${Date.now()}`,
+    title: result.plan.summary,
+    correlationId: `planner-${Date.now()}`,
+    readOnly: true,
+    source: "validated_trace",
+    nodes: [
+      { id: "planned_request", title: "User request", subtitle: result.original_request, kind: "input", category: "input", group: "intake", x: 40, y: 100, status: "complete", authority: "User-authored request", performedBy: "User", evidence: "In-memory planner request", details: null },
+      { id: "planned_planner", title: "Create plan", subtitle: result.model, kind: "agent", category: "planning", group: "planning", x: 300, y: 100, status: "complete", authority: "Planning only", performedBy: "Planner agent", evidence: "Schema-validated model output", details: null },
+      { id: "planned_policy", title: "Review proposed plan", subtitle: "Not saved, approved, or executed", kind: "policy", category: "policy", group: "governance", x: 620, y: 100, status: "pending", authority: "Operator review required", performedBy: "Policy engine", evidence: "No durable plan evidence yet", details: null },
+      ...stepNodes,
+    ],
+    edges: [
+      { from: "planned_request", to: "planned_planner", kind: "control", label: "request" },
+      { from: "planned_planner", to: "planned_policy", kind: "control", label: "proposed plan" },
+      ...stepNodes.map((node) => ({ from: "planned_planner", to: node.id, kind: "data" as const, label: "proposed step" })),
+    ],
+  };
+};
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
@@ -162,6 +216,35 @@ export default function App() {
   const [executionInventory, setExecutionInventory] = useState<ExecutionInventory | null>(null);
   const [executionInventoryOpen, setExecutionInventoryOpen] = useState(false);
   const [executionInventoryNotice, setExecutionInventoryNotice] = useState("");
+  const [plannerOpen, setPlannerOpen] = useState(false);
+  const [plannerRequest, setPlannerRequest] = useState("");
+  const [plannerPending, setPlannerPending] = useState(false);
+  const [plannerNotice, setPlannerNotice] = useState("");
+  const [plannerResult, setPlannerResult] = useState<InterfacePlannerResult | null>(null);
+  const [plannerReviewConfirmed, setPlannerReviewConfirmed] = useState(false);
+  const [plannerSavePending, setPlannerSavePending] = useState(false);
+  const [savedPlannerResult, setSavedPlannerResult] = useState<SavedPlannerResult | null>(null);
+  const [planApprovalPending, setPlanApprovalPending] = useState(false);
+  const [preparedPlanApproval, setPreparedPlanApproval] = useState<PreparedPlanApproval | null>(null);
+  const [planDecision, setPlanDecision] = useState<"approved" | "denied">("approved");
+  const [planApprover, setPlanApprover] = useState("operator");
+  const [planReason, setPlanReason] = useState("");
+  const [planValidMinutes, setPlanValidMinutes] = useState("60");
+  const [planDecisionPending, setPlanDecisionPending] = useState(false);
+  const [recordedPlanApproval, setRecordedPlanApproval] = useState<RecordedPlanApproval | null>(null);
+  const [planVerificationPending, setPlanVerificationPending] = useState(false);
+  const [verifiedPlanApproval, setVerifiedPlanApproval] = useState<VerifiedPlanApproval | null>(null);
+  const [planPreviewPending, setPlanPreviewPending] = useState(false);
+  const [planExecutionPreview, setPlanExecutionPreview] = useState<PlanExecutionPreview | null>(null);
+  const [planPreviewError, setPlanPreviewError] = useState("");
+  const [plannerSkills, setPlannerSkills] = useState<PlannerSkillCatalog | null>(null);
+  const [selectedPlannerSkills, setSelectedPlannerSkills] = useState<string[]>([]);
+  const [plannerSkillSearch, setPlannerSkillSearch] = useState("");
+  const [plannerSkillHighlight, setPlannerSkillHighlight] = useState(0);
+  const [savedPlanInventory, setSavedPlanInventory] = useState<SavedPlanInventory | null>(null);
+  const [savedPlansExpanded, setSavedPlansExpanded] = useState(false);
+  const [savedPlanSort, setSavedPlanSort] = useState<"time_desc" | "time_asc" | "name_asc" | "name_desc">("time_desc");
+  const [selectedSavedPlanSha, setSelectedSavedPlanSha] = useState("");
   const [activeRecipe, setActiveRecipe] = useState<ActiveRecipe | null>(null);
   const [templateTopologyBaseline, setTemplateTopologyBaseline] = useState<string | null>(null);
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
@@ -207,6 +290,19 @@ export default function App() {
   const displayedWorkflow = draft ?? activeRecipeWorkflow ?? workflow;
   const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
   const performerOptions = useMemo(() => [...new Set([...standardPerformers, ...displayedWorkflow.nodes.map(performerOf)])].sort(), [displayedWorkflow.nodes]);
+  const plannerSkillResults = useMemo(() => {
+    const query = plannerSkillSearch.trim().toLowerCase();
+    const skills = plannerSkills?.skills ?? [];
+    if (!query) return skills;
+    const queryTokens = query.match(/[a-z0-9]+/g) ?? [];
+    return skills.filter((skill) => queryTokens.every((token) => searchableSkillText(skill).includes(token)));
+  }, [plannerSkillSearch, plannerSkills]);
+  const recommendedPlannerSkills = useMemo(() => (plannerSkills?.skills ?? [])
+    .map((skill) => ({ skill, score: skillRecommendationScore(skill, plannerRequest) }))
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score || left.skill.id.localeCompare(right.skill.id))
+    .slice(0, 5)
+    .map(({ skill }) => skill), [plannerRequest, plannerSkills]);
   const selectedTemplate = useMemo(() => recipeTemplates.find((template) => template.template_id === selectedTemplateId), [recipeTemplates, selectedTemplateId]);
   const sortedRecipes = useMemo(() => {
     const recipes = [...(recipeInventory?.recipes ?? [])];
@@ -217,6 +313,12 @@ export default function App() {
       return recipeSort === "time_asc" ? difference : -difference;
     });
   }, [recipeInventory, recipeSort]);
+  const sortedSavedPlans = useMemo(() => [...(savedPlanInventory?.plans ?? [])].sort((left, right) => {
+    if (savedPlanSort === "name_asc") return left.planner_result.plan.summary.localeCompare(right.planner_result.plan.summary, undefined, { sensitivity: "base" });
+    if (savedPlanSort === "name_desc") return right.planner_result.plan.summary.localeCompare(left.planner_result.plan.summary, undefined, { sensitivity: "base" });
+    const difference = Date.parse(left.saved_at) - Date.parse(right.saved_at);
+    return savedPlanSort === "time_asc" ? difference : -difference;
+  }), [savedPlanInventory, savedPlanSort]);
   const runFacts = useMemo(() => ({
     inputReferences: displayedWorkflow.nodes.find((node) => node.kind === "data")?.details?.observedFacts.find((fact) => fact.label === "Context references")?.value ?? "0",
     tools: displayedWorkflow.nodes.filter((node) => node.kind === "tool").length,
@@ -316,6 +418,18 @@ export default function App() {
       setTemplateNotice("");
     }).catch(() => setTemplateNotice("Export the trusted recipe catalog before using templates."));
   }, []);
+  useEffect(() => {
+    if (!plannerOpen || plannerSkills) return;
+    setPlannerNotice("Loading implemented skills from the trusted registry…");
+    void loadPlannerSkills().then((catalog) => {
+      setPlannerSkills(catalog);
+      setPlannerNotice("");
+    }).catch(() => setPlannerNotice("Planner skills could not be loaded. Confirm that the local interface service is running."));
+  }, [plannerOpen, plannerSkills]);
+  useEffect(() => {
+    if (!plannerOpen) return;
+    void loadSavedPlans().then(setSavedPlanInventory).catch(() => setSavedPlanInventory(null));
+  }, [plannerOpen]);
   useEffect(() => { requestAnimationFrame(updateViewport); }, [orientation, updateViewport, zoom]);
   useEffect(() => { requestAnimationFrame(fitGraph); }, [fitGraph, orientation]);
 
@@ -570,6 +684,144 @@ export default function App() {
     } catch (error) {
       setExecutionInventoryNotice(error instanceof Error ? error.message : "Execution attempt could not be reopened.");
     }
+  };
+  const createPlan = async () => {
+    if (!plannerRequest.trim() || !selectedPlannerSkills.length) return;
+    setPlannerPending(true);
+    setPlannerResult(null);
+    setPlannerReviewConfirmed(false);
+    setSavedPlannerResult(null);
+    setPreparedPlanApproval(null);
+    setRecordedPlanApproval(null);
+    setVerifiedPlanApproval(null);
+    setPlannerNotice("Planner agent is building and validating a planning-only workflow through the configured model service…");
+    try {
+      const result = await createPlannerPlan(plannerRequest, selectedPlannerSkills);
+      setPlannerResult(result);
+      setPlannerNotice("Validated plan returned. Nothing was saved, approved, or executed.");
+    } catch (error) {
+      setPlannerNotice(error instanceof Error ? error.message : "Planner could not produce a validated plan.");
+    } finally {
+      setPlannerPending(false);
+    }
+  };
+  const resumeSavedPlan = async (item: SavedPlanInventory["plans"][number]) => {
+    setSelectedSavedPlanSha(item.plan_sha256);
+    setPlannerNotice("Restoring the exact saved plan and matching decision evidence…");
+    const allowed = [...new Set(item.planner_result.plan.steps.map((step) => step.skill))];
+    const result: InterfacePlannerResult = { schema_version: "1.0", status: "planned_not_saved", ...item.planner_result, allowed_skill_ids: allowed, plan_sha256: item.plan_sha256, plan_saved: false, approval_performed: false, execution_performed: false };
+    const stored: SavedPlannerResult = { schema_version: "1.0", status: "already_stored", plan_sha256: item.plan_sha256, plan_filename: item.plan_filename, plan_saved: true, plan_modified: false, approval_performed: false, execution_performed: false };
+    setPlannerResult(result); setSavedPlannerResult(stored); setPlannerReviewConfirmed(true); setVerifiedPlanApproval(null); setPlanExecutionPreview(null); setPlanPreviewError("");
+    try {
+      const prepared = await preparePlannerApproval(stored); setPreparedPlanApproval(prepared);
+      const latest = item.approvals.at(-1);
+      if (latest) setRecordedPlanApproval({ schema_version: "1.0", status: "recorded", decision: latest.decision, approval_id: latest.approval_id, approval_filename: latest.approval_filename, plan_sha256: item.plan_sha256, approved_step_ids: latest.decision === "approved" ? latest.step_ids : [], expires_at: latest.expires_at, secrets_redacted: true, approval_recorded: true, execution_performed: false });
+      else setRecordedPlanApproval(null);
+      setSavedPlansExpanded(false);
+      setPlannerNotice(latest ? "Saved plan and latest append-only decision restored. Verify it before preview." : "Saved plan restored. No recorded decision was found.");
+    } catch (error) { setPlannerNotice(error instanceof Error ? error.message : "Saved plan could not be restored."); }
+  };
+  const savePlannerPlan = async () => {
+    if (!plannerResult || !plannerReviewConfirmed || plannerSavePending || savedPlannerResult) return;
+    setPlannerSavePending(true);
+    setPlannerNotice("Revalidating the exact plan and confirmed digest before immutable storage…");
+    try {
+      const stored = await saveReviewedPlannerPlan(plannerResult);
+      setSavedPlannerResult(stored);
+      setPlannerNotice(stored.status === "already_stored"
+        ? "Exact reviewed plan was already stored. The artifact was not modified; approval preparation is now available."
+        : "Reviewed plan stored immutably. It is not approved and was not executed.");
+    } catch (error) {
+      setPlannerNotice(error instanceof Error ? error.message : "Reviewed plan could not be stored.");
+    } finally {
+      setPlannerSavePending(false);
+    }
+  };
+  const preparePlanApproval = async () => {
+    if (!savedPlannerResult || planApprovalPending) return;
+    setPlanApprovalPending(true);
+    setPlannerNotice("Re-reading the immutable plan and deriving exact approval scope…");
+    try {
+      const prepared = await preparePlannerApproval(savedPlannerResult);
+      setPreparedPlanApproval(prepared);
+      setPlannerNotice(prepared.status === "approval_not_required"
+        ? "This plan has no approval-required steps. No decision was recorded."
+        : "Exact approval request prepared. No decision was recorded and nothing was executed.");
+    } catch (error) {
+      setPlannerNotice(error instanceof Error ? error.message : "Plan approval request could not be prepared.");
+    } finally {
+      setPlanApprovalPending(false);
+    }
+  };
+  const recordPlanDecision = async () => {
+    if (!savedPlannerResult || !preparedPlanApproval || preparedPlanApproval.status !== "prepared_not_recorded" || planDecisionPending || recordedPlanApproval) return;
+    const minutes = planValidMinutes.trim() ? Number(planValidMinutes) : null;
+    if (!planApprover.trim() || !planReason.trim()) { setPlannerNotice("Approver and reason are required."); return; }
+    if (minutes !== null && (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)) { setPlannerNotice("Expiration must be a whole number from 1 to 1440 minutes."); return; }
+    setPlanDecisionPending(true);
+    setPlannerNotice("Revalidating the immutable plan and prepared request before append-only recording…");
+    try {
+      const recorded = await recordPlannerApproval({ stored: savedPlannerResult, prepared: preparedPlanApproval, decision: planDecision, approver: planApprover.trim(), reason: planReason.trim(), validForMinutes: minutes });
+      setRecordedPlanApproval(recorded);
+      setPlannerNotice(`${recorded.decision === "approved" ? "Approval" : "Denial"} recorded. Nothing was executed.`);
+    } catch (error) {
+      setPlannerNotice(error instanceof Error ? error.message : "Plan decision could not be recorded.");
+    } finally { setPlanDecisionPending(false); }
+  };
+  const verifyPlanDecision = async () => {
+    if (!savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || planVerificationPending) return;
+    setPlanVerificationPending(true);
+    setPlannerNotice("Independently re-reading immutable plan and approval evidence…");
+    try {
+      const verified = await verifyPlannerApproval(savedPlannerResult, preparedPlanApproval, recordedPlanApproval);
+      setVerifiedPlanApproval(verified);
+      setPlannerNotice(verified.approved ? "Recorded plan approval independently verified. Nothing was executed." : `Execution remains blocked: ${verified.reason}`);
+    } catch (error) { setPlannerNotice(error instanceof Error ? error.message : "Plan approval verification failed."); }
+    finally { setPlanVerificationPending(false); }
+  };
+  const previewPlanExecution = async () => {
+    if (!savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || !verifiedPlanApproval?.approved || planPreviewPending) return;
+    setPlanPreviewPending(true); setPlanPreviewError(""); setPlannerNotice("Building the exact non-executing Planner envelope…");
+    try { const preview = await previewPlannerExecution(savedPlannerResult, preparedPlanApproval, recordedPlanApproval); setPlanExecutionPreview(preview); setPlannerNotice("Exact execution envelope previewed. Execution remains unavailable."); }
+    catch (error) { const message = error instanceof Error ? error.message : "Execution preview failed."; setPlanPreviewError(message); setPlannerNotice(""); }
+    finally { setPlanPreviewPending(false); }
+  };
+  const togglePlannerSkill = (skillId: string) => {
+    if (plannerPending) return;
+    setSelectedPlannerSkills((current) => current.includes(skillId)
+      ? current.filter((item) => item !== skillId)
+      : [...current, skillId]);
+    setPlannerResult(null);
+    setPlannerReviewConfirmed(false);
+    setSavedPlannerResult(null);
+    setPreparedPlanApproval(null);
+    setRecordedPlanApproval(null);
+    setVerifiedPlanApproval(null);
+    setPlannerNotice("");
+  };
+  const navigatePlannerSkills = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setPlannerSkillHighlight((current) => Math.min(current + 1, Math.max(0, plannerSkillResults.length - 1)));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setPlannerSkillHighlight((current) => Math.max(0, current - 1));
+    } else if (event.key === "Enter" && plannerSkillResults[plannerSkillHighlight]) {
+      event.preventDefault();
+      togglePlannerSkill(plannerSkillResults[plannerSkillHighlight].id);
+    } else if (event.key === "Backspace" && !plannerSkillSearch && selectedPlannerSkills.length) {
+      togglePlannerSkill(selectedPlannerSkills[selectedPlannerSkills.length - 1]);
+    } else if (event.key === "Escape") {
+      event.currentTarget.blur();
+    }
+  };
+  const viewPlannerGraph = () => {
+    if (!plannerResult) return;
+    const next = plannerWorkflow(plannerResult);
+    setWorkflow(next);
+    setSelectedTaskId("");
+    setSelectedId("planned_planner");
+    setPlannerOpen(false);
   };
   const closeRecipeFlow = () => {
     setRecipePanelOpen(false);
@@ -862,9 +1114,9 @@ export default function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17V</span></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17W</span></div>
       <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => setRecipePanelOpen(true)}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="run-history-launch" onClick={() => void openExecutionInventory()}><History size={15}/><span>Runs</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
+      <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => setRecipePanelOpen(true)}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="planner-launch" onClick={() => setPlannerOpen(true)}><Bot size={15}/><span>Plan</span></button><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="run-history-launch" onClick={() => void openExecutionInventory()}><History size={15}/><span>Runs</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
     </header>
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
@@ -888,6 +1140,29 @@ export default function App() {
     </div>}
     {recipePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setRecipePanelOpen(false); }}><section className="recipe-workspace" role="dialog" aria-modal="true" aria-labelledby="recipes-title"><header className="template-workspace-head"><div><p className="eyebrow">Immutable local definitions</p><h2 id="recipes-title">Saved recipes</h2><p>Inspect exact identities and prepare a digest-bound approval request. Preparing does not record approval or execute anything.</p></div><button aria-label="Close saved recipes" onClick={() => setRecipePanelOpen(false)}><X size={18}/></button></header>{recipeInventoryNotice && <p className="recipe-inventory-notice">{recipeInventoryNotice}</p>}{recipeInventory && <div className="recipe-inventory"><div className="recipe-inventory-summary"><strong>{recipeInventory.recipe_count}</strong><span>immutable recipe{recipeInventory.recipe_count === 1 ? "" : "s"}</span><small>No approval or execution performed</small><label className="recipe-sort">Order recipes<select value={recipeSort} onChange={(event) => setRecipeSort(event.target.value as RecipeSort)}><option value="time_desc">Newest first</option><option value="time_asc">Oldest first</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option></select></label></div>{recipeInventory.recipes.length ? <div className="recipe-cards">{preparedApproval && <section ref={approvalRequestRef} tabIndex={-1} className="approval-request"><header><ShieldCheck size={18}/><span><strong>Approval request prepared</strong><small>{preparedApproval.recipe_id}</small></span></header><div><span>Request SHA-256</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code></div><div><span>Recipe SHA-256</span><code title={preparedApproval.recipe_sha256}>{preparedApproval.recipe_sha256}</code></div><h3>Exact approval scope</h3><ul>{preparedApproval.approval_required_step_ids.map((stepId) => { const step = preparedApproval.steps.find((candidate) => candidate.step_id === stepId); return <li key={stepId}><code>{stepId}</code><span>{step?.skill_id.replaceAll("_", " ")}</span></li>; })}</ul><p><LockKeyhole size={13}/> Prepared only · no decision recorded · nothing executed</p></section>}{sortedRecipes.map((recipe) => <article className={`recipe-card ${preparedApproval?.recipe_sha256 === recipe.recipe_sha256 ? "selected" : ""}`} key={recipe.recipe_sha256}><header><LayoutList size={16}/><span><strong>{recipe.recipe_id}</strong><small>{recipe.recipe_filename}</small></span><time dateTime={recipe.saved_at}>{new Date(recipe.saved_at).toLocaleString()}</time></header><div className="recipe-card-digest"><span>SHA-256</span><code title={recipe.recipe_sha256}>{recipe.recipe_sha256}</code></div><ol>{recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span>{recipe.approval_required_step_ids.includes(step.step_id) && <em>Approval required</em>}</li>)}</ol><footer><span>{recipe.validation_required_step_ids.length} validation gate{recipe.validation_required_step_ids.length === 1 ? "" : "s"}</span><button disabled={approvalPreparationPending || !recipe.approval_required_step_ids.length} onClick={() => void prepareApproval(recipe.recipe_filename, recipe.recipe_sha256)}>{approvalPreparationPending ? "Preparing…" : "Prepare approval request"}</button></footer></article>)}</div> : <div className="recipe-inventory-empty"><LayoutList size={22}/><strong>No saved recipes yet</strong><span>Compile and explicitly save a reviewed template proposal first.</span></div>}</div>}</section></div>}
     {executionInventoryOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setExecutionInventoryOpen(false); }}><section className="execution-inventory-workspace" role="dialog" aria-modal="true" aria-labelledby="runs-title"><header className="template-workspace-head"><div><p className="eyebrow">Durable governed history</p><h2 id="runs-title">Execution attempts</h2><p>Reopen persisted progress after closing the browser or restarting the interface API. This view cannot retry an execution.</p></div><button aria-label="Close execution attempts" onClick={() => setExecutionInventoryOpen(false)}><X size={18}/></button></header>{executionInventoryNotice && <p className="recipe-inventory-notice">{executionInventoryNotice}</p>}{executionInventory && <div className="execution-attempts"><div className="execution-attempt-summary"><strong>{executionInventory.attempt_count}</strong><span>durable attempt{executionInventory.attempt_count === 1 ? "" : "s"}</span><small>Read-only inventory · no execution performed</small></div>{executionInventory.attempts.map((attempt) => <article className={`execution-attempt status-${attempt.status}`} key={attempt.execution_preview_sha256}><header><span><strong>{attempt.recipe_id ?? "Legacy execution attempt"}</strong><small>{attempt.status.replaceAll("_", " ")}</small></span><time dateTime={attempt.started_at}>{new Date(attempt.started_at).toLocaleString()}</time></header><dl><div><dt>Steps</dt><dd>{attempt.step_count}</dd></div><div><dt>Stopped at</dt><dd>{attempt.failed_step_id ?? "—"}</dd></div><div><dt>Finished</dt><dd>{attempt.finished_at ? new Date(attempt.finished_at).toLocaleString() : "In progress"}</dd></div></dl><code title={attempt.execution_preview_sha256}>{attempt.execution_preview_sha256}</code><button disabled={!attempt.recipe_id || !attempt.recipe_sha256} onClick={() => void reopenExecutionAttempt(attempt.execution_preview_sha256)}>{attempt.status === "running" ? "View live graph" : "Reopen run graph"}</button></article>)}</div>}</section></div>}
+    {plannerOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget && !plannerPending) setPlannerOpen(false); }}>
+      <section className="planner-workspace" role="dialog" aria-modal="true" aria-labelledby="planner-title">
+        <header className="template-workspace-head"><div><p className="eyebrow">Planner agent · configured model service</p><h2 id="planner-title">Plan a governed task</h2><p>Describe the result and explicitly choose the only skills the model may propose. This action cannot save, approve, or execute anything.</p></div><button aria-label="Close planner" disabled={plannerPending} onClick={() => setPlannerOpen(false)}><X size={18}/></button></header>
+        <div className="planner-body">
+          {savedPlanInventory && savedPlanInventory.plans.length > 0 && <section className={`saved-plan-strip ${savedPlansExpanded ? "expanded" : "collapsed"}`}><header><button type="button" className="saved-plan-toggle" aria-expanded={savedPlansExpanded} onClick={() => setSavedPlansExpanded((value) => !value)}><span><strong>Saved plans</strong><small>{selectedSavedPlanSha ? "Plan selected · click to change" : "Restore immutable plan evidence"}</small></span><em>{savedPlanInventory.plan_count}</em><ArrowRight className={savedPlansExpanded ? "expanded" : ""} size={14}/></button></header>{savedPlansExpanded && <><label className="saved-plan-sort">Order<select value={savedPlanSort} onChange={(event) => setSavedPlanSort(event.target.value as typeof savedPlanSort)}><option value="time_desc">Newest first</option><option value="time_asc">Oldest first</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option></select></label><div className="saved-plan-list">{sortedSavedPlans.map((item) => { const decisionDetails = item.approvals.length ? item.approvals.map((approval) => `${approval.decision.toUpperCase()} · ${approval.step_ids.join(", ")} · ${new Date(approval.created_at).toLocaleString()}`).join("\n") : "No decisions recorded"; return <button type="button" className={selectedSavedPlanSha === item.plan_sha256 ? "selected" : ""} title={decisionDetails} key={item.plan_sha256} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void resumeSavedPlan(item); }}><span className="saved-plan-main"><strong>{item.planner_result.plan.summary}</strong><small>{item.planner_result.plan.steps.map((step) => step.skill.replaceAll("_", " ")).join(" · ")}</small></span><span className="saved-plan-metrics"><time dateTime={item.saved_at}>{new Date(item.saved_at).toLocaleString()}</time><em>{item.approvals.length} decision{item.approvals.length === 1 ? "" : "s"}</em></span><ArrowRight size={14}/></button>})}</div></>}</section>}
+          <label>Task request<textarea value={plannerRequest} maxLength={8000} rows={6} placeholder="Inspect data/input/sample_points.geojson." onChange={(event) => { setPlannerRequest(event.target.value); setPlannerResult(null); setPlannerNotice(""); }}/></label>
+          <fieldset className="planner-skill-selector"><legend>Allowed skills</legend><p>Search and explicitly select the only implemented capabilities this plan may contain. Recommendations never grant authority.</p>
+            <label className="planner-skill-search"><Search size={15}/><input value={plannerSkillSearch} placeholder="Search skills by name, kind, or access…" disabled={plannerPending} onChange={(event) => { setPlannerSkillSearch(event.target.value); setPlannerSkillHighlight(0); }} onKeyDown={navigatePlannerSkills}/><kbd>↑↓ Enter</kbd></label>
+            {selectedPlannerSkills.length > 0 && <section className="planner-selected-skills" aria-label="Selected planner skills"><h3>Selected · {selectedPlannerSkills.length}</h3><div>{selectedPlannerSkills.map((skillId) => <button key={skillId} type="button" disabled={plannerPending} onClick={() => togglePlannerSkill(skillId)}><span>{skillId.replaceAll("_", " ")}</span><X size={12}/></button>)}</div></section>}
+            {!plannerSkillSearch && recommendedPlannerSkills.length > 0 && <section className="planner-recommended-skills"><h3>Recommended for this request</h3><div>{recommendedPlannerSkills.map((skill) => <button key={skill.id} type="button" className={selectedPlannerSkills.includes(skill.id) ? "selected" : ""} disabled={plannerPending} onClick={() => togglePlannerSkill(skill.id)}><span><strong>{skill.id.replaceAll("_", " ")}</strong><small>{skill.kind} · {skill.access}</small></span>{selectedPlannerSkills.includes(skill.id) ? <CheckCircle2 size={15}/> : <Plus size={15}/>}</button>)}</div></section>}
+            <section className="planner-skill-results"><h3>{plannerSkillSearch ? `Search results · ${plannerSkillResults.length}` : `All implemented skills · ${plannerSkillResults.length}`}</h3><div role="listbox" aria-label="Implemented planner skills">{plannerSkillResults.map((skill, index) => <button key={skill.id} type="button" role="option" aria-selected={selectedPlannerSkills.includes(skill.id)} className={`${selectedPlannerSkills.includes(skill.id) ? "selected" : ""} ${plannerSkillHighlight === index ? "highlighted" : ""}`} disabled={plannerPending} onMouseEnter={() => setPlannerSkillHighlight(index)} onClick={() => togglePlannerSkill(skill.id)}><span><strong>{skill.id.replaceAll("_", " ")}</strong><small>{skill.kind} · {skill.access}</small><em>{skill.approval_required ? "Approval required" : "No write approval"}{skill.validation_required ? " · validation required" : ""}</em></span>{selectedPlannerSkills.includes(skill.id) ? <CheckCircle2 size={16}/> : <Plus size={16}/>}</button>)}</div>{!plannerSkillResults.length && <p>No implemented skills match this search.</p>}</section>
+          </fieldset>
+          <div className="planner-authority"><Bot size={18}/><span><strong>Planning authority only</strong><small>{selectedPlannerSkills.length} explicitly allowed skill{selectedPlannerSkills.length === 1 ? "" : "s"} · compact context · no tools executed</small></span></div>
+          <button className="planner-submit" disabled={plannerPending || !plannerRequest.trim() || !selectedPlannerSkills.length} onClick={() => void createPlan()}>{plannerPending ? "Planning and validating…" : "Generate validated plan"}</button>
+          {plannerNotice && <p className="planner-notice">{plannerNotice}</p>}
+          {plannerResult && <section className="planner-result"><header><CheckCircle2 size={22}/><span><strong>Validated plan ready</strong><small>{plannerResult.model} · {plannerResult.plan.steps.length} proposed steps</small></span></header><p>{plannerResult.plan.summary}</p><ol>{plannerResult.plan.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span><strong>{step.skill.replaceAll("_", " ")}</strong><small>{step.purpose}</small></span>{step.requires_approval && <em>Approval required</em>}</li>)}</ol><div className="planner-plan-digest"><span>Plan SHA-256</span><code title={plannerResult.plan_sha256}>{plannerResult.plan_sha256}</code></div><div className="planner-outcome"><strong>{preparedPlanApproval ? preparedPlanApproval.status === "approval_not_required" ? "APPROVAL NOT REQUIRED" : "APPROVAL REQUEST PREPARED" : savedPlannerResult ? "STORED · NOT APPROVED" : "PLANNED ONLY"}</strong><span>{preparedPlanApproval ? "No decision recorded · nothing executed" : savedPlannerResult ? "Immutable plan evidence created · nothing approved · nothing executed" : "Nothing saved · nothing approved · nothing executed"}</span></div><label className="planner-review-confirm"><input type="checkbox" checked={plannerReviewConfirmed} disabled={Boolean(savedPlannerResult)} onChange={(event) => setPlannerReviewConfirmed(event.target.checked)}/><span>I reviewed this exact plan digest, steps, arguments, and approval requirements.</span></label><div className="planner-result-actions"><button onClick={viewPlannerGraph}>View plan graph</button><button className="planner-save" disabled={!plannerReviewConfirmed || plannerSavePending || Boolean(savedPlannerResult)} onClick={() => void savePlannerPlan()}>{plannerSavePending ? "Verifying and saving…" : savedPlannerResult ? "Plan stored" : "Save reviewed plan"}</button></div>{savedPlannerResult && <div className="planner-stored"><CheckCircle2 size={16}/><span><strong>Stored immutably</strong><small>{savedPlannerResult.plan_filename}</small></span><button disabled={planApprovalPending || Boolean(preparedPlanApproval)} onClick={() => void preparePlanApproval()}>{planApprovalPending ? "Preparing…" : preparedPlanApproval ? "Request prepared" : "Prepare approval request"}</button></div>}{preparedPlanApproval && <div className="planner-approval-prepared"><ShieldCheck size={18}/><span><strong>{preparedPlanApproval.status === "approval_not_required" ? "No approval-required steps" : "Exact approval scope prepared"}</strong><small>{preparedPlanApproval.approval_required_step_ids.length ? preparedPlanApproval.approval_required_step_ids.join(" · ") : "The validated plan is read-only."}</small></span><code title={preparedPlanApproval.approval_request_sha256}>{preparedPlanApproval.approval_request_sha256}</code></div>}</section>}
+          {plannerResult && preparedPlanApproval?.status === "prepared_not_recorded" && <section className="planner-scope-review"><h3>Exact scope under review</h3>{preparedPlanApproval.steps.map((step) => <article key={step.step_id}><header><code>{step.step_id}</code><strong>{step.skill.replaceAll("_", " ")}</strong></header><p>{step.purpose}</p><pre>{JSON.stringify(step.arguments, null, 2)}</pre><dl><div><dt>Approval required</dt><dd>{step.requires_approval ? "true" : "false"}</dd></div><div><dt>Validation required</dt><dd>{step.validation_required ? "true" : "false"}</dd></div></dl></article>)}</section>}
+          {plannerResult && preparedPlanApproval?.status === "prepared_not_recorded" && <section className="planner-decision"><h3>Human decision</h3><div className="planner-decision-choice"><button className={planDecision === "approved" ? "selected approved" : ""} disabled={Boolean(recordedPlanApproval)} onClick={() => setPlanDecision("approved")}>Approve exact scope</button><button className={planDecision === "denied" ? "selected denied" : ""} disabled={Boolean(recordedPlanApproval)} onClick={() => setPlanDecision("denied")}>Deny</button></div><label>Approver<input value={planApprover} disabled={Boolean(recordedPlanApproval)} maxLength={200} onChange={(event) => setPlanApprover(event.target.value)}/></label><label>Reason<textarea value={planReason} disabled={Boolean(recordedPlanApproval)} maxLength={2000} rows={3} onChange={(event) => setPlanReason(event.target.value)}/></label><label>Valid for minutes <small>Optional</small><input value={planValidMinutes} disabled={Boolean(recordedPlanApproval)} inputMode="numeric" onChange={(event) => setPlanValidMinutes(event.target.value)}/></label><button className="record-plan-decision" disabled={planDecisionPending || Boolean(recordedPlanApproval) || !planApprover.trim() || !planReason.trim()} onClick={() => void recordPlanDecision()}>{planDecisionPending ? "Recording…" : recordedPlanApproval ? `${recordedPlanApproval.decision === "approved" ? "Approval" : "Denial"} recorded` : `Record ${planDecision}`}</button>{recordedPlanApproval && <div className={`recorded-plan-decision ${recordedPlanApproval.decision}`}><strong>{recordedPlanApproval.decision === "approved" ? "APPROVED" : "DENIED"}</strong><span>Append-only evidence created · nothing executed</span><code>{recordedPlanApproval.approval_filename}</code></div>}</section>}
+          {recordedPlanApproval && <section className={`planner-verification ${verifiedPlanApproval?.approved ? "approved" : verifiedPlanApproval ? "blocked" : ""}`}><h3>Independent verification</h3>{verifiedPlanApproval ? <><strong>{verifiedPlanApproval.approved ? "APPROVAL VERIFIED" : "EXECUTION BLOCKED"}</strong><p>{verifiedPlanApproval.reason}</p><small>Nothing executed</small></> : <button disabled={planVerificationPending} onClick={() => void verifyPlanDecision()}>{planVerificationPending ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}</section>}
+          {verifiedPlanApproval?.approved && <section className="planner-envelope-preview"><h3>Execution envelope</h3>{planExecutionPreview ? <><div><span>Preview SHA-256</span><code>{planExecutionPreview.execution_preview_sha256}</code></div><pre>{JSON.stringify(planExecutionPreview.envelope, null, 2)}</pre><strong>PREVIEW ONLY · EXECUTION UNAVAILABLE</strong></> : <button disabled={planPreviewPending} onClick={() => void previewPlanExecution()}>{planPreviewPending ? "Building exact envelope…" : "Preview approved execution"}</button>}{planPreviewError && <div className="planner-preview-blocked" role="alert"><strong>PREVIEW BLOCKED</strong><span>{planPreviewError}</span><small>Approval evidence remains recorded · nothing executed</small></div>}</section>}
+        </div>
+      </section>
+    </div>}
     {recipePanelOpen && preparedApproval && <aside className="approval-decision-drawer" aria-label="Record human approval decision"><header><div><p className="eyebrow">Human decision</p><h2>Record approval</h2></div><span className="decision-no-execute"><LockKeyhole size={14}/> No execution</span></header>{recordedApproval ? <div className={`recorded-decision decision-${recordedApproval.decision}`}><CheckCircle2 size={22}/><strong>{recordedApproval.decision === "approved" ? "Approval recorded" : "Denial recorded"}</strong><small>{recordedApproval.approval_filename}</small><dl><div><dt>Decision</dt><dd>{recordedApproval.decision}</dd></div><div><dt>Steps</dt><dd>{recordedApproval.approved_step_ids.join(", ")}</dd></div><div><dt>Expires</dt><dd>{recordedApproval.expires_at ? new Date(recordedApproval.expires_at).toLocaleString() : "No expiry"}</dd></div></dl><p><ShieldCheck size={14}/> Append-only evidence created · nothing executed</p></div> : <><div className="decision-binding"><span>Bound request</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code><small>{preparedApproval.approval_required_step_ids.join(", ")}</small></div><label>Decision<select value={approvalDecision} onChange={(event) => { setApprovalDecision(event.target.value as "approved" | "denied"); setApprovalConfirmed(false); }}><option value="approved">Approve exact steps</option><option value="denied">Deny request</option></select></label><label>Approver<input ref={approvalApproverRef} defaultValue={approvalApprover} maxLength={200} placeholder="Operator name or role" onBlur={(event) => { setApprovalApprover(event.target.value); setApprovalConfirmed(false); }}/></label><label>Reason<textarea ref={approvalReasonRef} defaultValue={approvalReason} maxLength={2000} rows={4} placeholder="Why is this decision appropriate?" onBlur={(event) => { setApprovalReason(event.target.value); setApprovalConfirmed(false); }}/></label><label>Valid for minutes <small>Leave blank for no expiry; maximum 1440</small><input ref={approvalValidMinutesRef} defaultValue={approvalValidMinutes} inputMode="numeric" placeholder="60" onBlur={(event) => { setApprovalValidMinutes(event.target.value); setApprovalConfirmed(false); }}/></label><label className="decision-confirm"><input type="checkbox" checked={approvalConfirmed} onChange={(event) => setApprovalConfirmed(event.target.checked)}/><span>I confirm this decision applies to the displayed request digest and exact step scope.</span></label>{approvalDecisionNotice && <p className="decision-notice">{approvalDecisionNotice}</p>}<button className={`record-decision decision-${approvalDecision}`} disabled={!approvalConfirmed || approvalRecording} onClick={() => void recordApprovalDecision()}>{approvalRecording ? "Revalidating and recording…" : approvalDecision === "approved" ? "Record approval" : "Record denial"}</button><p className="decision-boundary"><ShieldCheck size={14}/> This writes approval evidence only. It cannot execute the recipe.</p></>}</aside>}
     {recipePanelOpen && preparedApproval && <button className="close-recipe-flow" aria-label="Close recipe workflow" title="Close recipe workflow" onClick={closeRecipeFlow}><X size={18}/></button>}
     {recipePanelOpen && recordedApproval && <section className={`authority-outcome-dock decision-${recordedApproval.decision}`} aria-live="polite">

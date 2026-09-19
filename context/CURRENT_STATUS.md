@@ -1855,3 +1855,78 @@ their run-specific graph. An operator can reopen completed, failed, interrupted
 or active state after closing the browser or restarting the local API. Reopening
 cannot approve, resume, retry or execute anything; legacy records without enough
 identity remain listed but their graph action is disabled.
+
+## Checkpoint 17W — live Planner Agent request
+
+Checkpoint 17W adds a top-level Plan workspace connected directly to the
+existing `plan_task` service. The operator can submit one bounded natural-
+language request; the backend builds trusted project context, loads the Planner
+Agent manifest, calls the configured model service and validates the returned
+plan schema. The interface shows the exact model, proposed steps, approval
+requirements and a read-only plan graph. Planning does not save a plan, record
+approval, invoke tools or execute any step. CLI parity is now tracked by
+operational workflow family in `docs/INTERFACE_CLI_PARITY.md`.
+The corrected Planner flow requires explicit registry-backed skill selection
+and supplies only those skills plus relevant datasets in a compact model
+payload. Negative prose cannot grant a skill, and the returned plan is still
+independently checked against the exact selection. The skill selector scales
+through name/kind/access search, request-based recommendations, removable
+selected chips and keyboard navigation. Recommendations are presentation only.
+
+## Checkpoint 17X — reviewed Planner-result storage
+
+Checkpoint 17X is implemented for review. A validated live Planner result now
+includes its canonical plan SHA-256. After reviewing the exact steps,
+arguments, and approval requirements, the operator can explicitly confirm the
+digest and store the full `PlannerResult` beneath `plans/`.
+
+The loopback service revalidates the typed result, implemented selected skills,
+deterministic Planner policy and digest before an exclusive non-overwriting
+write. Symlink plan roots and stale digests fail closed. The stored artifact is
+loadable by the existing CLI approval service. No approval is recorded and no
+execution is performed.
+
+## Checkpoint 17Y — exact plan-approval preparation
+
+Checkpoint 17Y is implemented for review. After immutable plan storage, the
+operator can prepare approval scope through a separate action. The service
+reloads the stored full Planner result, verifies its canonical filename and
+digest, reruns deterministic policy, and derives required step IDs server-side.
+The response is bound by its own canonical SHA-256. Read-only plans accurately
+return `approval_not_required`; no decision or execution is performed.
+
+## Checkpoint 17Z — append-only plan decision
+
+Checkpoint 17Z is implemented for review. A prepared request with one or more
+approval-required steps can receive an explicit human approve or deny decision,
+bounded identity and reason, and optional expiry. The service reprepares the
+request and compares its digest, reloads the immutable result, derives exact
+scope server-side, rejects symlinked approval roots, and writes through the
+existing non-overwriting approval service. Read-only plans remain ineligible.
+Approval evidence is recorded; execution is not performed.
+
+## Checkpoint 17AA — plan-decision inspection and verification
+
+Checkpoint 17AA is implemented for review. Approval preparation now projects
+each planned step's purpose, redacted arguments, approval requirement, and
+validation requirement directly in the interface. After recording, a distinct
+verification endpoint reloads immutable plan and approval evidence, reprepares
+the request, compares digests, and uses the existing verifier to check decision,
+expiry, and complete scope. It reports verified authority or an execution block,
+modifies neither artifact, and performs no execution.
+
+## Checkpoint 17AB — Planner execution-envelope preview
+
+Checkpoint 17AB is implemented for review. Independently verified plan evidence
+can enter the existing Executor envelope builder as a preview. The preview is
+digest-bound and explicitly non-executing. Executor policy still supports only
+the fixed inspect/load/validate/report PostGIS sequence, so the one-step
+conversion approval demonstration is correctly rejected at this boundary.
+
+## Checkpoint 17AC — restart-safe plan restoration
+
+Checkpoint 17AC is implemented for review. The Plan workspace now inventories
+validated immutable Planner results and matching append-only decisions. A saved
+plan can be restored without another model call or duplicate decision; exact
+scope is reprepared and the latest decision must be independently reverified.
+Inventory and restoration are bounded, read-only, and non-executing.
