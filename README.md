@@ -17,6 +17,19 @@ the resulting state, and preserves tamper-evident evidence.
 > **Models propose; deterministic software authorizes, executes, validates,
 > and records evidence.**
 
+Checkpoint 17AD can compile an independently verified Planner result into a
+typed governed recipe candidate for supported dispatcher skills. Compilation
+does not save, approve, or execute the recipe; recipe authority remains a
+separate review sequence.
+
+Checkpoint 17AE adds explicit digest review and immutable storage for that
+candidate. Saving revalidates the source plan, approval evidence, recipe policy,
+and digest; it still grants no recipe approval and performs no execution.
+
+Checkpoint 17AF carries the exact stored recipe into the existing approval
+workspace and prioritizes it in the refreshed inventory. Approval preparation
+remains a separate explicit operator action.
+
 The current reference implementation applies this architecture to geospatial
 data with GeoPandas, GDAL, rasterio, PostGIS, and GeoServer-oriented workflows.
 GIS is the first reference domain, not the architectural limit.
@@ -135,6 +148,10 @@ compiling an exact proposal in memory. Start it alongside Vite:
 # terminal 2
 corepack pnpm@10.17.1 --dir interface dev
 ```
+
+For backend route development, `bash scripts/serve_interface_dev.sh` pins imports
+to the current checkout and prints source/route diagnostics. See
+[Interface API troubleshooting](docs/INTERFACE_API_TROUBLESHOOTING.md).
 
 The interface can now preview, download and compile a trusted-template
 proposal. It still cannot save, approve or execute one.

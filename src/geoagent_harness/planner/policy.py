@@ -41,6 +41,10 @@ REQUIRED_SKILL_ARGUMENTS = {
     "inspect_vector": {
         "path",
     },
+    "convert_vector": {
+        "path",
+        "target_path",
+    },
     "load_vector_to_postgis": {
         "path",
         "target_schema",

@@ -339,6 +339,8 @@ const planExecutionPreviewSchema = z.object({
   execution_available: z.literal(false), execution_performed: z.literal(false),
 });
 export type PlanExecutionPreview = z.infer<typeof planExecutionPreviewSchema>;
+const compiledPlanRecipeSchema = z.object({ schema_version: z.literal("1.0"), status: z.literal("compiled_not_saved"), source_plan_sha256: z.string(), recipe_sha256: z.string(), recipe: z.object({ recipe_id: z.string(), summary: z.string(), steps: z.array(z.object({ step_id: z.string(), skill_id: z.string(), depends_on: z.array(z.string()), arguments: z.record(z.string(), z.unknown()), output_ids: z.array(z.string()) }).passthrough()) }).passthrough(), approval_required_step_ids: z.array(z.string()), validation_required_step_ids: z.array(z.string()), recipe_saved: z.literal(false), recipe_approval_performed: z.literal(false), execution_performed: z.literal(false) });
+export type CompiledPlanRecipe = z.infer<typeof compiledPlanRecipeSchema>;
 
 const plannerSkillCatalogSchema = z.object({
   schema_version: z.literal("1.0"),
@@ -417,6 +419,32 @@ export async function saveReviewedRecipe(
   if (!response.ok) {
     const message = z.object({ error: z.string().max(300) }).safeParse(payload);
     throw new Error(message.success ? message.data.error : "reviewed recipe save failed");
+  }
+  return savedRecipeSchema.parse(payload);
+}
+
+export async function saveCompiledPlannerRecipe(
+  compiled: CompiledPlanRecipe,
+  stored: SavedPlannerResult,
+  prepared: PreparedPlanApproval,
+  recorded: RecordedPlanApproval,
+): Promise<SavedInterfaceRecipe> {
+  const response = await fetch("/api/v1/plans/save-reviewed-recipe", {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "save_reviewed_plan_recipe",
+      plan_filename: stored.plan_filename,
+      confirmed_plan_sha256: stored.plan_sha256,
+      confirmed_approval_request_sha256: prepared.approval_request_sha256,
+      approval_filename: recorded.approval_filename,
+      confirmed_recipe_sha256: compiled.recipe_sha256,
+    }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(300) }).safeParse(payload);
+    throw new Error(message.success ? message.data.error : "reviewed Planner recipe save failed");
   }
   return savedRecipeSchema.parse(payload);
 }
@@ -714,4 +742,8 @@ export async function previewPlannerExecution(stored: SavedPlannerResult, prepar
   const payload = await boundedJson(response);
   if (!response.ok) { const message = z.object({ error: z.string().max(500) }).safeParse(payload); throw new Error(message.success ? message.data.error : "execution preview failed"); }
   return planExecutionPreviewSchema.parse(payload);
+}
+export async function compilePlannerRecipe(stored: SavedPlannerResult, prepared: PreparedPlanApproval, recorded: RecordedPlanApproval): Promise<CompiledPlanRecipe> {
+  const response = await fetch("/api/v1/plans/compile-recipe", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "compile_plan_recipe", plan_filename: stored.plan_filename, confirmed_plan_sha256: stored.plan_sha256, confirmed_approval_request_sha256: prepared.approval_request_sha256, approval_filename: recorded.approval_filename }) });
+  const payload = await boundedJson(response); if (!response.ok) { const message = z.object({ error: z.string().max(500) }).safeParse(payload); throw new Error(message.success ? message.data.error : "Planner recipe compilation failed"); } return compiledPlanRecipeSchema.parse(payload);
 }

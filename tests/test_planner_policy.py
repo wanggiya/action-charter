@@ -211,3 +211,29 @@ def test_report_must_follow_validation() -> None:
             plan,
             available_skills=ALLOWED,
         )
+
+
+def test_convert_vector_requires_canonical_recipe_arguments() -> None:
+    plan = make_plan(
+        [
+            step(
+                1,
+                "convert_vector",
+                approval=True,
+                validation=True,
+                arguments={
+                    "source": "data/input/sample_points.geojson",
+                    "target": "data/output/result.gpkg",
+                },
+            )
+        ]
+    )
+
+    with pytest.raises(
+        PlannerPolicyError,
+        match="missing required arguments: path, target_path",
+    ):
+        validate_plan_policy(
+            plan,
+            available_skills={"convert_vector"},
+        )

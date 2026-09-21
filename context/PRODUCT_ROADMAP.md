@@ -752,3 +752,29 @@ Status: implemented for review. Recent immutable plans and matching decisions
 can be restored without regeneration or duplicate approval. Restored decisions
 require fresh independent verification. Next: expand typed Executor support
 beyond the fixed PostGIS slice before adding exact execution authority.
+
+### Checkpoint 17AD — verified plan to governed recipe candidate
+
+Status: implemented for review. An independently verified Planner result can be
+compiled into the existing typed recipe contract for supported dispatcher
+skills. The candidate is deterministically validated and digest-bound but is
+not saved, approved, or executed. Next: persist the exact reviewed candidate
+and enter the existing recipe approval and execution sequence without
+transferring plan approval.
+
+### Checkpoint 17AE — reviewed Planner recipe storage
+
+Status: implemented for review. The operator can confirm the exact compiled
+recipe digest and ordered steps, after which the server reverifies source
+authority, recompiles, revalidates policy, compares identity, and immutably
+stores the recipe. No recipe approval or execution occurs. Next: guide the
+stored artifact through the existing recipe approval and execution surfaces
+without requiring the operator to rediscover it manually.
+
+### Checkpoint 17AF — exact stored-recipe approval handoff
+
+Status: implemented for review. The post-storage action opens a freshly loaded
+recipe inventory bound to the exact stored digest and prioritizes the matching
+artifact. Approval preparation remains explicit. Next: preserve this identity
+through approval, verification, execution preview, execution, and outcome
+verification as one visible end-to-end interface journey.
