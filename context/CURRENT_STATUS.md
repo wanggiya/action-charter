@@ -2,6 +2,55 @@
 
 Last updated: 2026-09-16
 
+## Checkpoint 17AD — Planner-to-recipe compilation
+
+Implemented for review. The interface can compile an independently verified
+Planner result into the existing workflow-recipe schema for supported
+dispatcher skills, validate it deterministically, and display its canonical
+digest. The candidate is not saved, approved, or executed, and plan approval
+does not transfer to recipe authority.
+
+## Checkpoint 17AE — reviewed Planner recipe storage
+
+Implemented for review. A compiled Planner recipe candidate can be explicitly
+confirmed by digest and stored immutably after server-side plan-authority
+reverification, deterministic recompilation, policy validation, and digest
+comparison. Storage records no recipe approval and performs no execution. The
+stored artifact can enter the existing saved-recipe approval sequence.
+
+## Checkpoint 17AF — exact approval-workspace handoff
+
+Implemented for review. A newly stored Planner recipe can open the saved-recipe
+workspace bound to its exact SHA-256. The refreshed matching artifact is
+prioritized independently of list sorting. The handoff prepares no approval,
+records no decision, and performs no execution.
+
+## Checkpoint 17AH — recipe-save HTTP correction
+
+Implemented for review. The Planner-derived recipe-save endpoint is admitted by
+the POST request gate, tested through the real HTTP handler, and supports exact
+non-modifying resume when the canonical recipe already exists.
+
+## Checkpoint 17AI — deterministic local API startup
+
+Implemented for review. A source-pinned development launcher verifies the
+imported backend file and critical route count before listening. Troubleshooting
+guidance now covers listener identity, working directory, CPU versus elapsed
+time, stale imports, and direct route probes.
+
+## Checkpoint 17AJ — visible recipe approval handoff
+
+Implemented for review. **Review recipe approval scope** now closes the Planner
+overlay before opening the exact saved-recipe inventory. The selected digest is
+preserved and approval preparation remains an explicit later action.
+
+## Checkpoint 17AK — complete saved-plan restoration
+
+Implemented for review. Restoring an immutable plan repopulates its original
+task request and exact allowed skills. Blocked or expired approval evidence can
+be replaced by a new append-only decision without deleting the prior artifact;
+all dependent preview and compilation state is cleared first.
+
 ## Project summary
 
 ActionCharter is a CLI-first, local-first governed execution harness for AI

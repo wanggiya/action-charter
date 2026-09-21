@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compileRecipeProposal, createPlannerPlan, executeExactPreview, loadExecutionInventory, loadExecutionProgress, loadPlannerSkills, loadSavedPlans, loadSavedRecipes, prepareExecutionPreview, preparePlannerApproval, previewPlannerExecution, prepareRecipeApproval, recordPlannerApproval, recordRecipeApproval, saveReviewedPlannerPlan, saveReviewedRecipe, verifyPlannerApproval, verifyRecordedRecipeApproval, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type InterfacePlannerResult, type PlanExecutionPreview, type PlannerSkillCatalog, type PreparedApprovalRequest, type PreparedPlanApproval, type RecipeExecutionResult, type RecordedPlanApproval, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedPlanInventory, type SavedPlannerResult, type SavedRecipeInventory, type VerifiedPlanApproval, type VerifiedRecipeApproval } from "./lib/interface-api";
+import { compilePlannerRecipe, compileRecipeProposal, createPlannerPlan, executeExactPreview, loadExecutionInventory, loadExecutionProgress, loadPlannerSkills, loadSavedPlans, loadSavedRecipes, prepareExecutionPreview, preparePlannerApproval, previewPlannerExecution, prepareRecipeApproval, recordPlannerApproval, recordRecipeApproval, saveCompiledPlannerRecipe, saveReviewedPlannerPlan, saveReviewedRecipe, verifyPlannerApproval, verifyRecordedRecipeApproval, type CompiledPlanRecipe, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type InterfacePlannerResult, type PlanExecutionPreview, type PlannerSkillCatalog, type PreparedApprovalRequest, type PreparedPlanApproval, type RecipeExecutionResult, type RecordedPlanApproval, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedPlanInventory, type SavedPlannerResult, type SavedRecipeInventory, type VerifiedPlanApproval, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -189,6 +189,7 @@ export default function App() {
   const [recipeInventory, setRecipeInventory] = useState<SavedRecipeInventory | null>(null);
   const [recipeInventoryNotice, setRecipeInventoryNotice] = useState("");
   const [recipeSort, setRecipeSort] = useState<RecipeSort>("time_desc");
+  const [selectedRecipeSha, setSelectedRecipeSha] = useState("");
   const [preparedApproval, setPreparedApproval] = useState<PreparedApprovalRequest | null>(null);
   const [approvalPreparationPending, setApprovalPreparationPending] = useState(false);
   const [approvalDecision, setApprovalDecision] = useState<"approved" | "denied">("approved");
@@ -237,6 +238,12 @@ export default function App() {
   const [planPreviewPending, setPlanPreviewPending] = useState(false);
   const [planExecutionPreview, setPlanExecutionPreview] = useState<PlanExecutionPreview | null>(null);
   const [planPreviewError, setPlanPreviewError] = useState("");
+  const [compiledPlanRecipe, setCompiledPlanRecipe] = useState<CompiledPlanRecipe | null>(null);
+  const [planRecipePending, setPlanRecipePending] = useState(false);
+  const [planRecipeReviewConfirmed, setPlanRecipeReviewConfirmed] = useState(false);
+  const [planRecipeSavePending, setPlanRecipeSavePending] = useState(false);
+  const [savedPlanRecipe, setSavedPlanRecipe] = useState<SavedInterfaceRecipe | null>(null);
+  const [planRecipeSaveError, setPlanRecipeSaveError] = useState("");
   const [plannerSkills, setPlannerSkills] = useState<PlannerSkillCatalog | null>(null);
   const [selectedPlannerSkills, setSelectedPlannerSkills] = useState<string[]>([]);
   const [plannerSkillSearch, setPlannerSkillSearch] = useState("");
@@ -307,12 +314,16 @@ export default function App() {
   const sortedRecipes = useMemo(() => {
     const recipes = [...(recipeInventory?.recipes ?? [])];
     return recipes.sort((left, right) => {
+      if (selectedRecipeSha) {
+        if (left.recipe_sha256 === selectedRecipeSha) return -1;
+        if (right.recipe_sha256 === selectedRecipeSha) return 1;
+      }
       if (recipeSort === "name_asc") return left.recipe_id.localeCompare(right.recipe_id, undefined, { sensitivity: "base" });
       if (recipeSort === "name_desc") return right.recipe_id.localeCompare(left.recipe_id, undefined, { sensitivity: "base" });
       const difference = Date.parse(left.saved_at) - Date.parse(right.saved_at);
       return recipeSort === "time_asc" ? difference : -difference;
     });
-  }, [recipeInventory, recipeSort]);
+  }, [recipeInventory, recipeSort, selectedRecipeSha]);
   const sortedSavedPlans = useMemo(() => [...(savedPlanInventory?.plans ?? [])].sort((left, right) => {
     if (savedPlanSort === "name_asc") return left.planner_result.plan.summary.localeCompare(right.planner_result.plan.summary, undefined, { sensitivity: "base" });
     if (savedPlanSort === "name_desc") return right.planner_result.plan.summary.localeCompare(left.planner_result.plan.summary, undefined, { sensitivity: "base" });
@@ -619,8 +630,10 @@ export default function App() {
       setSavePending(false);
     }
   };
-  const openSavedRecipes = async () => {
+  const openSavedRecipes = async (preferredRecipeSha = "") => {
     setTemplatePanelOpen(false);
+    setPlannerOpen(false);
+    setExecutionInventoryOpen(false);
     setRecipePanelOpen(true);
     setRecipeInventoryNotice("Loading immutable recipes…");
     setPreparedApproval(null);
@@ -635,10 +648,13 @@ export default function App() {
     setExecutionProgress(null);
     setApprovalConfirmed(false);
     setApprovalDecisionNotice("");
+    setSelectedRecipeSha(preferredRecipeSha);
     try {
       const inventory = await loadSavedRecipes();
       setRecipeInventory(inventory);
-      setRecipeInventoryNotice("");
+      setRecipeInventoryNotice(preferredRecipeSha && !inventory.recipes.some((recipe) => recipe.recipe_sha256 === preferredRecipeSha)
+        ? "The newly stored recipe was not found in the refreshed inventory. Confirm the API and project root."
+        : preferredRecipeSha ? "Newly stored recipe selected. Review its exact scope before preparing approval." : "");
     } catch {
       setRecipeInventory(null);
       setRecipeInventoryNotice("Saved recipes could not be loaded. Confirm that the local interface service is running.");
@@ -694,6 +710,12 @@ export default function App() {
     setPreparedPlanApproval(null);
     setRecordedPlanApproval(null);
     setVerifiedPlanApproval(null);
+    setPlanExecutionPreview(null);
+    setPlanPreviewError("");
+    setCompiledPlanRecipe(null);
+    setPlanRecipeReviewConfirmed(false);
+    setSavedPlanRecipe(null);
+    setPlanRecipeSaveError("");
     setPlannerNotice("Planner agent is building and validating a planning-only workflow through the configured model service…");
     try {
       const result = await createPlannerPlan(plannerRequest, selectedPlannerSkills);
@@ -709,9 +731,12 @@ export default function App() {
     setSelectedSavedPlanSha(item.plan_sha256);
     setPlannerNotice("Restoring the exact saved plan and matching decision evidence…");
     const allowed = [...new Set(item.planner_result.plan.steps.map((step) => step.skill))];
+    setPlannerRequest(item.planner_result.original_request);
+    setSelectedPlannerSkills(allowed);
+    setPlannerSkillSearch("");
     const result: InterfacePlannerResult = { schema_version: "1.0", status: "planned_not_saved", ...item.planner_result, allowed_skill_ids: allowed, plan_sha256: item.plan_sha256, plan_saved: false, approval_performed: false, execution_performed: false };
     const stored: SavedPlannerResult = { schema_version: "1.0", status: "already_stored", plan_sha256: item.plan_sha256, plan_filename: item.plan_filename, plan_saved: true, plan_modified: false, approval_performed: false, execution_performed: false };
-    setPlannerResult(result); setSavedPlannerResult(stored); setPlannerReviewConfirmed(true); setVerifiedPlanApproval(null); setPlanExecutionPreview(null); setPlanPreviewError("");
+    setPlannerResult(result); setSavedPlannerResult(stored); setPlannerReviewConfirmed(true); setVerifiedPlanApproval(null); setPlanExecutionPreview(null); setPlanPreviewError(""); setCompiledPlanRecipe(null); setPlanRecipeReviewConfirmed(false); setSavedPlanRecipe(null); setPlanRecipeSaveError("");
     try {
       const prepared = await preparePlannerApproval(stored); setPreparedPlanApproval(prepared);
       const latest = item.approvals.at(-1);
@@ -779,12 +804,42 @@ export default function App() {
     } catch (error) { setPlannerNotice(error instanceof Error ? error.message : "Plan approval verification failed."); }
     finally { setPlanVerificationPending(false); }
   };
+  const beginFreshPlanDecision = () => {
+    setRecordedPlanApproval(null);
+    setVerifiedPlanApproval(null);
+    setPlanDecision("approved");
+    setPlanReason("");
+    setPlanValidMinutes("");
+    setPlanExecutionPreview(null);
+    setPlanPreviewError("");
+    setCompiledPlanRecipe(null);
+    setPlanRecipeReviewConfirmed(false);
+    setSavedPlanRecipe(null);
+    setPlanRecipeSaveError("");
+    setPlannerNotice("Expired approval evidence was preserved. Record a fresh append-only decision for the same prepared scope.");
+  };
   const previewPlanExecution = async () => {
     if (!savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || !verifiedPlanApproval?.approved || planPreviewPending) return;
     setPlanPreviewPending(true); setPlanPreviewError(""); setPlannerNotice("Building the exact non-executing Planner envelope…");
     try { const preview = await previewPlannerExecution(savedPlannerResult, preparedPlanApproval, recordedPlanApproval); setPlanExecutionPreview(preview); setPlannerNotice("Exact execution envelope previewed. Execution remains unavailable."); }
     catch (error) { const message = error instanceof Error ? error.message : "Execution preview failed."; setPlanPreviewError(message); setPlannerNotice(""); }
     finally { setPlanPreviewPending(false); }
+  };
+  const compilePlanRecipe = async () => {
+    if (!savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || !verifiedPlanApproval?.approved || planRecipePending) return;
+    setPlanRecipePending(true); setPlanPreviewError("");
+    try { setCompiledPlanRecipe(await compilePlannerRecipe(savedPlannerResult, preparedPlanApproval, recordedPlanApproval)); setPlanRecipeReviewConfirmed(false); setSavedPlanRecipe(null); setPlanRecipeSaveError(""); }
+    catch (error) { setPlanPreviewError(error instanceof Error ? error.message : "Planner recipe compilation failed."); }
+    finally { setPlanRecipePending(false); }
+  };
+  const savePlanRecipe = async () => {
+    if (!compiledPlanRecipe || !savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || !planRecipeReviewConfirmed || planRecipeSavePending) return;
+    setPlanRecipeSavePending(true); setPlanRecipeSaveError("");
+    try {
+      setSavedPlanRecipe(await saveCompiledPlannerRecipe(compiledPlanRecipe, savedPlannerResult, preparedPlanApproval, recordedPlanApproval));
+      setPlannerNotice("Reviewed Planner recipe stored immutably. Separate recipe approval is still required.");
+    } catch (error) { setPlanRecipeSaveError(error instanceof Error ? error.message : "Reviewed Planner recipe could not be saved."); }
+    finally { setPlanRecipeSavePending(false); }
   };
   const togglePlannerSkill = (skillId: string) => {
     if (plannerPending) return;
@@ -797,6 +852,12 @@ export default function App() {
     setPreparedPlanApproval(null);
     setRecordedPlanApproval(null);
     setVerifiedPlanApproval(null);
+    setPlanExecutionPreview(null);
+    setPlanPreviewError("");
+    setCompiledPlanRecipe(null);
+    setPlanRecipeReviewConfirmed(false);
+    setSavedPlanRecipe(null);
+    setPlanRecipeSaveError("");
     setPlannerNotice("");
   };
   const navigatePlannerSkills = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -848,6 +909,7 @@ export default function App() {
     setSelectedId(workflow.nodes[0].id);
   };
   const prepareApproval = async (recipeFilename: string, recipeSha256: string) => {
+    setSelectedRecipeSha(recipeSha256);
     setApprovalPreparationPending(true);
     setPreparedApproval(null);
     setRecipeInventoryNotice("Revalidating the stored recipe and preparing an exact approval request…");
@@ -1158,8 +1220,10 @@ export default function App() {
           {plannerResult && <section className="planner-result"><header><CheckCircle2 size={22}/><span><strong>Validated plan ready</strong><small>{plannerResult.model} · {plannerResult.plan.steps.length} proposed steps</small></span></header><p>{plannerResult.plan.summary}</p><ol>{plannerResult.plan.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span><strong>{step.skill.replaceAll("_", " ")}</strong><small>{step.purpose}</small></span>{step.requires_approval && <em>Approval required</em>}</li>)}</ol><div className="planner-plan-digest"><span>Plan SHA-256</span><code title={plannerResult.plan_sha256}>{plannerResult.plan_sha256}</code></div><div className="planner-outcome"><strong>{preparedPlanApproval ? preparedPlanApproval.status === "approval_not_required" ? "APPROVAL NOT REQUIRED" : "APPROVAL REQUEST PREPARED" : savedPlannerResult ? "STORED · NOT APPROVED" : "PLANNED ONLY"}</strong><span>{preparedPlanApproval ? "No decision recorded · nothing executed" : savedPlannerResult ? "Immutable plan evidence created · nothing approved · nothing executed" : "Nothing saved · nothing approved · nothing executed"}</span></div><label className="planner-review-confirm"><input type="checkbox" checked={plannerReviewConfirmed} disabled={Boolean(savedPlannerResult)} onChange={(event) => setPlannerReviewConfirmed(event.target.checked)}/><span>I reviewed this exact plan digest, steps, arguments, and approval requirements.</span></label><div className="planner-result-actions"><button onClick={viewPlannerGraph}>View plan graph</button><button className="planner-save" disabled={!plannerReviewConfirmed || plannerSavePending || Boolean(savedPlannerResult)} onClick={() => void savePlannerPlan()}>{plannerSavePending ? "Verifying and saving…" : savedPlannerResult ? "Plan stored" : "Save reviewed plan"}</button></div>{savedPlannerResult && <div className="planner-stored"><CheckCircle2 size={16}/><span><strong>Stored immutably</strong><small>{savedPlannerResult.plan_filename}</small></span><button disabled={planApprovalPending || Boolean(preparedPlanApproval)} onClick={() => void preparePlanApproval()}>{planApprovalPending ? "Preparing…" : preparedPlanApproval ? "Request prepared" : "Prepare approval request"}</button></div>}{preparedPlanApproval && <div className="planner-approval-prepared"><ShieldCheck size={18}/><span><strong>{preparedPlanApproval.status === "approval_not_required" ? "No approval-required steps" : "Exact approval scope prepared"}</strong><small>{preparedPlanApproval.approval_required_step_ids.length ? preparedPlanApproval.approval_required_step_ids.join(" · ") : "The validated plan is read-only."}</small></span><code title={preparedPlanApproval.approval_request_sha256}>{preparedPlanApproval.approval_request_sha256}</code></div>}</section>}
           {plannerResult && preparedPlanApproval?.status === "prepared_not_recorded" && <section className="planner-scope-review"><h3>Exact scope under review</h3>{preparedPlanApproval.steps.map((step) => <article key={step.step_id}><header><code>{step.step_id}</code><strong>{step.skill.replaceAll("_", " ")}</strong></header><p>{step.purpose}</p><pre>{JSON.stringify(step.arguments, null, 2)}</pre><dl><div><dt>Approval required</dt><dd>{step.requires_approval ? "true" : "false"}</dd></div><div><dt>Validation required</dt><dd>{step.validation_required ? "true" : "false"}</dd></div></dl></article>)}</section>}
           {plannerResult && preparedPlanApproval?.status === "prepared_not_recorded" && <section className="planner-decision"><h3>Human decision</h3><div className="planner-decision-choice"><button className={planDecision === "approved" ? "selected approved" : ""} disabled={Boolean(recordedPlanApproval)} onClick={() => setPlanDecision("approved")}>Approve exact scope</button><button className={planDecision === "denied" ? "selected denied" : ""} disabled={Boolean(recordedPlanApproval)} onClick={() => setPlanDecision("denied")}>Deny</button></div><label>Approver<input value={planApprover} disabled={Boolean(recordedPlanApproval)} maxLength={200} onChange={(event) => setPlanApprover(event.target.value)}/></label><label>Reason<textarea value={planReason} disabled={Boolean(recordedPlanApproval)} maxLength={2000} rows={3} onChange={(event) => setPlanReason(event.target.value)}/></label><label>Valid for minutes <small>Optional</small><input value={planValidMinutes} disabled={Boolean(recordedPlanApproval)} inputMode="numeric" onChange={(event) => setPlanValidMinutes(event.target.value)}/></label><button className="record-plan-decision" disabled={planDecisionPending || Boolean(recordedPlanApproval) || !planApprover.trim() || !planReason.trim()} onClick={() => void recordPlanDecision()}>{planDecisionPending ? "Recording…" : recordedPlanApproval ? `${recordedPlanApproval.decision === "approved" ? "Approval" : "Denial"} recorded` : `Record ${planDecision}`}</button>{recordedPlanApproval && <div className={`recorded-plan-decision ${recordedPlanApproval.decision}`}><strong>{recordedPlanApproval.decision === "approved" ? "APPROVED" : "DENIED"}</strong><span>Append-only evidence created · nothing executed</span><code>{recordedPlanApproval.approval_filename}</code></div>}</section>}
-          {recordedPlanApproval && <section className={`planner-verification ${verifiedPlanApproval?.approved ? "approved" : verifiedPlanApproval ? "blocked" : ""}`}><h3>Independent verification</h3>{verifiedPlanApproval ? <><strong>{verifiedPlanApproval.approved ? "APPROVAL VERIFIED" : "EXECUTION BLOCKED"}</strong><p>{verifiedPlanApproval.reason}</p><small>Nothing executed</small></> : <button disabled={planVerificationPending} onClick={() => void verifyPlanDecision()}>{planVerificationPending ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}</section>}
+          {recordedPlanApproval && <section className={`planner-verification ${verifiedPlanApproval?.approved ? "approved" : verifiedPlanApproval ? "blocked" : ""}`}><h3>Independent verification</h3>{verifiedPlanApproval ? <><strong>{verifiedPlanApproval.approved ? "APPROVAL VERIFIED" : "EXECUTION BLOCKED"}</strong><p>{verifiedPlanApproval.reason}</p><small>Nothing executed</small>{!verifiedPlanApproval.approved && <button className="fresh-plan-decision" onClick={beginFreshPlanDecision}>Record a fresh decision</button>}</> : <button disabled={planVerificationPending} onClick={() => void verifyPlanDecision()}>{planVerificationPending ? "Verifying immutable evidence…" : "Verify recorded decision"}</button>}</section>}
           {verifiedPlanApproval?.approved && <section className="planner-envelope-preview"><h3>Execution envelope</h3>{planExecutionPreview ? <><div><span>Preview SHA-256</span><code>{planExecutionPreview.execution_preview_sha256}</code></div><pre>{JSON.stringify(planExecutionPreview.envelope, null, 2)}</pre><strong>PREVIEW ONLY · EXECUTION UNAVAILABLE</strong></> : <button disabled={planPreviewPending} onClick={() => void previewPlanExecution()}>{planPreviewPending ? "Building exact envelope…" : "Preview approved execution"}</button>}{planPreviewError && <div className="planner-preview-blocked" role="alert"><strong>PREVIEW BLOCKED</strong><span>{planPreviewError}</span><small>Approval evidence remains recorded · nothing executed</small></div>}</section>}
+          {verifiedPlanApproval?.approved && <section className="planner-recipe-bridge"><header><span>Next governed boundary</span><h3>Compile a recipe candidate</h3><p>Translate this verified plan into the existing typed recipe contract. Compilation does not save, approve, or execute it.</p></header><button className="compile-plan-recipe" disabled={planRecipePending || Boolean(compiledPlanRecipe)} onClick={() => void compilePlanRecipe()}><span>{planRecipePending ? "Compiling…" : compiledPlanRecipe ? "Recipe candidate ready" : "Compile governed recipe"}</span><small>{compiledPlanRecipe ? "Review the exact digest below" : "Deterministic policy validation"}</small></button>{compiledPlanRecipe && <div className="compiled-plan-recipe"><strong>COMPILED · NOT SAVED</strong><code>{compiledPlanRecipe.recipe_sha256}</code><pre>{JSON.stringify(compiledPlanRecipe.recipe, null, 2)}</pre><small>Separate recipe review and approval still required · nothing executed</small><label className="plan-recipe-review"><input type="checkbox" checked={planRecipeReviewConfirmed} disabled={Boolean(savedPlanRecipe)} onChange={(event) => setPlanRecipeReviewConfirmed(event.target.checked)}/><span>I reviewed this exact recipe digest and ordered steps.</span></label><button className="save-plan-recipe" disabled={!planRecipeReviewConfirmed || planRecipeSavePending || Boolean(savedPlanRecipe)} onClick={() => void savePlanRecipe()}>{planRecipeSavePending ? "Recompiling and saving…" : savedPlanRecipe ? "Recipe stored immutably" : "Save reviewed recipe"}</button>{savedPlanRecipe && <div className="saved-plan-recipe"><strong>STORED · NOT APPROVED</strong><code>{savedPlanRecipe.recipe_filename}</code><button onClick={() => void openSavedRecipes(savedPlanRecipe.recipe_sha256)}>Review recipe approval scope</button></div>}</div>}</section>}
+          {planRecipeSaveError && <div className="plan-recipe-save-error" role="alert"><strong>RECIPE NOT STORED</strong><span>{planRecipeSaveError}</span><small>Nothing approved · nothing executed</small></div>}
         </div>
       </section>
     </div>}

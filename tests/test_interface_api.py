@@ -25,6 +25,8 @@ from geoagent_harness.interface_api import (
     prepare_interface_plan_approval,
     record_interface_plan_approval,
     verify_interface_plan_approval,
+    compile_interface_plan_recipe,
+    save_interface_plan_recipe,
     interface_saved_recipe_inventory,
     prepare_interface_recipe_approval,
     prepare_interface_execution_preview,
@@ -42,6 +44,8 @@ from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveReque
 from geoagent_harness.interface_api.server import InterfacePlanApprovalPreparationRequest
 from geoagent_harness.interface_api.server import InterfacePlanApprovalDecisionRequest
 from geoagent_harness.interface_api.server import InterfacePlanApprovalVerificationRequest
+from geoagent_harness.interface_api.server import InterfacePlanRecipeCompilationRequest
+from geoagent_harness.interface_api.server import InterfacePlanRecipeSaveRequest
 from geoagent_harness.approvals import load_planner_result, plan_sha256
 from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
@@ -163,8 +167,8 @@ def reviewed_write_plan_request() -> InterfaceReviewedPlanSaveRequest:
         "skill": "convert_vector",
         "purpose": "Create a GeoPackage output.",
         "arguments": {
-            "source": "data/input/sample_points.geojson",
-            "target": "data/output/planner_test.gpkg",
+            "path": "data/input/sample_points.geojson",
+            "target_path": "data/output/planner_test.gpkg",
         },
         "requires_approval": True,
         "expected_artifacts": ["converted vector"],
@@ -294,7 +298,7 @@ def test_plan_decision_is_append_only_and_bound_to_prepared_scope(tmp_path: Path
         plan_root=plan_root,
     )
     assert prepared["approval_required_step_ids"] == ["step_1"]
-    assert prepared["steps"][0]["arguments"]["target"] == "data/output/planner_test.gpkg"
+    assert prepared["steps"][0]["arguments"]["target_path"] == "data/output/planner_test.gpkg"
     assert prepared["steps"][0]["requires_approval"] is True
     assert prepared["steps"][0]["validation_required"] is True
     recorded = record_interface_plan_approval(
@@ -306,7 +310,9 @@ def test_plan_decision_is_append_only_and_bound_to_prepared_scope(tmp_path: Path
             decision="approved",
             approver="test operator",
             reason="Reviewed exact conversion scope.",
-            valid_for_minutes=60,
+            # Compilation re-verifies against the real clock, so this fixture
+            # must not expire merely because the test suite runs after 2026-09-19.
+            valid_for_minutes=None,
         ),
         project_root=PROJECT_ROOT,
         plan_root=plan_root,
@@ -338,6 +344,81 @@ def test_plan_decision_is_append_only_and_bound_to_prepared_scope(tmp_path: Path
     assert verified["plan_modified"] is False
     assert verified["approval_modified"] is False
     assert verified["execution_performed"] is False
+
+    compiled = compile_interface_plan_recipe(
+        InterfacePlanRecipeCompilationRequest(
+            action="compile_plan_recipe",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            approval_filename=recorded["approval_filename"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+        approval_root=approval_root,
+    )
+    assert compiled["status"] == "compiled_not_saved"
+    assert compiled["recipe"]["steps"][0]["skill_id"] == "convert_vector"
+    assert compiled["recipe_saved"] is False
+    assert compiled["recipe_approval_performed"] is False
+    assert compiled["execution_performed"] is False
+
+    recipe_root = tmp_path / "workflow-recipes"
+    saved_recipe = save_interface_plan_recipe(
+        InterfacePlanRecipeSaveRequest(
+            action="save_reviewed_plan_recipe",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            approval_filename=recorded["approval_filename"],
+            confirmed_recipe_sha256=compiled["recipe_sha256"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+        approval_root=approval_root,
+        recipe_root=recipe_root,
+    )
+    assert saved_recipe["status"] == "stored"
+    assert saved_recipe["recipe_sha256"] == compiled["recipe_sha256"]
+    assert saved_recipe["recipe_created"] is True
+    assert saved_recipe["recipe_modified"] is False
+    assert saved_recipe["approval_performed"] is False
+    assert saved_recipe["execution_performed"] is False
+    assert (recipe_root / saved_recipe["recipe_filename"]).is_file()
+
+    resumed_recipe = save_interface_plan_recipe(
+        InterfacePlanRecipeSaveRequest(
+            action="save_reviewed_plan_recipe",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            approval_filename=recorded["approval_filename"],
+            confirmed_recipe_sha256=compiled["recipe_sha256"],
+        ),
+        project_root=PROJECT_ROOT,
+        plan_root=plan_root,
+        approval_root=approval_root,
+        recipe_root=recipe_root,
+    )
+    assert resumed_recipe["status"] == "stored"
+    assert resumed_recipe["recipe_created"] is False
+    assert resumed_recipe["recipe_modified"] is False
+
+    with pytest.raises(InterfaceApiError, match="digest no longer matches"):
+        save_interface_plan_recipe(
+            InterfacePlanRecipeSaveRequest(
+                action="save_reviewed_plan_recipe",
+                plan_filename=stored["plan_filename"],
+                confirmed_plan_sha256=stored["plan_sha256"],
+                confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+                approval_filename=recorded["approval_filename"],
+                confirmed_recipe_sha256="0" * 64,
+            ),
+            project_root=PROJECT_ROOT,
+            plan_root=plan_root,
+            approval_root=approval_root,
+            recipe_root=tmp_path / "mismatch-recipes",
+        )
 
     with pytest.raises(InterfaceApiError, match="request digest no longer matches"):
         record_interface_plan_approval(
@@ -813,6 +894,22 @@ def test_http_boundary_compiles_json_and_rejects_foreign_origin() -> None:
         assert payload["status"] == "compiled"
         assert payload["execution_performed"] is False
         connection.close()
+
+        routed = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+        routed.request(
+            "POST",
+            "/api/v1/plans/save-reviewed-recipe",
+            body="{}",
+            headers={
+                "Content-Type": "application/json",
+                "Origin": "http://localhost:5173",
+            },
+        )
+        routed_response = routed.getresponse()
+        routed_payload = json.loads(routed_response.read())
+        assert routed_response.status == 400
+        assert routed_payload == {"error": "request payload is invalid"}
+        routed.close()
 
         rejected = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
         rejected.request(

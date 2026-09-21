@@ -69,6 +69,10 @@ from the repository root:
 .venv/bin/geoagent serve-interface-api --project-root .
 ```
 
+When iterating on backend routes, prefer `bash scripts/serve_interface_dev.sh` from
+the repository root so the running API is pinned to the edited `src` tree. See
+`docs/INTERFACE_API_TROUBLESHOOTING.md`.
+
 Then start this Vite application in another terminal. Vite proxies `/api` to
 `127.0.0.1:8765`. Execution remains disabled unless the service process is
 started with `ENABLE_WRITE_TOOLS=true`; the health endpoint reports that fact.

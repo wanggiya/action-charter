@@ -57,6 +57,7 @@ from geoagent_harness.recipes import (
     RecipePolicyError,
     RecipeStorageError,
     load_recipe,
+    recipe_path,
     recipe_sha256,
     save_recipe,
     validate_recipe_policy,
@@ -65,6 +66,7 @@ from geoagent_harness.recipes import (
     verify_recipe_approval,
     build_recipe_execution_envelope,
 )
+from geoagent_harness.recipes.schemas import RecipeStep, WorkflowRecipe
 
 
 MAX_INTERFACE_REQUEST_BYTES = 65_536
@@ -377,6 +379,19 @@ class InterfacePlanExecutionPreviewRequest(InterfacePlanApprovalVerificationRequ
     """Exact verified evidence selected for non-executing envelope preview."""
 
     action: Literal["preview_plan_execution"]
+
+
+class InterfacePlanRecipeCompilationRequest(InterfacePlanApprovalVerificationRequest):
+    """Exact verified plan selected for non-writing recipe compilation."""
+
+    action: Literal["compile_plan_recipe"]
+
+
+class InterfacePlanRecipeSaveRequest(InterfacePlanApprovalVerificationRequest):
+    """Exact reviewed Planner-derived recipe selected for immutable storage."""
+
+    action: Literal["save_reviewed_plan_recipe"]
+    confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
 def _trusted_root(project_root: Path) -> Path:
@@ -757,6 +772,113 @@ def preview_interface_plan_execution(
         "schema_version": "1.0", "status": "previewed_not_executed",
         "execution_preview_sha256": digest, "envelope": payload,
         "execution_available": False, "execution_performed": False,
+    }
+
+
+def compile_interface_plan_recipe(
+    request: InterfacePlanRecipeCompilationRequest,
+    *, project_root: Path,
+    plan_root: Path | None = None,
+    approval_root: Path | None = None,
+) -> dict[str, Any]:
+    """Compile verified Planner steps into a reviewed recipe candidate only."""
+
+    root = _trusted_root(project_root)
+    plans = plan_root if plan_root is not None else root / "plans"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    verified = verify_interface_plan_approval(
+        InterfacePlanApprovalVerificationRequest(
+            action="verify_plan_approval", plan_filename=request.plan_filename,
+            confirmed_plan_sha256=request.confirmed_plan_sha256,
+            confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+            approval_filename=request.approval_filename,
+        ), project_root=root, plan_root=plans, approval_root=approvals,
+    )
+    if not verified["approved"]:
+        raise InterfaceApiError("verified plan authority does not permit recipe compilation")
+    result = load_planner_result(path=plans.resolve() / request.plan_filename, plan_root=plans.resolve())
+    supported_outputs = {
+        "inspect_vector": ["source_metadata"],
+        "convert_vector": ["converted_vector"],
+        "inspect_raster": ["raster_metadata"],
+        "convert_raster": ["converted_raster"],
+    }
+    unsupported = [step.skill for step in result.plan.steps if step.skill not in supported_outputs]
+    if unsupported:
+        raise InterfaceApiError("plan contains skills not supported by the governed recipe dispatcher: " + ", ".join(unsupported))
+    steps = [RecipeStep(
+        step_id=step.step_id,
+        skill_id=step.skill,
+        depends_on=[] if index == 0 else [result.plan.steps[index - 1].step_id],
+        arguments=step.arguments,
+        output_ids=supported_outputs[step.skill],
+    ) for index, step in enumerate(result.plan.steps)]
+    recipe = WorkflowRecipe(
+        recipe_id=f"planner-{request.confirmed_plan_sha256[:16]}",
+        summary=result.plan.summary,
+        original_request=result.original_request,
+        steps=steps,
+    )
+    try:
+        validation = validate_recipe_policy(recipe, registry=load_skill_registry(root))
+    except RecipePolicyError as exc:
+        raise InterfaceApiError(f"Planner recipe candidate failed deterministic policy: {exc}") from exc
+    return {
+        "schema_version": "1.0", "status": "compiled_not_saved",
+        "source_plan_sha256": request.confirmed_plan_sha256,
+        "recipe_sha256": recipe_sha256(recipe),
+        "recipe": recipe.model_dump(mode="json"),
+        "approval_required_step_ids": validation.approval_required_step_ids,
+        "validation_required_step_ids": validation.validation_required_step_ids,
+        "recipe_saved": False, "recipe_approval_performed": False,
+        "execution_performed": False,
+    }
+
+
+def save_interface_plan_recipe(
+    request: InterfacePlanRecipeSaveRequest,
+    *,
+    project_root: Path,
+    plan_root: Path | None = None,
+    approval_root: Path | None = None,
+    recipe_root: Path | None = None,
+) -> dict[str, Any]:
+    """Recompile and immutably store one explicitly reviewed plan recipe."""
+
+    root = _trusted_root(project_root)
+    compiled = compile_interface_plan_recipe(
+        InterfacePlanRecipeCompilationRequest(
+            action="compile_plan_recipe",
+            plan_filename=request.plan_filename,
+            confirmed_plan_sha256=request.confirmed_plan_sha256,
+            confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+            approval_filename=request.approval_filename,
+        ),
+        project_root=root,
+        plan_root=plan_root,
+        approval_root=approval_root,
+    )
+    if compiled["recipe_sha256"] != request.confirmed_recipe_sha256:
+        raise InterfaceApiError("reviewed Planner recipe digest no longer matches")
+    recipe = WorkflowRecipe.model_validate(compiled["recipe"])
+    destination = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    if destination.is_symlink():
+        raise InterfaceApiError("recipe root cannot be a symlink")
+    path = recipe_path(recipe, recipe_root=destination)
+    already_stored = path.exists()
+    if already_stored:
+        saved = load_recipe(path=path, recipe_root=destination)
+        if recipe_sha256(saved) != request.confirmed_recipe_sha256:
+            raise InterfaceApiError("existing Planner recipe does not match the reviewed digest")
+    else:
+        saved, path = save_recipe(recipe, recipe_root=destination)
+    return {
+        "schema_version": "1.0", "status": "stored",
+        "recipe_id": saved.recipe_id, "recipe_sha256": recipe_sha256(saved),
+        "recipe_filename": path.name, "source_plan_sha256": request.confirmed_plan_sha256,
+        "recipe_saved": True, "recipe_created": not already_stored,
+        "recipe_modified": False, "approval_performed": False,
+        "execution_performed": False,
     }
 
 
@@ -1509,6 +1631,8 @@ def _handler(
                 "/api/v1/plans/record-approval",
                 "/api/v1/plans/verify-approval",
                 "/api/v1/plans/preview-execution",
+                "/api/v1/plans/compile-recipe",
+                "/api/v1/plans/save-reviewed-recipe",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -1557,6 +1681,17 @@ def _handler(
                     response = preview_interface_plan_execution(
                         InterfacePlanExecutionPreviewRequest.model_validate(payload),
                         project_root=project_root, approval_root=approval_root,
+                    )
+                elif self.path == "/api/v1/plans/compile-recipe":
+                    response = compile_interface_plan_recipe(
+                        InterfacePlanRecipeCompilationRequest.model_validate(payload),
+                        project_root=project_root, approval_root=approval_root,
+                    )
+                elif self.path == "/api/v1/plans/save-reviewed-recipe":
+                    response = save_interface_plan_recipe(
+                        InterfacePlanRecipeSaveRequest.model_validate(payload),
+                        project_root=project_root, approval_root=approval_root,
+                        recipe_root=recipe_root,
                     )
                 elif self.path == "/api/v1/recipe-proposals/save-reviewed":
                     if not isinstance(payload, dict) or set(payload) != {
@@ -1617,7 +1752,7 @@ def _handler(
                         approval_root=approval_root,
                     )
             except (json.JSONDecodeError, ValidationError):
-                self._send(HTTPStatus.BAD_REQUEST, {"error": "recipe proposal is invalid"})
+                self._send(HTTPStatus.BAD_REQUEST, {"error": "request payload is invalid"})
                 return
             except RecipeCompilationError:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "recipe proposal could not be compiled"})

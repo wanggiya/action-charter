@@ -1,5 +1,52 @@
 # Changelog
 
+## Checkpoint 17AK
+
+- Restore the original task request and exact allowed-skill selection with a
+  saved Planner result.
+- Add an explicit append-only fresh-decision path after expired or blocked plan
+  approval verification while preserving prior evidence.
+
+## Checkpoint 17AJ
+
+- Made the Planner-to-saved-recipe transition visible by closing competing
+  overlays before opening the exact recipe inventory.
+
+## Checkpoint 17AI
+
+- Added a source-pinned local interface API launcher with import and route
+  diagnostics.
+- Documented stale-process and WSL port troubleshooting.
+- Replaced misleading generic malformed-POST wording with `request payload is
+  invalid`.
+
+## Checkpoint 17AH
+
+- Added the Planner recipe-save endpoint to the loopback POST allowlist.
+- Added an HTTP route regression test and retained exact idempotent save resume.
+
+## Checkpoint 17AF
+
+- Added an exact SHA-256-bound handoff from newly stored Planner recipes to the
+  existing saved-recipe approval workspace.
+- Refresh and prioritize the matching artifact without automatically preparing
+  approval or performing execution.
+
+## Checkpoint 17AE
+
+- Redesigned the Planner recipe compilation transition for clearer hierarchy.
+- Added explicit digest review and immutable storage for Planner-derived recipe
+  candidates, with server-side recompilation and authority reverification.
+- Kept recipe approval and execution as separate later actions.
+
+## Checkpoint 17AD
+
+- Added a non-executing bridge from independently verified Planner results to
+  deterministically validated governed recipe candidates.
+- Required canonical `path` and `target_path` arguments for Planner-generated
+  `convert_vector` steps and kept recipe review, approval, and execution as
+  separate authority boundaries.
+
 ## Checkpoint 17AC
 
 - Corrected saved-plan selection and replaced the horizontal strip with a
