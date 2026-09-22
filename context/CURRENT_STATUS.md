@@ -2,6 +2,35 @@
 
 Last updated: 2026-09-16
 
+## Checkpoint 17AP — responsive Planner authoring
+
+Implemented for review. Planner task typing no longer updates the full
+application state on every keystroke. Recommendations update after a short
+bounded pause, submission reads the exact current value, and saved-plan request
+restoration remains supported.
+
+## Checkpoint 17AO — actionable Planner rejection
+
+Implemented for review. The interface now distinguishes malformed model output
+from deterministic-policy rejection, displays the bounded policy finding and
+offers explicit retry guidance. Invalid candidate plans remain unavailable and
+nothing is saved, approved or executed.
+
+## Checkpoint 17AN — governed resource selection
+
+Implemented for review. Templates now select inventoried governed inputs,
+existing output directories and output filenames. Plan can bind selected input
+resources into model context while preserving the original operator request.
+The inventory is bounded, read-only and non-executing; manual relative paths
+remain available as an advanced option.
+
+## Checkpoint 17AM — rooted interface data paths
+
+Implemented for review. Filename-only `path` and `target_path` template
+parameters are canonicalized to `data/input` and `data/output` by the loopback
+API before recipe compilation, hashing, approval, or execution. Explicit paths
+remain supported and CLI behavior is unchanged.
+
 ## Checkpoint 17AD — Planner-to-recipe compilation
 
 Implemented for review. The interface can compile an independently verified
@@ -50,6 +79,12 @@ Implemented for review. Restoring an immutable plan repopulates its original
 task request and exact allowed skills. Blocked or expired approval evidence can
 be replaced by a new append-only decision without deleting the prior artifact;
 all dependent preview and compilation state is cleared first.
+
+## Checkpoint 17AL — clean development lifecycle
+
+Implemented for review. The source-pinned API exits cleanly on `Ctrl+C`, and
+development guidance distinguishes Vite reloads from ordinary React state
+updates and governed runtime writes.
 
 ## Project summary
 
@@ -1979,3 +2014,45 @@ validated immutable Planner results and matching append-only decisions. A saved
 plan can be restored without another model call or duplicate decision; exact
 scope is reprepared and the latest decision must be independently reverified.
 Inventory and restoration are bounded, read-only, and non-executing.
+
+## Checkpoint 17AQ — deterministic Critic evidence workspace
+
+Checkpoint 17AQ is implemented for review. A new Assurance workspace inventories
+bounded WorkflowTrace and matching report pairs through the existing Critic
+evidence builder. It displays deterministic status, validation, approval
+completeness, evidence gaps, warnings, and exact hashes. It calls no model,
+records no Critic result, creates no release, and executes nothing. Recipe-run
+evidence remains explicitly outside this view until a validated trace adapter
+is implemented.
+
+## Checkpoint 17AR — recipe-run trace adaptation preview
+
+Checkpoint 17AR is implemented for review. Assurance now correlates immutable
+recipe evidence with its exact recipe, approval, run result, and durable
+execution timing, then proves an in-memory `WorkflowTrace` candidate through
+the existing Critic evidence builder. Recipe authority uses `recipe_sha256`
+rather than masquerading as a plan digest. No trace is stored, no model is
+called, and no Critic result or release is created. Identity-incomplete legacy
+runs remain visibly blocked.
+
+## Checkpoint 17AS — reviewed adapted-trace persistence
+
+Checkpoint 17AS is implemented for review. Assurance now provides a separate
+digest-confirmation drawer for one compatible recipe-run trace candidate. The
+service rebuilds the candidate from immutable sources, verifies the reviewed
+digest, exclusively stores the trace and deterministic report, and immediately
+revalidates the pair. Duplicate or stale persistence fails closed. No Critic
+model, Critic result, release, or execution authority is involved.
+
+## Checkpoint 17AT — explicit read-only Critic assessment
+
+Checkpoint 17AT is implemented for review. Assurance can select one available
+stored WorkflowTrace/report pair and explicitly authorize a model call over
+that exact evidence. The service independently rebuilds deterministic evidence,
+verifies the reviewed trace and report SHA-256 values, and delegates to the
+existing Critic Agent.
+
+The returned assessment must satisfy the existing typed schema and cannot
+contradict deterministic status or success policy. It is labelled `NOT
+RECORDED` and remains in memory. No Critic record, release, filesystem or
+database mutation, or tool execution is authorized.

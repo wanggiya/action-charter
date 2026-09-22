@@ -29,8 +29,25 @@ from geoagent_harness.skill_registry import (
     SkillRegistryError,
     load_skill_registry,
 )
-from geoagent_harness.redaction import redact_value
+from geoagent_harness.redaction import redact_text, redact_value
 from geoagent_harness.context_pack import ContextPackError
+from geoagent_harness.critic.evidence import (
+    CriticEvidenceError,
+    build_critic_evidence,
+)
+from geoagent_harness.critic.recipe_trace import (
+    RecipeTraceAdapterError,
+    build_recipe_trace_candidate,
+    persist_recipe_trace_candidate,
+    recipe_trace_sha256,
+    render_recipe_trace_report,
+)
+from geoagent_harness.critic import (
+    CriticAgentError,
+    critique_task,
+    critic_result_sha256,
+)
+from geoagent_harness.trace import WorkflowTrace
 from geoagent_harness.model import ModelClientError, ModelSettingsError
 from geoagent_harness.planner import (
     PlannerAgentError,
@@ -54,9 +71,12 @@ from geoagent_harness.mcp_server.approved_recipe import (
 from geoagent_harness.mcp_server.settings import load_settings
 from geoagent_harness.recipes import (
     RecipeApprovalError,
+    RecipeEvidenceStorageError,
     RecipePolicyError,
     RecipeStorageError,
     load_recipe,
+    load_recipe_evidence,
+    recipe_evidence_sha256,
     recipe_path,
     recipe_sha256,
     save_recipe,
@@ -83,6 +103,12 @@ _ACTIVE_EXECUTIONS: set[tuple[str, str]] = set()
 _ACTIVE_PROGRESS: set[str] = set()
 _EXECUTION_PROGRESS: dict[str, dict[str, Any]] = {}
 MAX_INTERFACE_OUTCOME_BYTES = 16_384
+MAX_INTERFACE_DATA_RESOURCES = 500
+MAX_INTERFACE_CRITIC_EVIDENCE = 200
+INTERFACE_DATA_EXTENSIONS = {
+    ".csv", ".geojson", ".gpkg", ".json", ".kml", ".parquet",
+    ".shp", ".tif", ".tiff", ".tsv",
+}
 
 
 def _progress_path(
@@ -307,6 +333,7 @@ class InterfacePlanRequest(BaseModel):
     action: Literal["plan_task"]
     request: str = Field(min_length=1, max_length=8000)
     allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
+    input_paths: list[str] = Field(default_factory=list, max_length=20)
 
     @field_validator("allowed_skill_ids")
     @classmethod
@@ -315,6 +342,19 @@ class InterfacePlanRequest(BaseModel):
             raise ValueError("allowed skill IDs must be unique")
         if any(not re.fullmatch(r"[a-z][a-z0-9_]*", item) for item in value):
             raise ValueError("allowed skill ID is invalid")
+        return value
+
+    @field_validator("input_paths")
+    @classmethod
+    def input_paths_are_bounded(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("input paths must be unique")
+        if any(
+            not re.fullmatch(r"data/input/[A-Za-z0-9._/-]+", item)
+            or ".." in item.split("/")
+            for item in value
+        ):
+            raise ValueError("input path is outside the governed input root")
         return value
 
 
@@ -394,6 +434,28 @@ class InterfacePlanRecipeSaveRequest(InterfacePlanApprovalVerificationRequest):
     confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
+class InterfaceRecipeTraceSaveRequest(BaseModel):
+    """Exact adapted trace explicitly reviewed for immutable persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["save_adapted_recipe_trace"]
+    evidence_name: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9_-]{0,100}\.[a-f0-9]{64}\.json$"
+    )
+    confirmed_trace_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class InterfaceCriticRunRequest(BaseModel):
+    """Exact stored evidence selected for one in-memory Critic assessment."""
+
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["run_critic"]
+    trace_name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,80}\.json$")
+    report_name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,80}\.md$")
+    confirmed_trace_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_report_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 def _trusted_root(project_root: Path) -> Path:
     try:
         resolved = project_root.resolve(strict=True)
@@ -402,6 +464,328 @@ def _trusted_root(project_root: Path) -> Path:
     if not resolved.is_dir():
         raise InterfaceApiError("trusted project root must be a directory")
     return resolved
+
+
+def interface_data_resource_inventory(project_root: Path) -> dict[str, Any]:
+    """List bounded project inputs and existing output directories read-only."""
+
+    root = _trusted_root(project_root)
+    input_root = root / "data" / "input"
+    output_root = root / "data" / "output"
+    inputs: list[dict[str, Any]] = []
+    output_directories = ["data/output"]
+
+    if input_root.is_symlink() or output_root.is_symlink():
+        raise InterfaceApiError("data roots cannot be symlinks")
+    if input_root.is_dir():
+        for path in sorted(input_root.rglob("*")):
+            if path.is_symlink():
+                continue
+            if not path.is_file() or path.suffix.lower() not in INTERFACE_DATA_EXTENSIONS:
+                continue
+            inputs.append({
+                "path": path.relative_to(root).as_posix(),
+                "name": path.name,
+                "extension": path.suffix.lower(),
+                "size_bytes": path.stat().st_size,
+            })
+            if len(inputs) > MAX_INTERFACE_DATA_RESOURCES:
+                raise InterfaceApiError("input data inventory exceeds its limit")
+    if output_root.is_dir():
+        for path in sorted(output_root.rglob("*")):
+            if path.is_symlink() or not path.is_dir():
+                continue
+            output_directories.append(path.relative_to(root).as_posix())
+            if len(output_directories) > MAX_INTERFACE_DATA_RESOURCES:
+                raise InterfaceApiError("output directory inventory exceeds its limit")
+
+    return {
+        "schema_version": "1.0",
+        "status": "inspected",
+        "inputs": inputs,
+        "output_directories": output_directories,
+        "input_count": len(inputs),
+        "inventory_performed": True,
+        "files_modified": False,
+        "execution_performed": False,
+    }
+
+
+def interface_critic_evidence_inventory(project_root: Path) -> dict[str, Any]:
+    """Inspect trace/report pairs through the existing deterministic Critic boundary."""
+
+    root = _trusted_root(project_root)
+    trace_root = root / "traces"
+    report_root = root / "reports"
+    items: list[dict[str, Any]] = []
+    truncated = False
+
+    if trace_root.exists() and trace_root.is_symlink():
+        raise InterfaceApiError("trace root cannot be a symlink")
+    if report_root.exists() and report_root.is_symlink():
+        raise InterfaceApiError("report root cannot be a symlink")
+
+    trace_paths = sorted(trace_root.glob("*.json")) if trace_root.is_dir() else []
+    if len(trace_paths) > MAX_INTERFACE_CRITIC_EVIDENCE:
+        trace_paths = trace_paths[:MAX_INTERFACE_CRITIC_EVIDENCE]
+        truncated = True
+
+    for trace_path in trace_paths:
+        if trace_path.is_symlink() or not trace_path.is_file():
+            continue
+        report_path = report_root / f"{trace_path.stem}.md"
+        if report_path.is_symlink() or not report_path.is_file():
+            items.append({
+                "trace_name": trace_path.name,
+                "report_name": None,
+                "available": False,
+                "finding": "matching Markdown report is unavailable",
+                "evidence": None,
+            })
+            continue
+        try:
+            pack = build_critic_evidence(
+                trace_path=trace_path,
+                report_path=report_path,
+                trace_root=trace_root,
+                report_root=report_root,
+            )
+        except (CriticEvidenceError, OSError, ValueError):
+            items.append({
+                "trace_name": trace_path.name,
+                "report_name": report_path.name,
+                "available": False,
+                "finding": "trace and report did not pass deterministic Critic evidence checks",
+                "evidence": None,
+            })
+            continue
+        items.append({
+            "trace_name": trace_path.name,
+            "report_name": report_path.name,
+            "available": True,
+            "finding": None,
+            "evidence": pack.model_dump(mode="json"),
+        })
+
+    recipe_candidates = _interface_recipe_trace_candidates(root)
+    return {
+        "schema_version": "1.0",
+        "status": "inspected",
+        "items": items,
+        "item_count": len(items),
+        "recipe_candidates": recipe_candidates,
+        "recipe_candidate_count": len(recipe_candidates),
+        "inventory_truncated": truncated,
+        "critic_model_called": False,
+        "critic_result_recorded": False,
+        "release_created": False,
+        "execution_performed": False,
+    }
+
+
+def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
+    """Preview truthful recipe-run trace adaptations without writing artifacts."""
+
+    evidence_root = root / "recipe-evidence"
+    recipe_root = root / "workflow-recipes"
+    approval_root = root / "approvals"
+    progress_root = root / "workflow-state" / "interface-executions"
+    for candidate_root in (evidence_root, recipe_root, approval_root, progress_root):
+        if candidate_root.exists() and candidate_root.is_symlink():
+            raise InterfaceApiError("recipe trace source root cannot be a symlink")
+    paths = sorted(evidence_root.glob("*.json"), reverse=True) if evidence_root.is_dir() else []
+    if len(paths) > MAX_INTERFACE_CRITIC_EVIDENCE:
+        paths = paths[:MAX_INTERFACE_CRITIC_EVIDENCE]
+
+    progress_records: list[tuple[Path, dict[str, Any]]] = []
+    if progress_root.is_dir():
+        for path in sorted(progress_root.glob("*.json")):
+            if path.is_symlink() or path.stat().st_size > MAX_INTERFACE_OUTCOME_BYTES:
+                continue
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                progress_records.append((path, payload))
+
+    results: list[dict[str, Any]] = []
+    for evidence_path in paths:
+        base = {
+            "evidence_name": evidence_path.name,
+            "adaptable": False,
+            "finding": None,
+            "trace": None,
+            "trace_sha256": None,
+            "critic_status": None,
+            "critic_gaps": [],
+            "stored": False,
+            "files_modified": False,
+        }
+        try:
+            if evidence_path.is_symlink():
+                raise RecipeTraceAdapterError("recipe evidence cannot be a symlink")
+            evidence = load_recipe_evidence(evidence_path, evidence_root=evidence_root)
+            digest = recipe_evidence_sha256(evidence)
+            recipe_path = recipe_root / f"{evidence.recipe_id}.{evidence.recipe_sha256}.json"
+            approval_path = approval_root / f"{evidence.approval_id}.json"
+            recipe = load_recipe(recipe_path, recipe_root=recipe_root)
+            approval = load_recipe_approval(approval_path, approval_root=approval_root)
+            progress_match = next((
+                (path, payload) for path, payload in progress_records
+                if payload.get("recipe_id") == evidence.recipe_id
+                and payload.get("recipe_sha256") == evidence.recipe_sha256
+                and payload.get("status") == evidence.final_status
+            ), None)
+            if progress_match is None:
+                raise RecipeTraceAdapterError("matching durable interface execution timing is unavailable")
+            progress_path, progress = progress_match
+            references = [
+                recipe_path.relative_to(root).as_posix(),
+                approval_path.relative_to(root).as_posix(),
+                evidence_path.relative_to(root).as_posix(),
+                progress_path.relative_to(root).as_posix(),
+            ]
+            trace = build_recipe_trace_candidate(
+                recipe=recipe,
+                approval=approval,
+                evidence=evidence,
+                evidence_sha256=digest,
+                progress=progress,
+                context_references=references,
+            )
+            with tempfile.TemporaryDirectory(prefix="actioncharter-critic-preview-") as directory:
+                preview_root = Path(directory)
+                traces = preview_root / "traces"
+                reports = preview_root / "reports"
+                traces.mkdir()
+                reports.mkdir()
+                trace_path = traces / f"{trace.task_id}.json"
+                report_path = reports / f"{trace.task_id}.md"
+                trace_path.write_text(trace.model_dump_json(indent=2) + "\n", encoding="utf-8")
+                report_path.write_text(render_recipe_trace_report(trace), encoding="utf-8")
+                pack = build_critic_evidence(
+                    trace_path=trace_path,
+                    report_path=report_path,
+                    trace_root=traces,
+                    report_root=reports,
+                )
+            base.update({
+                "adaptable": True,
+                "trace": trace.model_dump(mode="json"),
+                "trace_sha256": recipe_trace_sha256(trace),
+                "critic_status": pack.deterministic_status,
+                "critic_gaps": pack.evidence_gaps,
+                "stored": (
+                    (root / "traces" / f"{trace.task_id}.json").is_file()
+                    and (root / "reports" / f"{trace.task_id}.md").is_file()
+                ),
+            })
+        except (
+            RecipeTraceAdapterError,
+            CriticEvidenceError,
+            RecipePolicyError,
+            RecipeStorageError,
+            RecipeApprovalError,
+            RecipeEvidenceStorageError,
+            OSError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
+            base["finding"] = redact_text(str(exc))[:500]
+        results.append(base)
+    return results
+
+
+def save_interface_recipe_trace(
+    request: InterfaceRecipeTraceSaveRequest,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Rebuild and immutably store one exactly reviewed adapted trace."""
+
+    root = _trusted_root(project_root)
+    candidate = next(
+        (
+            item for item in _interface_recipe_trace_candidates(root)
+            if item["evidence_name"] == request.evidence_name
+        ),
+        None,
+    )
+    if candidate is None or not candidate["adaptable"] or candidate["trace"] is None:
+        raise InterfaceApiError("recipe evidence cannot enter the trace persistence boundary")
+    trace = WorkflowTrace.model_validate(candidate["trace"])
+    try:
+        trace_path, report_path, trace_digest, report_digest = persist_recipe_trace_candidate(
+            trace=trace,
+            confirmed_trace_sha256=request.confirmed_trace_sha256,
+            trace_root=root / "traces",
+            report_root=root / "reports",
+        )
+    except RecipeTraceAdapterError as exc:
+        raise InterfaceApiError(redact_text(str(exc))[:500]) from exc
+    pack = build_critic_evidence(
+        trace_path=trace_path,
+        report_path=report_path,
+        trace_root=root / "traces",
+        report_root=root / "reports",
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "stored",
+        "task_id": trace.task_id,
+        "trace_sha256": trace_digest,
+        "report_sha256": report_digest,
+        "trace_path": trace_path.relative_to(root).as_posix(),
+        "report_path": report_path.relative_to(root).as_posix(),
+        "critic_status": pack.deterministic_status,
+        "critic_gaps": pack.evidence_gaps,
+        "trace_stored": True,
+        "report_stored": True,
+        "critic_model_called": False,
+        "critic_result_recorded": False,
+        "release_created": False,
+        "execution_performed": False,
+    }
+
+
+def run_interface_critic(
+    request: InterfaceCriticRunRequest,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Run one schema-constrained Critic assessment without persisting it."""
+
+    root = _trusted_root(project_root)
+    trace_root = root / "traces"
+    report_root = root / "reports"
+    trace_path = trace_root / request.trace_name
+    report_path = report_root / request.report_name
+    evidence = build_critic_evidence(
+        trace_path=trace_path,
+        report_path=report_path,
+        trace_root=trace_root,
+        report_root=report_root,
+    )
+    references = {Path(item.path).name: item.sha256 for item in evidence.evidence_references}
+    if references.get(request.trace_name) != request.confirmed_trace_sha256:
+        raise InterfaceApiError("reviewed trace digest no longer matches")
+    if references.get(request.report_name) != request.confirmed_report_sha256:
+        raise InterfaceApiError("reviewed report digest no longer matches")
+    result = critique_task(
+        trace_path=trace_path,
+        report_path=report_path,
+        trace_root=trace_root,
+        report_root=report_root,
+        agents_root=root / "agents",
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "assessed_not_recorded",
+        "critic_result_sha256": critic_result_sha256(result),
+        "result": result.model_dump(mode="json"),
+        "critic_model_called": True,
+        "critic_result_recorded": False,
+        "release_created": False,
+        "execution_performed": False,
+    }
 
 
 def interface_recipe_template_catalog(project_root: Path) -> dict[str, Any]:
@@ -421,12 +805,57 @@ def interface_recipe_template_catalog(project_root: Path) -> dict[str, Any]:
             {
                 **template.model_dump(mode="json"),
                 "optional_parameters": optional_by_profile[template.parameter_profile],
+                "parameter_roots": {
+                    name: root
+                    for name, root in (
+                        ("path", "data/input"),
+                        ("target_path", "data/output"),
+                    )
+                    if name in template.required_parameters
+                },
             }
             for template in catalog.templates
         ],
         "catalog_validated": True,
         "files_modified": False,
         "execution_performed": False,
+    }
+
+
+def _normalize_interface_recipe_paths(payload: object) -> object:
+    """Expand filename-only interface parameters into governed data roots.
+
+    Explicit relative and absolute paths remain unchanged so the existing
+    compiler and execution policies retain final authority over them.
+    """
+
+    if not isinstance(payload, dict):
+        return payload
+    selection = payload.get("selection")
+    if not isinstance(selection, dict):
+        return payload
+    parameters = selection.get("parameters")
+    if not isinstance(parameters, dict):
+        return payload
+
+    normalized_parameters = dict(parameters)
+    for name, root in (("path", "data/input"), ("target_path", "data/output")):
+        value = normalized_parameters.get(name)
+        if (
+            isinstance(value, str)
+            and value
+            and "/" not in value
+            and "\\" not in value
+            and value not in {".", ".."}
+        ):
+            normalized_parameters[name] = f"{root}/{value}"
+
+    return {
+        **payload,
+        "selection": {
+            **selection,
+            "parameters": normalized_parameters,
+        },
     }
 
 
@@ -442,8 +871,13 @@ def plan_interface_task(
 
     root = _trusted_root(project_root)
     trusted_agents = agents_root if agents_root is not None else root / "agents"
+    selected_context = ""
+    if request.input_paths:
+        selected_context = "\n\nOperator-selected governed input references:\n" + "\n".join(
+            f"- {path}" for path in request.input_paths
+        )
     result = plan_task(
-        original_request=request.request,
+        original_request=request.request + selected_context,
         project_root=root,
         agents_root=trusted_agents,
         allowed_skill_ids=request.allowed_skill_ids,
@@ -453,9 +887,9 @@ def plan_interface_task(
         "status": "planned_not_saved",
         "agent_id": result.agent_id,
         "model": result.model,
-        "original_request": result.original_request,
+        "original_request": request.request,
         "allowed_skill_ids": request.allowed_skill_ids,
-        "context_references": result.context_references,
+        "context_references": [*result.context_references, *request.input_paths],
         "plan": result.plan.model_dump(mode="json"),
         "plan_sha256": plan_sha256(result.plan),
         "warnings": result.warnings,
@@ -961,7 +1395,7 @@ def compile_interface_recipe_proposal(
 ) -> dict[str, Any]:
     """Validate and compile one proposal without persistence or execution."""
 
-    proposal = RecipeProposal.model_validate(payload)
+    proposal = RecipeProposal.model_validate(_normalize_interface_recipe_paths(payload))
     root = _trusted_root(project_root)
     result = compile_recipe_proposal(
         proposal,
@@ -993,7 +1427,7 @@ def save_interface_reviewed_recipe(
         character not in "0123456789abcdef" for character in confirmed_recipe_sha256
     ):
         raise InterfaceApiError("confirmed recipe digest is invalid")
-    proposal = RecipeProposal.model_validate(payload)
+    proposal = RecipeProposal.model_validate(_normalize_interface_recipe_paths(payload))
     root = _trusted_root(project_root)
     compiled = compile_recipe_proposal(
         proposal,
@@ -1578,6 +2012,24 @@ def _handler(
                 except (InterfaceApiError, RecipeTemplateCatalogError):
                     self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted template catalog is unavailable"})
                 return
+            if self.path == "/api/v1/data-resources":
+                try:
+                    self._send(HTTPStatus.OK, interface_data_resource_inventory(project_root))
+                except (InterfaceApiError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "data resource inventory is unavailable"})
+                return
+            if self.path == "/api/v1/critic-evidence":
+                try:
+                    self._send(
+                        HTTPStatus.OK,
+                        interface_critic_evidence_inventory(project_root),
+                    )
+                except (InterfaceApiError, OSError, ValueError):
+                    self._send(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": "Critic evidence inventory is unavailable"},
+                    )
+                return
             if self.path == "/api/v1/planner-skills":
                 try:
                     self._send(
@@ -1633,6 +2085,8 @@ def _handler(
                 "/api/v1/plans/preview-execution",
                 "/api/v1/plans/compile-recipe",
                 "/api/v1/plans/save-reviewed-recipe",
+                "/api/v1/critic-evidence/save-adapted-trace",
+                "/api/v1/critic-evidence/run",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -1650,6 +2104,16 @@ def _handler(
                 payload = json.loads(self.rfile.read(length))
                 if self.path == "/api/v1/recipe-proposals/compile":
                     response = compile_interface_recipe_proposal(payload, project_root=project_root)
+                elif self.path == "/api/v1/critic-evidence/save-adapted-trace":
+                    response = save_interface_recipe_trace(
+                        InterfaceRecipeTraceSaveRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/critic-evidence/run":
+                    response = run_interface_critic(
+                        InterfaceCriticRunRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
                 elif self.path == "/api/v1/plans/create":
                     response = plan_interface_task(
                         InterfacePlanRequest.model_validate(payload),
@@ -1773,22 +2237,63 @@ def _handler(
             except ApprovedRecipeError:
                 self._send(HTTPStatus.CONFLICT, {"error": "approved recipe execution failed; inspect evidence and outputs"})
                 return
+            except CriticAgentError as exc:
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {
+                    "error": "Critic model did not produce a policy-valid assessment",
+                    "finding": redact_text(str(exc))[:500],
+                    "critic_result_recorded": False,
+                    "release_created": False,
+                    "execution_performed": False,
+                })
+                return
+            except CriticEvidenceError:
+                self._send(HTTPStatus.CONFLICT, {
+                    "error": "stored Critic evidence failed deterministic verification",
+                    "critic_result_recorded": False,
+                    "release_created": False,
+                    "execution_performed": False,
+                })
+                return
             except PlannerAgentError as exc:
                 message = str(exc)
                 if "invalid JSON" in message:
                     error = "planner model returned invalid JSON"
+                    code = "planner_invalid_json"
+                    finding = "The model response was not one complete JSON object."
                 elif "invalid plan schema" in message:
                     error = "planner model returned an invalid plan schema"
+                    code = "planner_invalid_schema"
+                    finding = "The model response did not satisfy the required workflow-plan schema."
                 elif "deterministic policy" in message:
                     error = "planner plan was rejected by deterministic policy"
+                    code = "planner_policy_rejected"
+                    finding = message.partition("deterministic policy:")[2].strip() or "The candidate plan violated deterministic policy."
                 else:
                     error = "planner could not produce a validated plan"
-                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": error})
+                    code = "planner_generation_failed"
+                    finding = "The configured model did not produce a validated plan."
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {
+                    "error": error,
+                    "code": code,
+                    "finding": finding[:1000],
+                    "retryable": True,
+                    "retry_guidance": "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry.",
+                    "plan_returned": False,
+                    "plan_saved": False,
+                    "approval_performed": False,
+                    "execution_performed": False,
+                })
                 return
             except PlannerPolicyError:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "reviewed plan was rejected by deterministic policy"})
                 return
             except (ContextPackError, ModelClientError, ModelSettingsError):
+                if self.path == "/api/v1/critic-evidence/run":
+                    self._send(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        {"error": "Critic model service is unavailable"},
+                    )
+                    return
                 self._send(
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     {"error": "planner could not produce a validated plan"},

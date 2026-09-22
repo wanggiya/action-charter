@@ -1,5 +1,37 @@
 # Changelog
 
+## Checkpoint 17AT
+
+- Add an explicit, digest-bound Critic model invocation for one stored
+  WorkflowTrace/report pair.
+- Validate the response through existing Critic policy while keeping it in
+  memory and granting no release authority.
+
+## Checkpoint 17AP
+
+- Keep Planner task typing responsive by debouncing graph-affecting state.
+- Submit the exact current request and preserve saved-plan restoration.
+
+## Checkpoint 17AO
+
+- Show safe deterministic-policy findings for rejected Planner candidates.
+- Offer explicit retry without returning or persisting the invalid plan.
+
+## Checkpoint 17AN
+
+- Add bounded project input and output-location selection to Templates and Plan.
+- Bind selected input resources into Planner context without granting execution.
+
+## Checkpoint 17AM
+
+- Let the interface accept input/output filenames under the governed
+  `data/input` and `data/output` roots while preserving explicit paths.
+
+## Checkpoint 17AL
+
+- Handle deliberate interface API `Ctrl+C` shutdown without a traceback.
+- Document Vite development refreshes versus ordinary interface state updates.
+
 ## Checkpoint 17AK
 
 - Restore the original task request and exact allowed-skill selection with a
@@ -155,6 +187,25 @@ All notable changes to ActionCharter will be documented in this file. The
 project follows Semantic Versioning after the initial public alpha.
 
 ## [Unreleased]
+
+- Added Checkpoint 17AS explicit digest review and immutable persistence for an
+  adapted recipe-run trace and deterministic report. The service rebuilds the
+  candidate before writing, rejects stale or duplicate targets, revalidates the
+  stored pair, and grants no Critic, release, or execution authority.
+- Corrected the Assurance workspace so its large Critic evidence header scrolls
+  away with the content instead of remaining pinned over long evidence lists.
+- Added minimize and restore controls to the adapted-trace review drawer while
+  preserving its selected candidate and in-progress review confirmation.
+
+- Added Checkpoint 17AR deterministic recipe-run trace adaptation previews.
+  Exact recipes, approvals, evidence, steps, statuses, and durable timestamps
+  must agree before the existing Critic evidence builder accepts an in-memory
+  candidate. Recipe authority now has its own trace digest field and no model,
+  persistent trace, Critic result, release, or execution is produced.
+
+- Added Checkpoint 17AQ read-only Critic assurance inventory. The interface
+  reuses the deterministic Critic evidence builder without calling a model,
+  recording a result, creating a release, or executing work.
 
 - Added Checkpoint 17T first governed interface execution, disabled by default,
   digest-confirmed, server-reverified, allowlisted, validated and durably evidenced.

@@ -11,7 +11,7 @@ and evidence paths are reachable through typed interface operations.
 | Execution progress and history | Available | Full artifact inspection |
 | Planner Agent and configured model | Planning through restart-safe verified authority and fixed-slice preview available | Expand typed Executor skill support, then exact execution |
 | Plan approval and executor | Not yet available | Digest-bound plan approval |
-| Critic and release | Not yet available | Evidence-driven critique |
+| Critic and release | Stored evidence inspection, trace adaptation and persistence, and explicit validated in-memory model critique available; result recording and release unavailable | Recorded critique and release authority |
 | Vector and raster operations | Available through registered recipe skills | Add remaining format profiles |
 | PostGIS load/inspect/change/promotion/rollback | Partially available through recipes | Dedicated governed workspaces |
 | GeoServer inspect/publish/verify | Backend and CLI available | Interface workspace later |
