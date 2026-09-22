@@ -778,3 +778,64 @@ recipe inventory bound to the exact stored digest and prioritizes the matching
 artifact. Approval preparation remains explicit. Next: preserve this identity
 through approval, verification, execution preview, execution, and outcome
 verification as one visible end-to-end interface journey.
+### Checkpoint 17AM — rooted interface data paths
+
+- [x] Accept filename-only input and output parameters in trusted templates.
+- [x] Canonicalize them before recipe hashing and approval.
+- [x] Preserve explicit paths and the existing CLI workflow.
+- [ ] Complete remaining interface parity for every supported governed action.
+
+### Checkpoint 17AN — governed resource selection
+
+- [x] Inventory governed project inputs through the loopback API.
+- [x] Select existing input and output locations in trusted templates.
+- [x] Bind selected inputs into Planner context without granting authority.
+- [x] Preserve explicit safe relative paths as an advanced workflow.
+
+### Checkpoint 17AO — actionable Planner rejection
+
+- [x] Preserve safe deterministic policy findings at the HTTP boundary.
+- [x] Display the rejection prominently in Plan.
+- [x] Provide explicit retry without weakening or bypassing policy.
+
+### Checkpoint 17AP — responsive Planner authoring
+
+- [x] Remove task typing from the per-keystroke graph rerender path.
+- [x] Preserve bounded skill recommendations and exact submission.
+- [x] Preserve immutable saved-plan restoration.
+
+### Checkpoint 17AQ — deterministic Critic assurance
+
+- [x] Inventory trusted WorkflowTrace/report pairs through the interface.
+- [x] Reuse deterministic Critic evidence validation without a model call.
+- [x] Surface validation, approval completeness, gaps, warnings, and hashes.
+- [x] Preview completed recipe-run evidence as a validated WorkflowTrace.
+- [x] Persist an explicitly reviewed adapted trace and report.
+- [x] Add explicit model Critic invocation with in-memory validated results.
+- [ ] Add immutable Critic result recording.
+- [ ] Add governed release readiness and release creation.
+
+### Checkpoint 17AR — recipe-run trace adaptation preview
+
+- [x] Correlate immutable recipe, approval, evidence, and durable timing.
+- [x] Represent recipe authority with its own trace digest field.
+- [x] Prove adapted candidates through the existing Critic evidence builder.
+- [x] Reject identity-incomplete or contradictory runs without guessing.
+- [x] Persist an explicitly reviewed adapted trace and deterministic report.
+
+### Checkpoint 17AS — reviewed adapted-trace persistence
+
+- [x] Require operator confirmation of the exact adapted-trace digest.
+- [x] Rebuild the candidate from immutable source evidence before writing.
+- [x] Store the trace and deterministic report without overwriting.
+- [x] Revalidate the stored pair through the existing Critic evidence builder.
+- [x] Invoke the Critic model through a separate explicit action.
+- [ ] Record a validated Critic result immutably.
+
+### Checkpoint 17AT — explicit read-only Critic assessment
+
+- [x] Bind invocation to exact stored trace and report digests.
+- [x] Require explicit operator confirmation before model use.
+- [x] Reuse the existing Critic schema and deterministic conclusion policy.
+- [x] Keep the validated result in memory with no release authority.
+- [ ] Record the exact reviewed Critic result immutably.

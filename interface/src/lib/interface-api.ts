@@ -358,6 +358,28 @@ const plannerSkillCatalogSchema = z.object({
 
 export type PlannerSkillCatalog = z.infer<typeof plannerSkillCatalogSchema>;
 
+const dataResourceInventorySchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("inspected"),
+  inputs: z.array(z.object({ path: z.string().regex(/^data\/input\/.+/), name: z.string().min(1), extension: z.string(), size_bytes: z.number().int().nonnegative() })).max(500),
+  output_directories: z.array(z.string().regex(/^data\/output(?:\/.+)?$/)).min(1).max(500),
+  input_count: z.number().int().nonnegative().max(500), inventory_performed: z.literal(true),
+  files_modified: z.literal(false), execution_performed: z.literal(false),
+});
+export type DataResourceInventory = z.infer<typeof dataResourceInventorySchema>;
+
+const plannerFailureSchema = z.object({
+  error: z.string().max(300),
+  code: z.enum(["planner_invalid_json", "planner_invalid_schema", "planner_policy_rejected", "planner_generation_failed"]),
+  finding: z.string().max(1000), retryable: z.literal(true), retry_guidance: z.string().max(1000),
+  plan_returned: z.literal(false), plan_saved: z.literal(false), approval_performed: z.literal(false), execution_performed: z.literal(false),
+});
+export class PlannerRequestError extends Error {
+  constructor(public readonly detail: z.infer<typeof plannerFailureSchema>) {
+    super(detail.error);
+    this.name = "PlannerRequestError";
+  }
+}
+
 const savedPlanInventorySchema = z.object({
   schema_version: z.literal("1.0"), status: z.literal("inspected"),
   plans: z.array(z.object({
@@ -367,6 +389,94 @@ const savedPlanInventorySchema = z.object({
   })).max(200), plan_count: z.number().int().nonnegative(), files_modified: z.literal(false), execution_performed: z.literal(false),
 });
 export type SavedPlanInventory = z.infer<typeof savedPlanInventorySchema>;
+
+const criticEvidenceInventorySchema = z.object({
+  schema_version: z.literal("1.0"),
+  status: z.literal("inspected"),
+  items: z.array(z.object({
+    trace_name: z.string().min(1).max(255),
+    report_name: z.string().min(1).max(255).nullable(),
+    available: z.boolean(),
+    finding: z.string().max(500).nullable(),
+    evidence: z.object({
+      task_id: z.string().min(1).max(128),
+      original_request: z.string().max(8000),
+      deterministic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+      trace_final_status: z.enum(["validated_success", "validation_failed", "execution_failed"]),
+      validation_passed: z.boolean().nullable(),
+      selected_skills: z.array(z.string().max(120)).max(100),
+      approval: z.object({ complete: z.boolean() }).passthrough(),
+      warnings: z.array(z.string().max(2000)).max(100),
+      human_corrections: z.array(z.string().max(2000)).max(100),
+      evidence_gaps: z.array(z.string().max(2000)).max(100),
+      evidence_references: z.array(z.object({
+        path: z.string().max(2000),
+        sha256: z.string().regex(/^[a-f0-9]{64}$/),
+      })).min(2).max(10),
+    }).passthrough().nullable(),
+  })).max(200),
+  item_count: z.number().int().nonnegative().max(200),
+  recipe_candidates: z.array(z.object({
+    evidence_name: z.string().min(1).max(255),
+    adaptable: z.boolean(),
+    finding: z.string().max(500).nullable(),
+    trace: z.object({
+      task_id: z.string().min(1).max(81),
+      original_request: z.string().max(8000),
+      recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+      approval_id: z.string().min(1).max(200),
+      selected_skills: z.array(z.string().max(120)).max(100),
+      final_status: z.enum(["validated_success", "validation_failed", "execution_failed"]),
+      timestamps: z.object({ started_at: z.string(), finished_at: z.string() }),
+    }).passthrough().nullable(),
+    trace_sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+    critic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]).nullable(),
+    critic_gaps: z.array(z.string().max(2000)).max(100),
+    stored: z.boolean(),
+    files_modified: z.literal(false),
+  })).max(200),
+  recipe_candidate_count: z.number().int().nonnegative().max(200),
+  inventory_truncated: z.boolean(),
+  critic_model_called: z.literal(false),
+  critic_result_recorded: z.literal(false),
+  release_created: z.literal(false),
+  execution_performed: z.literal(false),
+});
+export type CriticEvidenceInventory = z.infer<typeof criticEvidenceInventorySchema>;
+
+const storedRecipeTraceSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("stored"),
+  task_id: z.string().min(1).max(81),
+  trace_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  report_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  trace_path: z.string().min(1).max(2000), report_path: z.string().min(1).max(2000),
+  critic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+  critic_gaps: z.array(z.string().max(2000)).max(100),
+  trace_stored: z.literal(true), report_stored: z.literal(true),
+  critic_model_called: z.literal(false), critic_result_recorded: z.literal(false),
+  release_created: z.literal(false), execution_performed: z.literal(false),
+});
+export type StoredRecipeTrace = z.infer<typeof storedRecipeTraceSchema>;
+
+const criticAssessmentResultSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("assessed_not_recorded"),
+  critic_result_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  result: z.object({
+    agent_id: z.literal("critic"), model: z.string().min(1).max(200), task_id: z.string().min(1).max(128),
+    deterministic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+    evidence_gaps: z.array(z.string().max(2000)).max(100), workflow_warnings: z.array(z.string().max(2000)).max(100),
+    assessment: z.object({
+      deterministic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+      conclusion: z.enum(["supported", "not_supported", "incomplete"]), success_claimed: z.boolean(),
+      summary: z.string().min(1).max(3000),
+      validation_basis: z.array(z.string().max(2000)).max(20), additional_risks: z.array(z.string().max(2000)).max(20),
+      recommendations: z.array(z.string().max(2000)).max(20), edits_performed: z.literal(false), database_actions_performed: z.literal(false),
+    }).passthrough(),
+  }).passthrough(),
+  critic_model_called: z.literal(true), critic_result_recorded: z.literal(false),
+  release_created: z.literal(false), execution_performed: z.literal(false),
+});
+export type CriticAssessmentResult = z.infer<typeof criticAssessmentResultSchema>;
 
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
@@ -380,6 +490,48 @@ export async function loadApiRecipeTemplates(): Promise<RecipeTemplate[]> {
   const response = await fetch("/api/v1/recipe-templates", { cache: "no-store", credentials: "same-origin" });
   if (!response.ok) throw new Error("interface template service is unavailable");
   return recipeTemplateCatalogSchema.parse(await boundedJson(response)).templates;
+}
+
+export async function loadDataResources(): Promise<DataResourceInventory> {
+  const response = await fetch("/api/v1/data-resources", { cache: "no-store", credentials: "same-origin" });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("data resource inventory is unavailable");
+  return dataResourceInventorySchema.parse(payload);
+}
+
+export async function loadCriticEvidence(): Promise<CriticEvidenceInventory> {
+  const response = await fetch("/api/v1/critic-evidence", { cache: "no-store", credentials: "same-origin" });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("Critic evidence inventory is unavailable");
+  return criticEvidenceInventorySchema.parse(payload);
+}
+
+export async function saveAdaptedRecipeTrace(evidenceName: string, confirmedTraceSha256: string): Promise<StoredRecipeTrace> {
+  const response = await fetch("/api/v1/critic-evidence/save-adapted-trace", {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save_adapted_recipe_trace", evidence_name: evidenceName, confirmed_trace_sha256: confirmedTraceSha256 }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(500) }).safeParse(payload);
+    throw new Error(message.success ? message.data.error : "adapted trace could not be stored");
+  }
+  return storedRecipeTraceSchema.parse(payload);
+}
+
+export async function runCriticAssessment(input: { traceName: string; reportName: string; traceSha256: string; reportSha256: string }): Promise<CriticAssessmentResult> {
+  const response = await fetch("/api/v1/critic-evidence/run", {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "run_critic", trace_name: input.traceName, report_name: input.reportName, confirmed_trace_sha256: input.traceSha256, confirmed_report_sha256: input.reportSha256 }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(500), finding: z.string().max(500).optional() }).safeParse(payload);
+    throw new Error(message.success ? [message.data.error, message.data.finding].filter(Boolean).join(": ") : "Critic assessment failed");
+  }
+  return criticAssessmentResultSchema.parse(payload);
 }
 
 export async function compileRecipeProposal(proposal: BrowserRecipeProposal): Promise<InterfaceCompilation> {
@@ -630,18 +782,21 @@ export async function loadSavedPlans(): Promise<SavedPlanInventory> {
   return savedPlanInventorySchema.parse(payload);
 }
 
-export async function createPlannerPlan(request: string, allowedSkillIds: string[]): Promise<InterfacePlannerResult> {
+export async function createPlannerPlan(request: string, allowedSkillIds: string[], inputPaths: string[] = []): Promise<InterfacePlannerResult> {
   const boundedRequest = z.string().trim().min(1).max(8000).parse(request);
   const boundedSkills = z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).min(1).max(20).parse(allowedSkillIds);
+  const boundedInputs = z.array(z.string().regex(/^data\/input\/[A-Za-z0-9._/-]+$/)).max(20).parse(inputPaths);
   const response = await fetch("/api/v1/plans/create", {
     method: "POST",
     cache: "no-store",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "plan_task", request: boundedRequest, allowed_skill_ids: boundedSkills }),
+    body: JSON.stringify({ action: "plan_task", request: boundedRequest, allowed_skill_ids: boundedSkills, input_paths: boundedInputs }),
   });
   const payload = await boundedJson(response);
   if (!response.ok) {
+    const failure = plannerFailureSchema.safeParse(payload);
+    if (failure.success) throw new PlannerRequestError(failure.data);
     const message = z.object({ error: z.string().max(300) }).safeParse(payload);
     throw new Error(message.success ? message.data.error : "planner could not produce a validated plan");
   }

@@ -30,6 +30,27 @@ Checkpoint 17AF carries the exact stored recipe into the existing approval
 workspace and prioritizes it in the refreshed inventory. Approval preparation
 remains a separate explicit operator action.
 
+Checkpoint 17AQ adds a read-only Assurance workspace for deterministic Critic
+evidence inspection. It validates existing WorkflowTrace/report pairs and shows
+their status, approval completeness, gaps, warnings, and hashes without calling
+a model, recording a Critic result, creating a release, or executing work.
+
+Checkpoint 17AR previews a truthful bridge from completed interface recipe runs
+to Critic-compatible workflow traces. It requires matching immutable recipe,
+approval, evidence, step, status, and durable timing records; incomplete legacy
+runs remain blocked. The preview is in-memory and writes no trace or release.
+
+Checkpoint 17AS lets an operator review the exact adapted-trace digest and
+immutably store its trace/report pair. The backend rebuilds and revalidates the
+candidate before writing. Evidence storage does not invoke the Critic, record a
+Critic result, create a release, or execute work.
+
+Checkpoint 17AT adds a separate explicit Critic action for one exact stored
+trace/report pair. The service rechecks both evidence hashes before calling the
+configured model and validates its response against the existing Critic schema
+and deterministic conclusion policy. The assessment remains in memory: it is
+not a Critic record, does not create a release, and executes nothing.
+
 The current reference implementation applies this architecture to geospatial
 data with GeoPandas, GDAL, rasterio, PostGIS, and GeoServer-oriented workflows.
 GIS is the first reference domain, not the architectural limit.
@@ -562,6 +583,13 @@ recipe templates. Export `context/RECIPE_TEMPLATES.yaml` through the existing
 required parameters in the Inspector. The interface renders its declared step
 graph and can download a validated, non-executable proposal accepted by the
 existing proposal compiler. See [Checkpoint 17K](docs/CHECKPOINT17K.md).
+
+For template input and output fields, the interface accepts either a filename
+or an explicit path. Filename-only inputs resolve under `data/input`, and
+filename-only outputs resolve under `data/output`; the compiled recipe displays
+the canonical path before approval. Explicit safe relative paths and the CLI's
+path/root options remain supported. See
+[Checkpoint 17AM](docs/CHECKPOINT17AM.md).
 
 The completed interface is intended to operate the full governed lifecycle
 without requiring routine command-line use. The CLI remains supported for

@@ -259,7 +259,7 @@ def build_critic_evidence(
 
     approval_complete = bool(
         trace.approval_id
-        and trace.plan_sha256
+        and (trace.plan_sha256 or trace.recipe_sha256)
         and trace.approved_step_ids
     )
 
@@ -315,24 +315,25 @@ def build_critic_evidence(
             for item in validation_warnings
         )
 
+    recipe_validation = validation_payload.get("validation_kind") == "recipe"
     validation = ValidationEvidence(
         passed=validation_passed,
-        table_exists=_optional_bool(
+        table_exists=None if recipe_validation else _optional_bool(
             validation_payload,
             "table_exists",
             gaps,
         ),
-        geometry_column_exists=_optional_bool(
+        geometry_column_exists=None if recipe_validation else _optional_bool(
             validation_payload,
             "geometry_column_exists",
             gaps,
         ),
-        row_count=_optional_int(
+        row_count=None if recipe_validation else _optional_int(
             validation_payload,
             "row_count",
             gaps,
         ),
-        srid=_optional_int(
+        srid=None if recipe_validation else _optional_int(
             validation_payload,
             "srid",
             gaps,
@@ -342,12 +343,12 @@ def build_critic_evidence(
             if validation_payload.get("geometry_type") is not None
             else None
         ),
-        invalid_geometry_count=_optional_int(
+        invalid_geometry_count=None if recipe_validation else _optional_int(
             validation_payload,
             "invalid_geometry_count",
             gaps,
         ),
-        null_geometry_count=_optional_int(
+        null_geometry_count=None if recipe_validation else _optional_int(
             validation_payload,
             "null_geometry_count",
             gaps,
@@ -386,6 +387,7 @@ def build_critic_evidence(
         approval=ApprovalEvidence(
             approval_id=trace.approval_id,
             plan_sha256=trace.plan_sha256,
+            recipe_sha256=trace.recipe_sha256,
             approved_step_ids=list(
                 trace.approved_step_ids
             ),

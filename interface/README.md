@@ -95,3 +95,10 @@ plan; those remain separate authority increments. The operator explicitly
 selects the exact implemented skills the Planner may use. The backend verifies
 those IDs against the trusted registry and sends only that compact selection to
 the model.
+# Input and output filenames
+
+Trusted template forms accept either a filename or an explicit path. A
+filename-only input is resolved under `data/input`; a filename-only output is
+resolved under `data/output`. Always review the canonical paths in the compiled
+recipe before preparing approval. The CLI remains available for explicit root
+and path control.

@@ -17,7 +17,11 @@ from geoagent_harness.interface_api import (
     verify_interface_recipe_approval,
     compile_interface_recipe_proposal,
     interface_recipe_template_catalog,
+    interface_data_resource_inventory,
     interface_execution_inventory,
+    interface_critic_evidence_inventory,
+    run_interface_critic,
+    save_interface_recipe_trace,
     interface_planner_skill_catalog,
     interface_saved_plan_inventory,
     plan_interface_task,
@@ -46,10 +50,15 @@ from geoagent_harness.interface_api.server import InterfacePlanApprovalDecisionR
 from geoagent_harness.interface_api.server import InterfacePlanApprovalVerificationRequest
 from geoagent_harness.interface_api.server import InterfacePlanRecipeCompilationRequest
 from geoagent_harness.interface_api.server import InterfacePlanRecipeSaveRequest
+from geoagent_harness.interface_api.server import InterfaceRecipeTraceSaveRequest
+from geoagent_harness.interface_api.server import InterfaceCriticRunRequest
 from geoagent_harness.approvals import load_planner_result, plan_sha256
 from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
 from geoagent_harness.recipe_proposals import RecipeCompilationError
+from geoagent_harness.reporting import render_report
+from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
+from geoagent_harness.critic.recipe_trace import recipe_trace_sha256
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -61,8 +70,222 @@ PROPOSAL_FILE = (
 )
 
 
+def write_critic_fixture(project_root: Path) -> WorkflowTrace:
+    """Create complete Critic evidence without relying on ignored run data."""
+
+    now = datetime(2026, 9, 22, 12, 0, tzinfo=timezone.utc)
+    trace = WorkflowTrace(
+        task_id="interface-critic-fixture",
+        original_request="Inspect the approved vector and validate the result.",
+        context_references=["context/PROJECT_SUMMARY.md"],
+        selected_skills=["inspect_vector"],
+        plan_sha256="a" * 64,
+        approval_id="approval-interface-critic-fixture",
+        approved_step_ids=["step_1"],
+        tool_arguments={},
+        tool_results={},
+        validation_results={
+            "passed": True,
+            "table_exists": True,
+            "geometry_column_exists": True,
+            "row_count": 2,
+            "srid": 4326,
+            "geometry_type": "POINT",
+            "invalid_geometry_count": 0,
+            "null_geometry_count": 0,
+            "checks": [],
+        },
+        artifacts=[
+            "traces/interface-critic-fixture.json",
+            "reports/interface-critic-fixture.md",
+        ],
+        warnings=[],
+        final_status="validated_success",
+        timestamps=TraceTimestamps(started_at=now, finished_at=now),
+        versions={"python": "3.12"},
+        secrets_redacted=True,
+    )
+    trace_root = project_root / "traces"
+    report_root = project_root / "reports"
+    trace_root.mkdir(parents=True)
+    report_root.mkdir(parents=True)
+    (trace_root / f"{trace.task_id}.json").write_text(
+        trace.model_dump_json(indent=2) + "\n", encoding="utf-8",
+    )
+    (report_root / f"{trace.task_id}.md").write_text(
+        render_report(trace), encoding="utf-8",
+    )
+    return trace
+
+
 def proposal_payload() -> dict[str, object]:
     return json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
+
+
+def test_critic_evidence_inventory_is_read_only_and_model_free(tmp_path: Path) -> None:
+    trace = write_critic_fixture(tmp_path)
+    result = interface_critic_evidence_inventory(tmp_path)
+
+    assert result["status"] == "inspected"
+    assert result["item_count"] >= 1
+    assert result["critic_model_called"] is False
+    assert result["critic_result_recorded"] is False
+    assert result["release_created"] is False
+    assert result["execution_performed"] is False
+    assert result["recipe_candidate_count"] == 0
+    item = result["items"][0]
+    assert item["available"] is True
+    assert item["evidence"]["task_id"] == trace.task_id
+    assert len(item["evidence"]["evidence_references"]) == 2
+
+
+def test_critic_evidence_inventory_reports_missing_matching_report(tmp_path: Path) -> None:
+    (tmp_path / "traces").mkdir()
+    (tmp_path / "reports").mkdir()
+    (tmp_path / "traces" / "unpaired.json").write_text("{}", encoding="utf-8")
+
+    result = interface_critic_evidence_inventory(tmp_path)
+
+    assert result["item_count"] == 1
+    assert result["items"][0] == {
+        "trace_name": "unpaired.json",
+        "report_name": None,
+        "available": False,
+        "finding": "matching Markdown report is unavailable",
+        "evidence": None,
+    }
+
+
+def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trace = write_critic_fixture(tmp_path)
+    evidence_name = f"fixture.{('b' * 64)}.json"
+    preview = {
+        "evidence_name": evidence_name,
+        "adaptable": True,
+        "finding": None,
+        "trace": trace.model_dump(mode="json"),
+        "trace_sha256": recipe_trace_sha256(trace),
+        "critic_status": "validated_success",
+        "critic_gaps": [],
+        "stored": False,
+        "files_modified": False,
+    }
+    monkeypatch.setattr(
+        interface_api_module,
+        "_interface_recipe_trace_candidates",
+        lambda _root: [preview],
+    )
+    (tmp_path / "traces" / f"{trace.task_id}.json").unlink()
+    (tmp_path / "reports" / f"{trace.task_id}.md").unlink()
+    result = save_interface_recipe_trace(
+        InterfaceRecipeTraceSaveRequest(action="save_adapted_recipe_trace", evidence_name=evidence_name, confirmed_trace_sha256=preview["trace_sha256"]),
+        project_root=tmp_path,
+    )
+    assert result["status"] == "stored"
+    assert (tmp_path / result["trace_path"]).is_file()
+    assert (tmp_path / result["report_path"]).is_file()
+    assert result["critic_model_called"] is False
+    assert result["critic_result_recorded"] is False
+    assert result["release_created"] is False
+    assert result["execution_performed"] is False
+    with pytest.raises(InterfaceApiError, match="already exists"):
+        save_interface_recipe_trace(
+            InterfaceRecipeTraceSaveRequest(action="save_adapted_recipe_trace", evidence_name=evidence_name, confirmed_trace_sha256=preview["trace_sha256"]),
+            project_root=tmp_path,
+        )
+
+
+def test_interface_critic_assesses_exact_evidence_without_recording(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    write_critic_fixture(tmp_path)
+    inventory = interface_critic_evidence_inventory(tmp_path)
+    item = next(candidate for candidate in inventory["items"] if candidate["available"])
+    references = {
+        Path(reference["path"]).name: reference["sha256"]
+        for reference in item["evidence"]["evidence_references"]
+    }
+    captured: dict[str, object] = {}
+    result_payload = {
+        "agent_id": "critic",
+        "model": "critic-test",
+        "task_id": item["evidence"]["task_id"],
+        "deterministic_status": item["evidence"]["deterministic_status"],
+        "evidence_references": item["evidence"]["evidence_references"],
+        "evidence_gaps": item["evidence"]["evidence_gaps"],
+        "workflow_warnings": [],
+        "human_corrections": [],
+        "assessment": {
+            "schema_version": "1.0",
+            "deterministic_status": item["evidence"]["deterministic_status"],
+            "conclusion": "supported",
+            "success_claimed": True,
+            "summary": "The deterministic evidence supports the recorded outcome.",
+            "validation_basis": ["Independent validation passed."],
+            "additional_risks": [],
+            "recommendations": [],
+            "edits_performed": False,
+            "database_actions_performed": False,
+        },
+    }
+
+    def fake_critique_task(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(model_dump=lambda **_kwargs: result_payload)
+
+    monkeypatch.setattr(interface_api_module, "critique_task", fake_critique_task)
+    monkeypatch.setattr(interface_api_module, "critic_result_sha256", lambda _result: "a" * 64)
+    result = run_interface_critic(
+        InterfaceCriticRunRequest(
+            action="run_critic",
+            trace_name=item["trace_name"],
+            report_name=item["report_name"],
+            confirmed_trace_sha256=references[item["trace_name"]],
+            confirmed_report_sha256=references[item["report_name"]],
+        ),
+        project_root=tmp_path,
+    )
+
+    assert captured["trace_path"] == tmp_path / "traces" / item["trace_name"]
+    assert result["status"] == "assessed_not_recorded"
+    assert result["critic_result_sha256"] == "a" * 64
+    assert result["critic_model_called"] is True
+    assert result["critic_result_recorded"] is False
+    assert result["release_created"] is False
+    assert result["execution_performed"] is False
+
+
+def test_interface_critic_rejects_stale_digest_before_model_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    write_critic_fixture(tmp_path)
+    inventory = interface_critic_evidence_inventory(tmp_path)
+    item = next(candidate for candidate in inventory["items"] if candidate["available"])
+    references = {
+        Path(reference["path"]).name: reference["sha256"]
+        for reference in item["evidence"]["evidence_references"]
+    }
+    called = False
+
+    def fake_critique_task(**_kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(interface_api_module, "critique_task", fake_critique_task)
+    with pytest.raises(InterfaceApiError, match="trace digest no longer matches"):
+        run_interface_critic(
+            InterfaceCriticRunRequest(
+                action="run_critic",
+                trace_name=item["trace_name"],
+                report_name=item["report_name"],
+                confirmed_trace_sha256="0" * 64,
+                confirmed_report_sha256=references[item["report_name"]],
+            ),
+            project_root=tmp_path,
+        )
+    assert called is False
 
 
 def test_interface_planner_uses_existing_service_without_execution(
@@ -108,15 +331,22 @@ def test_interface_planner_uses_existing_service_without_execution(
             action="plan_task",
             request=request_text,
             allowed_skill_ids=["inspect_vector"],
+            input_paths=["data/input/sample_points.geojson"],
         ),
         project_root=PROJECT_ROOT,
     )
 
-    assert captured["original_request"] == request_text
+    assert captured["original_request"] == (
+        request_text
+        + "\n\nOperator-selected governed input references:\n"
+        + "- data/input/sample_points.geojson"
+    )
     assert captured["allowed_skill_ids"] == ["inspect_vector"]
     assert captured["project_root"] == PROJECT_ROOT.resolve()
     assert result["status"] == "planned_not_saved"
     assert result["allowed_skill_ids"] == ["inspect_vector"]
+    assert result["original_request"] == request_text
+    assert "data/input/sample_points.geojson" in result["context_references"]
     assert result["plan"] == plan_payload
     assert len(result["plan_sha256"]) == 64
     assert result["plan_saved"] is False
@@ -458,7 +688,32 @@ def test_interface_catalog_is_validated_and_non_executing() -> None:
     assert vector_conversion["optional_parameters"] == [
         "source_layer", "target_layer", "target_format"
     ]
+    assert vector_conversion["parameter_roots"] == {
+        "path": "data/input",
+        "target_path": "data/output",
+    }
     assert result["catalog_validated"] is True
+    assert result["files_modified"] is False
+    assert result["execution_performed"] is False
+
+
+def test_interface_data_inventory_lists_only_bounded_resources(tmp_path: Path) -> None:
+    input_root = tmp_path / "data" / "input"
+    output_root = tmp_path / "data" / "output" / "exports"
+    input_root.mkdir(parents=True)
+    output_root.mkdir(parents=True)
+    (input_root / "sample.geojson").write_text("{}", encoding="utf-8")
+    (input_root / "notes.txt").write_text("not listed", encoding="utf-8")
+
+    result = interface_data_resource_inventory(tmp_path)
+
+    assert result["inputs"] == [{
+        "path": "data/input/sample.geojson",
+        "name": "sample.geojson",
+        "extension": ".geojson",
+        "size_bytes": 2,
+    }]
+    assert result["output_directories"] == ["data/output", "data/output/exports"]
     assert result["files_modified"] is False
     assert result["execution_performed"] is False
 
@@ -481,6 +736,48 @@ def test_interface_compilation_matches_cli_boundary() -> None:
     assert result["execution_performed"] is False
     assert response["files_modified"] is False
     assert len(response["recipe_sha256"]) == 64
+
+
+def test_interface_compilation_resolves_filename_only_data_paths() -> None:
+    payload = proposal_payload()
+    payload["selection"]["parameters"]["path"] = "sample_points.geojson"
+    payload["selection"]["parameters"]["target_path"] = "interface_result.gpkg"
+
+    response = compile_interface_recipe_proposal(payload, project_root=PROJECT_ROOT)
+    steps = response["result"]["recipe"]["steps"]
+
+    assert steps[0]["arguments"]["path"] == "data/input/sample_points.geojson"
+    assert steps[1]["arguments"]["path"] == "data/input/sample_points.geojson"
+    assert steps[1]["arguments"]["target_path"] == "data/output/interface_result.gpkg"
+
+
+def test_interface_compilation_preserves_explicit_paths() -> None:
+    payload = proposal_payload()
+    payload["selection"]["parameters"]["path"] = "data/input/nested/source.geojson"
+    payload["selection"]["parameters"]["target_path"] = "data/output/nested/result.gpkg"
+
+    response = compile_interface_recipe_proposal(payload, project_root=PROJECT_ROOT)
+    steps = response["result"]["recipe"]["steps"]
+
+    assert steps[0]["arguments"]["path"] == "data/input/nested/source.geojson"
+    assert steps[1]["arguments"]["target_path"] == "data/output/nested/result.gpkg"
+
+
+def test_filename_only_recipe_can_be_saved_with_compiled_digest(tmp_path: Path) -> None:
+    payload = proposal_payload()
+    payload["selection"]["parameters"]["path"] = "sample_points.geojson"
+    payload["selection"]["parameters"]["target_path"] = "saved_result.gpkg"
+    compiled = compile_interface_recipe_proposal(payload, project_root=PROJECT_ROOT)
+
+    stored = save_interface_reviewed_recipe(
+        payload,
+        confirmed_recipe_sha256=compiled["recipe_sha256"],
+        project_root=PROJECT_ROOT,
+        recipe_root=tmp_path / "recipes",
+    )
+
+    assert stored["status"] == "stored"
+    assert stored["recipe_sha256"] == compiled["recipe_sha256"]
 
 
 def test_interface_target_format_is_enforced_by_real_compiler() -> None:
@@ -927,6 +1224,48 @@ def test_http_boundary_compiles_json_and_rejects_foreign_origin() -> None:
             "error": "request origin is not allowed"
         }
         rejected.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
+def test_http_planner_policy_rejection_returns_safe_actionable_finding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def rejected_plan(*_args, **_kwargs):
+        raise interface_api_module.PlannerAgentError(
+            "Planner plan failed deterministic policy: "
+            "inspect_vector is missing required arguments: path"
+        )
+
+    monkeypatch.setattr(interface_api_module, "plan_interface_task", rejected_plan)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(PROJECT_ROOT))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+        connection.request(
+            "POST",
+            "/api/v1/plans/create",
+            body=json.dumps({
+                "action": "plan_task",
+                "request": "Inspect the selected vector.",
+                "allowed_skill_ids": ["inspect_vector"],
+                "input_paths": ["data/input/sample_points.geojson"],
+            }),
+            headers={"Content-Type": "application/json", "Origin": "http://localhost:5173"},
+        )
+        response = connection.getresponse()
+        payload = json.loads(response.read())
+        assert response.status == 422
+        assert payload["code"] == "planner_policy_rejected"
+        assert payload["finding"] == "inspect_vector is missing required arguments: path"
+        assert payload["retryable"] is True
+        assert payload["plan_returned"] is False
+        assert payload["plan_saved"] is False
+        assert payload["approval_performed"] is False
+        assert payload["execution_performed"] is False
     finally:
         server.shutdown()
         server.server_close()

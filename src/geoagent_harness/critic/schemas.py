@@ -226,6 +226,7 @@ class ApprovalEvidence(BaseModel):
 
     approval_id: str | None = None
     plan_sha256: str | None = None
+    recipe_sha256: str | None = None
     approved_step_ids: list[str] = Field(default_factory=list)
     complete: bool = False
 

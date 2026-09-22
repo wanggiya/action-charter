@@ -58,3 +58,20 @@ Before restarting, find and stop the exact PID that owns the port. Confirm the
 port is free before launching another service. Do not infer process age from the
 CPU `TIME` column, and do not assume `.venv/bin/geoagent` imports the edited
 checkout unless the package is installed editable or `PYTHONPATH` is pinned.
+
+## Development-page refreshes
+
+`pnpm dev` runs Vite with a file watcher and a browser WebSocket. Editing,
+extracting an archive over, switching branches, merging, pulling, or otherwise
+touching files beneath `interface/` may trigger hot-module replacement or a
+full browser reload. An API response also causes ordinary React state updates,
+which can look like a refresh without reloading the document. Neither behavior
+means a governed recipe changed repository source.
+
+Use the browser console to distinguish them: Vite reports `hot updated` or
+`page reload`; an ordinary state update has no such message. The production
+build has no development hot-reload client.
+
+Pressing `Ctrl+C` is the normal way to stop the source-pinned API. The launcher
+catches Python's `KeyboardInterrupt`, lets the HTTP server close its socket, and
+prints `Interface API stopped.` without treating operator shutdown as failure.

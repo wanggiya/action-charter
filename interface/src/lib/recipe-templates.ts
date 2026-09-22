@@ -15,6 +15,7 @@ export const recipeTemplateSchema = z.object({
   skill_ids: z.array(safeIdentifier).min(1).max(20),
   required_parameters: z.array(safeIdentifier).min(1).max(20),
   optional_parameters: z.array(safeIdentifier).max(20).default([]),
+  parameter_roots: z.record(safeIdentifier, z.string().regex(/^data\/(input|output)$/)).default({}),
   steps: z.array(recipeTemplateStepSchema).min(1).max(20),
 });
 

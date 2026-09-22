@@ -46,6 +46,10 @@ class WorkflowTrace(BaseModel):
         default=None,
         pattern=r"^[a-f0-9]{64}$",
     )
+    recipe_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
     approval_id: str | None = None
     approved_step_ids: list[str] = Field(
         default_factory=list
