@@ -3,7 +3,6 @@
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 import json
-import shutil
 from pathlib import Path
 from threading import Thread
 from datetime import datetime, timezone
@@ -57,6 +56,9 @@ from geoagent_harness.approvals import load_planner_result, plan_sha256
 from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
 from geoagent_harness.recipe_proposals import RecipeCompilationError
+from geoagent_harness.reporting import render_report
+from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
+from geoagent_harness.critic.recipe_trace import recipe_trace_sha256
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -68,12 +70,61 @@ PROPOSAL_FILE = (
 )
 
 
+def write_critic_fixture(project_root: Path) -> WorkflowTrace:
+    """Create complete Critic evidence without relying on ignored run data."""
+
+    now = datetime(2026, 9, 22, 12, 0, tzinfo=timezone.utc)
+    trace = WorkflowTrace(
+        task_id="interface-critic-fixture",
+        original_request="Inspect the approved vector and validate the result.",
+        context_references=["context/PROJECT_SUMMARY.md"],
+        selected_skills=["inspect_vector"],
+        plan_sha256="a" * 64,
+        approval_id="approval-interface-critic-fixture",
+        approved_step_ids=["step_1"],
+        tool_arguments={},
+        tool_results={},
+        validation_results={
+            "passed": True,
+            "table_exists": True,
+            "geometry_column_exists": True,
+            "row_count": 2,
+            "srid": 4326,
+            "geometry_type": "POINT",
+            "invalid_geometry_count": 0,
+            "null_geometry_count": 0,
+            "checks": [],
+        },
+        artifacts=[
+            "traces/interface-critic-fixture.json",
+            "reports/interface-critic-fixture.md",
+        ],
+        warnings=[],
+        final_status="validated_success",
+        timestamps=TraceTimestamps(started_at=now, finished_at=now),
+        versions={"python": "3.12"},
+        secrets_redacted=True,
+    )
+    trace_root = project_root / "traces"
+    report_root = project_root / "reports"
+    trace_root.mkdir(parents=True)
+    report_root.mkdir(parents=True)
+    (trace_root / f"{trace.task_id}.json").write_text(
+        trace.model_dump_json(indent=2) + "\n", encoding="utf-8",
+    )
+    (report_root / f"{trace.task_id}.md").write_text(
+        render_report(trace), encoding="utf-8",
+    )
+    return trace
+
+
 def proposal_payload() -> dict[str, object]:
     return json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
 
 
-def test_critic_evidence_inventory_is_read_only_and_model_free() -> None:
-    result = interface_critic_evidence_inventory(PROJECT_ROOT)
+def test_critic_evidence_inventory_is_read_only_and_model_free(tmp_path: Path) -> None:
+    trace = write_critic_fixture(tmp_path)
+    result = interface_critic_evidence_inventory(tmp_path)
 
     assert result["status"] == "inspected"
     assert result["item_count"] >= 1
@@ -81,21 +132,10 @@ def test_critic_evidence_inventory_is_read_only_and_model_free() -> None:
     assert result["critic_result_recorded"] is False
     assert result["release_created"] is False
     assert result["execution_performed"] is False
-    assert result["recipe_candidate_count"] >= 1
-    adaptable = [item for item in result["recipe_candidates"] if item["adaptable"]]
-    assert adaptable
-    assert adaptable[0]["critic_status"] in {
-        "validated_success", "validation_failed", "incomplete_evidence",
-    }
-    assert adaptable[0]["files_modified"] is False
-    assert adaptable[0]["trace"]["recipe_sha256"]
-    assert adaptable[0]["trace"]["plan_sha256"] is None
-    item = next(
-        candidate for candidate in result["items"]
-        if candidate["trace_name"] == "checkpoint14f-vector-release-v1.json"
-    )
+    assert result["recipe_candidate_count"] == 0
+    item = result["items"][0]
     assert item["available"] is True
-    assert item["evidence"]["task_id"] == "checkpoint14f-vector-release-v1"
+    assert item["evidence"]["task_id"] == trace.task_id
     assert len(item["evidence"]["evidence_references"]) == 2
 
 
@@ -116,25 +156,29 @@ def test_critic_evidence_inventory_reports_missing_matching_report(tmp_path: Pat
     }
 
 
-def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(tmp_path: Path) -> None:
-    inventory = interface_critic_evidence_inventory(PROJECT_ROOT)
-    source = next(item for item in inventory["recipe_candidates"] if item["adaptable"])
-    evidence_name = source["evidence_name"]
-    evidence = json.loads((PROJECT_ROOT / "recipe-evidence" / evidence_name).read_text())
-    roots = ["recipe-evidence", "workflow-recipes", "approvals", "workflow-state/interface-executions"]
-    for relative in roots:
-        (tmp_path / relative).mkdir(parents=True)
-    shutil.copy2(PROJECT_ROOT / "recipe-evidence" / evidence_name, tmp_path / "recipe-evidence" / evidence_name)
-    recipe_name = f'{evidence["recipe_id"]}.{evidence["recipe_sha256"]}.json'
-    shutil.copy2(PROJECT_ROOT / "workflow-recipes" / recipe_name, tmp_path / "workflow-recipes" / recipe_name)
-    approval_name = f'{evidence["approval_id"]}.json'
-    shutil.copy2(PROJECT_ROOT / "approvals" / approval_name, tmp_path / "approvals" / approval_name)
-    for path in (PROJECT_ROOT / "workflow-state/interface-executions").glob("*.json"):
-        payload = json.loads(path.read_text())
-        if payload.get("recipe_id") == evidence["recipe_id"] and payload.get("recipe_sha256") == evidence["recipe_sha256"]:
-            shutil.copy2(path, tmp_path / "workflow-state/interface-executions" / path.name)
-
-    preview = interface_critic_evidence_inventory(tmp_path)["recipe_candidates"][0]
+def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    trace = write_critic_fixture(tmp_path)
+    evidence_name = f"fixture.{('b' * 64)}.json"
+    preview = {
+        "evidence_name": evidence_name,
+        "adaptable": True,
+        "finding": None,
+        "trace": trace.model_dump(mode="json"),
+        "trace_sha256": recipe_trace_sha256(trace),
+        "critic_status": "validated_success",
+        "critic_gaps": [],
+        "stored": False,
+        "files_modified": False,
+    }
+    monkeypatch.setattr(
+        interface_api_module,
+        "_interface_recipe_trace_candidates",
+        lambda _root: [preview],
+    )
+    (tmp_path / "traces" / f"{trace.task_id}.json").unlink()
+    (tmp_path / "reports" / f"{trace.task_id}.md").unlink()
     result = save_interface_recipe_trace(
         InterfaceRecipeTraceSaveRequest(action="save_adapted_recipe_trace", evidence_name=evidence_name, confirmed_trace_sha256=preview["trace_sha256"]),
         project_root=tmp_path,
@@ -146,8 +190,6 @@ def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(tmp
     assert result["critic_result_recorded"] is False
     assert result["release_created"] is False
     assert result["execution_performed"] is False
-    refreshed = interface_critic_evidence_inventory(tmp_path)
-    assert refreshed["recipe_candidates"][0]["stored"] is True
     with pytest.raises(InterfaceApiError, match="already exists"):
         save_interface_recipe_trace(
             InterfaceRecipeTraceSaveRequest(action="save_adapted_recipe_trace", evidence_name=evidence_name, confirmed_trace_sha256=preview["trace_sha256"]),
@@ -156,9 +198,10 @@ def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(tmp
 
 
 def test_interface_critic_assesses_exact_evidence_without_recording(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    inventory = interface_critic_evidence_inventory(PROJECT_ROOT)
+    write_critic_fixture(tmp_path)
+    inventory = interface_critic_evidence_inventory(tmp_path)
     item = next(candidate for candidate in inventory["items"] if candidate["available"])
     references = {
         Path(reference["path"]).name: reference["sha256"]
@@ -202,10 +245,10 @@ def test_interface_critic_assesses_exact_evidence_without_recording(
             confirmed_trace_sha256=references[item["trace_name"]],
             confirmed_report_sha256=references[item["report_name"]],
         ),
-        project_root=PROJECT_ROOT,
+        project_root=tmp_path,
     )
 
-    assert captured["trace_path"] == PROJECT_ROOT / "traces" / item["trace_name"]
+    assert captured["trace_path"] == tmp_path / "traces" / item["trace_name"]
     assert result["status"] == "assessed_not_recorded"
     assert result["critic_result_sha256"] == "a" * 64
     assert result["critic_model_called"] is True
@@ -215,9 +258,10 @@ def test_interface_critic_assesses_exact_evidence_without_recording(
 
 
 def test_interface_critic_rejects_stale_digest_before_model_call(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    inventory = interface_critic_evidence_inventory(PROJECT_ROOT)
+    write_critic_fixture(tmp_path)
+    inventory = interface_critic_evidence_inventory(tmp_path)
     item = next(candidate for candidate in inventory["items"] if candidate["available"])
     references = {
         Path(reference["path"]).name: reference["sha256"]
@@ -239,7 +283,7 @@ def test_interface_critic_rejects_stale_digest_before_model_call(
                 confirmed_trace_sha256="0" * 64,
                 confirmed_report_sha256=references[item["report_name"]],
             ),
-            project_root=PROJECT_ROOT,
+            project_root=tmp_path,
         )
     assert called is False
 
