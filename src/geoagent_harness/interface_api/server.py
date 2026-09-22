@@ -44,8 +44,13 @@ from geoagent_harness.critic.recipe_trace import (
 )
 from geoagent_harness.critic import (
     CriticAgentError,
+    CriticResult,
+    CriticResultRecordError,
+    CriticResultStorageError,
+    build_critic_result_record,
     critique_task,
     critic_result_sha256,
+    persist_critic_result_record,
 )
 from geoagent_harness.trace import WorkflowTrace
 from geoagent_harness.model import ModelClientError, ModelSettingsError
@@ -456,6 +461,14 @@ class InterfaceCriticRunRequest(BaseModel):
     confirmed_report_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
+class InterfaceCriticRecordRequest(InterfaceCriticRunRequest):
+    """Exact validated Critic result selected for immutable recording."""
+
+    action: Literal["record_critic_result"]
+    confirmed_critic_result_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    result: CriticResult
+
+
 def _trusted_root(project_root: Path) -> Path:
     try:
         resolved = project_root.resolve(strict=True)
@@ -783,6 +796,62 @@ def run_interface_critic(
         "result": result.model_dump(mode="json"),
         "critic_model_called": True,
         "critic_result_recorded": False,
+        "release_created": False,
+        "execution_performed": False,
+    }
+
+
+def record_interface_critic_result(
+    request: InterfaceCriticRecordRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Reverify evidence and immutably record one exact Critic result."""
+
+    root = _trusted_root(project_root)
+    trace_root = root / "traces"
+    report_root = root / "reports"
+    evidence = build_critic_evidence(
+        trace_path=trace_root / request.trace_name,
+        report_path=report_root / request.report_name,
+        trace_root=trace_root,
+        report_root=report_root,
+    )
+    references = {Path(item.path).name: item.sha256 for item in evidence.evidence_references}
+    if references.get(request.trace_name) != request.confirmed_trace_sha256:
+        raise InterfaceApiError("reviewed trace digest no longer matches")
+    if references.get(request.report_name) != request.confirmed_report_sha256:
+        raise InterfaceApiError("reviewed report digest no longer matches")
+    result = request.result
+    if critic_result_sha256(result) != request.confirmed_critic_result_sha256:
+        raise InterfaceApiError("reviewed Critic-result digest no longer matches")
+    if (
+        result.task_id != evidence.task_id
+        or result.deterministic_status != evidence.deterministic_status
+        or result.evidence_references != evidence.evidence_references
+        or result.evidence_gaps != evidence.evidence_gaps
+        or result.workflow_warnings != evidence.warnings
+        or result.human_corrections != evidence.human_corrections
+    ):
+        raise InterfaceApiError("Critic result no longer matches deterministic evidence")
+    record = build_critic_result_record(
+        result=result,
+        recorded_at=now or datetime.now(timezone.utc),
+    )
+    stored = persist_critic_result_record(
+        record,
+        record_root=root / "critic-results",
+    )
+    record_directory = Path(stored.record_directory).relative_to(root).as_posix()
+    record_file = Path(stored.record_file).relative_to(root).as_posix()
+    return {
+        **stored.model_dump(mode="json"),
+        "status": "recorded",
+        "record_directory": record_directory,
+        "record_file": record_file,
+        "critic_model_called": False,
+        "critic_result_recorded": True,
         "release_created": False,
         "execution_performed": False,
     }
@@ -2087,6 +2156,7 @@ def _handler(
                 "/api/v1/plans/save-reviewed-recipe",
                 "/api/v1/critic-evidence/save-adapted-trace",
                 "/api/v1/critic-evidence/run",
+                "/api/v1/critic-evidence/record-result",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -2112,6 +2182,11 @@ def _handler(
                 elif self.path == "/api/v1/critic-evidence/run":
                     response = run_interface_critic(
                         InterfaceCriticRunRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/critic-evidence/record-result":
+                    response = record_interface_critic_result(
+                        InterfaceCriticRecordRequest.model_validate(payload),
                         project_root=project_root,
                     )
                 elif self.path == "/api/v1/plans/create":
@@ -2249,6 +2324,14 @@ def _handler(
             except CriticEvidenceError:
                 self._send(HTTPStatus.CONFLICT, {
                     "error": "stored Critic evidence failed deterministic verification",
+                    "critic_result_recorded": False,
+                    "release_created": False,
+                    "execution_performed": False,
+                })
+                return
+            except (CriticResultRecordError, CriticResultStorageError):
+                self._send(HTTPStatus.CONFLICT, {
+                    "error": "Critic result could not be recorded immutably",
                     "critic_result_recorded": False,
                     "release_created": False,
                     "execution_performed": False,

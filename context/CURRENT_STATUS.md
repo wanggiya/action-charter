@@ -2056,3 +2056,17 @@ The returned assessment must satisfy the existing typed schema and cannot
 contradict deterministic status or success policy. It is labelled `NOT
 RECORDED` and remains in memory. No Critic record, release, filesystem or
 database mutation, or tool execution is authorized.
+
+## Checkpoint 17AU — immutable Critic-result recording
+
+Checkpoint 17AU is implemented for review. After a schema- and policy-valid
+Critic assessment returns, the operator must separately confirm its exact
+SHA-256 before recording. The service rebuilds the trace/report evidence,
+rechecks both evidence digests, compares task identity, deterministic status,
+references, gaps, warnings, and corrections, and verifies the complete result
+digest.
+
+The existing Critic record builder and atomic digest-addressed storage service
+write `critic-results/<task>.<digest>.critic-result/CRITIC_RESULT.json` without
+overwriting. The interface clearly reports `RECORDED · NO RELEASE`. No model is
+called during recording, no release is created, and nothing is executed.

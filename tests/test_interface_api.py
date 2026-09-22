@@ -21,6 +21,7 @@ from geoagent_harness.interface_api import (
     interface_execution_inventory,
     interface_critic_evidence_inventory,
     run_interface_critic,
+    record_interface_critic_result,
     save_interface_recipe_trace,
     interface_planner_skill_catalog,
     interface_saved_plan_inventory,
@@ -52,6 +53,7 @@ from geoagent_harness.interface_api.server import InterfacePlanRecipeCompilation
 from geoagent_harness.interface_api.server import InterfacePlanRecipeSaveRequest
 from geoagent_harness.interface_api.server import InterfaceRecipeTraceSaveRequest
 from geoagent_harness.interface_api.server import InterfaceCriticRunRequest
+from geoagent_harness.interface_api.server import InterfaceCriticRecordRequest
 from geoagent_harness.approvals import load_planner_result, plan_sha256
 from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
@@ -59,6 +61,7 @@ from geoagent_harness.recipe_proposals import RecipeCompilationError
 from geoagent_harness.reporting import render_report
 from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
 from geoagent_harness.critic.recipe_trace import recipe_trace_sha256
+from geoagent_harness.critic import CriticResult, critic_result_sha256
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -286,6 +289,71 @@ def test_interface_critic_rejects_stale_digest_before_model_call(
             project_root=tmp_path,
         )
     assert called is False
+
+
+def test_interface_records_exact_critic_result_without_release(tmp_path: Path) -> None:
+    write_critic_fixture(tmp_path)
+    item = interface_critic_evidence_inventory(tmp_path)["items"][0]
+    evidence = item["evidence"]
+    references = {
+        Path(reference["path"]).name: reference["sha256"]
+        for reference in evidence["evidence_references"]
+    }
+    result = CriticResult.model_validate({
+        "agent_id": "critic",
+        "model": "critic-test",
+        "task_id": evidence["task_id"],
+        "deterministic_status": evidence["deterministic_status"],
+        "evidence_references": evidence["evidence_references"],
+        "evidence_gaps": evidence["evidence_gaps"],
+        "workflow_warnings": [],
+        "human_corrections": [],
+        "assessment": {
+            "schema_version": "1.0",
+            "deterministic_status": "validated_success",
+            "conclusion": "supported",
+            "success_claimed": True,
+            "summary": "Deterministic validation supports the outcome.",
+            "validation_basis": ["Validation passed."],
+            "additional_risks": [],
+            "recommendations": [],
+            "edits_performed": False,
+            "database_actions_performed": False,
+        },
+    })
+    recorded = record_interface_critic_result(
+        InterfaceCriticRecordRequest(
+            action="record_critic_result",
+            trace_name=item["trace_name"],
+            report_name=item["report_name"],
+            confirmed_trace_sha256=references[item["trace_name"]],
+            confirmed_report_sha256=references[item["report_name"]],
+            confirmed_critic_result_sha256=critic_result_sha256(result),
+            result=result,
+        ),
+        project_root=tmp_path,
+        now=datetime(2026, 9, 22, 12, 1, tzinfo=timezone.utc),
+    )
+    assert recorded["status"] == "recorded"
+    assert (tmp_path / recorded["record_file"]).is_file()
+    assert recorded["critic_model_called"] is False
+    assert recorded["critic_result_recorded"] is True
+    assert recorded["release_created"] is False
+    assert recorded["execution_performed"] is False
+
+    with pytest.raises(InterfaceApiError, match="digest no longer matches"):
+        record_interface_critic_result(
+            InterfaceCriticRecordRequest(
+                action="record_critic_result",
+                trace_name=item["trace_name"],
+                report_name=item["report_name"],
+                confirmed_trace_sha256=references[item["trace_name"]],
+                confirmed_report_sha256=references[item["report_name"]],
+                confirmed_critic_result_sha256="0" * 64,
+                result=result,
+            ),
+            project_root=tmp_path,
+        )
 
 
 def test_interface_planner_uses_existing_service_without_execution(

@@ -1,5 +1,12 @@
 # Changelog
 
+## Checkpoint 17AU
+
+- Add explicit digest review and immutable recording for one validated Critic
+  assessment.
+- Rebuild deterministic evidence before recording and preserve the separate
+  release boundary.
+
 ## Checkpoint 17AT
 
 - Add an explicit, digest-bound Critic model invocation for one stored

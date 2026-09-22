@@ -1,0 +1,53 @@
+/* Responsive placement for the three independent Assurance boundaries. */
+.critic-record-drawer {
+  right: 22px;
+  left: auto;
+  width: min(360px, calc(100vw - 44px));
+}
+
+.app-shell:has(.critic-record-drawer) .trace-persistence-drawer {
+  bottom: 350px;
+}
+
+@media (max-width: 900px) {
+  .critic-invocation-drawer {
+    left: 10px;
+    bottom: 10px;
+    width: min(360px, calc(50vw - 15px));
+  }
+
+  .critic-record-drawer {
+    right: 10px;
+    left: auto;
+    bottom: 10px;
+    width: min(360px, calc(50vw - 15px));
+  }
+
+  .app-shell:has(.critic-record-drawer) .trace-persistence-drawer {
+    right: 10px;
+    bottom: 350px;
+  }
+
+  .critic-invocation-drawer.collapsed {
+    width: 190px;
+  }
+}
+
+@media (max-width: 680px) {
+  .critic-record-drawer {
+    right: 10px;
+    width: calc(100vw - 20px);
+  }
+
+  .critic-invocation-drawer.collapsed {
+    left: 10px;
+    bottom: 250px;
+    width: 180px;
+  }
+
+  .app-shell:has(.critic-record-drawer) .trace-persistence-drawer.collapsed {
+    right: 10px;
+    bottom: 370px;
+    width: 180px;
+  }
+}
