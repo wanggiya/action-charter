@@ -51,6 +51,12 @@ configured model and validates its response against the existing Critic schema
 and deterministic conclusion policy. The assessment remains in memory: it is
 not a Critic record, does not create a release, and executes nothing.
 
+Checkpoint 17AU adds a second explicit review boundary for the validated
+assessment. The backend rechecks the stored trace/report hashes, evidence
+identity, deterministic status, complete Critic result, and reviewed result
+digest before creating an immutable digest-addressed record. Recording still
+creates no release and performs no execution.
+
 The current reference implementation applies this architecture to geospatial
 data with GeoPandas, GDAL, rasterio, PostGIS, and GeoServer-oriented workflows.
 GIS is the first reference domain, not the architectural limit.

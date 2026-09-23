@@ -838,4 +838,12 @@ verification as one visible end-to-end interface journey.
 - [x] Require explicit operator confirmation before model use.
 - [x] Reuse the existing Critic schema and deterministic conclusion policy.
 - [x] Keep the validated result in memory with no release authority.
-- [ ] Record the exact reviewed Critic result immutably.
+- [x] Record the exact reviewed Critic result immutably.
+
+### Checkpoint 17AU — immutable Critic-result recording
+
+- [x] Require explicit review of the complete Critic-result digest.
+- [x] Rebuild and compare deterministic evidence before recording.
+- [x] Reuse atomic digest-addressed Critic-result storage.
+- [x] Keep release creation and execution unavailable.
+- [ ] Assess release readiness from the immutable record.

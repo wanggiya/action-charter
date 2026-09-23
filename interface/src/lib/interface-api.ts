@@ -478,6 +478,18 @@ const criticAssessmentResultSchema = z.object({
 });
 export type CriticAssessmentResult = z.infer<typeof criticAssessmentResultSchema>;
 
+const recordedCriticResultSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("recorded"),
+  task_id: z.string().min(1).max(128),
+  deterministic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+  critic_result_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  critic_record_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  record_directory: z.string().min(1).max(2000), record_file: z.string().min(1).max(2000),
+  critic_model_called: z.literal(false), critic_result_recorded: z.literal(true),
+  release_created: z.literal(false), execution_performed: z.literal(false),
+});
+export type RecordedCriticResult = z.infer<typeof recordedCriticResultSchema>;
+
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
   if (declaredLength > MAX_INTERFACE_RESPONSE_BYTES) throw new Error("interface response is too large");
@@ -532,6 +544,24 @@ export async function runCriticAssessment(input: { traceName: string; reportName
     throw new Error(message.success ? [message.data.error, message.data.finding].filter(Boolean).join(": ") : "Critic assessment failed");
   }
   return criticAssessmentResultSchema.parse(payload);
+}
+
+export async function recordCriticAssessment(input: { traceName: string; reportName: string; traceSha256: string; reportSha256: string; assessment: CriticAssessmentResult }): Promise<RecordedCriticResult> {
+  const response = await fetch("/api/v1/critic-evidence/record-result", {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "record_critic_result", trace_name: input.traceName, report_name: input.reportName,
+      confirmed_trace_sha256: input.traceSha256, confirmed_report_sha256: input.reportSha256,
+      confirmed_critic_result_sha256: input.assessment.critic_result_sha256, result: input.assessment.result,
+    }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(500) }).safeParse(payload);
+    throw new Error(message.success ? message.data.error : "Critic result could not be recorded");
+  }
+  return recordedCriticResultSchema.parse(payload);
 }
 
 export async function compileRecipeProposal(proposal: BrowserRecipeProposal): Promise<InterfaceCompilation> {
