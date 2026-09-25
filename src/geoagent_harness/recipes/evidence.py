@@ -34,6 +34,12 @@ from geoagent_harness.skills.convert_raster.schemas import (
     ConvertRasterResult,
     ConvertRasterValidationResult,
 )
+from geoagent_harness.skills.load_vector_to_postgis.service import (
+    LoadVectorResult,
+)
+from geoagent_harness.verifier.postgis import (
+    PostGISValidationResult,
+)
 
 
 MAX_EVIDENCE_ARTIFACT_BYTES = 2_000_000_000
@@ -529,6 +535,42 @@ def build_recipe_run_evidence(
 
             continue
 
+        if step.skill_id == "load_vector_to_postgis":
+            try:
+                loaded = LoadVectorResult.model_validate(step.execution.result)
+                validation = PostGISValidationResult.model_validate(
+                    step.validation_result
+                )
+            except ValidationError as exc:
+                raise RecipeEvidenceError(
+                    "PostGIS load evidence failed its registered schema"
+                ) from exc
+
+            if (
+                loaded.target_schema != validation.target_schema
+                or loaded.target_table != validation.target_table
+            ):
+                raise RecipeEvidenceError(
+                    "PostGIS load and validation targets do not match"
+                )
+            if (
+                sanitized_result.final_status == "validated_success"
+                and validation.passed is not True
+            ):
+                raise RecipeEvidenceError(
+                    "successful recipe lacks passing PostGIS validation"
+                )
+            continue
+
+        if step.skill_id == "generate_report":
+            if step.execution.result.get("status") != (
+                "report_pending_evidence_persistence"
+            ):
+                raise RecipeEvidenceError(
+                    "report step did not preserve the persistence boundary"
+                )
+            continue
+
         if skill.access in {
             SkillAccess.ARTIFACT_WRITE,
             SkillAccess.DATABASE_WRITE,
@@ -571,4 +613,3 @@ def build_recipe_run_evidence(
         ),
         secrets_redacted=True,
     )
-

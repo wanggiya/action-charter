@@ -192,6 +192,30 @@ const recipeExecutionSchema = z.object({
 
 export type RecipeExecutionResult = z.infer<typeof recipeExecutionSchema>;
 
+const snakemakeExportPlanSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("previewed_not_exported"),
+  export_plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  plan: z.object({
+    recipe_id: z.string(), recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/), approval_id: z.string(),
+    recipe_filename: z.string(), approval_filename: z.string(),
+    approved_step_ids: z.array(z.string()).min(1), topological_step_ids: z.array(z.string()).min(1),
+    replay_entrypoint: z.string(), workflow_filename: z.literal("Snakefile"),
+    configuration_filename: z.literal("geoagent-replay.json"), manifest_filename: z.literal("snakemake-export-manifest.json"),
+    warnings: z.array(z.string()), export_performed: z.literal(false), workflow_executed: z.literal(false), recipe_execution_performed: z.literal(false),
+  }).passthrough(),
+  export_performed: z.literal(false), contract_validated: z.literal(false), workflow_executed: z.literal(false), recipe_execution_performed: z.literal(false),
+});
+export type SnakemakeExportPlan = z.infer<typeof snakemakeExportPlanSchema>;
+
+const snakemakeExportResultSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.enum(["exported_and_validated", "existing_export_validated"]),
+  export_plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  export: z.object({ recipe_id: z.string(), recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/), approval_id: z.string(), export_path: z.string(), workflow_sha256: z.string().regex(/^[a-f0-9]{64}$/), configuration_sha256: z.string().regex(/^[a-f0-9]{64}$/), generated_files: z.array(z.string()).min(3), export_performed: z.boolean(), workflow_executed: z.literal(false), recipe_execution_performed: z.literal(false) }).passthrough(),
+  contract: z.object({ passed: z.literal(true), export_path: z.string(), checked_files: z.array(z.string()), violations: z.array(z.string()), warnings: z.array(z.string()), workflow_executed: z.literal(false), recipe_execution_performed: z.literal(false) }).passthrough(),
+  export_performed: z.boolean(), export_already_existed: z.boolean(), contract_validated: z.literal(true), workflow_executed: z.literal(false), recipe_execution_performed: z.literal(false),
+});
+export type SnakemakeExportResult = z.infer<typeof snakemakeExportResultSchema>;
+
 const executionProgressSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
@@ -490,6 +514,30 @@ const recordedCriticResultSchema = z.object({
 });
 export type RecordedCriticResult = z.infer<typeof recordedCriticResultSchema>;
 
+const recipeReleaseAssessmentSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.enum(["ready_not_released", "not_ready"]),
+  candidate_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  candidate: z.object({
+    release_id: z.string().min(1).max(128), subject_type: z.literal("recipe"), subject_id: z.string().min(1).max(128),
+    deterministic_status: z.enum(["validated_success", "validation_failed", "execution_failed", "incomplete_evidence"]),
+    lifecycle_state: z.enum(["candidate", "validated", "rejected"]),
+    components: z.array(z.object({ component_id: z.string(), kind: z.string(), path: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/), size_bytes: z.number().int().positive() }).passthrough()).min(1).max(100),
+    approval_complete: z.boolean(), validation_complete: z.boolean(), critic_complete: z.boolean(), evidence_complete: z.boolean(), ready_for_release: z.boolean(),
+    violations: z.array(z.string().max(2000)).max(50), assessed_at: z.string().datetime({ offset: true }),
+  }).passthrough(),
+  history_file: z.string().min(1).max(2000), operational_history_prepared: z.literal(true),
+  release_created: z.literal(false), execution_performed: z.literal(false),
+});
+export type RecipeReleaseAssessment = z.infer<typeof recipeReleaseAssessmentSchema>;
+
+const recipeReleaseResultSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("released"), release_id: z.string(), subject_type: z.literal("recipe"), subject_id: z.string(),
+  candidate_sha256: z.string().regex(/^[a-f0-9]{64}$/), release_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  release_directory: z.string(), release_manifest: z.string(), component_count: z.number().int().positive(),
+  release_created: z.literal(true), execution_performed: z.literal(false),
+}).passthrough();
+export type RecipeReleaseResult = z.infer<typeof recipeReleaseResultSchema>;
+
 async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
   if (declaredLength > MAX_INTERFACE_RESPONSE_BYTES) throw new Error("interface response is too large");
@@ -562,6 +610,20 @@ export async function recordCriticAssessment(input: { traceName: string; reportN
     throw new Error(message.success ? message.data.error : "Critic result could not be recorded");
   }
   return recordedCriticResultSchema.parse(payload);
+}
+
+export async function prepareRecipeRelease(input: { releaseId: string; traceName: string; reportName: string; criticRecordFile: string; criticRecordSha256: string }): Promise<RecipeReleaseAssessment> {
+  const response = await fetch("/api/v1/releases/prepare-recipe", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "prepare_recipe_release", release_id: input.releaseId, trace_name: input.traceName, report_name: input.reportName, critic_record_file: input.criticRecordFile, confirmed_critic_record_sha256: input.criticRecordSha256 }) });
+  const payload = await boundedJson(response);
+  if (!response.ok) { const message = z.object({ error: z.string().max(1000) }).safeParse(payload); throw new Error(message.success ? message.data.error : "release readiness assessment failed"); }
+  return recipeReleaseAssessmentSchema.parse(payload);
+}
+
+export async function createRecipeRelease(input: { releaseId: string; traceName: string; reportName: string; criticRecordFile: string; criticRecordSha256: string; candidateSha256: string; assessedAt: string }): Promise<RecipeReleaseResult> {
+  const response = await fetch("/api/v1/releases/create-recipe", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_recipe_release", release_id: input.releaseId, trace_name: input.traceName, report_name: input.reportName, critic_record_file: input.criticRecordFile, confirmed_critic_record_sha256: input.criticRecordSha256, confirmed_candidate_sha256: input.candidateSha256, confirmed_assessed_at: input.assessedAt, confirmation: "create_exact_release" }) });
+  const payload = await boundedJson(response);
+  if (!response.ok) { const message = z.object({ error: z.string().max(1000) }).safeParse(payload); throw new Error(message.success ? message.data.error : "immutable release creation failed"); }
+  return recipeReleaseResultSchema.parse(payload);
 }
 
 export async function compileRecipeProposal(proposal: BrowserRecipeProposal): Promise<InterfaceCompilation> {
@@ -718,6 +780,20 @@ export async function verifyRecordedRecipeApproval(
     throw new Error(message.success ? message.data.error : "approval verification failed");
   }
   return verifiedApprovalSchema.parse(payload);
+}
+
+export async function previewSnakemakeExport(request: PreparedApprovalRequest, recorded: RecordedRecipeApproval): Promise<SnakemakeExportPlan> {
+  const response = await fetch("/api/v1/snakemake/preview-export", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "preview_snakemake_export", recipe_filename: request.recipe_filename, confirmed_recipe_sha256: request.recipe_sha256, confirmed_approval_request_sha256: request.approval_request_sha256, approval_filename: recorded.approval_filename }) });
+  const payload = await boundedJson(response);
+  if (!response.ok) { const message = z.object({ error: z.string().max(500) }).safeParse(payload); throw new Error(message.success ? message.data.error : "Snakemake export preview failed"); }
+  return snakemakeExportPlanSchema.parse(payload);
+}
+
+export async function exportSnakemakeRecipe(request: PreparedApprovalRequest, recorded: RecordedRecipeApproval, preview: SnakemakeExportPlan): Promise<SnakemakeExportResult> {
+  const response = await fetch("/api/v1/snakemake/export", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "export_snakemake", recipe_filename: request.recipe_filename, confirmed_recipe_sha256: request.recipe_sha256, confirmed_approval_request_sha256: request.approval_request_sha256, approval_filename: recorded.approval_filename, confirmed_export_plan_sha256: preview.export_plan_sha256, confirmation: "export_exact_approved_recipe" }) });
+  const payload = await boundedJson(response);
+  if (!response.ok) { const message = z.object({ error: z.string().max(500) }).safeParse(payload); throw new Error(message.success ? message.data.error : "Snakemake export failed"); }
+  return snakemakeExportResultSchema.parse(payload);
 }
 
 export async function prepareExecutionPreview(

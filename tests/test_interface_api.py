@@ -22,6 +22,8 @@ from geoagent_harness.interface_api import (
     interface_critic_evidence_inventory,
     run_interface_critic,
     record_interface_critic_result,
+    preview_interface_snakemake_export,
+    export_interface_snakemake_recipe,
     save_interface_recipe_trace,
     interface_planner_skill_catalog,
     interface_saved_plan_inventory,
@@ -54,6 +56,8 @@ from geoagent_harness.interface_api.server import InterfacePlanRecipeSaveRequest
 from geoagent_harness.interface_api.server import InterfaceRecipeTraceSaveRequest
 from geoagent_harness.interface_api.server import InterfaceCriticRunRequest
 from geoagent_harness.interface_api.server import InterfaceCriticRecordRequest
+from geoagent_harness.interface_api.server import InterfaceSnakemakeExportPreviewRequest
+from geoagent_harness.interface_api.server import InterfaceSnakemakeExportRequest
 from geoagent_harness.approvals import load_planner_result, plan_sha256
 from geoagent_harness.planner import PlannerResult
 from geoagent_harness.mcp_server.settings import load_settings
@@ -479,6 +483,108 @@ def reviewed_write_plan_request() -> InterfaceReviewedPlanSaveRequest:
         allowed_skill_ids=["convert_vector"],
         planner_result=result,
     )
+
+
+def reviewed_postgis_plan_request() -> InterfaceReviewedPlanSaveRequest:
+    payload = reviewed_plan_request().planner_result.model_dump(mode="json")
+    payload["original_request"] = "Load and validate the approved vector in PostGIS. Plan only."
+    payload["plan"]["summary"] = "Inspect, load, validate, and report."
+    payload["plan"]["steps"] = [
+        {
+            "step_id": "step_1", "skill": "inspect_vector",
+            "purpose": "Inspect the approved source.",
+            "arguments": {"path": "data/input/sample_points.geojson"},
+            "requires_approval": False, "expected_artifacts": [],
+            "validation_required": False,
+        },
+        {
+            "step_id": "step_2", "skill": "load_vector_to_postgis",
+            "purpose": "Create the approved PostGIS table.",
+            "arguments": {
+                "path": "data/input/sample_points.geojson",
+                "target_schema": "agent_sandbox",
+                "target_table": "checkpoint17_final",
+            },
+            "requires_approval": True,
+            "expected_artifacts": ["agent_sandbox.checkpoint17_final"],
+            "validation_required": False,
+        },
+        {
+            "step_id": "step_3", "skill": "validate_postgis_layer",
+            "purpose": "Deterministically validate the table.",
+            "arguments": {
+                "target_schema": "agent_sandbox",
+                "target_table": "checkpoint17_final",
+            },
+            "requires_approval": False, "expected_artifacts": [],
+            "validation_required": True,
+        },
+        {
+            "step_id": "step_4", "skill": "generate_report",
+            "purpose": "Generate the validated report.",
+            "arguments": {"task_id": "checkpoint17-final"},
+            "requires_approval": True,
+            "expected_artifacts": ["reports/checkpoint17-final.md"],
+            "validation_required": False,
+        },
+    ]
+    result = PlannerResult.model_validate(payload)
+    return InterfaceReviewedPlanSaveRequest(
+        action="save_reviewed_plan",
+        confirmed_plan_sha256=plan_sha256(result.plan),
+        allowed_skill_ids=[
+            "inspect_vector", "load_vector_to_postgis",
+            "validate_postgis_layer", "generate_report",
+        ],
+        planner_result=result,
+    )
+
+
+def test_verified_postgis_plan_compiles_into_governed_recipe(tmp_path: Path) -> None:
+    request = reviewed_postgis_plan_request()
+    plan_root = tmp_path / "plans"
+    approval_root = tmp_path / "approvals"
+    stored = save_interface_reviewed_plan(
+        request, project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    prepared = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+        ),
+        project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    recorded = record_interface_plan_approval(
+        InterfacePlanApprovalDecisionRequest(
+            action="record_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            decision="approved", approver="test operator",
+            reason="Reviewed the exact PostGIS target.", valid_for_minutes=None,
+        ),
+        project_root=PROJECT_ROOT, plan_root=plan_root,
+        approval_root=approval_root,
+    )
+    compiled = compile_interface_plan_recipe(
+        InterfacePlanRecipeCompilationRequest(
+            action="compile_plan_recipe",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            approval_filename=recorded["approval_filename"],
+        ),
+        project_root=PROJECT_ROOT, plan_root=plan_root,
+        approval_root=approval_root,
+    )
+    assert [step["skill_id"] for step in compiled["recipe"]["steps"]] == [
+        "inspect_vector", "load_vector_to_postgis",
+        "validate_postgis_layer", "generate_report",
+    ]
+    assert compiled["approval_required_step_ids"] == ["step_2"]
+    assert compiled["validation_required_step_ids"] == ["step_2"]
+    assert compiled["execution_performed"] is False
 
 
 def test_reviewed_plan_save_is_immutable_and_cli_compatible(tmp_path: Path) -> None:
@@ -992,6 +1098,58 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
     assert preview["execution_available"] is False
     assert preview["execution_performed"] is False
     assert len(preview["execution_preview_sha256"]) == 64
+
+    export_request = InterfaceSnakemakeExportPreviewRequest.model_validate({
+        "action": "preview_snakemake_export",
+        "recipe_filename": stored["recipe_filename"],
+        "confirmed_recipe_sha256": stored["recipe_sha256"],
+        "confirmed_approval_request_sha256": approval_request["approval_request_sha256"],
+        "approval_filename": recorded["approval_filename"],
+    })
+    export_preview = preview_interface_snakemake_export(
+        export_request, project_root=PROJECT_ROOT,
+        recipe_root=recipe_root, approval_root=approval_root,
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )
+    assert export_preview["status"] == "previewed_not_exported"
+    assert export_preview["export_performed"] is False
+    assert export_preview["workflow_executed"] is False
+    exported = export_interface_snakemake_recipe(
+        InterfaceSnakemakeExportRequest.model_validate({
+            **export_request.model_dump(mode="json"),
+            "action": "export_snakemake",
+            "confirmed_export_plan_sha256": export_preview["export_plan_sha256"],
+            "confirmation": "export_exact_approved_recipe",
+        }),
+        project_root=PROJECT_ROOT,
+        recipe_root=recipe_root, approval_root=approval_root,
+        export_root=tmp_path / "snakemake-exports",
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )
+    assert exported["status"] == "exported_and_validated"
+    assert exported["contract"]["passed"] is True
+    assert exported["contract"]["checked_files"] == [
+        "Snakefile", "geoagent-replay.json", "snakemake-export-manifest.json"
+    ]
+    assert exported["workflow_executed"] is False
+    assert exported["recipe_execution_performed"] is False
+    repeated = export_interface_snakemake_recipe(
+        InterfaceSnakemakeExportRequest.model_validate({
+            **export_request.model_dump(mode="json"),
+            "action": "export_snakemake",
+            "confirmed_export_plan_sha256": export_preview["export_plan_sha256"],
+            "confirmation": "export_exact_approved_recipe",
+        }),
+        project_root=PROJECT_ROOT,
+        recipe_root=recipe_root, approval_root=approval_root,
+        export_root=tmp_path / "snakemake-exports",
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )
+    assert repeated["status"] == "existing_export_validated"
+    assert repeated["export_performed"] is False
+    assert repeated["export"]["export_performed"] is False
+    assert repeated["export_already_existed"] is True
+    assert repeated["contract"]["passed"] is True
 
     monkeypatch.setattr(
         interface_api_module,

@@ -475,7 +475,14 @@ def record_gis_workflow_history(
             occurred_at=started_at,
             status="approved",
             artifact_digests={
-                "plan": evidence.approval.plan_sha256,
+                (
+                    "plan"
+                    if evidence.approval.plan_sha256 is not None
+                    else "recipe"
+                ): (
+                    evidence.approval.plan_sha256
+                    or evidence.approval.recipe_sha256
+                ),
             },
             facts={
                 "approval_id": evidence.approval.approval_id,

@@ -812,8 +812,8 @@ verification as one visible end-to-end interface journey.
 - [x] Preview completed recipe-run evidence as a validated WorkflowTrace.
 - [x] Persist an explicitly reviewed adapted trace and report.
 - [x] Add explicit model Critic invocation with in-memory validated results.
-- [ ] Add immutable Critic result recording.
-- [ ] Add governed release readiness and release creation.
+- [x] Add immutable Critic result recording.
+- [x] Add governed release readiness and release creation.
 
 ### Checkpoint 17AR — recipe-run trace adaptation preview
 
@@ -846,4 +846,47 @@ verification as one visible end-to-end interface journey.
 - [x] Rebuild and compare deterministic evidence before recording.
 - [x] Reuse atomic digest-addressed Critic-result storage.
 - [x] Keep release creation and execution unavailable.
-- [ ] Assess release readiness from the immutable record.
+- [x] Assess release readiness from the immutable record.
+
+### Checkpoint 17AV — governed recipe release
+
+- [x] Assess recipe releases as recipes rather than inventing planner authority.
+- [x] Bind recipe, approval, run result, recipe evidence, trace, report, Critic
+  record, and operational history by identity and digest.
+- [x] Prepare operational history through a visible non-executing interface step.
+- [x] Require confirmation of the exact readiness-candidate digest.
+- [x] Create an atomic immutable release without rerunning tools or changing data.
+- [x] Export and validate the exact approved recipe through Snakemake (17AW).
+
+### Checkpoint 17AW — governed Snakemake export
+
+- [x] Rebuild approval authority before export planning.
+- [x] Preview the exact replay entrypoint, file set, steps, and plan digest.
+- [x] Require a separate confirmation of the reviewed export-plan digest.
+- [x] Generate the immutable package through the existing export service.
+- [x] Run static contract validation immediately after generation.
+- [x] Keep Snakemake invocation and recipe replay outside this checkpoint.
+- [x] Close the guided prototype with an honest Snakemake isolation boundary (17AX).
+
+### Checkpoint 17AX — guided prototype closure
+
+- [x] Audit the interface path from request through release and export.
+- [x] Make repeated exact export requests idempotent and visibly revalidated.
+- [x] Keep actual replay in the isolated workflow-runner rather than granting
+  Docker or arbitrary process authority to the loopback browser API.
+- [x] Record default-versus-advanced UX and capability-expansion requirements.
+- [x] Mark Checkpoint 17 complete for prototype release preparation.
+
+### Checkpoint 17AY — complete PostGIS interface vertical slice
+
+- [x] Compile the fixed inspect/load/validate/report Planner sequence into a recipe.
+- [x] Add typed hard-coded dispatch for the existing PostGIS load and verifier.
+- [x] Preserve separate recipe approval and independent post-write validation.
+- [x] Materialize the authoritative report only during immutable run persistence.
+- [x] Complete one fresh operator-run PostGIS acceptance workflow through export.
+
+Checkpoint 17 is complete at the guided prototype boundary after a fresh
+PostGIS operator acceptance run. Checkpoint 18
+starts product simplification, unified local startup, conversational task
+history, stronger intent decomposition, tabular data, and governed capability
+discovery.

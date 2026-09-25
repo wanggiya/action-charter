@@ -1,6 +1,50 @@
 # Current Status
 
-Last updated: 2026-09-16
+Last updated: 2026-09-24
+
+## Checkpoint 17AY — complete PostGIS interface vertical slice
+
+Implemented for operator acceptance. A verified four-step Planner result can
+now compile into the established governed PostGIS recipe rather than stopping
+at the generic-dispatcher boundary. The dispatcher uses typed, hard-coded
+entrypoints for vector load, deterministic PostGIS validation, and bounded
+report intent. The load's registered verifier must pass before final success;
+the authoritative report is written only by immutable evidence persistence
+after the complete run is assembled. Arbitrary SQL, overwrite, dynamic tools,
+and browser-selected validation remain unavailable.
+
+Operator acceptance passed with the fresh
+`agent_sandbox.checkpoint17_final_e2e_20260925_02` target. Independent database
+inspection confirmed two rows, SRID 4326, and POINT geometry. The governed run
+continued through evidence, Critic review, immutable release, and Snakemake
+export. Checkpoint 17 is complete at the guided-prototype boundary.
+
+## Checkpoint 17AX — guided prototype closure
+
+Implemented for review. Checkpoint 17 now provides a credible interface path
+from request and resource selection through planning, exact approval, governed
+execution, live status, deterministic validation, evidence, Critic assessment,
+immutable release creation, and reproducible Snakemake export. Repeating the
+same exact export now revalidates and reports the existing package clearly.
+Advanced Snakemake replay remains isolated behind Compose/CLI pending a unified
+local service in Checkpoint 18.
+
+## Checkpoint 17AW — governed Snakemake export
+
+Implemented for review. A verified recipe approval can now preview the exact
+Snakemake replay-package scope, show its digest, and—after separate operator
+confirmation—generate and statically validate the immutable three-file export.
+The interface uses the same planner, generator, and contract validator as the
+CLI. Export does not invoke Snakemake and does not execute the recipe.
+
+## Checkpoint 17AV — governed recipe release
+
+Implemented for review. After an exact Critic result is recorded, Assurance
+can prepare deterministic operational history, assess a recipe run against its
+complete immutable evidence chain, display readiness findings and the exact
+candidate digest, and create an authoritative release only after separate
+operator confirmation. Release packaging reruns no GIS tool and mutates no
+source data. CLI release commands remain available.
 
 ## Checkpoint 17AP — responsive Planner authoring
 

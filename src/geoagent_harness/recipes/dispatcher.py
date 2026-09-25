@@ -13,16 +13,18 @@ from geoagent_harness.mcp_server.settings import (
 from geoagent_harness.recipes.schemas import (
     ConvertRasterRecipeArguments,
     ConvertVectorRecipeArguments,
+    GenerateReportRecipeArguments,
     InspectVectorRecipeArguments,
+    LoadVectorToPostGISRecipeArguments,
     RecipeExecutionEnvelope,
     RecipeStepExecutionResult,
     InspectRasterRecipeArguments,
+    ValidatePostGISLayerRecipeArguments,
 )
 from geoagent_harness.redaction import (
     redact_value,
 )
 from geoagent_harness.skill_registry import (
-    SkillAccess,
     SkillRegistry,
     SkillStatus,
 )
@@ -40,6 +42,14 @@ from geoagent_harness.skills.convert_raster.service import (
 from geoagent_harness.skills.inspect_vector.service import (
     InspectVectorError,
     inspect_vector,
+)
+from geoagent_harness.skills.load_vector_to_postgis.service import (
+    LoadVectorError,
+    load_vector_to_postgis,
+)
+from geoagent_harness.verifier.postgis import (
+    PostGISVerificationError,
+    validate_postgis_layer,
 )
 
 from geoagent_harness.skill_adapters.raster_inspection import (
@@ -72,6 +82,16 @@ _EXPECTED_ENTRYPOINTS = {
     "convert_raster": (
         "geoagent_harness.skills.convert_raster."
         "service:convert_raster"
+    ),
+    "load_vector_to_postgis": (
+        "geoagent_harness.skills.load_vector_to_postgis."
+        "service:load_vector_to_postgis"
+    ),
+    "validate_postgis_layer": (
+        "geoagent_harness.verifier.postgis:validate_postgis_layer"
+    ),
+    "generate_report": (
+        "geoagent_harness.reporting:write_report"
     ),
 }
 
@@ -194,9 +214,8 @@ def dispatch_recipe_step(
     )
 
     if (
-        skill.access != SkillAccess.READ_ONLY
-        and step.step_id
-        not in envelope.approved_step_ids
+        skill.approval_required
+        and step.step_id not in envelope.approved_step_ids
     ):
         raise RecipeDispatchError(
             "write step is outside the approved scope"
@@ -297,6 +316,54 @@ def dispatch_recipe_step(
             )
             validation_performed = False
 
+        elif step.skill_id == "load_vector_to_postgis":
+            arguments = LoadVectorToPostGISRecipeArguments.model_validate(
+                step.arguments
+            )
+            value = load_vector_to_postgis(
+                path=Path(arguments.path),
+                target_schema=arguments.target_schema,
+                target_table=arguments.target_table,
+                settings=settings,
+                source_layer=arguments.source_layer,
+            )
+            status = "completed_pending_validation"
+            validation_performed = False
+
+        elif step.skill_id == "validate_postgis_layer":
+            arguments = ValidatePostGISLayerRecipeArguments.model_validate(
+                step.arguments
+            )
+            value = validate_postgis_layer(
+                target_schema=arguments.target_schema,
+                target_table=arguments.target_table,
+                settings=settings,
+                expected_row_count=arguments.expected_row_count,
+                expected_srid=arguments.expected_srid,
+                expected_geometry_type=arguments.expected_geometry_type,
+            )
+            status = "completed"
+            validation_performed = True
+
+        elif step.skill_id == "generate_report":
+            arguments = GenerateReportRecipeArguments.model_validate(
+                step.arguments
+            )
+            value = {
+                "status": "report_pending_evidence_persistence",
+                "task_id": arguments.task_id,
+                "target_schema": arguments.target_schema,
+                "target_table": arguments.target_table,
+                "validation_output_id": arguments.validation_output_id,
+                "report_written": False,
+                "note": (
+                    "The authoritative report is written only after the "
+                    "complete validated run result is assembled."
+                ),
+            }
+            status = "completed"
+            validation_performed = False
+
         else:
             # This remains unreachable unless code changes
             # without updating the hard-coded policy.
@@ -314,6 +381,8 @@ def dispatch_recipe_step(
         ConvertVectorError,
         InspectRasterPolicyError,
         InspectVectorError,
+        LoadVectorError,
+        PostGISVerificationError,
         RasterInspectionError,
     ) as exc:
         raise RecipeDispatchError(

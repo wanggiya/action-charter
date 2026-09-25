@@ -286,6 +286,81 @@ def test_writes_disabled_blocks_recipe(
             settings=blocked,
         )
 
+
+def test_fixed_postgis_recipe_runs_all_four_steps(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from geoagent_harness.recipes import runner
+
+    recipe = WorkflowRecipe.model_validate({
+        "recipe_id": "postgis-runner-test",
+        "summary": "Inspect, load, validate, and report.",
+        "original_request": "Load the approved vector into PostGIS.",
+        "steps": [
+            {"step_id": "step_1", "skill_id": "inspect_vector",
+             "arguments": {"path": "data/input/sample_points.geojson"},
+             "output_ids": ["source_metadata"]},
+            {"step_id": "step_2", "skill_id": "load_vector_to_postgis",
+             "depends_on": ["step_1"],
+             "arguments": {"path": "data/input/sample_points.geojson",
+                           "target_schema": "agent_sandbox",
+                           "target_table": "checkpoint17_final"},
+             "output_ids": ["postgis_load_result"]},
+            {"step_id": "step_3", "skill_id": "validate_postgis_layer",
+             "depends_on": ["step_2"],
+             "arguments": {"target_schema": "agent_sandbox",
+                           "target_table": "checkpoint17_final"},
+             "output_ids": ["postgis_validation"]},
+            {"step_id": "step_4", "skill_id": "generate_report",
+             "depends_on": ["step_3"],
+             "arguments": {"task_id": "checkpoint17-final"},
+             "output_ids": ["workflow_report"]},
+        ],
+    })
+    registry = load_skill_registry(PROJECT_ROOT)
+    approval, _ = create_recipe_approval(
+        recipe=recipe, registry=registry, step_ids=["step_2"],
+        decision="approved", approver="test operator",
+        reason="Reviewed exact PostGIS target.",
+        approval_root=tmp_path / "approvals", now=NOW,
+    )
+    settings = MCPSettings(
+        input_root=tmp_path / "input", output_root=tmp_path / "output",
+        enable_write_tools=True, allowed_schemas={"agent_sandbox"},
+    )
+    settings.input_root.mkdir()
+    settings.output_root.mkdir()
+
+    def fake_dispatch(**kwargs):
+        step = next(
+            item for item in kwargs["envelope"].steps
+            if item.step_id == kwargs["step_id"]
+        )
+        return RecipeStepExecutionResult(
+            step_id=step.step_id, skill_id=step.skill_id,
+            status=("completed_pending_validation"
+                    if step.skill_id == "load_vector_to_postgis" else "completed"),
+            output_ids=step.output_ids,
+            result={"status": "test"}, execution_performed=True,
+            validation_performed=step.skill_id == "validate_postgis_layer",
+        )
+
+    monkeypatch.setattr(runner, "dispatch_recipe_step", fake_dispatch)
+    monkeypatch.setattr(
+        runner, "_validate_postgis_load_step",
+        lambda **kwargs: FakeValidation(status="validation_passed", passed=True),
+    )
+    result = run_approved_recipe(
+        recipe=recipe, approval=approval, registry=registry, settings=settings,
+    )
+    assert result.final_status == "validated_success"
+    assert [step.skill_id for step in result.step_results] == [
+        "inspect_vector", "load_vector_to_postgis",
+        "validate_postgis_layer", "generate_report",
+    ]
+    assert result.step_results[2].validation_performed is True
+
 def test_real_raster_conversion_recipe_is_validated(
     tmp_path: Path,
 ) -> None:
@@ -665,4 +740,3 @@ def test_denied_raster_recipe_does_not_write(
         )
 
     assert not target.exists()
-

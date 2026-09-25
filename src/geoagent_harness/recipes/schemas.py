@@ -146,6 +146,46 @@ class ConvertVectorRecipeArguments(BaseModel):
     target_layer: str | None = None
 
 
+class LoadVectorToPostGISRecipeArguments(BaseModel):
+    """Allowlisted arguments for one new-table PostGIS load."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str = Field(min_length=1, max_length=2000)
+    target_schema: str = Field(pattern=r"^[a-z_][a-z0-9_]*$")
+    target_table: str = Field(pattern=r"^[a-z_][a-z0-9_]*$")
+    source_layer: str | None = Field(default=None, max_length=200)
+
+
+class ValidatePostGISLayerRecipeArguments(BaseModel):
+    """Allowlisted arguments for deterministic PostGIS validation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_schema: str = Field(pattern=r"^[a-z_][a-z0-9_]*$")
+    target_table: str = Field(pattern=r"^[a-z_][a-z0-9_]*$")
+    expected_row_count: int | None = Field(default=None, ge=0)
+    expected_srid: int | None = Field(default=None, gt=0)
+    expected_geometry_type: str | None = Field(default=None, max_length=100)
+
+
+class GenerateReportRecipeArguments(BaseModel):
+    """Bounded report request finalized by evidence persistence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str | None = Field(default=None, min_length=1, max_length=200)
+    target_schema: str | None = Field(default=None, pattern=r"^[a-z_][a-z0-9_]*$")
+    target_table: str | None = Field(default=None, pattern=r"^[a-z_][a-z0-9_]*$")
+    validation_output_id: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]*$")
+
+    @model_validator(mode="after")
+    def identifies_report_scope(self) -> "GenerateReportRecipeArguments":
+        if self.task_id is None and (self.target_schema is None or self.target_table is None):
+            raise ValueError("report arguments must identify a task or PostGIS target")
+        return self
+
+
 class RecipeStepExecutionResult(BaseModel):
     """Result of one hard-coded recipe step dispatch."""
 
