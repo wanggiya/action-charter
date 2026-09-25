@@ -57,6 +57,27 @@ identity, deterministic status, complete Critic result, and reviewed result
 digest before creating an immutable digest-addressed record. Recording still
 creates no release and performs no execution.
 
+Checkpoint 17AV completes the next governed boundary for recipe runs. Assurance
+binds the exact recipe, approval, run result, recipe evidence, trace, report,
+Critic record, and operational history into a deterministic readiness
+candidate. A release is created only after the operator reviews and confirms
+that exact candidate digest; packaging does not rerun tools or modify data.
+
+Checkpoint 17AW exposes the existing Snakemake export boundary in the recipe
+workspace. After independent approval verification, an operator previews the
+exact export plan and digest, then separately confirms generation. The service
+creates and statically validates the Snakefile, replay configuration, and
+manifest without invoking Snakemake or re-executing the recipe.
+
+Checkpoint 17AY closes the guided-interface prototype after final acceptance
+identified and corrected a Planner-to-recipe gap for the established
+inspect/load/validate/report PostGIS sequence. Repeating the same exact
+Snakemake export now revalidates the existing package rather than failing as a
+duplicate. The default Checkpoint 18 experience will simplify the visible path
+to **Plan → Review graph → Run → Check outcome**, while recipes, raw digests,
+release composition, Snakemake, skills, and infrastructure move into an
+Advanced workspace. See `context/CHECKPOINT18_DIRECTION.md`.
+
 The current reference implementation applies this architecture to geospatial
 data with GeoPandas, GDAL, rasterio, PostGIS, and GeoServer-oriented workflows.
 GIS is the first reference domain, not the architectural limit.

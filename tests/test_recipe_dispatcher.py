@@ -207,15 +207,12 @@ def test_unknown_arguments_are_rejected(
         )
 
 
-def test_unallowlisted_skill_is_rejected(
+def test_report_requires_bounded_scope(
     tmp_path: Path,
 ) -> None:
     with pytest.raises(
         RecipeDispatchError,
-        match=(
-            "hard-coded dispatcher allowlist"
-            "|not registered"
-        ),
+        match="arguments",
     ):
         dispatch_recipe_step(
             envelope=envelope(
@@ -228,6 +225,71 @@ def test_unallowlisted_skill_is_rejected(
             ),
             settings=settings(tmp_path),
         )
+
+
+def test_dispatches_postgis_vertical_slice_steps(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from geoagent_harness.recipes import dispatcher
+
+    monkeypatch.setattr(
+        dispatcher,
+        "load_vector_to_postgis",
+        lambda **kwargs: Dumpable(status="loaded_pending_validation"),
+    )
+    monkeypatch.setattr(
+        dispatcher,
+        "validate_postgis_layer",
+        lambda **kwargs: {
+            "status": "validation_passed",
+            "passed": True,
+        },
+    )
+    registry = load_skill_registry(PROJECT_ROOT)
+    active = settings(tmp_path, writes=True)
+
+    loaded = dispatch_recipe_step(
+        envelope=envelope(
+            skill_id="load_vector_to_postgis",
+            arguments={
+                "path": "input.geojson",
+                "target_schema": "agent_sandbox",
+                "target_table": "checkpoint17_final",
+            },
+        ),
+        step_id="step_1",
+        registry=registry,
+        settings=active,
+    )
+    assert loaded.status == "completed_pending_validation"
+
+    validated = dispatch_recipe_step(
+        envelope=envelope(
+            skill_id="validate_postgis_layer",
+            arguments={
+                "target_schema": "agent_sandbox",
+                "target_table": "checkpoint17_final",
+            },
+        ),
+        step_id="step_1",
+        registry=registry,
+        settings=active,
+    )
+    assert validated.status == "completed"
+    assert validated.validation_performed is True
+
+    report = dispatch_recipe_step(
+        envelope=envelope(
+            skill_id="generate_report",
+            arguments={"task_id": "checkpoint17-final"},
+        ),
+        step_id="step_1",
+        registry=registry,
+        settings=active,
+    )
+    assert report.result["status"] == "report_pending_evidence_persistence"
+    assert report.result["report_written"] is False
 
 def test_skill_failure_is_wrapped(
     tmp_path: Path,

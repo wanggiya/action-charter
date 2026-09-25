@@ -22,6 +22,7 @@ from geoagent_harness.recipes.execution import (
 from geoagent_harness.recipes.schemas import (
     ConvertRasterRecipeArguments,
     ConvertVectorRecipeArguments,
+    LoadVectorToPostGISRecipeArguments,
     RecipeRunResult,
     RecipeStepRunResult,
     WorkflowRecipe,
@@ -44,6 +45,10 @@ from geoagent_harness.skills.convert_raster.validation import (
     ConvertRasterValidationError,
     validate_raster_conversion,
 )
+from geoagent_harness.verifier.postgis import (
+    PostGISVerificationError,
+    validate_postgis_layer,
+)
 
 
 _EXPECTED_VERIFIERS = {
@@ -54,6 +59,9 @@ _EXPECTED_VERIFIERS = {
     "convert_raster": (
         "geoagent_harness.skills.convert_raster."
         "validation:validate_raster_conversion"
+    ),
+    "load_vector_to_postgis": (
+        "geoagent_harness.verifier.postgis:validate_postgis_layer"
     ),
 }
 
@@ -143,6 +151,23 @@ def _validate_raster_conversion_step(
 
     return validate_raster_conversion(
         wrapped,
+        settings=settings,
+    )
+
+
+def _validate_postgis_load_step(*, arguments: dict[str, Any], settings: MCPSettings):
+    """Independently validate the exact table created by a load step."""
+
+    try:
+        typed = LoadVectorToPostGISRecipeArguments.model_validate(arguments)
+    except Exception as exc:
+        raise RecipeRunError(
+            "PostGIS load arguments failed validation before verification"
+        ) from exc
+
+    return validate_postgis_layer(
+        target_schema=typed.target_schema,
+        target_table=typed.target_table,
         settings=settings,
     )
 
@@ -252,7 +277,7 @@ def run_approved_recipe(
                     execution=execution,
                     validation_result=None,
                     execution_performed=True,
-                    validation_performed=False,
+                    validation_performed=execution.validation_performed,
                 )
             )
             completed.add(step_id)
@@ -295,6 +320,11 @@ def run_approved_recipe(
                         settings=settings,
                     )
                 )
+            elif step.skill_id == "load_vector_to_postgis":
+                validation = _validate_postgis_load_step(
+                    arguments=step.arguments,
+                    settings=settings,
+                )
             else:
                 raise RecipeRunError(
                     f"skill {step.skill_id!r} has no "
@@ -303,6 +333,7 @@ def run_approved_recipe(
         except (
             ConvertRasterValidationError,
             ConvertVectorValidationError,
+            PostGISVerificationError,
         ) as exc:
             raise RecipeRunError(
                 f"verification for step "

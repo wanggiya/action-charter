@@ -92,6 +92,29 @@ from geoagent_harness.recipes import (
     build_recipe_execution_envelope,
 )
 from geoagent_harness.recipes.schemas import RecipeStep, WorkflowRecipe
+from geoagent_harness.releases import (
+    AuthoritativeReleaseStorageError,
+    ReleaseAssessmentError,
+    assess_recipe_release_candidate,
+    authoritative_release_candidate_sha256,
+    persist_authoritative_release,
+)
+from geoagent_harness.operational_history import (
+    AgentRole,
+    OperationalHistoryError,
+    OperationalIdentity,
+    operational_event_log_path,
+    record_gis_workflow_history,
+)
+from geoagent_harness.recipes import recipe_run_result_path
+from geoagent_harness.snakemake_export import (
+    SnakemakeExportContractError,
+    SnakemakeExportGenerationError,
+    SnakemakeExportPolicyError,
+    generate_snakemake_recipe_export,
+    plan_snakemake_recipe_export,
+    validate_snakemake_export_contract,
+)
 
 
 MAX_INTERFACE_REQUEST_BYTES = 65_536
@@ -467,6 +490,50 @@ class InterfaceCriticRecordRequest(InterfaceCriticRunRequest):
     action: Literal["record_critic_result"]
     confirmed_critic_result_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     result: CriticResult
+
+
+class InterfaceRecipeReleaseRequest(BaseModel):
+    """Exact recorded recipe-run evidence selected for release assessment."""
+
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["prepare_recipe_release"]
+    release_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+    trace_name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,80}\.json$")
+    report_name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,80}\.md$")
+    critic_record_file: str = Field(
+        pattern=r"^critic-results/[A-Za-z0-9._-]+\.critic-result/CRITIC_RESULT\.json$"
+    )
+    confirmed_critic_record_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class InterfaceRecipeReleaseCreationRequest(InterfaceRecipeReleaseRequest):
+    """Exact assessed candidate explicitly confirmed for immutable release."""
+
+    action: Literal["create_recipe_release"]
+    confirmed_candidate_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmed_assessed_at: datetime
+    confirmation: Literal["create_exact_release"]
+
+    @field_validator("confirmed_assessed_at")
+    @classmethod
+    def assessed_at_is_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("confirmed assessment timestamp must include a timezone")
+        return value
+
+
+class InterfaceSnakemakeExportPreviewRequest(InterfaceApprovalVerificationRequest):
+    """Exact approved recipe selected for a non-writing export preview."""
+
+    action: Literal["preview_snakemake_export"]
+
+
+class InterfaceSnakemakeExportRequest(InterfaceSnakemakeExportPreviewRequest):
+    """Exact preview explicitly confirmed for immutable export generation."""
+
+    action: Literal["export_snakemake"]
+    confirmed_export_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    confirmation: Literal["export_exact_approved_recipe"]
 
 
 def _trusted_root(project_root: Path) -> Path:
@@ -853,6 +920,158 @@ def record_interface_critic_result(
         "critic_model_called": False,
         "critic_result_recorded": True,
         "release_created": False,
+        "execution_performed": False,
+    }
+
+
+def _recipe_release_candidate(
+    request: InterfaceRecipeReleaseRequest,
+    *,
+    project_root: Path,
+    assessed_at: datetime,
+):
+    """Resolve and reassess exact release inputs from trusted trace references."""
+
+    root = _trusted_root(project_root)
+    trace_root, report_root = root / "traces", root / "reports"
+    trace_path, report_path = trace_root / request.trace_name, report_root / request.report_name
+    build_critic_evidence(
+        trace_path=trace_path, report_path=report_path,
+        trace_root=trace_root, report_root=report_root,
+    )
+    try:
+        trace = WorkflowTrace.model_validate(json.loads(trace_path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError, ValidationError) as exc:
+        raise InterfaceApiError("stored recipe trace is invalid") from exc
+    if trace.recipe_sha256 is None:
+        raise InterfaceApiError("stored trace is not recipe-derived")
+
+    references = set(trace.context_references)
+    def exact_reference(prefix: str, suffix: str = ".json") -> str:
+        matches = sorted(item for item in references if item.startswith(prefix) and item.endswith(suffix))
+        if len(matches) != 1:
+            raise InterfaceApiError("recipe release source references are incomplete")
+        candidate = Path(matches[0])
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise InterfaceApiError("recipe release source reference is unsafe")
+        return matches[0]
+
+    recipe_reference = exact_reference("workflow-recipes/")
+    approval_reference = exact_reference("approvals/")
+    evidence_reference = exact_reference("recipe-evidence/")
+    recipe_root, approval_root = root / "workflow-recipes", root / "approvals"
+    evidence_root, result_root = root / "recipe-evidence", root / "recipe-runs"
+    recipe_file = root / recipe_reference
+    approval_file = root / approval_reference
+    evidence_file = root / evidence_reference
+    recipe_evidence = load_recipe_evidence(evidence_file, evidence_root=evidence_root)
+    result_file = recipe_run_result_path(result=recipe_evidence.run_result, result_root=result_root)
+
+    critic_file = root / request.critic_record_file
+    try:
+        resolved_critic = critic_file.resolve(strict=True)
+        resolved_critic.relative_to((root / "critic-results").resolve(strict=True))
+        critic_digest = hashlib.sha256(resolved_critic.read_bytes()).hexdigest()
+    except (OSError, ValueError) as exc:
+        raise InterfaceApiError("recorded Critic result is unavailable") from exc
+    if critic_digest != request.confirmed_critic_record_sha256:
+        raise InterfaceApiError("recorded Critic-result digest no longer matches")
+
+    history_root = root / "operational-history"
+    correlation_id = f"release-{trace.task_id}"
+    history_root.mkdir(parents=True, exist_ok=True)
+    history_file = operational_event_log_path(
+        event_root=history_root, correlation_id=correlation_id
+    )
+    if not history_file.exists():
+        identity = OperationalIdentity(
+            agent_id=AgentRole.GIS,
+            agent_instance_id="interface-release-preparer",
+            agent_run_id=f"release-run-{trace.task_id}",
+            task_id=trace.task_id,
+            correlation_id=correlation_id,
+        )
+        record_gis_workflow_history(
+            trace_path=trace_path, report_path=report_path,
+            trace_root=trace_root, report_root=report_root,
+            event_root=history_root, identity=identity,
+        )
+
+    candidate = assess_recipe_release_candidate(
+        release_id=request.release_id,
+        recipe_file=recipe_file,
+        approval_file=approval_file,
+        run_result_file=result_file,
+        recipe_evidence_file=evidence_file,
+        trace_file=trace_path,
+        report_file=report_path,
+        critic_record_file=resolved_critic,
+        history_file=history_file,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        run_result_root=result_root,
+        recipe_evidence_root=evidence_root,
+        trace_root=trace_root,
+        report_root=report_root,
+        critic_root=root / "critic-results",
+        history_root=history_root,
+        project_root=root,
+        registry=load_skill_registry(root),
+        assessed_at=assessed_at,
+        approval_verified_at=trace.timestamps.finished_at,
+    )
+    return candidate, history_file
+
+
+def prepare_interface_recipe_release(
+    request: InterfaceRecipeReleaseRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Prepare exact history and assess readiness without creating a release."""
+
+    root = _trusted_root(project_root)
+    candidate, history_file = _recipe_release_candidate(
+        request, project_root=root, assessed_at=now or datetime.now(timezone.utc)
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "ready_not_released" if candidate.ready_for_release else "not_ready",
+        "candidate_sha256": authoritative_release_candidate_sha256(candidate),
+        "candidate": candidate.model_dump(mode="json"),
+        "history_file": history_file.relative_to(root).as_posix(),
+        "operational_history_prepared": True,
+        "release_created": False,
+        "execution_performed": False,
+    }
+
+
+def create_interface_recipe_release(
+    request: InterfaceRecipeReleaseCreationRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Reassess and atomically persist one explicitly confirmed release."""
+
+    root = _trusted_root(project_root)
+    active_now = now or datetime.now(timezone.utc)
+    candidate, _ = _recipe_release_candidate(
+        request, project_root=root, assessed_at=request.confirmed_assessed_at
+    )
+    digest = authoritative_release_candidate_sha256(candidate)
+    if digest != request.confirmed_candidate_sha256:
+        raise InterfaceApiError("reviewed release candidate digest no longer matches")
+    stored = persist_authoritative_release(
+        candidate, project_root=root, release_root=root / "releases", released_at=active_now
+    )
+    return {
+        **stored.model_dump(mode="json"),
+        "status": "released",
+        "release_directory": Path(stored.release_directory).relative_to(root).as_posix(),
+        "release_manifest": Path(stored.release_manifest).relative_to(root).as_posix(),
+        "release_created": True,
         "execution_performed": False,
     }
 
@@ -1305,6 +1524,9 @@ def compile_interface_plan_recipe(
         "convert_vector": ["converted_vector"],
         "inspect_raster": ["raster_metadata"],
         "convert_raster": ["converted_raster"],
+        "load_vector_to_postgis": ["postgis_load_result"],
+        "validate_postgis_layer": ["postgis_validation"],
+        "generate_report": ["workflow_report"],
     }
     unsupported = [step.skill for step in result.plan.steps if step.skill not in supported_outputs]
     if unsupported:
@@ -1736,6 +1958,159 @@ def verify_interface_recipe_approval(
     }
 
 
+def _snakemake_export_plan(
+    request: InterfaceSnakemakeExportPreviewRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+):
+    root = _trusted_root(project_root)
+    verified = verify_interface_recipe_approval(
+        InterfaceApprovalVerificationRequest(
+            action="verify_recipe_approval",
+            recipe_filename=request.recipe_filename,
+            confirmed_recipe_sha256=request.confirmed_recipe_sha256,
+            confirmed_approval_request_sha256=request.confirmed_approval_request_sha256,
+            approval_filename=request.approval_filename,
+        ),
+        project_root=root,
+        recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=now,
+    )
+    if not verified["approved"]:
+        raise InterfaceApiError("recorded approval does not authorize Snakemake export")
+    recipes = recipe_root if recipe_root is not None else root / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
+    approval = load_recipe_approval(
+        approvals / request.approval_filename, approval_root=approvals
+    )
+    return plan_snakemake_recipe_export(
+        recipe=recipe,
+        approval=approval,
+        registry=load_skill_registry(root),
+        recipe_path=recipes / request.recipe_filename,
+        approval_path=approvals / request.approval_filename,
+    )
+
+
+def preview_interface_snakemake_export(
+    request: InterfaceSnakemakeExportPreviewRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+) -> dict[str, Any]:
+    """Build an exact approved export plan without writing or executing."""
+
+    plan = _snakemake_export_plan(
+        request, project_root=project_root, now=now,
+        recipe_root=recipe_root, approval_root=approval_root,
+    )
+    canonical = json.dumps(
+        plan.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    )
+    return {
+        "schema_version": "1.0",
+        "status": "previewed_not_exported",
+        "export_plan_sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        "plan": plan.model_dump(mode="json"),
+        "export_performed": False,
+        "contract_validated": False,
+        "workflow_executed": False,
+        "recipe_execution_performed": False,
+    }
+
+
+def export_interface_snakemake_recipe(
+    request: InterfaceSnakemakeExportRequest,
+    *,
+    project_root: Path,
+    now: datetime | None = None,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    export_root: Path | None = None,
+) -> dict[str, Any]:
+    """Rebuild, export and statically validate one confirmed replay package."""
+
+    root = _trusted_root(project_root)
+    plan = _snakemake_export_plan(
+        request, project_root=root, now=now,
+        recipe_root=recipe_root, approval_root=approval_root,
+    )
+    canonical = json.dumps(
+        plan.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    )
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    if digest != request.confirmed_export_plan_sha256:
+        raise InterfaceApiError("reviewed Snakemake export plan no longer matches")
+    exports = export_root if export_root is not None else root / "snakemake-exports"
+    expected_path = exports.resolve() / (
+        f"{plan.recipe_id}.{plan.recipe_sha256}.snakemake"
+    )
+    already_existed = expected_path.exists()
+    if already_existed:
+        export_path = expected_path
+        generated_payload = {
+            "recipe_id": plan.recipe_id,
+            "recipe_sha256": plan.recipe_sha256,
+            "approval_id": plan.approval_id,
+            "export_path": export_path.as_posix(),
+            "generated_files": [
+                plan.workflow_filename,
+                plan.configuration_filename,
+                plan.manifest_filename,
+            ],
+            "export_performed": False,
+            "workflow_executed": False,
+            "recipe_execution_performed": False,
+        }
+    else:
+        generated = generate_snakemake_recipe_export(plan, export_root=exports)
+        export_path = Path(generated.export_path)
+        generated_payload = generated.model_dump(mode="json")
+    contract = validate_snakemake_export_contract(export_path)
+    if not contract.passed:
+        raise InterfaceApiError("generated Snakemake export failed static validation")
+    if already_existed:
+        manifest = json.loads(
+            (export_path / plan.manifest_filename).read_text(encoding="utf-8")
+        )
+        generated_payload.update({
+            "workflow_path": manifest["workflow_path"],
+            "workflow_sha256": manifest["workflow_sha256"],
+            "configuration_path": manifest["configuration_path"],
+            "configuration_sha256": manifest["configuration_sha256"],
+            "manifest_path": plan.manifest_filename,
+        })
+    try:
+        displayed_export_path = export_path.relative_to(root).as_posix()
+    except ValueError:
+        displayed_export_path = export_path.as_posix()
+    return {
+        "schema_version": "1.0",
+        "status": "existing_export_validated" if already_existed else "exported_and_validated",
+        "export_plan_sha256": digest,
+        "export": {
+            **generated_payload,
+            "export_path": displayed_export_path,
+        },
+        "contract": {
+            **contract.model_dump(mode="json"),
+            "export_path": displayed_export_path,
+        },
+        "export_performed": not already_existed,
+        "export_already_existed": already_existed,
+        "contract_validated": True,
+        "workflow_executed": False,
+        "recipe_execution_performed": False,
+    }
+
+
 def prepare_interface_execution_preview(
     request: InterfaceExecutionPreviewRequest,
     *,
@@ -2157,6 +2532,10 @@ def _handler(
                 "/api/v1/critic-evidence/save-adapted-trace",
                 "/api/v1/critic-evidence/run",
                 "/api/v1/critic-evidence/record-result",
+                "/api/v1/releases/prepare-recipe",
+                "/api/v1/releases/create-recipe",
+                "/api/v1/snakemake/preview-export",
+                "/api/v1/snakemake/export",
             }:
                 self._send(HTTPStatus.NOT_FOUND, {"error": "endpoint is not available"})
                 return
@@ -2187,6 +2566,26 @@ def _handler(
                 elif self.path == "/api/v1/critic-evidence/record-result":
                     response = record_interface_critic_result(
                         InterfaceCriticRecordRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/releases/prepare-recipe":
+                    response = prepare_interface_recipe_release(
+                        InterfaceRecipeReleaseRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/releases/create-recipe":
+                    response = create_interface_recipe_release(
+                        InterfaceRecipeReleaseCreationRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/snakemake/preview-export":
+                    response = preview_interface_snakemake_export(
+                        InterfaceSnakemakeExportPreviewRequest.model_validate(payload),
+                        project_root=project_root,
+                    )
+                elif self.path == "/api/v1/snakemake/export":
+                    response = export_interface_snakemake_recipe(
+                        InterfaceSnakemakeExportRequest.model_validate(payload),
                         project_root=project_root,
                     )
                 elif self.path == "/api/v1/plans/create":
@@ -2333,6 +2732,20 @@ def _handler(
                 self._send(HTTPStatus.CONFLICT, {
                     "error": "Critic result could not be recorded immutably",
                     "critic_result_recorded": False,
+                    "release_created": False,
+                    "execution_performed": False,
+                })
+                return
+            except (
+                ReleaseAssessmentError,
+                AuthoritativeReleaseStorageError,
+                OperationalHistoryError,
+                SnakemakeExportContractError,
+                SnakemakeExportGenerationError,
+                SnakemakeExportPolicyError,
+            ) as exc:
+                self._send(HTTPStatus.CONFLICT, {
+                    "error": str(exc),
                     "release_created": False,
                     "execution_performed": False,
                 })

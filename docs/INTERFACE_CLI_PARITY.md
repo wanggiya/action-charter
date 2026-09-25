@@ -15,7 +15,7 @@ and evidence paths are reachable through typed interface operations.
 | Vector and raster operations | Available through registered recipe skills | Add remaining format profiles |
 | PostGIS load/inspect/change/promotion/rollback | Partially available through recipes | Dedicated governed workspaces |
 | GeoServer inspect/publish/verify | Backend and CLI available | Interface workspace later |
-| Snakemake export and validation | Not yet available | Approved-recipe export workflow |
+| Snakemake export and static validation | Available after exact recipe approval verification | `plan-snakemake-export`, `export-approved-recipe-snakemake`, `validate-snakemake-export` |
 | Skill scaffold/contract/candidate/promotion | Not yet available | Builder workspace with offline tests |
 | Builder bundle review/promotion/activation | Not yet available | Multi-stage builder governance |
 | Schema compatibility and migration | Not yet available | Read-only assessment first |
@@ -24,7 +24,7 @@ and evidence paths are reachable through typed interface operations.
 ## Required sequence
 
 1. Finish Planner → reviewed plan → approval → executor → critic → release.
-2. Add Snakemake export and validation for an approved recipe.
+2. Add explicit Snakemake dry-run and separately approved replay for a validated export.
 3. Add dedicated PostGIS and existing GeoServer governed workspaces.
 4. Add skill and builder creation, offline test, review, promotion and activation.
 5. Expand data profiles in Checkpoint 18, including tabular CSV/Pandas support.

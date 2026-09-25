@@ -12,6 +12,7 @@ from geoagent_harness.releases.schemas import (
 )
 from geoagent_harness.releases.assessment import (
     ReleaseAssessmentError,
+    assess_recipe_release_candidate,
     assess_workflow_release_candidate,
     authoritative_release_candidate_sha256,
     canonical_authoritative_release_candidate_json,
@@ -35,6 +36,7 @@ __all__ = [
     "ReleaseLifecycleState",
     "ReleaseSubjectType",
     "ReleaseAssessmentError",
+    "assess_recipe_release_candidate",
     "assess_workflow_release_candidate",
     "authoritative_release_candidate_sha256",
     "canonical_authoritative_release_candidate_json",

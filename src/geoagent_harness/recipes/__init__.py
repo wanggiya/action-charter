@@ -18,13 +18,16 @@ from geoagent_harness.recipes.schemas import (
     RecipeExecutionStep,
     ConvertVectorRecipeArguments,
     ConvertRasterRecipeArguments,
+    GenerateReportRecipeArguments,
     InspectVectorRecipeArguments,
+    LoadVectorToPostGISRecipeArguments,
     RecipeStepExecutionResult,
     RecipeRunResult,
     RecipeStepRunResult,
     RecipeApprovalInventory,
     RecipeApprovalMatch,
     InspectRasterRecipeArguments,
+    ValidatePostGISLayerRecipeArguments,
 )
 
 from geoagent_harness.recipes.storage import (
@@ -143,6 +146,9 @@ __all__ = [
     "build_recipe_approval_inventory",
     "InspectRasterRecipeArguments",
     "ConvertRasterRecipeArguments",
+    "GenerateReportRecipeArguments",
+    "LoadVectorToPostGISRecipeArguments",
+    "ValidatePostGISLayerRecipeArguments",
 ]
 
 def __getattr__(name: str):

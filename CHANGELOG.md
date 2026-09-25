@@ -1,5 +1,35 @@
 # Changelog
 
+## Checkpoint 17AY
+
+- Compile the established four-step Planner PostGIS sequence into a governed recipe.
+- Dispatch typed vector load, deterministic PostGIS validation, and bounded report intent.
+- Require independent validation of the database load before success and preserve immutable evidence reporting.
+- Correct the repeated-export frontend contract to accept a valid existing export with `export_performed: false`.
+- Record a fresh end-to-end interface acceptance run creating and validating a two-row EPSG:4326 POINT table in PostGIS before evidence, Critic, release, and export completion.
+
+## Checkpoint 17AX
+
+- Close the Checkpoint 17 guided-interface prototype at its safe authority boundary.
+- Revalidate repeated exact Snakemake exports instead of returning a duplicate error.
+- Record the simplified Checkpoint 18 product direction and advanced-mode boundary.
+
+## Checkpoint 17AW
+
+- Add interface preview for the existing approval-gated Snakemake export plan.
+- Require confirmation of the exact export-plan digest before package creation.
+- Generate and statically validate the replay package without running Snakemake
+  or re-executing the recipe.
+
+## Checkpoint 17AV
+
+- Add deterministic recipe-run release readiness over exact recipe, approval,
+  result, evidence, trace, report, Critic record, and operational history.
+- Add explicit interface actions to prepare release evidence, review the exact
+  candidate digest, and create an immutable authoritative release.
+- Correct operational-history approval events for recipe-derived traces so
+  they record a recipe digest instead of a null plan digest.
+
 ## Checkpoint 17AU
 
 - Add explicit digest review and immutable recording for one validated Critic
