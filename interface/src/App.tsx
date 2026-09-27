@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowDown, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
+  ArrowDown, ArrowLeft, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
   Database, FileCheck2, GitBranch, LockKeyhole, Map, Maximize2, Minus,
   GripVertical, History, LayoutList, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, XCircle, ZoomIn,
 } from "lucide-react";
@@ -16,6 +16,7 @@ type Viewport = { x: number; y: number; width: number; height: number };
 type OverlayName = "tools" | "legend";
 type OverlayPosition = { x: number; y: number };
 type InterfaceMode = "evidence" | "proposal";
+type JourneyStage = "plan" | "review" | "run" | "outcome";
 type RecipeSort = "time_desc" | "time_asc" | "name_asc" | "name_desc";
 type ActiveRecipe = { recipeId: string; recipeSha256: string; steps: Array<{ step_id: string; skill_id: string; depends_on: string[] }> };
 type ProposalDraft = Omit<WorkflowData, "readOnly" | "source"> & { readOnly: false; source: "proposal_draft" };
@@ -166,6 +167,7 @@ const plannerWorkflow = (result: InterfacePlannerResult): WorkflowData => {
 
 export default function App() {
   const canvasWindowRef = useRef<HTMLDivElement>(null);
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
   const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
   const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
   const connectionDragRef = useRef<ConnectionDrag | null>(null);
@@ -173,10 +175,13 @@ export default function App() {
   const plannerRequestRef = useRef<HTMLTextAreaElement>(null);
   const plannerRequestDebounceRef = useRef<number | null>(null);
   const draftCounterRef = useRef(0);
-  const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition } | null>(null);
+  const overlayDragRef = useRef<{ name: OverlayName; pointerId: number; x: number; y: number; origin: OverlayPosition; current: OverlayPosition; element: HTMLElement; bounds: { minX: number; maxX: number; minY: number; maxY: number } } | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowData>(demoWorkflow);
   const [draft, setDraft] = useState<ProposalDraft | null>(null);
   const [mode, setMode] = useState<InterfaceMode>("evidence");
+  const [journeyStage, setJourneyStage] = useState<JourneyStage>("plan");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [journeyNotice, setJourneyNotice] = useState("");
   const [newNodeKind, setNewNodeKind] = useState<NodeKind>("tool");
   const [newEdgeKind, setNewEdgeKind] = useState<EdgeKind>("control");
   const [newEdgeTargetId, setNewEdgeTargetId] = useState("");
@@ -557,17 +562,38 @@ export default function App() {
   const startOverlayDrag = (name: OverlayName, event: React.PointerEvent<HTMLSpanElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    overlayDragRef.current = { name, pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin: overlayPositions[name] };
+    const element = event.currentTarget.parentElement;
+    const frame = element?.closest<HTMLElement>(".canvas-frame");
+    if (!element || !frame) return;
+    const origin = overlayPositions[name];
+    const rect = element.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const baseLeft = rect.left - origin.x;
+    const baseTop = rect.top - origin.y;
+    overlayDragRef.current = { name, pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin, current: origin, element, bounds: {
+      minX: frameRect.left + 8 - baseLeft,
+      maxX: Math.max(frameRect.left + 8 - baseLeft, frameRect.right - rect.width - 8 - baseLeft),
+      minY: frameRect.top + 8 - baseTop,
+      maxY: Math.max(frameRect.top + 8 - baseTop, frameRect.bottom - rect.height - 8 - baseTop),
+    } };
+    element.classList.add("is-dragging");
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveOverlay = (event: React.PointerEvent<HTMLSpanElement>) => {
     const drag = overlayDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setOverlayPositions((positions) => ({ ...positions, [drag.name]: { x: drag.origin.x + event.clientX - drag.x, y: drag.origin.y + event.clientY - drag.y } }));
+    drag.current = {
+      x: clamp(drag.origin.x + event.clientX - drag.x, drag.bounds.minX, drag.bounds.maxX),
+      y: clamp(drag.origin.y + event.clientY - drag.y, drag.bounds.minY, drag.bounds.maxY),
+    };
+    drag.element.style.transform = `translate(${drag.current.x}px, ${drag.current.y}px)`;
   };
   const endOverlayDrag = (event: React.PointerEvent<HTMLSpanElement>) => {
-    if (overlayDragRef.current?.pointerId !== event.pointerId) return;
+    const drag = overlayDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    drag.element.classList.remove("is-dragging");
+    setOverlayPositions((positions) => ({ ...positions, [drag.name]: drag.current }));
     overlayDragRef.current = null;
   };
   const applyRecipeTemplate = () => {
@@ -1057,6 +1083,60 @@ export default function App() {
     setSelectedTaskId("");
     setSelectedId("planned_planner");
     setPlannerOpen(false);
+    setJourneyStage("review");
+    setJourneyNotice("");
+  };
+  const openJourneyStage = (stage: JourneyStage) => {
+    setJourneyNotice("");
+    if (stage === "plan") {
+      setTemplatePanelOpen(false);
+      setExecutionInventoryOpen(false);
+      setCriticOpen(false);
+      setRecipePanelOpen(false);
+      setPlannerOpen(true);
+    } else if (stage === "review") {
+      if (plannerResult && !activeRecipe && !selectedTaskId) viewPlannerGraph();
+      setPlannerOpen(false);
+      setTemplatePanelOpen(false);
+      setRecipePanelOpen(false);
+      setExecutionInventoryOpen(false);
+      setCriticOpen(false);
+    } else if (stage === "run") {
+      if (!activeRecipe) {
+        if (plannerResult && !savedPlanRecipe) {
+          setTemplatePanelOpen(false);
+          setExecutionInventoryOpen(false);
+          setCriticOpen(false);
+          setRecipePanelOpen(false);
+          setPlannerOpen(true);
+          setJourneyNotice(savedPlannerResult
+            ? "Continue the reviewed plan through its remaining approval and recipe steps. Nothing is executed by opening this stage."
+            : "Review and save the validated plan before preparing a governed run. Nothing has been approved or executed.");
+          setJourneyStage(stage);
+          return;
+        }
+        setPlannerOpen(false);
+        setTemplatePanelOpen(false);
+        setExecutionInventoryOpen(false);
+        setCriticOpen(false);
+        void openSavedRecipes(savedPlanRecipe?.recipe_sha256 ?? "");
+        setJourneyNotice(savedPlanRecipe
+          ? "Select the newly stored recipe, then review its separate approval scope. Nothing has executed."
+          : "Choose a stored recipe to review its approval and execution scope. Planning alone does not authorize a run.");
+        setJourneyStage(stage);
+        return;
+      }
+      setPlannerOpen(false);
+      setTemplatePanelOpen(false);
+      setExecutionInventoryOpen(false);
+      setCriticOpen(false);
+      setRecipePanelOpen(true);
+    } else {
+      setPlannerOpen(false);
+      setCriticOpen(false);
+      void openExecutionInventory();
+    }
+    setJourneyStage(stage);
   };
   const closeRecipeFlow = () => {
     setRecipePanelOpen(false);
@@ -1371,12 +1451,38 @@ export default function App() {
     nodeDragRef.current = null;
   };
 
-  return <main className="app-shell">
+  const plannerGuide = !plannerResult
+    ? { label: "Describe the task and generate a plan", target: ".planner-submit", note: "No plan has been generated." }
+    : !savedPlannerResult
+      ? { label: "Review and save the exact plan", target: ".planner-result", note: "A validated proposal is available. Nothing has been saved or executed." }
+      : !preparedPlanApproval
+        ? { label: "Prepare the plan approval scope", target: ".planner-stored", note: "The plan is stored; no approval has been recorded." }
+        : preparedPlanApproval.status === "approval_not_required"
+          ? { label: "Inspect the read-only plan", target: ".planner-result", note: "No approval-required steps; no execution is implied." }
+          : !recordedPlanApproval
+            ? { label: "Record an explicit plan decision", target: ".planner-decision", note: "Review the exact scope before approving or denying." }
+            : !verifiedPlanApproval?.approved
+              ? { label: "Verify the recorded decision", target: ".planner-verification", note: recordedPlanApproval.decision === "denied" ? "The plan was denied; execution is blocked." : "Approval evidence must pass independent verification." }
+              : !compiledPlanRecipe
+                ? { label: "Compile a governed recipe candidate", target: ".planner-recipe-bridge", note: "Plan approval is verified; recipe review remains separate." }
+                : !savedPlanRecipe
+                  ? { label: "Review and save the recipe", target: ".compiled-plan-recipe", note: "Compilation grants no recipe approval." }
+                  : { label: "Review the stored recipe approval scope", target: ".saved-plan-recipe", note: "The recipe is stored, not approved or executed." };
+  const focusPlannerGuide = () => {
+    document.querySelector<HTMLElement>(`.planner-workspace ${plannerGuide.target}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return <main className={`app-shell ${advancedOpen ? "advanced-open" : ""}`}>
     <header className="topbar">
-      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span><span className="checkpoint">17AW</span></div>
-      <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label>
-      <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => setRecipePanelOpen(true)}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="planner-launch" onClick={() => setPlannerOpen(true)}><Bot size={15}/><span>Plan</span></button><button className="template-launch" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/><span>Templates</span></button><button className="recipe-launch" onClick={() => void openSavedRecipes()}><LayoutList size={15}/><span>Recipes</span></button><button className="run-history-launch" onClick={() => void openExecutionInventory()}><History size={15}/><span>Runs</span></button><button className="critic-launch" onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/><span>Assurance</span></button><button className="mode-button" onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New proposal" : "Exit draft"}</button><button className="icon-button" aria-label="Search"><Search size={17}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Read-only"}</span></div><div className="avatar">JQ</div></div>
+      <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span></div>
+      {advancedOpen ? <label className="run-switcher"><CircleDot size={15}/><span className="sr-only">Select workflow run</span><select value={selectedTaskId} disabled={!runs.length || mode === "proposal"} onChange={(event) => { const taskId = event.target.value; setSelectedTaskId(taskId); void loadWorkflowProjection(demoWorkflow, taskId).then((next) => { setWorkflow(next); setSelectedId(next.nodes[0].id); setLoadNotice(""); }).catch(() => setLoadNotice("Selected run could not be loaded. Re-export the runtime projections.")); }}><option value="">{runs.length ? "Select a validated trace" : "Demonstration workflow"}</option>{runs.map((run) => <option key={run.taskId} value={run.taskId}>{run.taskId} · {run.status}</option>)}</select><ChevronDown size={14}/></label> : <span className="workspace-context">{activeRecipe ? `Workflow · ${activeRecipe.recipeId}` : "Local governed data workspace"}</span>}
+      <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => openJourneyStage("run")}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="advanced-toggle" aria-expanded={advancedOpen} aria-controls="advanced-actions" onClick={() => setAdvancedOpen((open) => !open)}><span>{advancedOpen ? "Close Advanced" : "Advanced"}</span><ChevronDown size={15}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Governed"}</span></div></div>
     </header>
+    <nav className="journey-nav" aria-label="Primary workflow">
+      <div className="journey-steps">{([ ["plan", "Plan", "Describe the task"], ["review", "Review graph", "Inspect steps and scope"], ["run", "Run", "Approval and execution"], ["outcome", "Check outcome", "Results and validation"] ] as const).map(([stage, label, hint], index) => <button key={stage} className={`journey-step ${journeyStage === stage ? "active" : ""}`} aria-current={journeyStage === stage ? "step" : undefined} onClick={() => openJourneyStage(stage)}><span className="journey-index">{index + 1}</span><span><strong>{label}</strong><small>{hint}</small></span></button>)}</div>
+      {journeyNotice && <p className="journey-notice" role="status">{journeyNotice}</p>}
+    </nav>
+    {advancedOpen && <nav id="advanced-actions" className="advanced-actions" aria-label="Advanced tools"><button onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/> Templates</button><button onClick={() => void openSavedRecipes()}><LayoutList size={15}/> Recipes</button><button onClick={() => void openExecutionInventory()}><History size={15}/> Runs</button><button onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/> Assurance</button><button onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New draft graph" : "Exit draft graph"}</button></nav>}
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
         <header className="template-workspace-head"><div><p className="eyebrow">Reusable governed starting points</p><h2 id="template-title">Choose a recipe template</h2><p>Select a recipe, review the skills it uses, provide its inputs, then preview the workflow graph.</p></div><button aria-label="Close templates" onClick={() => setTemplatePanelOpen(false)}><X size={18}/></button></header>
@@ -1407,6 +1513,7 @@ export default function App() {
       <section className="planner-workspace" role="dialog" aria-modal="true" aria-labelledby="planner-title">
         <header className="template-workspace-head"><div><p className="eyebrow">Planner agent · configured model service</p><h2 id="planner-title">Plan a governed task</h2><p>Describe the result and explicitly choose the only skills the model may propose. This action cannot save, approve, or execute anything.</p></div><button aria-label="Close planner" disabled={plannerPending} onClick={() => setPlannerOpen(false)}><X size={18}/></button></header>
         <div className="planner-body">
+          <section className="planner-next-action" aria-label="Current plan progress"><span><small>Current boundary</small><strong>{plannerGuide.label}</strong><em>{plannerGuide.note}</em></span><button type="button" onClick={focusPlannerGuide}>Go to step <ArrowRight size={15}/></button></section>
           {savedPlanInventory && savedPlanInventory.plans.length > 0 && <section className={`saved-plan-strip ${savedPlansExpanded ? "expanded" : "collapsed"}`}><header><button type="button" className="saved-plan-toggle" aria-expanded={savedPlansExpanded} onClick={() => setSavedPlansExpanded((value) => !value)}><span><strong>Saved plans</strong><small>{selectedSavedPlanSha ? "Plan selected · click to change" : "Restore immutable plan evidence"}</small></span><em>{savedPlanInventory.plan_count}</em><ArrowRight className={savedPlansExpanded ? "expanded" : ""} size={14}/></button></header>{savedPlansExpanded && <><label className="saved-plan-sort">Order<select value={savedPlanSort} onChange={(event) => setSavedPlanSort(event.target.value as typeof savedPlanSort)}><option value="time_desc">Newest first</option><option value="time_asc">Oldest first</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option></select></label><div className="saved-plan-list">{sortedSavedPlans.map((item) => { const decisionDetails = item.approvals.length ? item.approvals.map((approval) => `${approval.decision.toUpperCase()} · ${approval.step_ids.join(", ")} · ${new Date(approval.created_at).toLocaleString()}`).join("\n") : "No decisions recorded"; return <button type="button" className={selectedSavedPlanSha === item.plan_sha256 ? "selected" : ""} title={decisionDetails} key={item.plan_sha256} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void resumeSavedPlan(item); }}><span className="saved-plan-main"><strong>{item.planner_result.plan.summary}</strong><small>{item.planner_result.plan.steps.map((step) => step.skill.replaceAll("_", " ")).join(" · ")}</small></span><span className="saved-plan-metrics"><time dateTime={item.saved_at}>{new Date(item.saved_at).toLocaleString()}</time><em>{item.approvals.length} decision{item.approvals.length === 1 ? "" : "s"}</em></span><ArrowRight size={14}/></button>})}</div></>}</section>}
           <fieldset className="planner-input-context"><legend>Input data context</legend><p>Select existing governed inputs to provide as explicit Planner context. Selection grants no execution authority.</p>{dataResources?.inputs.length ? <div>{dataResources.inputs.map((item) => <label key={item.path}><input type="checkbox" checked={selectedPlannerInputs.includes(item.path)} disabled={plannerPending} onChange={(event) => setSelectedPlannerInputs((current) => event.target.checked ? [...current, item.path] : current.filter((path) => path !== item.path))}/><span><strong>{item.name}</strong><small>{item.path}</small></span></label>)}</div> : <small>No governed input inventory is available; describe an approved relative path in the request.</small>}</fieldset>
           <label>Task request<textarea ref={plannerRequestRef} defaultValue={plannerRequest} maxLength={8000} rows={6} placeholder="Describe the outcome; select input data above instead of retyping its path." onInput={(event) => { const value = event.currentTarget.value; if (plannerRequestDebounceRef.current !== null) window.clearTimeout(plannerRequestDebounceRef.current); plannerRequestDebounceRef.current = window.setTimeout(() => { setPlannerRequest(value); setPlannerResult(null); setPlannerNotice(""); plannerRequestDebounceRef.current = null; }, 300); }} onBlur={(event) => { if (plannerRequestDebounceRef.current !== null) window.clearTimeout(plannerRequestDebounceRef.current); plannerRequestDebounceRef.current = null; setPlannerRequest(event.currentTarget.value); }}/></label>
@@ -1491,7 +1598,7 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div className="timeline"><div className="timeline-title"><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>correlation · {displayedWorkflow.correlationId}</small></div><div className="timeline-scroll"><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
+        <div className="timeline"><div className="timeline-title"><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>correlation · {displayedWorkflow.correlationId}</small><div className="timeline-navigation"><button type="button" aria-label="Scroll timeline left" onClick={() => timelineScrollRef.current?.scrollBy({ left: -Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowLeft size={14}/></button><button type="button" aria-label="Scroll timeline right" onClick={() => timelineScrollRef.current?.scrollBy({ left: Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowRight size={14}/></button></div></div><div className="timeline-scroll" ref={timelineScrollRef}><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
       </section>
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>

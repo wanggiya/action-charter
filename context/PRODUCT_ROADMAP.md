@@ -899,14 +899,22 @@ discovery.
 - [x] Disable write and overwrite authority by default.
 - [x] Require an explicit flag for bounded write-tool authority.
 - [x] Stop both child services cleanly with one interrupt.
-- [ ] Validate the launcher in the reference Ubuntu 24.04 WSL2 environment.
+- [x] Validate the launcher in the reference Ubuntu 24.04 WSL2 environment
+  (operator-reported startup and checks).
 - [ ] Publish the first alpha release from protected `main` after CI passes.
 
 ### Checkpoint 19 — simplified default workspace
 
-- [ ] Make Plan → Review graph → Run → Check outcome the primary journey.
-- [ ] Move recipes, raw hashes, release composition, skills, and infrastructure
-  into an Advanced workspace without removing them.
+- [x] Make Plan → Review graph → Run → Check outcome the primary navigation.
+- [x] Move expert entry points into an Advanced navigation without removing them.
+- [x] Navigate from a reviewed plan through the existing governed recipe and
+  approval path to a validated outcome (operator-reported full PostGIS run).
+- [x] Validate the responsive interface and full local workflow in WSL2
+  (operator-reported browser and PostGIS run; artifact audit remains optional).
+
+Checkpoint 19 closes the navigable prototype. Reducing repeated manual gates
+to one reviewed task decision depends on governed history/context and remains
+an explicit Checkpoint 22 integration requirement, not a claim of current UX.
 
 ### Checkpoint 20 — automatic authority-chain projection
 
@@ -928,6 +936,13 @@ discovery.
 - [ ] Add an Intent Agent that proposes goal-level work and clarification
   questions without approval or execution authority.
 - [ ] Pass only reviewed intent into the existing capability-mapping Planner.
+- [ ] Present task conversation and bounded context beside the process graph,
+  with linked selections and visible source references; keep explicit approval
+  separate from conversation.
+- [ ] Converge plan and recipe bookkeeping behind one reviewed task scope and
+  one explicit human decision, without dropping immutable evidence or backend
+  revalidation. Show current-task outcome first; keep attempt history and
+  internal artifacts expandable. See `context/POST_HISTORY_INTERFACE.md`.
 
 ### Checkpoints 23–25
 
@@ -935,3 +950,5 @@ discovery.
 - [ ] Add governed installed-library capability discovery (Checkpoint 24).
 - [ ] Benchmark interventions, correctness, recovery, reproducibility, and
   comprehension against manual work and a general coding agent (Checkpoint 25).
+- [ ] Include the current multi-screen interface as a baseline and measure
+  whether the post-history path reduces operator actions and elapsed time.

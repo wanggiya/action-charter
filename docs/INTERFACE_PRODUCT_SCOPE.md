@@ -22,6 +22,12 @@ Snakemake, skill construction, and infrastructure controls belong in an
 expandable advanced workspace. Deterministic digest comparison remains active
 even when hashes are not displayed continuously.
 
+The post-history integration must also remove repeated operator bookkeeping:
+skill choice becomes optional, exact scope is reviewed once beside the graph,
+one explicit decision authorizes the consequential work, and the current
+outcome appears before an expandable attempt log. Backend artifact checks and
+durable records remain; see `context/POST_HISTORY_INTERFACE.md`.
+
 ## Required coverage
 
 | Area | Interface responsibility |
