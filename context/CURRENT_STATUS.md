@@ -2114,3 +2114,25 @@ The existing Critic record builder and atomic digest-addressed storage service
 write `critic-results/<task>.<digest>.critic-result/CRITIC_RESULT.json` without
 overwriting. The interface clearly reports `RECORDED · NO RELEASE`. No model is
 called during recording, no release is created, and nothing is executed.
+
+## Checkpoint 18 — reproducible local startup
+
+Checkpoint 18 is implemented for operator validation. One repository launcher
+checks the supported local prerequisites, reports bounded availability for
+Ollama, Docker, PostGIS, and GeoServer, and starts the loopback interface API
+and frontend. It resolves the repository independently of the caller's working
+directory and stops both child services after one interrupt.
+
+Write tools remain disabled unless the operator supplies the explicit
+`--enable-write-tools` option, and overwrite remains disabled in both modes.
+The launcher does not install packages, start containers, execute Snakemake, or
+grant arbitrary shell, SQL, Python, filesystem, or network authority. The CLI
+remains supported. Reference WSL2 acceptance and the protected-main alpha
+release remain open gates.
+
+The later long-context boundary is now separated into Checkpoints 21 and 22.
+Checkpoint 21 will first create immutable task history and deterministic,
+referenced, redacted context packages without a model call. Checkpoint 22 will
+add a bounded Context Curator and Intent Agent above the existing Planner. Original records remain
+authoritative, summaries remain derived, and neither layer grants approval or
+execution authority.

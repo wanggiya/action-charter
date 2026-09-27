@@ -25,12 +25,20 @@ artifacts should appear connected in the graph without manual comparison.
 
 ## Planning roles
 
-- **Intent agent**: maintains bounded task conversation and history, examines
-  context and data summaries, decomposes the desired outcome, asks necessary
-  questions, and proposes a goal-level process.
+- **Task history**: stores immutable user requests, clarifications, selections,
+  decisions, results, failures, and artifact references. It is authoritative
+  project state rather than model-generated memory.
+- **Context Curator**: deterministically selects a bounded, redacted context
+  package for the current task and records its exact source references.
+- **Intent agent**: reads only the reviewed context package, decomposes the
+  desired outcome, asks necessary questions, and proposes a goal-level process.
 - **Planner agent**: maps that reviewed process onto implemented, uniquely
   identified capabilities and typed arguments. It does not invent functions.
 - Existing deterministic policy remains authoritative for execution.
+
+The original task records remain authoritative. Summaries are derived views,
+never replacements for source history. Neither context selection nor intent
+reasoning grants approval or execution authority.
 
 ## Tabular processing
 
@@ -70,13 +78,41 @@ third-party function. Each candidate must receive:
 - Reduce repeated confirmations by grouping non-consequential steps and asking
   once for the exact consequential scope.
 
-## Initial Checkpoint 18 order
+## Product roadmap after Checkpoint 17
 
-1. prototype release and reproducible installation/startup;
-2. simplified default workspace plus Advanced mode;
-3. automatic artifact/digest relationship projection;
-4. conversational task history and intent-agent contract;
-5. governed tabular-data vertical slice;
-6. governed library capability discovery and candidate testing;
-7. real user task benchmark measuring time, intervention count, failures, and
+1. Checkpoint 18: prototype release and reproducible installation/startup;
+2. Checkpoint 19: simplified default workspace plus Advanced mode;
+3. Checkpoint 20: automatic artifact/digest relationship projection;
+4. Checkpoint 21: governed task history and deterministic context assembly;
+5. Checkpoint 22: bounded Context Curator and conversational Intent Agent;
+6. Checkpoint 23: governed tabular-data vertical slice;
+7. Checkpoint 24: governed library capability discovery and candidate testing;
+8. Checkpoint 25: real user task benchmark measuring time, intervention count, failures, and
    outcome quality against manual spreadsheet/GIS work.
+
+## Reviewable checkpoint sequence
+
+- **18 — reproducible local startup and alpha-release gate:** one supported
+  launcher, bounded service diagnostics, clean shutdown, and release notes.
+- **19 — simplified default workspace:** make Plan → Review graph → Run →
+  Check outcome the primary navigation and move expert controls to Advanced.
+- **20 — automatic authority-chain projection:** compare digests server-side,
+  connect matching artifacts visually, and surface hashes mainly for mismatch
+  or audit.
+- **21 — governed task history:** append immutable task events and construct
+  deterministic, bounded, redacted context packages with source references.
+- **22 — Context Curator and conversational intent:** use reviewed context
+  packages for an Intent Agent above the Planner without granting tool
+  authority or treating conversation as approval.
+- **23 — governed tabular vertical slice:** inspect CSV/TSV, apply a small
+  typed Pandas transformation set, validate output, and record lineage.
+- **24 — governed capability discovery:** propose fully qualified installed-
+  library operations, isolate tests, and require explicit promotion.
+- **25 — comparative product benchmark:** measure operator interventions,
+  elapsed time, failure recovery, deterministic correctness, reproducibility,
+  and audit comprehension against a manual workflow and a general coding
+  agent.
+
+ActionCharter does not attempt to match a general agent runtime feature for
+feature. Checkpoint 18 tests whether it can be distinctly better for governed,
+reproducible professional data work.

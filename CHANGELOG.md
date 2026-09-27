@@ -1,5 +1,26 @@
 # Changelog
 
+## Checkpoint 18
+
+- Add one loopback-only launcher for the interface API and frontend.
+- Keep write tools and overwrite disabled by default, with a deliberate flag
+  for the existing bounded approval-gated execution path.
+- Add non-mutating prerequisite and optional-service diagnostics plus clean
+  coordinated shutdown.
+- Preserve the CLI and externally managed Ollama, Docker, PostGIS, GeoServer,
+  and Snakemake boundaries.
+- Split future long-context work into governed task history and deterministic
+  context assembly (Checkpoint 21), followed by the Context Curator and Intent
+  Agent (Checkpoint 22), so derived memory cannot silently become authority.
+- Add separate `interface-validate` and aggregate `validate` Make targets while
+  preserving `make test` as the Python/offline suite.
+- Treat any valid GeoServer HTTP response as service reachability during
+  startup diagnostics, while leaving authenticated REST authorization to the
+  existing bounded GeoServer actions.
+- Launch the pinned local Vite executable as a direct child of the startup
+  supervisor so shutdown signals reach the actual frontend process; report an
+  unexpected clean child exit as a startup failure.
+
 ## Checkpoint 17AY
 
 - Compile the established four-step Planner PostGIS sequence into a governed recipe.
