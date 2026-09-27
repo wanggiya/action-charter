@@ -2136,3 +2136,42 @@ referenced, redacted context packages without a model call. Checkpoint 22 will
 add a bounded Context Curator and Intent Agent above the existing Planner. Original records remain
 authoritative, summaries remain derived, and neither layer grants approval or
 execution authority.
+
+## Checkpoint 19 — navigable default journey
+
+The frontend presents Plan, Review graph, Run, and Check outcome as its primary
+navigation. Advanced holds the existing template, recipe, run, Assurance,
+draft-editing, and trace-selection entry points. Run opens the stored recipe
+chooser if there is no active recipe; the existing explicit approval and
+execution boundaries still apply. This is a navigation and layout step, not a
+new execution capability. Full WSL2 interaction and continuous-journey
+acceptance were subsequently reported by the operator; see `docs/CHECKPOINT19.md`.
+
+The next navigation correction routes Review graph to the current validated
+plan and routes Run to an unfinished plan before showing recipe inventory.
+When a plan has produced a stored recipe, Run selects that recipe by digest.
+These transitions preserve in-memory review state and do not confer authority.
+
+The Planner panel adds a derived current-boundary guide and a scroll-to-control
+button. It reflects plan storage, approval preparation and verification,
+recipe compilation, and recipe storage, including denied and read-only states.
+The guide does not call the API or advance any authority boundary.
+
+Graph layout follow-up: the timeline and canvas are bounded to the graph
+column so the inspector cannot cover their overflow; the minimap stays in the
+canvas corner. Floating graph controls use pointer-local movement and commit
+their position on release, bounded to the canvas. WSL browser acceptance at
+desktop and mobile widths was subsequently reported as passing.
+
+The timeline follow-up exposes explicit horizontal scroll controls, reserves
+space after its final event, and allocates sufficient height for event status
+and labels. The operator reported that the frontend passed browser inspection.
+
+An operator reports completing the full interface PostGIS workflow, including
+the governed downstream path. This is an operator acceptance report, not an
+independent artifact review in this workspace. The run revealed excessive
+manual steps: plan/recipe storage, separate approval screens, envelopes, and
+attempt inventory dominate the default experience. The post-history target is
+one task review beside the graph, one explicit consequential decision, a
+deliberate Run action, and the current outcome, with details and history on
+demand. See `context/POST_HISTORY_INTERFACE.md`.

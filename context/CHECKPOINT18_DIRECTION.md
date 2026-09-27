@@ -40,6 +40,31 @@ The original task records remain authoritative. Summaries are derived views,
 never replacements for source history. Neither context selection nor intent
 reasoning grants approval or execution authority.
 
+## Context-and-graph workspace after task history
+
+After Checkpoints 21 and 22 provide task history, bounded context packages,
+and reviewed intent, the default interface should place the task conversation
+and context on one side and the live process graph on the other. The context
+side shows the current goal, relevant source references, clarifications,
+assumptions, and proposed revisions. The graph side shows the corresponding
+plan, agent roles, data movement, gates, execution, and evidence. Selecting an
+item on either side should reveal the linked item on the other side.
+
+The conversation is a place to express intent and inspect context, not an
+approval channel. A separate explicit decision remains required for
+consequential work. Task history is persisted by the governed application;
+model-generated summaries are derived and can be checked against their sources.
+This layout should be implemented when those records exist rather than
+presenting an empty chat pane that implies memory or agency prematurely.
+
+The completed Checkpoint 19 PostGIS run exposed a product gap: operators still
+manually traverse plan storage, recipe storage, separate approvals, previews,
+and evidence screens. After task history and context exist, the default path
+must offer an optional skill selector, graph-side review, one explicit decision
+over exact consequential scope, a deliberate Run action, and a current-task
+outcome. Internal artifacts and execution attempts remain accessible on demand.
+See `context/POST_HISTORY_INTERFACE.md` for the acceptance boundaries.
+
 ## Tabular processing
 
 Add governed CSV/TSV and dataframe operations through typed pandas adapters,

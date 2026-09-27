@@ -17,6 +17,13 @@ the resulting state, and preserves tamper-evident evidence.
 > **Models propose; deterministic software authorizes, executes, validates,
 > and records evidence.**
 
+The default interface now starts with **Plan → Review graph → Run → Check
+outcome**. Run opens the saved recipe chooser when no recipe is active;
+planning alone does not authorize execution. Advanced reveals templates,
+recipes, run inventory, Assurance, draft graph editing, and the trace selector.
+The command line and the exact approval and verification gates remain available.
+See `docs/CHECKPOINT19.md` for the current interface scope and validation.
+
 Checkpoint 17AD can compile an independently verified Planner result into a
 typed governed recipe candidate for supported dispatcher skills. Compilation
 does not save, approve, or execute the recipe; recipe authority remains a

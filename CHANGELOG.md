@@ -1,5 +1,22 @@
 # Changelog
 
+## Checkpoint 19 — navigable default journey
+
+- Put Plan, Review graph, Run, and Check outcome in a prominent responsive
+  navigation strip; move expert entry points behind Advanced.
+- Open the saved recipe chooser from Run when no recipe is active, while keeping
+  explicit approval, execution, and verification controls intact.
+- Route Review graph to the current validated plan, and Run through unfinished
+  plan review or its stored recipe before falling back to recipe inventory.
+- Show the Planner's current review boundary and a link to the next existing
+  control, without automatically saving, approving, or executing anything.
+- Bound the graph canvas and timeline to the graph column, and make draggable
+  graph controls track the pointer without rerendering the workflow per move.
+- Make the timeline's final event reachable with its own horizontal scroll,
+  navigation buttons, end padding, and room for status and labels.
+- Record operator-reported WSL browser and full PostGIS acceptance. Preserve
+  the unresolved high-intervention UX as a post-history integration target.
+
 ## Checkpoint 18
 
 - Add one loopback-only launcher for the interface API and frontend.
