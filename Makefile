@@ -6,7 +6,8 @@ SKILL_TEST_RECORD_FILE ?=
 
 .PHONY: checkpoint6-accept
 .PHONY: critic-container
-.PHONY: help install test inspect config build
+.PHONY: help install test inspect config build interface-start interface-check
+.PHONY: interface-validate validate
 .PHONY: agent-info mcp-smoke planner-smoke
 .PHONY: state-container
 .PHONY: workflow-version
@@ -23,6 +24,10 @@ help:
 	@echo "make inspect     Inspect the public sample GeoJSON"
 	@echo "make config      Validate interpolated Compose configuration"
 	@echo "make build       Build agent and GIS images"
+	@echo "make interface-start Start the local API and frontend (writes disabled)"
+	@echo "make interface-check Validate local interface startup prerequisites"
+	@echo "make interface-validate Typecheck and production-build the frontend"
+	@echo "make validate    Run Python, frontend, shell, and Compose validation"
 	@echo "make agent-info  Exercise all three independent agent images"
 	@echo "make mcp-smoke   Run the read-only MCP protocol test"
 	@echo "make planner-smoke Run the Planner Agent container"
@@ -58,6 +63,22 @@ config:
 
 build:
 	docker compose --profile agents --profile tools build
+
+interface-start:
+	bash scripts/start_actioncharter.sh
+
+interface-check:
+	bash scripts/start_actioncharter.sh --check
+
+interface-validate:
+	corepack pnpm@10.17.1 --dir interface typecheck
+	corepack pnpm@10.17.1 --dir interface build
+
+validate:
+	$(MAKE) test
+	$(MAKE) interface-validate
+	bash -n scripts/start_actioncharter.sh
+	docker compose --profile agents --profile tools config --quiet
 
 agent-info:
 	docker compose --profile agents run --rm planner agent-info planner

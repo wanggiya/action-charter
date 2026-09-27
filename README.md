@@ -384,6 +384,44 @@ complete walkthrough.
 
 ## Quick start
 
+### Start the local product
+
+After installing the Python and pinned frontend dependencies, start the
+loopback API and interface together:
+
+```bash
+make interface-start
+```
+
+The launcher checks the local environment, reports optional Ollama, Docker,
+PostGIS, and GeoServer availability, then opens the frontend at
+`http://127.0.0.1:5173`. One `Ctrl+C` stops both processes. It never installs
+packages or starts containers.
+
+Execution authority is disabled by default. For a reviewed local workflow that
+needs the existing bounded write tools, use the deliberate opt-in:
+
+```bash
+bash scripts/start_actioncharter.sh --enable-write-tools
+```
+
+This does not enable overwrite, arbitrary SQL, arbitrary Python, shell access,
+Docker control, or Snakemake replay. Run `make interface-check` for diagnostics
+without starting either service. Ubuntu 24.04 on WSL2 is the reference local
+development environment; the CLI remains available for automation and repair.
+
+Validation remains intentionally separated by responsibility:
+
+```bash
+make test                 # Python/offline suite
+make interface-validate   # frontend typecheck and production build
+make validate             # Python, frontend, launcher and Compose checks
+```
+
+The frontend does not yet declare a `pnpm test` script because it has no
+component-test runner. A real frontend test command will be added with the
+first component and API-client tests rather than using the name for a build.
+
 ### Requirements
 
 - Linux or WSL2;

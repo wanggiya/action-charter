@@ -2393,10 +2393,17 @@ def _handler(
 
         def _reject_origin(self) -> bool:
             origin = self.headers.get("Origin")
-            if origin is None or origin in {
+            configured_origin = os.environ.get("INTERFACE_FRONTEND_ORIGIN")
+            allowed_origins = {
                 "http://127.0.0.1:5173",
                 "http://localhost:5173",
-            }:
+            }
+            if configured_origin and re.fullmatch(
+                r"http://(?:127\.0\.0\.1|localhost):[1-9][0-9]{0,4}",
+                configured_origin,
+            ):
+                allowed_origins.add(configured_origin)
+            if origin is None or origin in allowed_origins:
                 return False
             self._send(HTTPStatus.FORBIDDEN, {"error": "request origin is not allowed"})
             return True

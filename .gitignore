@@ -111,6 +111,8 @@ critic-results/
 /interface/coverage/
 /interface/playwright-report/
 /interface/test-results/
+/interface/*.log
+/interface/*.pid
 /interface/*.tsbuildinfo
 /interface/vite.config.js
 /interface/vite.config.d.ts
@@ -119,6 +121,10 @@ critic-results/
 
 # Local transfer archives used to apply checkpoint patches
 /actioncharter-checkpoint*.zip
+
+# Unified local-launcher runtime state
+/.local/run/
+/.local/logs/
 
 # Environment-specific GeoServer publication evidence
 /geoserver-publication-evidence/*

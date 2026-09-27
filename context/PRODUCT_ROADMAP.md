@@ -890,3 +890,48 @@ PostGIS operator acceptance run. Checkpoint 18
 starts product simplification, unified local startup, conversational task
 history, stronger intent decomposition, tabular data, and governed capability
 discovery.
+
+### Checkpoint 18 — reproducible local startup
+
+- [x] Start the loopback interface API and frontend with one command.
+- [x] Validate pinned local prerequisites without installing packages.
+- [x] Report optional Ollama, Docker, PostGIS, and GeoServer availability.
+- [x] Disable write and overwrite authority by default.
+- [x] Require an explicit flag for bounded write-tool authority.
+- [x] Stop both child services cleanly with one interrupt.
+- [ ] Validate the launcher in the reference Ubuntu 24.04 WSL2 environment.
+- [ ] Publish the first alpha release from protected `main` after CI passes.
+
+### Checkpoint 19 — simplified default workspace
+
+- [ ] Make Plan → Review graph → Run → Check outcome the primary journey.
+- [ ] Move recipes, raw hashes, release composition, skills, and infrastructure
+  into an Advanced workspace without removing them.
+
+### Checkpoint 20 — automatic authority-chain projection
+
+- [ ] Compare artifact identities and digests server-side.
+- [ ] Connect matching authority and evidence automatically in the graph.
+- [ ] Emphasize hashes only for mismatch, audit, export, or expert inspection.
+
+### Checkpoint 21 — governed task history
+
+- [ ] Append immutable requests, clarifications, selections, decisions,
+  outcomes, failures, and artifact references under one task identity.
+- [ ] Build deterministic bounded context packages with redaction, source
+  references, size limits, and reproducible selection rules.
+- [ ] Keep original records authoritative; summaries remain derived views.
+
+### Checkpoint 22 — Context Curator and conversational intent
+
+- [ ] Present the exact context package before model use.
+- [ ] Add an Intent Agent that proposes goal-level work and clarification
+  questions without approval or execution authority.
+- [ ] Pass only reviewed intent into the existing capability-mapping Planner.
+
+### Checkpoints 23–25
+
+- [ ] Add the governed Pandas tabular-data vertical slice (Checkpoint 23).
+- [ ] Add governed installed-library capability discovery (Checkpoint 24).
+- [ ] Benchmark interventions, correctness, recovery, reproducibility, and
+  comprehension against manual work and a general coding agent (Checkpoint 25).
