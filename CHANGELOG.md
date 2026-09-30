@@ -1,5 +1,23 @@
 # Changelog
 
+## Checkpoint 20 — verified authority and evidence graph
+
+- Join exact saved Planner definitions to recipe definitions, and exact durable runs to stored traces, Critic records and releases in the read-only flow graph.
+- Put routine graph digests behind expandable audit details.
+- Add grouped read-only graph sources for saved plans, stored recipes, durable runs, and exported traces; show declared dependencies and recorded outcomes without changing execution state.
+- Draw approval and result graph connections only when the existing independent inventory verification confirms the exact relationship.
+- Link canonical Critic result records to fresh trace/report evidence by exact identity and content references in the read-only Assurance inventory.
+- Link a verified Critic record and trace/report pair to an independently inspected immutable release manifest only when all component paths and digests match.
+- Show bounded recorded output artifacts in durable-run graphs with producer links; label stored digests separately from a fresh physical-file check.
+- Distinguish local graph source identities and active workflow state from durable runs, and explain output-list truncation.
+- Keep the graph timeline reachable on short windows and show why Current workflow is unavailable when no recipe is open.
+- Move the four journey controls into the top bar on wide screens while preserving their second-row layout on narrow screens; remove redundant workspace copy.
+
+- Reverify saved plan decisions against the exact plan, required steps,
+  decision, and expiry when projecting the inventory.
+- Distinguish verified and blocked authority in the saved-plan list without
+  changing approval or execution authority.
+
 ## Checkpoint 19 — navigable default journey
 
 - Put Plan, Review graph, Run, and Check outcome in a prominent responsive
@@ -460,3 +478,10 @@ project follows Semantic Versioning after the initial public alpha.
 [Unreleased]: https://github.com/wanggiya/action-charter/compare/v0.9.0...HEAD
 [0.9.0]: https://github.com/wanggiya/action-charter/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/wanggiya/action-charter/releases/tag/v0.8.0
+
+- Checkpoint 20: saved recipes now display independently verified exact recipe approval links and blocked decisions in the interface inventory.
+- Checkpoint 20: durable interface execution attempts now record approval identity and display independently checked recipe authority at run start.
+- Checkpoint 20: new interface runs persist canonical result and evidence digests; the run browser independently verifies exact durable files before presenting a linked result.
+- Checkpoint 20: Critic recipe candidates now require an exact, unique run and evidence relationship; the candidate can reopen its linked run graph.
+- Interface navigation: rename Review graph to Flow graph, expose it in Advanced, and clarify the graph source selector without triggering execution.
+- Flow graph source selection is visible beside the graph title on desktop and mobile and can switch away from and back to the current run without resetting it.

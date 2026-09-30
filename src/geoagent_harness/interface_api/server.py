@@ -33,6 +33,8 @@ from geoagent_harness.redaction import redact_text, redact_value
 from geoagent_harness.context_pack import ContextPackError
 from geoagent_harness.critic.evidence import (
     CriticEvidenceError,
+    MAX_TRACE_BYTES,
+    MAX_REPORT_BYTES,
     build_critic_evidence,
 )
 from geoagent_harness.critic.recipe_trace import (
@@ -50,6 +52,7 @@ from geoagent_harness.critic import (
     build_critic_result_record,
     critique_task,
     critic_result_sha256,
+    load_critic_result_record,
     persist_critic_result_record,
 )
 from geoagent_harness.trace import WorkflowTrace
@@ -69,6 +72,7 @@ from geoagent_harness.approvals import (
     plan_sha256,
     verify_approval,
 )
+from geoagent_harness.approvals.schemas import ApprovalRecord
 from geoagent_harness.mcp_server.approved_recipe import (
     ApprovedRecipeError,
     run_approved_recipe as execute_approved_recipe,
@@ -81,7 +85,9 @@ from geoagent_harness.recipes import (
     RecipeStorageError,
     load_recipe,
     load_recipe_evidence,
+    load_recipe_run_result,
     recipe_evidence_sha256,
+    recipe_run_result_sha256,
     recipe_path,
     recipe_sha256,
     save_recipe,
@@ -97,6 +103,7 @@ from geoagent_harness.releases import (
     ReleaseAssessmentError,
     assess_recipe_release_candidate,
     authoritative_release_candidate_sha256,
+    load_authoritative_release,
     persist_authoritative_release,
 )
 from geoagent_harness.operational_history import (
@@ -225,13 +232,25 @@ def interface_execution_inventory(
     project_root: Path,
     *,
     progress_root: Path | None = None,
+    recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    result_root: Path | None = None,
+    evidence_root: Path | None = None,
 ) -> dict[str, Any]:
     """Return bounded durable attempt summaries without execution authority."""
 
+    project = _trusted_root(project_root)
+    recipes = recipe_root if recipe_root is not None else project / "workflow-recipes"
+    approvals = approval_root if approval_root is not None else project / "approvals"
+    results = result_root if result_root is not None else project / "recipe-runs"
+    evidence_files = evidence_root if evidence_root is not None else project / "recipe-evidence"
+    for directory in (recipes, approvals, results, evidence_files):
+        if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
+            raise InterfaceApiError("authority root is unsafe")
     root = (
         progress_root
         if progress_root is not None
-        else _trusted_root(project_root) / "workflow-state" / "interface-executions"
+        else project / "workflow-state" / "interface-executions"
     )
     if not root.exists():
         return {
@@ -250,6 +269,7 @@ def interface_execution_inventory(
     )
     truncated = len(paths) > MAX_INTERFACE_EXECUTION_ATTEMPTS
     attempts = []
+    registry = load_skill_registry(project)
     for path in paths[:MAX_INTERFACE_EXECUTION_ATTEMPTS]:
         if path.is_symlink() or not re.fullmatch(r"[a-f0-9]{64}\.json", path.name):
             raise InterfaceApiError("execution progress artifact is unsafe")
@@ -261,12 +281,99 @@ def interface_execution_inventory(
         )
         if state is None:
             continue
+        authority_link = "unavailable"
+        authority_reason = "Legacy attempt has no recorded approval identity"
+        recipe_name = state.get("recipe_filename")
+        approval_name = state.get("approval_filename")
+        recipe_digest = state.get("recipe_sha256")
+        approval_id = state.get("approval_id")
+        if approval_name is not None or approval_id is not None:
+            authority_link = "blocked"
+            authority_reason = "Recorded recipe or approval identity is incomplete"
+            if (
+                isinstance(recipe_name, str) and SAFE_RECIPE_FILENAME.fullmatch(recipe_name)
+                and isinstance(recipe_digest, str) and re.fullmatch(r"[a-f0-9]{64}", recipe_digest)
+                and isinstance(approval_name, str) and re.fullmatch(r"recipe-approval-[a-z0-9-]+\.json", approval_name)
+                and isinstance(approval_id, str) and approval_name == f"{approval_id}.json"
+            ):
+                try:
+                    recipe = load_recipe(recipes / recipe_name, recipe_root=recipes)
+                    approval = load_recipe_approval(approvals / approval_name, approval_root=approvals)
+                    if (recipe.recipe_id != state.get("recipe_id") or recipe_sha256(recipe) != recipe_digest
+                            or approval.approval_id != approval_id):
+                        authority_reason = "Stored recipe or approval identity does not match the attempt"
+                    else:
+                        started_at = datetime.fromisoformat(state["started_at"])
+                        if started_at.tzinfo is None or started_at.utcoffset() is None:
+                            raise ValueError("start timestamp has no timezone")
+                        verification = verify_recipe_approval(
+                            approval=approval, recipe=recipe, registry=registry, now=started_at,
+                        )
+                        authority_link = "verified" if verification.approved else "blocked"
+                        authority_reason = verification.reason
+                except (RecipeStorageError, RecipeApprovalError, RecipePolicyError, ValueError, KeyError, TypeError):
+                    authority_reason = "Stored recipe or approval cannot be independently verified"
+        result_link = "unavailable"
+        result_reason = "This attempt has no recorded durable result and evidence digests"
+        recorded_outputs: list[dict[str, Any]] = []
+        outputs_truncated = False
+        run_digest = state.get("run_result_sha256")
+        evidence_digest = state.get("evidence_sha256")
+        if run_digest is not None or evidence_digest is not None:
+            result_link = "blocked"
+            result_reason = "Durable result and evidence identities are incomplete"
+            if (isinstance(run_digest, str) and re.fullmatch(r"[a-f0-9]{64}", run_digest)
+                    and isinstance(evidence_digest, str) and re.fullmatch(r"[a-f0-9]{64}", evidence_digest)
+                    and isinstance(state.get("recipe_id"), str)
+                    and re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,100}", state["recipe_id"])):
+                try:
+                    result = load_recipe_run_result(
+                        results / f"{state['recipe_id']}.{run_digest}.json", result_root=results,
+                    )
+                    evidence = load_recipe_evidence(
+                        evidence_files / f"{state['recipe_id']}.{evidence_digest}.json",
+                        evidence_root=evidence_files,
+                    )
+                    if (recipe_run_result_sha256(result) != run_digest
+                            or recipe_evidence_sha256(evidence) != evidence_digest
+                            or recipe_run_result_sha256(evidence.run_result) != run_digest
+                            or result.recipe_id != state.get("recipe_id")
+                            or result.recipe_sha256 != recipe_digest
+                            or result.approval_id != approval_id
+                            or result.final_status != state.get("status")
+                            or evidence.recipe_id != result.recipe_id
+                            or evidence.recipe_sha256 != result.recipe_sha256
+                            or evidence.approval_id != result.approval_id
+                            or evidence.final_status != result.final_status):
+                        result_reason = "Durable result or evidence does not match the recorded attempt"
+                    elif authority_link != "verified":
+                        result_reason = "Durable evidence matches, but recipe approval authority is not verified"
+                    else:
+                        result_link = "verified"
+                        result_reason = "Exact durable result and evidence match the authorized attempt"
+                        outputs = [item for item in evidence.artifacts if item.role.value == "output"]
+                        outputs_truncated = len(outputs) > 20
+                        recorded_outputs = [{
+                            "artifact_id": item.artifact_id,
+                            "path": item.path,
+                            "sha256": item.sha256,
+                            "producer_step_id": item.producer_step_id,
+                        } for item in outputs[:20]]
+                except (RecipeEvidenceStorageError, ValueError, TypeError):
+                    result_reason = "Durable result or evidence cannot be independently verified"
         attempts.append({
             "execution_preview_sha256": digest,
             "status": state.get("status"),
             "recipe_id": state.get("recipe_id"),
             "recipe_filename": state.get("recipe_filename"),
             "recipe_sha256": state.get("recipe_sha256"),
+            "approval_id": approval_id if isinstance(approval_id, str) else None,
+            "authority_link": authority_link,
+            "authority_reason": authority_reason,
+            "result_link": result_link,
+            "result_reason": result_reason,
+            "recorded_outputs": recorded_outputs,
+            "outputs_truncated": outputs_truncated,
             "started_at": state.get("started_at"),
             "finished_at": state.get("finished_at"),
             "failed_step_id": state.get("failed_step_id"),
@@ -605,7 +712,34 @@ def interface_critic_evidence_inventory(project_root: Path) -> dict[str, Any]:
     if report_root.exists() and report_root.is_symlink():
         raise InterfaceApiError("report root cannot be a symlink")
 
-    trace_paths = sorted(trace_root.glob("*.json")) if trace_root.is_dir() else []
+    critic_root = root / "critic-results"
+    if critic_root.is_symlink() or (critic_root.exists() and not critic_root.is_dir()):
+        raise InterfaceApiError("Critic-result root is unsafe")
+    critic_paths = sorted(critic_root.glob("*.critic-result/CRITIC_RESULT.json"), key=lambda path: path.lstat().st_mtime, reverse=True) if critic_root.is_dir() else []
+    if len(critic_paths) > MAX_INTERFACE_CRITIC_EVIDENCE:
+        critic_paths = critic_paths[:MAX_INTERFACE_CRITIC_EVIDENCE]
+        truncated = True
+    critic_records = []
+    for path in critic_paths:
+        try:
+            critic_records.append((path, load_critic_result_record(path, record_root=critic_root)))
+        except CriticResultStorageError:
+            continue
+    release_root = root / "releases"
+    if release_root.is_symlink() or (release_root.exists() and not release_root.is_dir()):
+        raise InterfaceApiError("release root is unsafe")
+    release_paths = sorted(release_root.glob("*.release/RELEASE.json"), key=lambda path: path.lstat().st_mtime, reverse=True) if release_root.is_dir() else []
+    if len(release_paths) > 25:
+        release_paths = release_paths[:25]
+        truncated = True
+    releases = []
+    for path in release_paths:
+        try:
+            releases.append((path, load_authoritative_release(path, release_root=release_root)))
+        except AuthoritativeReleaseStorageError:
+            continue
+
+    trace_paths = sorted(trace_root.glob("*.json"), key=lambda path: path.lstat().st_mtime, reverse=True) if trace_root.is_dir() else []
     if len(trace_paths) > MAX_INTERFACE_CRITIC_EVIDENCE:
         trace_paths = trace_paths[:MAX_INTERFACE_CRITIC_EVIDENCE]
         truncated = True
@@ -639,12 +773,33 @@ def interface_critic_evidence_inventory(project_root: Path) -> dict[str, Any]:
                 "evidence": None,
             })
             continue
+        matching_records = [path.relative_to(root).as_posix() for path, record in critic_records
+                            if record.task_id == pack.task_id
+                            and record.deterministic_status == pack.deterministic_status
+                            and record.critic_result.evidence_references == pack.evidence_references
+                            and record.critic_result.evidence_gaps == pack.evidence_gaps
+                            and record.critic_result.workflow_warnings == pack.warnings
+                            and record.critic_result.human_corrections == pack.human_corrections]
+        references = {reference.path: reference.sha256 for reference in pack.evidence_references}
+        release_links = []
+        for record_path in matching_records:
+            record_digest = hashlib.sha256((root / record_path).read_bytes()).hexdigest()
+            required = {**references, record_path: record_digest}
+            for release_path, manifest in releases:
+                components = {part.path: part.sha256 for part in manifest.components}
+                if all(components.get(path) == digest for path, digest in required.items()):
+                    release_links.append(release_path.relative_to(root).as_posix())
+        release_links = sorted(set(release_links))
         items.append({
             "trace_name": trace_path.name,
             "report_name": report_path.name,
             "available": True,
             "finding": None,
             "evidence": pack.model_dump(mode="json"),
+            "critic_record_link": "verified" if matching_records else "unavailable",
+            "critic_record_files": matching_records,
+            "release_link": "verified" if release_links else "unavailable",
+            "release_manifests": release_links,
         })
 
     recipe_candidates = _interface_recipe_trace_candidates(root)
@@ -663,6 +818,56 @@ def interface_critic_evidence_inventory(project_root: Path) -> dict[str, Any]:
     }
 
 
+def _exact_recipe_progress(
+    records: list[tuple[Path, dict[str, Any]]],
+    *,
+    recipe_id: str,
+    recipe_digest: str,
+    approval_id: str,
+    evidence_digest: str,
+    result_digest: str,
+    final_status: str,
+) -> tuple[Path, dict[str, Any]]:
+    """Bind one evidence record to exactly one persisted interface attempt."""
+
+    matching = [
+        (path, payload) for path, payload in records
+        if payload.get("recipe_id") == recipe_id
+        and payload.get("recipe_sha256") == recipe_digest
+        and payload.get("approval_id") == approval_id
+        and payload.get("approval_filename") == f"{approval_id}.json"
+        and payload.get("evidence_sha256") == evidence_digest
+        and payload.get("run_result_sha256") == result_digest
+        and payload.get("status") == final_status
+        and payload.get("execution_performed") is True
+        and payload.get("execution_preview_sha256") == path.stem
+    ]
+    if len(matching) != 1:
+        raise RecipeTraceAdapterError(
+            "exact durable interface execution identity is unavailable or ambiguous"
+        )
+    return matching[0]
+
+
+def _stored_trace_pair_exact(root: Path, trace: WorkflowTrace, report_text: str) -> bool:
+    """Compare stored trace and report with an exact in-memory candidate."""
+
+    trace_path = root / "traces" / f"{trace.task_id}.json"
+    report_path = root / "reports" / f"{trace.task_id}.md"
+    if (not trace_path.is_file() or not report_path.is_file()
+            or trace_path.is_symlink() or report_path.is_symlink()):
+        return False
+    try:
+        return (
+            trace_path.stat().st_size <= MAX_TRACE_BYTES
+            and report_path.stat().st_size <= MAX_REPORT_BYTES
+            and WorkflowTrace.model_validate(json.loads(trace_path.read_text(encoding="utf-8"))) == trace
+            and report_path.read_text(encoding="utf-8") == report_text
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValidationError):
+        return False
+
+
 def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
     """Preview truthful recipe-run trace adaptations without writing artifacts."""
 
@@ -679,10 +884,16 @@ def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
 
     progress_records: list[tuple[Path, dict[str, Any]]] = []
     if progress_root.is_dir():
-        for path in sorted(progress_root.glob("*.json")):
+        progress_paths = sorted(progress_root.glob("*.json"))
+        if len(progress_paths) > MAX_INTERFACE_EXECUTION_ATTEMPTS:
+            raise InterfaceApiError("recipe trace progress inventory exceeds its limit")
+        for path in progress_paths:
             if path.is_symlink() or path.stat().st_size > MAX_INTERFACE_OUTCOME_BYTES:
                 continue
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                continue
             if isinstance(payload, dict):
                 progress_records.append((path, payload))
 
@@ -696,6 +907,7 @@ def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
             "trace_sha256": None,
             "critic_status": None,
             "critic_gaps": [],
+            "execution_preview_sha256": None,
             "stored": False,
             "files_modified": False,
         }
@@ -708,15 +920,23 @@ def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
             approval_path = approval_root / f"{evidence.approval_id}.json"
             recipe = load_recipe(recipe_path, recipe_root=recipe_root)
             approval = load_recipe_approval(approval_path, approval_root=approval_root)
-            progress_match = next((
-                (path, payload) for path, payload in progress_records
-                if payload.get("recipe_id") == evidence.recipe_id
-                and payload.get("recipe_sha256") == evidence.recipe_sha256
-                and payload.get("status") == evidence.final_status
-            ), None)
-            if progress_match is None:
-                raise RecipeTraceAdapterError("matching durable interface execution timing is unavailable")
-            progress_path, progress = progress_match
+            run_digest = recipe_run_result_sha256(evidence.run_result)
+            result_root = root / "recipe-runs"
+            result = load_recipe_run_result(
+                result_root / f"{evidence.recipe_id}.{run_digest}.json",
+                result_root=result_root,
+            )
+            if result != evidence.run_result:
+                raise RecipeTraceAdapterError("durable result does not match recipe evidence")
+            progress_path, progress = _exact_recipe_progress(
+                progress_records,
+                recipe_id=evidence.recipe_id,
+                recipe_digest=evidence.recipe_sha256,
+                approval_id=evidence.approval_id,
+                evidence_digest=digest,
+                result_digest=run_digest,
+                final_status=evidence.final_status,
+            )
             references = [
                 recipe_path.relative_to(root).as_posix(),
                 approval_path.relative_to(root).as_posix(),
@@ -747,16 +967,15 @@ def _interface_recipe_trace_candidates(root: Path) -> list[dict[str, Any]]:
                     trace_root=traces,
                     report_root=reports,
                 )
+            stored_exact = _stored_trace_pair_exact(root, trace, render_recipe_trace_report(trace))
             base.update({
                 "adaptable": True,
                 "trace": trace.model_dump(mode="json"),
                 "trace_sha256": recipe_trace_sha256(trace),
                 "critic_status": pack.deterministic_status,
                 "critic_gaps": pack.evidence_gaps,
-                "stored": (
-                    (root / "traces" / f"{trace.task_id}.json").is_file()
-                    and (root / "reports" / f"{trace.task_id}.md").is_file()
-                ),
+                "execution_preview_sha256": progress_path.stem,
+                "stored": stored_exact,
             })
         except (
             RecipeTraceAdapterError,
@@ -1519,6 +1738,26 @@ def compile_interface_plan_recipe(
     if not verified["approved"]:
         raise InterfaceApiError("verified plan authority does not permit recipe compilation")
     result = load_planner_result(path=plans.resolve() / request.plan_filename, plan_root=plans.resolve())
+    recipe = _planner_recipe_definition(result, request.confirmed_plan_sha256)
+    try:
+        validation = validate_recipe_policy(recipe, registry=load_skill_registry(root))
+    except RecipePolicyError as exc:
+        raise InterfaceApiError(f"Planner recipe candidate failed deterministic policy: {exc}") from exc
+    return {
+        "schema_version": "1.0", "status": "compiled_not_saved",
+        "source_plan_sha256": request.confirmed_plan_sha256,
+        "recipe_sha256": recipe_sha256(recipe),
+        "recipe": recipe.model_dump(mode="json"),
+        "approval_required_step_ids": validation.approval_required_step_ids,
+        "validation_required_step_ids": validation.validation_required_step_ids,
+        "recipe_saved": False, "recipe_approval_performed": False,
+        "execution_performed": False,
+    }
+
+
+def _planner_recipe_definition(result: PlannerResult, plan_digest: str) -> WorkflowRecipe:
+    """Reconstruct the exact deterministic recipe definition without granting authority."""
+
     supported_outputs = {
         "inspect_vector": ["source_metadata"],
         "convert_vector": ["converted_vector"],
@@ -1539,25 +1778,12 @@ def compile_interface_plan_recipe(
         output_ids=supported_outputs[step.skill],
     ) for index, step in enumerate(result.plan.steps)]
     recipe = WorkflowRecipe(
-        recipe_id=f"planner-{request.confirmed_plan_sha256[:16]}",
+        recipe_id=f"planner-{plan_digest[:16]}",
         summary=result.plan.summary,
         original_request=result.original_request,
         steps=steps,
     )
-    try:
-        validation = validate_recipe_policy(recipe, registry=load_skill_registry(root))
-    except RecipePolicyError as exc:
-        raise InterfaceApiError(f"Planner recipe candidate failed deterministic policy: {exc}") from exc
-    return {
-        "schema_version": "1.0", "status": "compiled_not_saved",
-        "source_plan_sha256": request.confirmed_plan_sha256,
-        "recipe_sha256": recipe_sha256(recipe),
-        "recipe": recipe.model_dump(mode="json"),
-        "approval_required_step_ids": validation.approval_required_step_ids,
-        "validation_required_step_ids": validation.validation_required_step_ids,
-        "recipe_saved": False, "recipe_approval_performed": False,
-        "execution_performed": False,
-    }
+    return recipe
 
 
 def save_interface_plan_recipe(
@@ -1633,6 +1859,7 @@ def interface_saved_plan_inventory(
     project_root: Path,
     *, plan_root: Path | None = None,
     approval_root: Path | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Return bounded validated plans and matching approval summaries."""
 
@@ -1643,7 +1870,7 @@ def interface_saved_plan_inventory(
         raise InterfaceApiError("plan root is unsafe")
     if approvals.is_symlink() or (approvals.exists() and not approvals.is_dir()):
         raise InterfaceApiError("approval root is unsafe")
-    approval_by_plan: dict[str, list[dict[str, Any]]] = {}
+    approval_by_plan: dict[str, list[tuple[dict[str, Any], ApprovalRecord]]] = {}
     if approvals.exists():
         approval_paths = sorted(approvals.glob("approval-*.json"))
         if len(approval_paths) > MAX_INTERFACE_PLAN_APPROVALS:
@@ -1652,14 +1879,14 @@ def interface_saved_plan_inventory(
             if path.is_symlink():
                 raise InterfaceApiError("approval inventory contains an unsafe artifact")
             record = load_approval(path=path, approval_root=approvals)
-            approval_by_plan.setdefault(record.plan_sha256, []).append({
+            approval_by_plan.setdefault(record.plan_sha256, []).append(({
                 "approval_id": record.approval_id,
                 "approval_filename": path.name,
                 "decision": record.decision,
                 "step_ids": record.step_ids,
                 "created_at": record.created_at.isoformat(),
                 "expires_at": record.expires_at.isoformat() if record.expires_at else None,
-            })
+            }, record))
     items = []
     if plans.exists():
         paths = sorted(plans.glob("planner-plan.*.json"), key=lambda value: value.stat().st_mtime, reverse=True)
@@ -1672,11 +1899,25 @@ def interface_saved_plan_inventory(
             digest = plan_sha256(result.plan)
             if path.name != f"planner-plan.{digest}.json":
                 raise InterfaceApiError("saved plan filename does not match its digest")
+            required_steps = [step.step_id for step in result.plan.steps if step.requires_approval]
+            linked_approvals = []
+            for summary, record in approval_by_plan.get(digest, []):
+                verification = verify_approval(
+                    approval=record,
+                    plan=result.plan,
+                    required_step_ids=required_steps,
+                    now=now,
+                )
+                linked_approvals.append({
+                    **summary,
+                    "authority_link": "verified" if verification.approved else "blocked",
+                    "authority_reason": verification.reason,
+                })
             items.append({
                 "plan_filename": path.name, "plan_sha256": digest,
                 "saved_at": datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(),
                 "planner_result": result.model_dump(mode="json"),
-                "approvals": approval_by_plan.get(digest, []),
+                "approvals": linked_approvals,
             })
     return {"schema_version": "1.0", "status": "inspected", "plans": items, "plan_count": len(items), "files_modified": False, "execution_performed": False}
 def compile_interface_recipe_proposal(
@@ -1747,13 +1988,32 @@ def interface_saved_recipe_inventory(
     *,
     project_root: Path,
     recipe_root: Path | None = None,
+    approval_root: Path | None = None,
+    plan_root: Path | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Return bounded safe summaries of immutable stored recipes."""
 
     root = _trusted_root(project_root)
     destination = recipe_root if recipe_root is not None else root / "workflow-recipes"
-    if destination.is_symlink():
-        raise InterfaceApiError("recipe root cannot be a symlink")
+    approvals = approval_root if approval_root is not None else root / "approvals"
+    plans = plan_root if plan_root is not None else root / "plans"
+    if destination.is_symlink() or (destination.exists() and not destination.is_dir()):
+        raise InterfaceApiError("recipe root is unsafe")
+    if approvals.is_symlink() or (approvals.exists() and not approvals.is_dir()):
+        raise InterfaceApiError("approval root is unsafe")
+    if plans.is_symlink() or (plans.exists() and not plans.is_dir()):
+        raise InterfaceApiError("plan root is unsafe")
+    approval_by_recipe: dict[str, list[tuple[Path, Any]]] = {}
+    if approvals.exists():
+        approval_paths = sorted(approvals.glob("recipe-approval-*.json"))
+        if len(approval_paths) > MAX_INTERFACE_PLAN_APPROVALS:
+            raise InterfaceApiError("recipe approval inventory exceeds its limit")
+        for approval_path in approval_paths:
+            if approval_path.is_symlink():
+                raise InterfaceApiError("approval inventory contains an unsafe artifact")
+            record = load_recipe_approval(approval_path, approval_root=approvals)
+            approval_by_recipe.setdefault(record.recipe_sha256, []).append((approval_path, record))
     if not destination.exists():
         recipes: list[dict[str, Any]] = []
     else:
@@ -1767,20 +2027,68 @@ def interface_saved_recipe_inventory(
                 raise InterfaceApiError("recipe inventory contains an unsafe artifact")
             recipe = load_recipe(path, recipe_root=destination)
             policy = validate_recipe_policy(recipe, registry=registry)
+            digest = recipe_sha256(recipe)
+            plan_match = "unavailable"
+            matched_plan_digest: str | None = None
+            plan_match_reason = "No exact saved Planner definition found"
+            planner_id = re.fullmatch(r"planner-([a-f0-9]{16})", recipe.recipe_id)
+            if planner_id and plans.is_dir():
+                plan_paths = list(plans.glob(f"planner-plan.{planner_id.group(1)}*.json"))
+                if len(plan_paths) > MAX_INTERFACE_PLANS:
+                    raise InterfaceApiError("matching Planner inventory exceeds its limit")
+                matches = []
+                for plan_path in plan_paths:
+                    if plan_path.is_symlink():
+                        raise InterfaceApiError("matching Planner artifact is unsafe")
+                    planner_result = load_planner_result(path=plan_path, plan_root=plans)
+                    plan_digest = plan_sha256(planner_result.plan)
+                    if plan_path.name != f"planner-plan.{plan_digest}.json":
+                        raise InterfaceApiError("matching Planner filename is invalid")
+                    try:
+                        reconstructed = _planner_recipe_definition(planner_result, plan_digest)
+                    except (InterfaceApiError, ValidationError):
+                        continue
+                    if recipe_sha256(reconstructed) == digest:
+                        matches.append(plan_digest)
+                if len(matches) == 1:
+                    plan_match, matched_plan_digest = "verified", matches[0]
+                    plan_match_reason = "Canonical recipe definition matches the saved Planner result"
+                elif plan_paths:
+                    plan_match = "blocked"
+                    plan_match_reason = "No unique exact Planner definition matches this recipe"
+            linked_approvals = []
+            for approval_path, record in approval_by_recipe.get(digest, []):
+                verification = verify_recipe_approval(
+                    approval=record, recipe=recipe, registry=registry, now=now,
+                )
+                linked_approvals.append({
+                    "approval_id": record.approval_id,
+                    "approval_filename": approval_path.name,
+                    "decision": record.decision,
+                    "step_ids": record.step_ids,
+                    "created_at": record.created_at.isoformat(),
+                    "expires_at": record.expires_at.isoformat() if record.expires_at else None,
+                    "authority_link": "verified" if verification.approved else "blocked",
+                    "authority_reason": verification.reason,
+                })
             recipes.append({
                 "recipe_id": recipe.recipe_id,
-                "recipe_sha256": recipe_sha256(recipe),
+                "recipe_sha256": digest,
                 "recipe_filename": path.name,
+                "matching_plan_sha256": matched_plan_digest,
+                "plan_definition_link": plan_match,
+                "plan_definition_reason": plan_match_reason,
                 "saved_at": datetime.fromtimestamp(
                     path.stat().st_mtime,
                     timezone.utc,
                 ).isoformat(),
                 "steps": [
-                    {"step_id": step.step_id, "skill_id": step.skill_id}
+                    {"step_id": step.step_id, "skill_id": step.skill_id, "depends_on": step.depends_on}
                     for step in recipe.steps
                 ],
                 "approval_required_step_ids": policy.approval_required_step_ids,
                 "validation_required_step_ids": policy.validation_required_step_ids,
+                "approvals": linked_approvals,
             })
     return {
         "schema_version": "1.0",
@@ -2263,6 +2571,8 @@ def execute_interface_recipe(
             "recipe_id": envelope.recipe_id,
             "recipe_filename": request.recipe_filename,
             "recipe_sha256": envelope.recipe_sha256,
+            "approval_id": envelope.approval_id,
+            "approval_filename": request.approval_filename,
             "started_at": datetime.now(timezone.utc).isoformat(),
             "finished_at": None,
             "failed_step_id": None,
@@ -2335,6 +2645,8 @@ def execute_interface_recipe(
         state["finished_at"] = datetime.now(timezone.utc).isoformat()
         state["failed_step_id"] = getattr(result.run_result, "failed_step_id", None)
         state["execution_performed"] = True
+        state["run_result_sha256"] = result.execution_record.run_result_sha256
+        state["evidence_sha256"] = result.execution_record.evidence_sha256
         final_snapshot = json.loads(json.dumps(state))
     _persist_execution_progress(root, final_snapshot, progress_root=progress_root)
     record = result.execution_record
