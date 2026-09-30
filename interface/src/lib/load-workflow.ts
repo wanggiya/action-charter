@@ -15,7 +15,9 @@ async function boundedJson(path: string): Promise<unknown> {
 export async function loadWorkflowProjection(fallback: Workflow, taskId?: string): Promise<Workflow> {
   const safeId = taskId && /^[a-z0-9][a-z0-9_-]{0,80}$/.test(taskId) ? taskId : undefined;
   try {
-    return workflowSchema.parse(await boundedJson(safeId ? `/runtime/${safeId}.json` : "/runtime/workflow.json"));
+    const projection = workflowSchema.parse(await boundedJson(safeId ? `/runtime/${safeId}.json` : "/runtime/workflow.json"));
+    if (projection.source && projection.source !== "validated_trace") throw new Error("runtime projection source is invalid");
+    return projection;
   } catch (error) {
     if (safeId) throw new Error("selected runtime projection is unavailable or invalid", { cause: error });
     return fallback;

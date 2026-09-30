@@ -918,9 +918,13 @@ an explicit Checkpoint 22 integration requirement, not a claim of current UX.
 
 ### Checkpoint 20 — automatic authority-chain projection
 
-- [ ] Compare artifact identities and digests server-side.
-- [ ] Connect matching authority and evidence automatically in the graph.
-- [ ] Emphasize hashes only for mismatch, audit, export, or expert inspection.
+- [x] Verify plan-to-decision relationships server-side and display blocked
+  records distinctly in the saved-plan inventory.
+- [x] Compare bounded canonical authority, result, trace, Critic, and release identities and digests server-side.
+- [x] Connect only verified relationships in read-only local flow graphs.
+- [x] Move routine digest display into expandable audit details.
+
+Physical output freshness checks and a simplified task-level decision flow are later work; stored output digests are presented as recorded evidence.
 
 ### Checkpoint 21 — governed task history
 
@@ -952,3 +956,13 @@ an explicit Checkpoint 22 integration requirement, not a claim of current UX.
   comprehension against manual work and a general coding agent (Checkpoint 25).
 - [ ] Include the current multi-screen interface as a baseline and measure
   whether the post-history path reduces operator actions and elapsed time.
+
+Checkpoint 20 recipe decision linkage: read-only saved recipe inventory independently verifies exact recipe approvals; execution and evidence graph linkage remains open.
+Checkpoint 20 execution linkage: run-start recipe and approval identity verification is implemented for new interface attempts; authoritative result and evidence joins remain open.
+Checkpoint 20 result linkage: exact persisted recipe result and evidence relationship now checked for new interface attempts; output artifact, Critic, and release joins remain open.
+Checkpoint 20 Critic candidate relationship: exact run-to-trace preview linkage is implemented; recorded Critic result and release joins remain open.
+
+Checkpoint 20 graph source navigation: local saved plans, recipes, and durable attempts appear as separate read-only graph sources beside exported traces. Richer verified relationships and simplified end-user journey remain future work.
+Checkpoint 20 Critic record linkage: the read-only Assurance inventory now verifies exact stored Critic records against current trace/report evidence; release linkage remains open.
+Checkpoint 20 release linkage: read-only Assurance now connects an exact verified Critic record plus current trace/report references to a verified immutable release package; full artifact lineage remains open.
+Checkpoint 20 recorded artifact graph: verified recipe evidence now exposes bounded output references and recorded producer steps, while fresh physical output verification remains open.

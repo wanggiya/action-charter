@@ -129,6 +129,39 @@ def proposal_payload() -> dict[str, object]:
     return json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
 
 
+def test_critic_progress_link_requires_exact_unambiguous_evidence(tmp_path: Path) -> None:
+    exact_path = tmp_path / ("a" * 64 + ".json")
+    stale_path = tmp_path / ("b" * 64 + ".json")
+    identity = {
+        "recipe_id": "shared_recipe",
+        "recipe_sha256": "c" * 64,
+        "approval_id": "recipe-approval-20260927t160000z-abcdef12",
+        "approval_filename": "recipe-approval-20260927t160000z-abcdef12.json",
+        "evidence_sha256": "d" * 64,
+        "run_result_sha256": "e" * 64,
+        "status": "validated_success",
+        "execution_performed": True,
+        "execution_preview_sha256": exact_path.stem,
+    }
+    stale = {**identity, "evidence_sha256": "f" * 64,
+             "execution_preview_sha256": stale_path.stem}
+    args = dict(recipe_id=identity["recipe_id"], recipe_digest=identity["recipe_sha256"],
+                approval_id=identity["approval_id"], evidence_digest=identity["evidence_sha256"],
+                result_digest=identity["run_result_sha256"], final_status=identity["status"])
+    assert interface_api_module._exact_recipe_progress(
+        [(stale_path, stale), (exact_path, identity)], **args,
+    )[0] == exact_path
+    with pytest.raises(interface_api_module.RecipeTraceAdapterError, match="unavailable or ambiguous"):
+        interface_api_module._exact_recipe_progress([(stale_path, stale)], **args)
+    with pytest.raises(interface_api_module.RecipeTraceAdapterError, match="unavailable or ambiguous"):
+        interface_api_module._exact_recipe_progress(
+            [(exact_path, identity), (exact_path, identity)], **args,
+        )
+    forged = {**identity, "execution_preview_sha256": stale_path.stem}
+    with pytest.raises(interface_api_module.RecipeTraceAdapterError, match="unavailable or ambiguous"):
+        interface_api_module._exact_recipe_progress([(exact_path, forged)], **args)
+
+
 def test_critic_evidence_inventory_is_read_only_and_model_free(tmp_path: Path) -> None:
     trace = write_critic_fixture(tmp_path)
     result = interface_critic_evidence_inventory(tmp_path)
@@ -144,6 +177,21 @@ def test_critic_evidence_inventory_is_read_only_and_model_free(tmp_path: Path) -
     assert item["available"] is True
     assert item["evidence"]["task_id"] == trace.task_id
     assert len(item["evidence"]["evidence_references"]) == 2
+
+
+def test_stored_trace_pair_requires_exact_trace_and_report(tmp_path: Path) -> None:
+    trace = write_critic_fixture(tmp_path)
+    report = tmp_path / "reports" / f"{trace.task_id}.md"
+    exact_report = report.read_text(encoding="utf-8")
+    assert interface_api_module._stored_trace_pair_exact(tmp_path, trace, exact_report)
+    report.write_text(exact_report + "changed", encoding="utf-8")
+    assert not interface_api_module._stored_trace_pair_exact(tmp_path, trace, exact_report)
+    report.write_text(exact_report, encoding="utf-8")
+    trace_path = tmp_path / "traces" / f"{trace.task_id}.json"
+    trace_path.write_text(trace_path.read_text(encoding="utf-8").replace(
+        "Inspect the approved vector", "Inspect an unrelated vector",
+    ), encoding="utf-8")
+    assert not interface_api_module._stored_trace_pair_exact(tmp_path, trace, exact_report)
 
 
 def test_critic_evidence_inventory_reports_missing_matching_report(tmp_path: Path) -> None:
@@ -295,9 +343,11 @@ def test_interface_critic_rejects_stale_digest_before_model_call(
     assert called is False
 
 
-def test_interface_records_exact_critic_result_without_release(tmp_path: Path) -> None:
+def test_interface_records_exact_critic_result_without_release(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     write_critic_fixture(tmp_path)
     item = interface_critic_evidence_inventory(tmp_path)["items"][0]
+    assert item["critic_record_link"] == "unavailable"
+    assert item["critic_record_files"] == []
     evidence = item["evidence"]
     references = {
         Path(reference["path"]).name: reference["sha256"]
@@ -344,6 +394,24 @@ def test_interface_records_exact_critic_result_without_release(tmp_path: Path) -
     assert recorded["critic_result_recorded"] is True
     assert recorded["release_created"] is False
     assert recorded["execution_performed"] is False
+    linked = interface_critic_evidence_inventory(tmp_path)["items"][0]
+    assert linked["critic_record_link"] == "verified"
+    assert linked["critic_record_files"] == [recorded["record_file"]]
+    assert linked["release_link"] == "unavailable"
+    from types import SimpleNamespace
+    import hashlib
+    release_file = tmp_path / "releases" / "example.release" / "RELEASE.json"
+    release_file.parent.mkdir(parents=True)
+    release_file.write_text("fixture", encoding="utf-8")
+    component_digests = {reference["path"]: reference["sha256"] for reference in evidence["evidence_references"]}
+    component_digests[recorded["record_file"]] = hashlib.sha256(
+        (tmp_path / recorded["record_file"]).read_bytes()
+    ).hexdigest()
+    manifest = SimpleNamespace(components=[SimpleNamespace(path=path, sha256=digest) for path, digest in component_digests.items()])
+    monkeypatch.setattr(interface_api_module, "load_authoritative_release", lambda *_args, **_kwargs: manifest)
+    assert interface_critic_evidence_inventory(tmp_path)["items"][0]["release_link"] == "verified"
+    manifest.components[-1].sha256 = "0" * 64
+    assert interface_critic_evidence_inventory(tmp_path)["items"][0]["release_link"] == "unavailable"
 
     with pytest.raises(InterfaceApiError, match="digest no longer matches"):
         record_interface_critic_result(
@@ -485,6 +553,34 @@ def reviewed_write_plan_request() -> InterfaceReviewedPlanSaveRequest:
     )
 
 
+def test_recipe_inventory_links_only_exact_saved_planner_definition(tmp_path: Path) -> None:
+    from geoagent_harness.recipes.storage import save_recipe
+
+    request = reviewed_write_plan_request()
+    plan_root = tmp_path / "plans"
+    recipe_root = tmp_path / "workflow-recipes"
+    stored = save_interface_reviewed_plan(request, project_root=PROJECT_ROOT, plan_root=plan_root)
+    recipe = interface_api_module._planner_recipe_definition(
+        request.planner_result, stored["plan_sha256"],
+    )
+    save_recipe(recipe, recipe_root=recipe_root)
+    inventory = interface_saved_recipe_inventory(
+        project_root=PROJECT_ROOT, recipe_root=recipe_root, plan_root=plan_root,
+    )
+    exact = inventory["recipes"][0]
+    assert exact["plan_definition_link"] == "verified"
+    assert exact["matching_plan_sha256"] == stored["plan_sha256"]
+
+    changed = recipe.model_copy(update={"summary": "A different recipe definition"})
+    save_recipe(changed, recipe_root=recipe_root)
+    inventory = interface_saved_recipe_inventory(
+        project_root=PROJECT_ROOT, recipe_root=recipe_root, plan_root=plan_root,
+    )
+    links = {item["recipe_sha256"]: item["plan_definition_link"] for item in inventory["recipes"]}
+    assert links[interface_api_module.recipe_sha256(recipe)] == "verified"
+    assert links[interface_api_module.recipe_sha256(changed)] == "blocked"
+
+
 def reviewed_postgis_plan_request() -> InterfaceReviewedPlanSaveRequest:
     payload = reviewed_plan_request().planner_result.model_dump(mode="json")
     payload["original_request"] = "Load and validate the approved vector in PostGIS. Plan only."
@@ -538,6 +634,48 @@ def reviewed_postgis_plan_request() -> InterfaceReviewedPlanSaveRequest:
         ],
         planner_result=result,
     )
+
+
+def test_saved_plan_inventory_projects_verified_and_expired_links(tmp_path: Path) -> None:
+    request = reviewed_write_plan_request()
+    plan_root = tmp_path / "plans"
+    approval_root = tmp_path / "approvals"
+    stored = save_interface_reviewed_plan(
+        request, project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    prepared = prepare_interface_plan_approval(
+        InterfacePlanApprovalPreparationRequest(
+            action="prepare_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+        ),
+        project_root=PROJECT_ROOT, plan_root=plan_root,
+    )
+    created = datetime(2026, 9, 27, 12, tzinfo=timezone.utc)
+    record_interface_plan_approval(
+        InterfacePlanApprovalDecisionRequest(
+            action="record_plan_approval",
+            plan_filename=stored["plan_filename"],
+            confirmed_plan_sha256=stored["plan_sha256"],
+            confirmed_approval_request_sha256=prepared["approval_request_sha256"],
+            decision="approved", approver="test operator", reason="Reviewed exact scope.",
+            valid_for_minutes=60,
+        ),
+        project_root=PROJECT_ROOT, plan_root=plan_root,
+        approval_root=approval_root, now=created,
+    )
+    active = interface_saved_plan_inventory(
+        PROJECT_ROOT, plan_root=plan_root, approval_root=approval_root,
+        now=datetime(2026, 9, 27, 12, 1, tzinfo=timezone.utc),
+    )["plans"][0]["approvals"][0]
+    assert active["authority_link"] == "verified"
+    assert active["authority_reason"] == "exact plan and required steps are approved"
+    expired = interface_saved_plan_inventory(
+        PROJECT_ROOT, plan_root=plan_root, approval_root=approval_root,
+        now=datetime(2026, 9, 27, 13, 1, tzinfo=timezone.utc),
+    )["plans"][0]["approvals"][0]
+    assert expired["authority_link"] == "blocked"
+    assert expired["authority_reason"] == "approval has expired"
 
 
 def test_verified_postgis_plan_compiles_into_governed_recipe(tmp_path: Path) -> None:
@@ -1006,6 +1144,9 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
         "inspect_vector",
         "convert_vector",
     ]
+    assert [step["depends_on"] for step in inventory["recipes"][0]["steps"]] == [
+        [], ["step_1"],
+    ]
 
     approval_request = prepare_interface_recipe_approval(
         recipe_filename=stored["recipe_filename"],
@@ -1053,6 +1194,17 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
     assert [path.name for path in approval_root.iterdir()] == [
         recorded["approval_filename"]
     ]
+
+    linked = interface_saved_recipe_inventory(
+        project_root=PROJECT_ROOT, recipe_root=recipe_root,
+        approval_root=approval_root,
+        now=datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc),
+    )["recipes"][0]["approvals"]
+    assert len(linked) == 1
+    assert linked[0]["approval_id"] == recorded["approval_id"]
+    assert linked[0]["authority_link"] == "verified"
+    assert linked[0]["authority_reason"] == "approval matches the exact recipe and complete write-step scope"
+    assert len(list(approval_root.iterdir())) == 1
 
     verification = verify_interface_recipe_approval(
         InterfaceApprovalVerificationRequest.model_validate({
@@ -1382,12 +1534,118 @@ def test_execution_inventory_reopens_durable_attempts_without_execution(
         "recipe_id": "inventory_recipe",
         "recipe_filename": f"inventory_recipe.{('d' * 64)}.json",
         "recipe_sha256": "d" * 64,
+        "approval_id": None,
+        "authority_link": "unavailable",
+        "authority_reason": "Legacy attempt has no recorded approval identity",
+        "result_link": "unavailable",
+        "result_reason": "This attempt has no recorded durable result and evidence digests",
+        "recorded_outputs": [],
+        "outputs_truncated": False,
         "started_at": state["started_at"],
         "finished_at": state["finished_at"],
         "failed_step_id": None,
         "interruption_detected": False,
         "step_count": 1,
     }
+
+
+def test_execution_inventory_checks_exact_recipe_authority_at_run_start(tmp_path: Path) -> None:
+    proposal = proposal_payload()
+    compilation = compile_interface_recipe_proposal(proposal, project_root=PROJECT_ROOT)
+    recipes = tmp_path / "workflow-recipes"
+    stored = save_interface_reviewed_recipe(
+        proposal, confirmed_recipe_sha256=compilation["recipe_sha256"],
+        project_root=PROJECT_ROOT, recipe_root=recipes,
+    )
+    prepared = prepare_interface_recipe_approval(
+        recipe_filename=stored["recipe_filename"],
+        confirmed_recipe_sha256=stored["recipe_sha256"],
+        project_root=PROJECT_ROOT, recipe_root=recipes,
+    )
+    approvals = tmp_path / "approvals"
+    start = datetime(2026, 9, 16, 12, 0, tzinfo=timezone.utc)
+    decision = InterfaceApprovalDecision.model_validate({
+        "action": "record_recipe_approval",
+        "recipe_filename": stored["recipe_filename"],
+        "confirmed_recipe_sha256": stored["recipe_sha256"],
+        "confirmed_approval_request_sha256": prepared["approval_request_sha256"],
+        "decision": "approved", "approver": "test operator",
+        "reason": "Reviewed exact scope", "valid_for_minutes": 60,
+    })
+    recorded = record_interface_recipe_approval(
+        decision, project_root=PROJECT_ROOT, recipe_root=recipes,
+        approval_root=approvals, now=start,
+    )
+    progress = tmp_path / "progress"
+    state = {
+        "schema_version": "1.0", "status": "validated_success",
+        "execution_preview_sha256": "e" * 64,
+        "recipe_id": stored["recipe_id"],
+        "recipe_filename": stored["recipe_filename"],
+        "recipe_sha256": stored["recipe_sha256"],
+        "approval_id": recorded["approval_id"],
+        "approval_filename": recorded["approval_filename"],
+        "started_at": datetime(2026, 9, 16, 12, 1, tzinfo=timezone.utc).isoformat(),
+        "finished_at": datetime(2026, 9, 16, 12, 2, tzinfo=timezone.utc).isoformat(),
+        "failed_step_id": None, "steps": [{"step_id": "step_1", "skill_id": "inspect_vector", "status": "completed"}],
+        "execution_performed": True,
+    }
+    interface_api_module._persist_execution_progress(PROJECT_ROOT, state, progress_root=progress)
+    linked = interface_execution_inventory(PROJECT_ROOT, progress_root=progress, recipe_root=recipes, approval_root=approvals)
+    assert linked["attempts"][0]["authority_link"] == "verified"
+    assert linked["attempts"][0]["approval_id"] == recorded["approval_id"]
+    from geoagent_harness.recipes import (
+        write_recipe_evidence, write_recipe_run_result,
+        recipe_evidence_sha256, recipe_run_result_sha256,
+    )
+    from tests.test_recipe_evidence_schemas import evidence as sample_evidence
+
+    sample = sample_evidence()
+    run_result = sample.run_result.model_copy(update={
+        "recipe_id": stored["recipe_id"],
+        "recipe_sha256": stored["recipe_sha256"],
+        "approval_id": recorded["approval_id"],
+    })
+    evidence = sample.model_copy(update={
+        "recipe_id": stored["recipe_id"],
+        "recipe_sha256": stored["recipe_sha256"],
+        "approval_id": recorded["approval_id"],
+        "run_result": run_result,
+    })
+    results_root = tmp_path / "recipe-runs"
+    evidence_root = tmp_path / "recipe-evidence"
+    write_recipe_run_result(run_result, result_root=results_root)
+    evidence_path = write_recipe_evidence(evidence, evidence_root=evidence_root)
+    state["run_result_sha256"] = recipe_run_result_sha256(run_result)
+    state["evidence_sha256"] = recipe_evidence_sha256(evidence)
+    interface_api_module._persist_execution_progress(PROJECT_ROOT, state, progress_root=progress)
+    exact = interface_execution_inventory(
+        PROJECT_ROOT, progress_root=progress, recipe_root=recipes,
+        approval_root=approvals, result_root=results_root, evidence_root=evidence_root,
+    )
+    assert exact["attempts"][0]["result_link"] == "verified"
+    assert exact["attempts"][0]["recorded_outputs"] == [
+        {"artifact_id": item.artifact_id, "path": item.path, "sha256": item.sha256,
+         "producer_step_id": item.producer_step_id}
+        for item in evidence.artifacts if item.role.value == "output"
+    ][:20]
+    evidence_path.write_text(evidence_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    # Whitespace does not change the canonical digest, so tamper with a validated field.
+    payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+    payload["warnings"].append("tampered")
+    evidence_path.write_text(json.dumps(payload), encoding="utf-8")
+    tampered = interface_execution_inventory(
+        PROJECT_ROOT, progress_root=progress, recipe_root=recipes,
+        approval_root=approvals, result_root=results_root, evidence_root=evidence_root,
+    )
+    assert tampered["attempts"][0]["result_link"] == "blocked"
+    assert tampered["attempts"][0]["recorded_outputs"] == []
+
+    state["recipe_sha256"] = "f" * 64
+    interface_api_module._persist_execution_progress(PROJECT_ROOT, state, progress_root=progress)
+    blocked = interface_execution_inventory(PROJECT_ROOT, progress_root=progress, recipe_root=recipes, approval_root=approvals)
+    assert blocked["attempts"][0]["authority_link"] == "blocked"
+    assert "does not match" in blocked["attempts"][0]["authority_reason"]
 
 
 def test_interface_server_refuses_non_loopback_binding() -> None:

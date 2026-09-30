@@ -17,7 +17,7 @@ the resulting state, and preserves tamper-evident evidence.
 > **Models propose; deterministic software authorizes, executes, validates,
 > and records evidence.**
 
-The default interface now starts with **Plan → Review graph → Run → Check
+The default interface now starts with **Plan → Flow graph → Run → Check
 outcome**. Run opens the saved recipe chooser when no recipe is active;
 planning alone does not authorize execution. Advanced reveals templates,
 recipes, run inventory, Assurance, draft graph editing, and the trace selector.
@@ -81,7 +81,7 @@ identified and corrected a Planner-to-recipe gap for the established
 inspect/load/validate/report PostGIS sequence. Repeating the same exact
 Snakemake export now revalidates the existing package rather than failing as a
 duplicate. The default Checkpoint 18 experience will simplify the visible path
-to **Plan → Review graph → Run → Check outcome**, while recipes, raw digests,
+to **Plan → Flow graph → Run → Check outcome**, while recipes, raw digests,
 release composition, Snakemake, skills, and infrastructure move into an
 Advanced workspace. See `context/CHECKPOINT18_DIRECTION.md`.
 
@@ -682,3 +682,7 @@ ActionCharter was created by **Jay Qi**. Citation metadata is available in
 
 Copyright 2026 Jay Qi. Licensed under the Apache License, Version 2.0. See
 [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+The **Flow graph** source selector can load local saved plans, saved recipes, and durable runs through the interface API. Use **Refresh** to update the list; exported traces remain a separate, manually prepared source. Graph selection only inspects evidence and does not approve or run work. See `docs/CHECKPOINT20.md`.
+
+Checkpoint 20 adds a read-only flow graph of verified plan, recipe, decision, execution and evidence relationships. A missing, expired or mismatched record does not gain a connection. Recorded output hashes are historical evidence rather than a fresh check of the physical file. See [Checkpoint 20](docs/CHECKPOINT20.md) for the relationship rules and acceptance steps.

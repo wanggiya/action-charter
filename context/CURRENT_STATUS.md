@@ -2175,3 +2175,28 @@ attempt inventory dominate the default experience. The post-history target is
 one task review beside the graph, one explicit consequential decision, a
 deliberate Run action, and the current outcome, with details and history on
 demand. See `context/POST_HISTORY_INTERFACE.md`.
+
+## Checkpoint 20 — first verified authority relationship
+
+The saved-plan inventory now independently verifies each associated plan
+decision against the exact loaded plan, required steps, decision, and current
+expiry. The UI identifies verified versus blocked records in the saved-plan
+list and exposes the reason. This read-only projection does not authorize or
+execute anything. Recipe, run, Critic, and release relationships are not yet
+projected; see `docs/CHECKPOINT20.md`.
+
+Checkpoint 20 recipe authority slice: saved recipe inventory rechecks recorded recipe decisions against canonical digest, required approval scope, decision, and expiry. The browser presents verified or blocked links read-only. Full execution and evidence relationships remain future work.
+Checkpoint 20 execution authority slice: new durable interface attempts record exact approval identity; the run browser checks the stored recipe and decision at the recorded start time. Legacy attempts without that identity remain unlinked. Run result, validation evidence, Critic, and release graph relationships remain open.
+Checkpoint 20 result slice: new completed interface attempts store canonical result and evidence digests; read-only run inventory verifies both files and their nested identity against the authorized attempt. Legacy attempts stay unlinked. Large output artifact hashes, Critic, and release relationships remain future work.
+Checkpoint 20 Critic candidate slice: candidate adaptation requires unique exact recipe, approval, run-result, evidence, status, and progress identity; matching candidates can reopen their run graph. Critic result and release joins remain open.
+
+Checkpoint 20 local graph sources: Flow graph now lists saved plans, saved recipes, and durable runs from the interface API alongside manually exported traces. Selection is read-only; recipe dependency edges reflect stored declarations and run statuses reflect persisted progress.
+Checkpoint 20 graph authority connections: stored recipe and durable run views omit approval-to-execution edges without verified authority; run result edges require independently verified exact result and evidence. No new approval or execution authority was introduced.
+Checkpoint 20 Critic record slice: Assurance independently loads bounded canonical Critic result packages and shows an exact link only when task, status, evidence references, gaps, warnings, and human corrections match fresh trace/report evidence. Release relationships remain open.
+Checkpoint 20 release slice: Assurance scans a bounded set of immutable releases through the existing package verifier and links only exact Critic, trace, and report component paths and digests to the current evidence. The full cross-artifact graph and output artifact lineage remain future work.
+Checkpoint 20 recorded output graph: independently verified recipe evidence projects up to 20 output references and producer-step relationships into the durable run graph. Physical output files are not rehashed on view.
+Checkpoint 20 graph labels: local plan/recipe/run projections have distinct source identities, active workflows are not labeled durable runs, and runtime JSON remains restricted to validated traces.
+Checkpoint 20 viewport fix: graph header growth no longer clips the timeline; the selector explains that Current workflow requires an open recipe and keeps a current unsaved plan selectable.
+Checkpoint 20 responsive header: wide screens place Plan, Flow graph, Run, and Check outcome inside the top bar; narrow screens retain the second row. The redundant local-workspace line is removed.
+
+Checkpoint 20 completion: saved Planner definitions link to recipe definitions only through exact canonical reconstruction, and durable-run graphs show trace/report, Critic and release blocks only after bounded independent evidence checks. Output artifacts show recorded digests, not a fresh physical-file verification. See `docs/CHECKPOINT20.md`.

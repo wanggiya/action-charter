@@ -167,6 +167,7 @@
 .snakemake-existing-notice{padding:11px!important;border:1px solid #366b78!important;border-left:4px solid #22d3ee!important;border-radius:6px;color:#d7f8ff!important;background:#15333b!important;font-size:10px!important;font-weight:750}
 
 /* Checkpoint 19: keep the task journey visible and move expert controls aside. */
+.plan-authority-link{display:inline-block;padding:3px 6px;border:1px solid #4c5e71;border-radius:4px;color:#bdcbd9;background:#26313d;font-size:9px;line-height:1.3}.plan-authority-link.verified{border-color:#3b8158;color:#9de8b6;background:#173225}.plan-authority-link.blocked{border-color:#9b5348;color:#ffc0b5;background:#3a2322}
 .flow-stage{grid-template-rows:auto minmax(380px,1fr) 116px}.timeline{display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px}.timeline-scroll{display:block;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#5b7897 #17202a}.timeline-content{width:max-content;box-sizing:content-box;padding-right:32px;padding-bottom:6px}.timeline-title{align-items:center}.timeline-title>span{flex:0 0 auto}.timeline-navigation{display:flex;flex:0 0 auto;gap:4px;margin-left:auto}.timeline-navigation button{display:grid;width:25px;height:24px;place-items:center;border:1px solid #4b6074;border-radius:5px;color:#c7d9e8;background:#253342;cursor:pointer}.timeline-navigation button:hover{border-color:#60a5fa;color:#fff}@media(max-width:680px){.flow-stage{grid-template-rows:auto minmax(430px,1fr) 120px}.timeline-title small{display:none}}
 .workspace,.flow-stage,.canvas-frame,.timeline,.timeline-scroll{min-width:0;max-width:100%}.flow-stage{box-sizing:border-box}.canvas-frame{isolation:isolate}.timeline{box-sizing:border-box;overflow:hidden}.timeline-scroll{box-sizing:border-box;width:100%;overscroll-behavior-x:contain}.timeline-title{min-width:0;gap:12px}.timeline-title small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.minimap{right:12px;left:auto;box-sizing:border-box}.draggable-overlay{transition:none!important;contain:layout style}.draggable-overlay.is-dragging{backdrop-filter:none;cursor:grabbing;box-shadow:0 10px 25px #0009}
 .planner-next-action{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 15px;border:1px solid #587295;border-left:4px solid #60a5fa;border-radius:8px;background:#1a2b3e;box-shadow:0 7px 22px #0008}.planner-next-action span{display:grid;gap:3px;min-width:0}.planner-next-action small{color:#8cb7df;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.planner-next-action strong{color:#e5f2ff;font-size:14px}.planner-next-action em{color:#bacbdc;font-size:11px;font-style:normal;line-height:1.35}.planner-next-action button{display:flex;align-items:center;gap:5px;flex:0 0 auto;min-height:34px;padding:0 10px;border:1px solid #5792c8;border-radius:6px;color:#edf7ff;background:#254d73;cursor:pointer;font-size:11px;font-weight:750}.planner-next-action button:hover{background:#32618e}.planner-result,.planner-stored,.planner-decision,.planner-verification,.planner-recipe-bridge,.compiled-plan-recipe,.saved-plan-recipe{scroll-margin-top:110px}@media(max-width:680px){.planner-next-action{align-items:flex-start;flex-direction:column}.planner-next-action button{align-self:flex-end}}
@@ -180,9 +181,51 @@
 .journey-step:hover{border-color:#617a94;color:#e8eef5}.journey-step.active{border-color:#4e95de;color:#eef6ff;background:#19324c;box-shadow:inset 3px 0 #60a5fa}
 .journey-step>span:last-child{display:grid;min-width:0;gap:3px}.journey-step strong{overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.journey-step small{overflow:hidden;color:#91a3b4;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
 .journey-index{display:grid;width:26px;height:26px;flex:0 0 26px;place-items:center;border:1px solid #53677b;border-radius:50%;color:#bdcfe1;font-size:11px;font-weight:800}.journey-step.active .journey-index{border-color:#60a5fa;color:#dceeff;background:#234d73}
-.journey-notice{position:absolute;top:100%;left:50%;z-index:60;width:min(650px,calc(100vw - 24px));box-sizing:border-box;margin:7px 0 0;padding:11px 14px;transform:translateX(-50%);border:1px solid #9a7137;border-left:4px solid #f59e0b;border-radius:7px;color:#ffe1a6;background:#302619;box-shadow:0 12px 30px #0008;font-size:12px;line-height:1.4}
 .advanced-actions{display:flex;align-items:center;gap:8px;box-sizing:border-box;height:44px;padding:5px 20px;overflow-x:auto;border-bottom:1px solid #364355;background:#1b2531}
 .advanced-actions button{display:flex;align-items:center;flex:0 0 auto;gap:6px;min-height:31px;padding:0 10px;border:1px solid #3e546b;border-radius:6px;color:#c9d8e8;background:#253345;cursor:pointer;font-size:11px;font-weight:700}.advanced-actions button:hover{border-color:#60a5fa;color:#fff}
 .workspace{height:calc(100vh - var(--workspace-chrome))}.app-shell:not(.advanced-open) .workspace{grid-template-columns:minmax(0,1fr) 310px}.app-shell:not(.advanced-open) .rail{display:none}
 @media(max-width:1050px){.workspace{height:calc(100vh - var(--workspace-chrome));grid-template-rows:minmax(620px,calc(100vh - var(--workspace-chrome))) auto}.app-shell:not(.advanced-open) .workspace{grid-template-columns:minmax(0,1fr)}.app-shell:not(.advanced-open) .flow-stage,.app-shell:not(.advanced-open) .inspector{grid-column:1}.journey-step{gap:7px;padding:6px 8px}.journey-step small{display:none}}
 @media(max-width:680px){.topbar{gap:8px;padding:0 10px}.workspace-context{display:none}.journey-nav{height:74px;padding:8px}.journey-steps{gap:4px}.journey-step{justify-content:center;flex-direction:column;gap:3px;padding:4px 2px;text-align:center}.journey-step strong{font-size:10px}.journey-index{width:21px;height:21px;flex-basis:21px;font-size:9px}.advanced-actions{padding:5px 9px}.workspace{height:calc(100vh - var(--workspace-chrome))}.app-shell{--workspace-chrome:138px}.app-shell.advanced-open{--workspace-chrome:182px}.top-actions{gap:5px}.top-actions .safe-mode,.top-actions .resume-governed-run{display:none}.brand{gap:6px;font-size:14px}}
+
+.recipe-authority{display:flex;flex-wrap:wrap;gap:6px}.recipe-authority span{max-width:100%;overflow:hidden;padding:6px 8px;border:1px solid #425064;border-radius:5px;color:#cbd6e4;background:#202935;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.recipe-authority .verified{border-color:#386f58;color:#a7e4c1;background:#1d3329}.recipe-authority .blocked{border-color:#916043;color:#ffd0ac;background:#382921}.recipe-authority .unrecorded{color:#aeb9c5}
+
+.execution-authority{margin:0;padding:7px 9px;border:1px solid #49576b;border-radius:6px;color:#cbd6e4;background:#202935;font-size:11px;line-height:1.4}.execution-authority.verified{border-color:#386f58;color:#a7e4c1;background:#1d3329}.execution-authority.blocked{border-color:#916043;color:#ffd0ac;background:#382921}
+
+.linked-run-button{justify-self:start;padding:8px 10px;border:1px solid #427a91;border-radius:6px;color:#b9e9f5;background:#1d3340;cursor:pointer;font-size:11px;font-weight:700}.linked-run-button:hover{border-color:#67c5dc;background:#244251}
+
+.advanced-actions button[aria-current="page"]{border-color:#5fa9c2;color:#d3f3ff;background:#224052}
+
+.stage-heading{align-items:start;gap:12px;flex-wrap:wrap}.stage-heading>div:first-child{min-width:0;flex:1 1 220px}.stage-heading-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;min-width:0;max-width:100%}.graph-source-picker{display:grid;gap:5px;min-width:210px;max-width:min(360px,100%);color:#aebac8;font-size:11px;font-weight:700}.graph-source-picker select{width:100%;min-height:34px;padding:6px 9px;border:1px solid #507895;border-radius:7px;color:#e5f3ff;background:#1c3041;font:600 12px/1.3 "IBM Plex Sans",Inter,Arial,sans-serif;cursor:pointer}.graph-source-picker select:disabled{border-color:#4a5662;color:#b8c2cb;cursor:not-allowed}.graph-source-hint{max-width:240px;color:#aeb9c5;font-size:10px;line-height:1.3}.stage-heading-actions .stage-meta{align-self:center;flex-wrap:wrap;gap:8px}.stage-heading-actions .stage-meta span{white-space:nowrap}@media(max-width:680px){.stage-heading-actions{justify-content:flex-start;width:100%}.graph-source-picker{width:100%;max-width:none}.stage-heading-actions .stage-meta{font-size:10px}.flow-stage{grid-template-rows:auto minmax(430px,1fr) 96px}}
+
+.graph-source-refresh{display:flex;align-items:center;gap:5px;align-self:end;min-height:34px;padding:0 9px;border:1px solid #48657d;border-radius:7px;color:#cde6f4;background:#223747;cursor:pointer;font-size:11px;font-weight:700}.graph-source-refresh:hover{border-color:#73b8d0;background:#29475b}.graph-source-refresh:disabled{opacity:.55;cursor:not-allowed}@media(max-width:680px){.graph-source-refresh{align-self:end}}
+
+/* Keep graph header growth from clipping the timeline on short and narrow windows. */
+.workspace{overflow-y:auto;overscroll-behavior-y:contain}
+.flow-stage{min-height:620px;overflow:visible;grid-template-rows:auto minmax(280px,1fr) 116px}
+@media(max-width:1050px){.workspace{grid-template-rows:auto auto}.flow-stage{min-height:620px}}
+@media(max-width:680px){.flow-stage{min-height:690px;grid-template-rows:auto minmax(360px,1fr) 120px}}
+
+/* Keep one journey navigation; place it in the top bar when there is room. */
+.app-shell{--workspace-chrome:64px}.app-shell.advanced-open{--workspace-chrome:108px}
+.topbar{grid-template-columns:auto minmax(0,1fr) auto;gap:16px}
+.topbar .journey-nav{justify-self:center;width:min(100%,800px);height:46px;padding:0;border:0;background:transparent}
+.topbar .journey-steps{max-width:none;height:100%;gap:7px}
+.topbar .journey-step{padding:5px 9px;gap:8px}
+.topbar .top-actions{min-width:0}
+@media(max-width:1450px){
+  .app-shell{--workspace-chrome:142px}.app-shell.advanced-open{--workspace-chrome:186px}
+  .topbar{height:142px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:64px 78px;gap:0 12px;padding:0 20px}
+  .topbar .brand{grid-column:1;grid-row:1}
+  .topbar .top-actions{grid-column:2;grid-row:1}
+  .topbar .journey-nav{grid-column:1/-1;grid-row:2;justify-self:stretch;width:calc(100% + 40px);max-width:none;height:78px;margin:0 -20px;padding:10px 20px;border-top:1px solid #34404d;border-bottom:1px solid #34404d;background:#171c24}
+  .topbar .journey-steps{max-width:1100px;height:100%;margin:auto}
+}
+@media(max-width:680px){
+  .app-shell{--workspace-chrome:138px}.app-shell.advanced-open{--workspace-chrome:182px}
+  .topbar{height:138px;grid-template-rows:64px 74px;padding:0 10px;gap:0 8px}
+  .topbar .journey-nav{width:calc(100% + 20px);height:74px;margin:0 -10px;padding:8px 10px}
+  .topbar .journey-steps{gap:4px}
+  .topbar .journey-step{justify-content:center;flex-direction:column;gap:3px;padding:4px 2px;text-align:center}
+}
+
+.graph-audit-identity{margin-top:6px;color:#9aa5b0;font-size:11px}.graph-audit-identity summary,.planner-plan-digest summary{cursor:pointer;list-style-position:inside}.graph-audit-identity code{display:block;margin-top:5px;color:#b8c4d0;overflow-wrap:anywhere}.planner-plan-digest{display:block}.planner-plan-digest summary{color:#a6c5af;font-size:10px;font-weight:700}.planner-plan-digest code{display:block;margin-top:6px;overflow-wrap:anywhere;white-space:normal}
