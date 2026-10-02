@@ -13,6 +13,7 @@ import tempfile
 from threading import Lock
 from typing import Any, Callable, Literal
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
@@ -31,6 +32,7 @@ from geoagent_harness.skill_registry import (
 )
 from geoagent_harness.redaction import redact_text, redact_value
 from geoagent_harness.context_pack import ContextPackError
+from geoagent_harness.task_history import TaskHistoryError, append_task_event, build_task_context, load_task_events, inspect_task_inventory, inspect_task_artifacts, attach_task_artifact, record_task_attempt_state
 from geoagent_harness.critic.evidence import (
     CriticEvidenceError,
     MAX_TRACE_BYTES,
@@ -225,6 +227,10 @@ def _load_execution_progress(
             payload,
             progress_root=progress_root,
         )
+    if payload.get("status") == "interrupted":
+        if not record_task_attempt_state(root=_trusted_root(project_root) / "task-history",
+                task_id=payload.get("task_id"), attempt_sha256=digest, state="interrupted"):
+            payload["task_history_warning"] = "Interrupted attempt is recorded in durable progress, but its task note could not be recorded"
     return payload
 
 
@@ -407,6 +413,20 @@ class InterfaceApiError(RuntimeError):
     """Raised when the bounded interface API cannot fulfill a request."""
 
 
+class InterfaceTaskEventRequest(BaseModel):
+    """History entry only; no approval or execution authority is conferred."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["record_task_event"]
+    task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
+    event_type: Literal["request", "clarification", "selection", "decision", "outcome", "failure", "artifact_reference"]
+    summary: str = Field(min_length=1, max_length=1000)
+    details: str = Field(default="", max_length=8000)
+    artifact_path: str | None = Field(default=None, max_length=240)
+    artifact_sha256: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+
 class InterfaceApprovalDecision(BaseModel):
     """Exact human decision accepted by the local interface boundary."""
 
@@ -451,6 +471,7 @@ class InterfaceRecipeExecutionRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
     action: Literal["execute_exact_preview"]
     recipe_filename: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
     confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -498,6 +519,7 @@ class InterfaceReviewedPlanSaveRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
     action: Literal["save_reviewed_plan"]
     confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
@@ -528,6 +550,7 @@ class InterfacePlanApprovalDecisionRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
     action: Literal["record_plan_approval"]
     plan_filename: str = Field(pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
     confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -565,6 +588,7 @@ class InterfacePlanRecipeCompilationRequest(InterfacePlanApprovalVerificationReq
 class InterfacePlanRecipeSaveRequest(InterfacePlanApprovalVerificationRequest):
     """Exact reviewed Planner-derived recipe selected for immutable storage."""
 
+    task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
     action: Literal["save_reviewed_plan_recipe"]
     confirmed_recipe_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
 
@@ -1756,34 +1780,11 @@ def compile_interface_plan_recipe(
 
 
 def _planner_recipe_definition(result: PlannerResult, plan_digest: str) -> WorkflowRecipe:
-    """Reconstruct the exact deterministic recipe definition without granting authority."""
-
-    supported_outputs = {
-        "inspect_vector": ["source_metadata"],
-        "convert_vector": ["converted_vector"],
-        "inspect_raster": ["raster_metadata"],
-        "convert_raster": ["converted_raster"],
-        "load_vector_to_postgis": ["postgis_load_result"],
-        "validate_postgis_layer": ["postgis_validation"],
-        "generate_report": ["workflow_report"],
-    }
-    unsupported = [step.skill for step in result.plan.steps if step.skill not in supported_outputs]
-    if unsupported:
-        raise InterfaceApiError("plan contains skills not supported by the governed recipe dispatcher: " + ", ".join(unsupported))
-    steps = [RecipeStep(
-        step_id=step.step_id,
-        skill_id=step.skill,
-        depends_on=[] if index == 0 else [result.plan.steps[index - 1].step_id],
-        arguments=step.arguments,
-        output_ids=supported_outputs[step.skill],
-    ) for index, step in enumerate(result.plan.steps)]
-    recipe = WorkflowRecipe(
-        recipe_id=f"planner-{plan_digest[:16]}",
-        summary=result.plan.summary,
-        original_request=result.original_request,
-        steps=steps,
-    )
-    return recipe
+    from geoagent_harness.planner.recipe_definition import planner_recipe_definition, PlannerRecipeDefinitionError
+    try:
+        return planner_recipe_definition(result, plan_digest)
+    except PlannerRecipeDefinitionError as exc:
+        raise InterfaceApiError(str(exc)) from exc
 
 
 def save_interface_plan_recipe(
@@ -2568,6 +2569,7 @@ def execute_interface_recipe(
             "schema_version": "1.0",
             "status": "running",
             "execution_preview_sha256": progress_key,
+            "task_id": request.task_id,
             "recipe_id": envelope.recipe_id,
             "recipe_filename": request.recipe_filename,
             "recipe_sha256": envelope.recipe_sha256,
@@ -2598,6 +2600,9 @@ def execute_interface_recipe(
             _ACTIVE_PROGRESS.discard(progress_key)
             _EXECUTION_PROGRESS.pop(progress_key, None)
         raise
+
+    record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
+                              attempt_sha256=progress_key, state="running")
 
     def progress_callback(step_id: str, skill_id: str, status: str) -> None:
         with _EXECUTION_LOCK:
@@ -2634,6 +2639,8 @@ def execute_interface_recipe(
             )
             failed_snapshot = json.loads(json.dumps(state))
         _persist_execution_progress(root, failed_snapshot, progress_root=progress_root)
+        record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
+                                  attempt_sha256=progress_key, state="failed")
         raise
     finally:
         with _EXECUTION_LOCK:
@@ -2680,10 +2687,47 @@ def execute_interface_recipe(
     }
 
 
+def record_interface_task_event(
+    request: InterfaceTaskEventRequest,
+    *,
+    project_root: Path,
+    task_root: Path | None = None,
+) -> dict[str, Any]:
+    """Store one explicit task-history event, never an approval decision."""
+
+    root = task_root if task_root is not None else _trusted_root(project_root) / "task-history"
+    if request.task_id is None and request.event_type != "request":
+        raise InterfaceApiError("a new task must begin with a request event")
+    task_id = request.task_id or f"task-{uuid4().hex}"
+    stored = append_task_event(
+        root=root, task_id=task_id, event_type=request.event_type,
+        summary=request.summary, details=request.details, artifact_path=request.artifact_path,
+        artifact_sha256=request.artifact_sha256,
+        require_existing=request.task_id is not None,
+    )
+    return {
+        "schema_version": "1.0", "status": "recorded_history_only",
+        "task_id": task_id, "event_reference": stored["reference"],
+        "approval_recorded": False, "execution_performed": False,
+    }
+
+
+def inspect_interface_task_context(
+    *, project_root: Path, task_id: str, task_root: Path | None = None,
+) -> dict[str, Any]:
+    """Recheck one complete task chain and return a cited context preview."""
+
+    root = task_root if task_root is not None else _trusted_root(project_root) / "task-history"
+    if not load_task_events(root=root, task_id=task_id):
+        raise TaskHistoryError("task history does not exist")
+    return build_task_context(root=root, task_id=task_id)
+
+
 def _handler(
     project_root: Path,
     recipe_root: Path | None = None,
     approval_root: Path | None = None,
+    task_root: Path | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     class InterfaceRequestHandler(BaseHTTPRequestHandler):
         server_version = "ActionCharterInterface/1.0"
@@ -2733,6 +2777,48 @@ def _handler(
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            task_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context", self.path)
+            if self.path == "/api/v1/tasks":
+                try:
+                    self._send(HTTPStatus.OK, inspect_task_inventory(root=task_root if task_root is not None else _trusted_root(project_root) / "task-history"))
+                except (TaskHistoryError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "task inventory is unavailable"})
+                return
+            if task_match:
+                try:
+                    self._send(HTTPStatus.OK, inspect_interface_task_context(
+                        project_root=project_root, task_id=task_match.group(1), task_root=task_root,
+                    ))
+                except TaskHistoryError:
+                    self._send(HTTPStatus.NOT_FOUND, {"error": "task context is unavailable"})
+                except (OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "task context could not be loaded"})
+                return
+            relationship_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/relationships", self.path)
+            if relationship_match:
+                from geoagent_harness.task_history.relationships import inspect_task_relationships
+                try:
+                    self._send(HTTPStatus.OK, inspect_task_relationships(
+                        root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        task_id=relationship_match.group(1), project_root=_trusted_root(project_root),
+                    ))
+                except TaskHistoryError:
+                    self._send(HTTPStatus.NOT_FOUND, {"error": "task relationship inspection is unavailable"})
+                except (OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "task relationships could not be inspected"})
+                return
+            artifact_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/artifacts", self.path)
+            if artifact_match:
+                try:
+                    self._send(HTTPStatus.OK, inspect_task_artifacts(
+                        root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        task_id=artifact_match.group(1), project_root=_trusted_root(project_root),
+                    ))
+                except TaskHistoryError:
+                    self._send(HTTPStatus.NOT_FOUND, {"error": "task artifact inspection is unavailable"})
+                except (OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "task evidence could not be inspected"})
                 return
             if self.path == "/api/v1/executions":
                 try:
@@ -2834,6 +2920,7 @@ def _handler(
                 return
             if self.path not in {
                 "/api/v1/recipe-proposals/compile",
+                "/api/v1/tasks/events",
                 "/api/v1/recipe-proposals/save-reviewed",
                 "/api/v1/recipes/prepare-approval",
                 "/api/v1/recipes/record-approval",
@@ -2870,7 +2957,12 @@ def _handler(
                 return
             try:
                 payload = json.loads(self.rfile.read(length))
-                if self.path == "/api/v1/recipe-proposals/compile":
+                if self.path == "/api/v1/tasks/events":
+                    response = record_interface_task_event(
+                        InterfaceTaskEventRequest.model_validate(payload),
+                        project_root=project_root, task_root=task_root,
+                    )
+                elif self.path == "/api/v1/recipe-proposals/compile":
                     response = compile_interface_recipe_proposal(payload, project_root=project_root)
                 elif self.path == "/api/v1/critic-evidence/save-adapted-trace":
                     response = save_interface_recipe_trace(
@@ -2917,6 +3009,11 @@ def _handler(
                         InterfaceReviewedPlanSaveRequest.model_validate(payload),
                         project_root=project_root,
                     )
+                    response["task_reference"] = attach_task_artifact(
+                        root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        task_id=payload.get("task_id"), project_root=_trusted_root(project_root),
+                        artifact_path="plans/" + response["plan_filename"],
+                    )
                 elif self.path == "/api/v1/plans/prepare-approval":
                     response = prepare_interface_plan_approval(
                         InterfacePlanApprovalPreparationRequest.model_validate(payload),
@@ -2927,6 +3024,11 @@ def _handler(
                         InterfacePlanApprovalDecisionRequest.model_validate(payload),
                         project_root=project_root,
                         approval_root=approval_root,
+                    )
+                    response["task_reference"] = attach_task_artifact(
+                        root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        task_id=payload.get("task_id"), project_root=_trusted_root(project_root),
+                        artifact_path="approvals/" + response["approval_filename"],
                     )
                 elif self.path == "/api/v1/plans/verify-approval":
                     response = verify_interface_plan_approval(
@@ -2949,6 +3051,11 @@ def _handler(
                         InterfacePlanRecipeSaveRequest.model_validate(payload),
                         project_root=project_root, approval_root=approval_root,
                         recipe_root=recipe_root,
+                    )
+                    response["task_reference"] = attach_task_artifact(
+                        root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        task_id=payload.get("task_id"), project_root=_trusted_root(project_root),
+                        artifact_path="workflow-recipes/" + response["recipe_filename"],
                     )
                 elif self.path == "/api/v1/recipe-proposals/save-reviewed":
                     if not isinstance(payload, dict) or set(payload) != {
@@ -3008,6 +3115,24 @@ def _handler(
                         recipe_root=recipe_root,
                         approval_root=approval_root,
                     )
+                    response["task_references"] = []
+                    if execution_request.task_id is not None:
+                        for key in ("run_result_path", "evidence_path"):
+                            try:
+                                path = Path(response[key])
+                                relative = path.relative_to(_trusted_root(project_root)).as_posix() if path.is_absolute() else path.as_posix()
+                                linked = attach_task_artifact(
+                                    root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                                    task_id=execution_request.task_id, project_root=_trusted_root(project_root), artifact_path=relative,
+                                )
+                            except (ValueError, KeyError):
+                                linked = {"status": "failed", "reason": "Run completed, but durable task reference was unavailable"}
+                            response["task_references"].append(linked)
+                        response["task_references"].append(attach_task_artifact(
+                            root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                            task_id=execution_request.task_id, project_root=_trusted_root(project_root),
+                            artifact_path="approvals/" + execution_request.approval_filename,
+                        ))
             except (json.JSONDecodeError, ValidationError):
                 self._send(HTTPStatus.BAD_REQUEST, {"error": "request payload is invalid"})
                 return
@@ -3020,6 +3145,9 @@ def _handler(
                     or "already exists" in str(exc)
                 ) else HTTPStatus.BAD_REQUEST
                 self._send(status, {"error": str(exc)})
+                return
+            except TaskHistoryError as exc:
+                self._send(HTTPStatus.CONFLICT, {"error": str(exc)})
                 return
             except RecipeStorageError:
                 self._send(HTTPStatus.CONFLICT, {"error": "reviewed recipe could not be stored immutably"})

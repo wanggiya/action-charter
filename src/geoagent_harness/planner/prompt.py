@@ -11,6 +11,7 @@ from geoagent_harness.model.schemas import (
     ModelRequest,
 )
 from geoagent_harness.planner.schemas import WorkflowPlan
+from geoagent_harness.planner.policy import REQUIRED_SKILL_ARGUMENTS
 
 
 def build_planner_request(
@@ -37,22 +38,9 @@ def build_planner_request(
             "Do not execute or claim to have executed anything.",
             "execution_performed must be false.",
             "validation_performed must be false.",
-            "A load_vector_to_postgis step must follow inspect_vector.",
-            (
-                "A load_vector_to_postgis step must be followed "
-                "by validate_postgis_layer."
-            ),
-            (
-                "A generate_report step must follow "
-                "validate_postgis_layer."
-            ),
             (
                 "Every write step must set "
                 "requires_approval to true."
-            ),
-            (
-                "validate_postgis_layer must set "
-                "validation_required to true."
             ),
             (
                 "Every step must include all required arguments "
@@ -70,23 +58,29 @@ def build_planner_request(
             WorkflowPlan.model_json_schema()
         ),
         "required_skill_arguments": {
-            "inspect_vector": [
-                "path",
-            ],
-            "load_vector_to_postgis": [
-                "path",
-                "target_schema",
-                "target_table",
-            ],
-            "validate_postgis_layer": [
-                "target_schema",
-                "target_table",
-            ],
-            "generate_report": [
-                "task_id",
-            ],
+            skill: sorted(REQUIRED_SKILL_ARGUMENTS.get(skill, set()))
+            for skill in available_skills
         },
     }
+    schema = system_payload["required_json_schema"]
+    schema["$defs"]["PlanStep"]["properties"]["skill"]["enum"] = available_skills
+    system_payload["mandatory_rules"].append(
+        "The available skill list is an allowlist, not a workflow template. Include only steps needed for the original request. Never add an unrelated load, validation or report step."
+    )
+    selected = set(available_skills)
+    if "load_vector_to_postgis" in selected:
+        system_payload["mandatory_rules"].extend([
+            "A load_vector_to_postgis step must follow inspect_vector and be followed by validate_postgis_layer. If the required dependency skills are unavailable, do not invent them.",
+        ])
+    if "validate_postgis_layer" in selected:
+        system_payload["mandatory_rules"].append("validate_postgis_layer must set validation_required to true.")
+    if "generate_report" in selected:
+        system_payload["mandatory_rules"].append("generate_report must follow validate_postgis_layer and require approval.")
+    system_payload["selected_skill_requirements"] = [
+        {"skill": skill.id, "requires_approval": skill.approval_required,
+         "validation_required": skill.validation_required}
+        for skill in context_pack.available_skills
+    ]
 
     user_payload = {
         "task": "Create a plan. Do not execute it.",

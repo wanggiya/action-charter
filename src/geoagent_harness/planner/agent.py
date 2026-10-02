@@ -11,6 +11,7 @@ from geoagent_harness.agent_manifest import AgentManifest
 from geoagent_harness.context_pack.schemas import TaskContextPack
 from geoagent_harness.model.schemas import (
     ModelRequest,
+    ChatMessage,
     ModelResult,
 )
 from geoagent_harness.planner.policy import (
@@ -112,15 +113,29 @@ def run_planner_agent(
         for skill in context_pack.available_skills
     }
 
+    correction_used = False
     try:
-        validate_plan_policy(
-            plan,
-            available_skills=available_skills,
-        )
-    except PlannerPolicyError as exc:
-        raise PlannerAgentError(
-            f"Planner plan failed deterministic policy: {exc}"
-        ) from exc
+        validate_plan_policy(plan, available_skills=available_skills)
+    except PlannerPolicyError as first_error:
+        # One fresh correction proposal only. Never rewrite model output into authority.
+        correction_used = True
+        corrective_request = request.model_copy(update={"messages": [
+            *request.messages,
+            ChatMessage(role="user", content=json.dumps({
+                "task": "Correct the proposal once. Return a complete fresh JSON plan for the original request only.",
+                "deterministic_finding": str(first_error),
+                "allowed_skill_ids": sorted(available_skills),
+                "instruction": "Do not repeat a rejected skill or add unrelated steps. Writes require approval and validation. Nothing may execute.",
+            })),
+        ]})
+        model_result = model_client.complete(corrective_request)
+        try:
+            plan = WorkflowPlan.model_validate(json.loads(model_result.content))
+            validate_plan_policy(plan, available_skills=available_skills)
+        except (json.JSONDecodeError, ValidationError, PlannerPolicyError) as exc:
+            raise PlannerAgentError(
+                f"Planner plan failed deterministic policy after one correction attempt: {first_error}"
+            ) from exc
 
     return PlannerResult(
         model=model_result.model,
@@ -132,5 +147,5 @@ def run_planner_agent(
             for reference in context_pack.context_references
         ],
         plan=plan,
-        warnings=context_pack.warnings,
+        warnings=[*context_pack.warnings, *(["Planner proposal required one deterministic-policy correction; the corrected plan passed validation."] if correction_used else [])],
     )

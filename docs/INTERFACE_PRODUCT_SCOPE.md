@@ -16,7 +16,7 @@ development, recovery and advanced operators.
    nodes with start time, elapsed time and safe progress.
 8. Validation, Critic review, evidence and outputs remain attached to the graph.
 
-The default experience should expose only **Plan → Review graph → Run → Check
+The default experience should expose only **Plan → Flow graph → Run → Check
 outcome**. Recipes, raw digests, detailed evidence, release composition,
 Snakemake, skill construction, and infrastructure controls belong in an
 expandable advanced workspace. Deterministic digest comparison remains active

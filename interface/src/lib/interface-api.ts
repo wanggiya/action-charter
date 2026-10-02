@@ -3,6 +3,63 @@ import { browserRecipeProposalSchema, recipeTemplateCatalogSchema, type BrowserR
 
 const MAX_INTERFACE_RESPONSE_BYTES = 500_000;
 
+const taskIdSchema = z.string().regex(/^task-[a-z0-9][a-z0-9_-]{0,63}$/);
+const taskEventSchema = z.object({
+  schema_version: z.literal("1.0"), status: z.literal("recorded_history_only"),
+  task_id: taskIdSchema,
+  event_reference: z.object({ path: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }),
+  approval_recorded: z.literal(false), execution_performed: z.literal(false),
+});
+const taskContextSchema = z.object({
+  schema_version: z.literal("1.0"), task_id: taskIdSchema,
+  event_count: z.number().int().nonnegative().max(200),
+  selected_count: z.number().int().nonnegative().max(20), truncated: z.boolean(),
+  excerpts: z.array(z.object({
+    sequence: z.number().int().positive(),
+    event_type: z.enum(["request", "clarification", "selection", "decision", "outcome", "failure", "artifact_reference"]),
+    summary: z.string().max(1000), status: z.string().nullable(),
+    source: z.object({ path: z.string(), sha256: z.string().regex(/^[a-f0-9]{64}$/) }),
+  })).max(20),
+  model_called: z.literal(false), execution_performed: z.literal(false),
+  context_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export type TaskContext = z.infer<typeof taskContextSchema>;
+const taskInventorySchema = z.object({
+  schema_version: z.literal("1.0"),
+  tasks: z.array(z.object({ task_id: taskIdSchema, summary: z.string().max(1000), event_count: z.number().int().positive().max(200), updated_at: z.string(), latest_event_type: z.string(), context_sha256: z.string().regex(/^[a-f0-9]{64}$/) })).max(50),
+  findings: z.array(z.object({ task_id: taskIdSchema, finding: z.string() })).max(50),
+  truncated: z.boolean(), execution_performed: z.literal(false), approval_recorded: z.literal(false),
+});
+export type TaskInventory = z.infer<typeof taskInventorySchema>;
+
+export async function loadTaskInventory(): Promise<TaskInventory> {
+  const response = await fetch("/api/v1/tasks", { cache: "no-store", credentials: "same-origin" });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("Saved task inventory is unavailable. Restart the updated API.");
+  return taskInventorySchema.parse(payload);
+}
+
+export async function recordTaskEvent(eventType: "request" | "selection" | "decision" | "outcome" | "failure", summary: string, taskId?: string, details = "") {
+  const response = await fetch("/api/v1/tasks/events", {
+    method: "POST", cache: "no-store", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "record_task_event", event_type: eventType, summary: z.string().min(1).max(1000).parse(summary), details: z.string().max(8000).parse(details), ...(taskId ? { task_id: taskIdSchema.parse(taskId) } : {}) }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const detail = z.object({ error: z.string().max(300) }).safeParse(payload);
+    throw new Error(response.status === 404 ? "Task history API is unavailable. Restart the updated interface API." : detail.success ? detail.data.error : "Task history could not be recorded");
+  }
+  return taskEventSchema.parse(payload);
+}
+
+export async function loadTaskContext(taskId: string): Promise<TaskContext> {
+  const response = await fetch(`/api/v1/tasks/${taskIdSchema.parse(taskId)}/context`, { cache: "no-store", credentials: "same-origin" });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("Task context could not be reopened");
+  return taskContextSchema.parse(payload);
+}
+
 const compilationSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.literal("compiled"),
@@ -34,7 +91,16 @@ const compilationSchema = z.object({
 
 export type InterfaceCompilation = z.infer<typeof compilationSchema>;
 
+const taskReferenceSchema = z.object({
+  status: z.enum(["recorded", "failed", "not_requested"]),
+  reason: z.string().optional(),
+  task_id: z.string().optional(),
+  artifact_path: z.string().optional(),
+  artifact_sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+});
+
 const savedRecipeSchema = z.object({
+  task_reference: taskReferenceSchema.optional(),
   schema_version: z.literal("1.0"),
   status: z.literal("stored"),
   recipe_id: z.string().min(1).max(120),
@@ -170,6 +236,7 @@ const executionPreviewSchema = z.object({
 export type ExecutionPreview = z.infer<typeof executionPreviewSchema>;
 
 const recipeExecutionSchema = z.object({
+  task_references: z.array(taskReferenceSchema).max(3).optional(),
   schema_version: z.literal("1.0"),
   status: z.enum(["validated_success", "validation_failed"]),
   recipe_id: z.string().min(1).max(120),
@@ -307,7 +374,10 @@ const plannerResultSchema = z.object({
 
 export type InterfacePlannerResult = z.infer<typeof plannerResultSchema>;
 
+
+
 const savedPlannerResultSchema = z.object({
+  task_reference: taskReferenceSchema.optional(),
   schema_version: z.literal("1.0"),
   status: z.enum(["stored", "already_stored"]),
   plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -342,6 +412,7 @@ const preparedPlanApprovalSchema = z.object({
 export type PreparedPlanApproval = z.infer<typeof preparedPlanApprovalSchema>;
 
 const recordedPlanApprovalSchema = z.object({
+  task_reference: taskReferenceSchema.optional(),
   schema_version: z.literal("1.0"),
   status: z.literal("recorded"),
   decision: z.enum(["approved", "denied"]),
@@ -689,12 +760,14 @@ export async function saveCompiledPlannerRecipe(
   stored: SavedPlannerResult,
   prepared: PreparedPlanApproval,
   recorded: RecordedPlanApproval,
+  taskId: string | null = null,
 ): Promise<SavedInterfaceRecipe> {
   const response = await fetch("/api/v1/plans/save-reviewed-recipe", {
     method: "POST", cache: "no-store", credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "save_reviewed_plan_recipe",
+      task_id: taskId,
       plan_filename: stored.plan_filename,
       confirmed_plan_sha256: stored.plan_sha256,
       confirmed_approval_request_sha256: prepared.approval_request_sha256,
@@ -842,6 +915,7 @@ export async function executeExactPreview(
   request: PreparedApprovalRequest,
   recorded: RecordedRecipeApproval,
   preview: ExecutionPreview,
+  taskId: string | null = null,
 ): Promise<RecipeExecutionResult> {
   const response = await fetch("/api/v1/recipes/execute", {
     method: "POST",
@@ -850,6 +924,7 @@ export async function executeExactPreview(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "execute_exact_preview",
+      task_id: taskId,
       recipe_filename: request.recipe_filename,
       confirmed_recipe_sha256: request.recipe_sha256,
       confirmed_approval_request_sha256: request.approval_request_sha256,
@@ -926,7 +1001,7 @@ export async function createPlannerPlan(request: string, allowedSkillIds: string
   return plannerResultSchema.parse(payload);
 }
 
-export async function saveReviewedPlannerPlan(result: InterfacePlannerResult): Promise<SavedPlannerResult> {
+export async function saveReviewedPlannerPlan(result: InterfacePlannerResult, taskId: string | null = null): Promise<SavedPlannerResult> {
   const response = await fetch("/api/v1/plans/save-reviewed", {
     method: "POST",
     cache: "no-store",
@@ -934,6 +1009,7 @@ export async function saveReviewedPlannerPlan(result: InterfacePlannerResult): P
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "save_reviewed_plan",
+      task_id: taskId,
       confirmed_plan_sha256: result.plan_sha256,
       allowed_skill_ids: result.allowed_skill_ids,
       planner_result: {
@@ -975,6 +1051,7 @@ export async function preparePlannerApproval(stored: SavedPlannerResult): Promis
 }
 
 export async function recordPlannerApproval(input: {
+  taskId?: string | null;
   stored: SavedPlannerResult;
   prepared: PreparedPlanApproval;
   decision: "approved" | "denied";
@@ -987,6 +1064,7 @@ export async function recordPlannerApproval(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "record_plan_approval",
+      task_id: input.taskId ?? null,
       plan_filename: input.stored.plan_filename,
       confirmed_plan_sha256: input.stored.plan_sha256,
       confirmed_approval_request_sha256: input.prepared.approval_request_sha256,

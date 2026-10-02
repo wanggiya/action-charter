@@ -7,7 +7,7 @@ import {
 import workflowFixture from "./data/demo-workflow.json";
 import { loadWorkflowCatalog, loadWorkflowProjection } from "./lib/load-workflow";
 import { loadRecipeTemplates } from "./lib/load-recipe-templates";
-import { compilePlannerRecipe, compileRecipeProposal, createPlannerPlan, createRecipeRelease, exportSnakemakeRecipe, PlannerRequestError, executeExactPreview, loadCriticEvidence, loadDataResources, loadExecutionInventory, loadExecutionProgress, loadPlannerSkills, loadSavedPlans, loadSavedRecipes, prepareExecutionPreview, preparePlannerApproval, prepareRecipeRelease, previewPlannerExecution, prepareRecipeApproval, previewSnakemakeExport, recordCriticAssessment, recordPlannerApproval, recordRecipeApproval, runCriticAssessment, saveAdaptedRecipeTrace, saveCompiledPlannerRecipe, saveReviewedPlannerPlan, saveReviewedRecipe, verifyPlannerApproval, verifyRecordedRecipeApproval, type CompiledPlanRecipe, type CriticAssessmentResult, type CriticEvidenceInventory, type DataResourceInventory, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type InterfacePlannerResult, type PlanExecutionPreview, type PlannerSkillCatalog, type PreparedApprovalRequest, type PreparedPlanApproval, type RecipeExecutionResult, type RecipeReleaseAssessment, type RecipeReleaseResult, type RecordedCriticResult, type RecordedPlanApproval, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedPlanInventory, type SavedPlannerResult, type SavedRecipeInventory, type SnakemakeExportPlan, type SnakemakeExportResult, type StoredRecipeTrace, type VerifiedPlanApproval, type VerifiedRecipeApproval } from "./lib/interface-api";
+import { compilePlannerRecipe, compileRecipeProposal, createPlannerPlan, createRecipeRelease, exportSnakemakeRecipe, PlannerRequestError, executeExactPreview, loadCriticEvidence, loadDataResources, loadExecutionInventory, loadExecutionProgress, loadPlannerSkills, loadSavedPlans, loadSavedRecipes, loadTaskContext, loadTaskInventory, recordTaskEvent, prepareExecutionPreview, preparePlannerApproval, prepareRecipeRelease, previewPlannerExecution, prepareRecipeApproval, previewSnakemakeExport, recordCriticAssessment, recordPlannerApproval, recordRecipeApproval, runCriticAssessment, saveAdaptedRecipeTrace, saveCompiledPlannerRecipe, saveReviewedPlannerPlan, saveReviewedRecipe, verifyPlannerApproval, verifyRecordedRecipeApproval, type CompiledPlanRecipe, type CriticAssessmentResult, type CriticEvidenceInventory, type DataResourceInventory, type ExecutionInventory, type ExecutionPreview, type ExecutionProgress, type InterfaceCompilation, type InterfacePlannerResult, type PlanExecutionPreview, type PlannerSkillCatalog, type PreparedApprovalRequest, type PreparedPlanApproval, type RecipeExecutionResult, type RecipeReleaseAssessment, type RecipeReleaseResult, type RecordedCriticResult, type RecordedPlanApproval, type RecordedRecipeApproval, type SavedInterfaceRecipe, type SavedPlanInventory, type SavedPlannerResult, type SavedRecipeInventory, type SnakemakeExportPlan, type SnakemakeExportResult, type StoredRecipeTrace, type TaskContext, type TaskInventory, type VerifiedPlanApproval, type VerifiedRecipeApproval } from "./lib/interface-api";
 import { browserRecipeProposalSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./lib/recipe-templates";
 import { workflowSchema, type EdgeKind, type NodeCategory, type NodeGroup, type NodeKind, type Workflow as WorkflowData, type WorkflowSummary } from "./lib/workflow";
 
@@ -355,6 +355,25 @@ export default function App() {
   const [criticInvocationCollapsed, setCriticInvocationCollapsed] = useState(false);
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [plannerRequest, setPlannerRequest] = useState("");
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(() => {
+    try {
+      const stored = window.sessionStorage.getItem("actioncharter:currentTaskId");
+      return stored && /^task-[a-z0-9][a-z0-9_-]{0,63}$/.test(stored) ? stored : null;
+    } catch { return null; }
+  });
+  const [taskContext, setTaskContext] = useState<TaskContext | null>(null);
+  const [viewedTaskId, setViewedTaskId] = useState<string | null>(currentTaskId);
+  const [taskInventory, setTaskInventory] = useState<TaskInventory | null>(null);
+  const [taskInventoryOpen, setTaskInventoryOpen] = useState(false);
+  const [taskNotice, setTaskNotice] = useState("");
+  const [taskPaneOpen, setTaskPaneOpen] = useState(true);
+  useEffect(() => {
+    if (!currentTaskId) return;
+    setViewedTaskId(currentTaskId);
+    void loadTaskContext(currentTaskId).then((context) => setTaskContext((current) =>
+      current?.task_id === context.task_id && current.event_count > context.event_count ? current : context,
+    )).catch(() => setTaskNotice("Task context could not be reopened."));
+  }, [currentTaskId]);
   const [plannerPending, setPlannerPending] = useState(false);
   const [plannerNotice, setPlannerNotice] = useState("");
   const [plannerRetryAvailable, setPlannerRetryAvailable] = useState(false);
@@ -991,6 +1010,52 @@ export default function App() {
       if (criticOpen) setCriticNotice(error instanceof Error ? error.message : "Linked run could not be reopened.");
     }
   };
+  const appendCurrentTaskEvent = async (taskId: string, type: "selection" | "decision" | "outcome" | "failure", summary: string) => {
+    try {
+      await recordTaskEvent(type, summary.slice(0, 1000), taskId);
+      const context = await loadTaskContext(taskId);
+      setViewedTaskId(taskId);
+      setTaskContext((current) => current?.task_id === context.task_id && current.event_count > context.event_count ? current : context);
+      setTaskNotice("");
+    } catch {
+      setTaskNotice("Task history could not be updated. Check the original plan and approval evidence; history grants no authority.");
+    }
+  };
+  const refreshViewedTask = async () => {
+    if (!viewedTaskId) return;
+    const pane = document.querySelector<HTMLElement>(".task-context-content");
+    const inspector = document.querySelector<HTMLElement>(".inspector");
+    const paneTop = pane?.scrollTop ?? 0, inspectorTop = inspector?.scrollTop ?? 0;
+    const pageX = window.scrollX, pageY = window.scrollY;
+    try { setTaskContext(await loadTaskContext(viewedTaskId)); }
+    catch { setTaskNotice("Task context could not be reopened."); }
+    requestAnimationFrame(() => {
+      if (pane) pane.scrollTop = paneTop;
+      if (inspector) inspector.scrollTop = inspectorTop;
+      window.scrollTo({ left: pageX, top: pageY, behavior: "instant" });
+    });
+  };
+  const showTaskHistory = () => {
+    openJourneyStage("review");
+    setTaskPaneOpen(true);
+    requestAnimationFrame(() => document.getElementById("task-history")?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+  };
+  const openSavedTasks = async () => {
+    try {
+      setTaskInventory(await loadTaskInventory());
+      setTaskInventoryOpen(true);
+      setTaskNotice("");
+    } catch (error) { setTaskNotice(error instanceof Error ? error.message : "Saved task history is unavailable."); }
+  };
+  const inspectSavedTask = async (taskId: string) => {
+    try {
+      const context = await loadTaskContext(taskId);
+      setViewedTaskId(taskId);
+      setTaskContext(context);
+      setTaskInventoryOpen(false);
+      setTaskNotice("History inspected. This does not resume a plan, decision or execution.");
+    } catch { setTaskNotice("Task history could not be independently reopened."); }
+  };
   const createPlan = async () => {
     const submittedRequest = plannerRequestRef.current?.value.trim() ?? plannerRequest.trim();
     if (!submittedRequest) {
@@ -1014,10 +1079,36 @@ export default function App() {
     setSavedPlanRecipe(null);
     setPlanRecipeSaveError("");
     setPlannerNotice("Planner agent is building and validating a planning-only workflow through the configured model service…");
+    setCurrentTaskId(null);
+    setViewedTaskId(null);
+    try { window.sessionStorage.removeItem("actioncharter:currentTaskId"); } catch { /* Storage may be unavailable. */ }
+    setTaskContext(null);
+    setTaskNotice("");
+    let taskId: string | null = null;
+    try {
+      const requestEvent = await recordTaskEvent("request", submittedRequest.slice(0, 1000), undefined, submittedRequest);
+      taskId = requestEvent.task_id;
+      setCurrentTaskId(taskId);
+      try { window.sessionStorage.setItem("actioncharter:currentTaskId", taskId); } catch { /* Context remains available through its task ID. */ }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Task history is unavailable.";
+      setTaskNotice(message);
+      setPlannerNotice(`Task request was not recorded: ${message} Planning did not start.`);
+      setPlannerPending(false);
+      return;
+    }
+    try {
+      const selection = `Selected skills: ${selectedPlannerSkills.join(", ")}. Inputs: ${selectedPlannerInputs.join(", ") || "none selected"}.`;
+      await recordTaskEvent("selection", selection.slice(0, 1000), taskId, selection.slice(0, 8000));
+      setTaskContext(await loadTaskContext(taskId));
+    } catch (error) {
+      setTaskNotice(error instanceof Error ? `Task was created, but selection/context could not be recorded: ${error.message}` : "Task was created, but selection/context could not be recorded.");
+    }
     try {
       const result = await createPlannerPlan(submittedRequest, selectedPlannerSkills, selectedPlannerInputs);
       setPlannerResult(result);
       setPlannerNotice("Validated plan returned. Nothing was saved, approved, or executed.");
+      if (taskId) await appendCurrentTaskEvent(taskId, "outcome", `Validated planning-only proposal ${result.plan_sha256}. Nothing approved or executed.`);
     } catch (error) {
       if (error instanceof PlannerRequestError) {
         setPlannerNotice(`${error.detail.error}: ${error.detail.finding} ${error.detail.retry_guidance} Nothing was saved, approved, or executed.`);
@@ -1025,11 +1116,17 @@ export default function App() {
       } else {
         setPlannerNotice(error instanceof Error ? error.message : "Planner could not produce a validated plan.");
       }
+      if (taskId) await appendCurrentTaskEvent(taskId, "failure", "Planner did not return a validated plan. Nothing approved or executed.");
     } finally {
       setPlannerPending(false);
     }
   };
   const resumeSavedPlan = async (item: SavedPlanInventory["plans"][number]) => {
+    setCurrentTaskId(null);
+    setViewedTaskId(null);
+    try { window.sessionStorage.removeItem("actioncharter:currentTaskId"); } catch { /* Storage may be unavailable. */ }
+    setTaskContext(null);
+    setTaskNotice("Existing saved plans do not have a task-history link yet.");
     setSelectedSavedPlanSha(item.plan_sha256);
     setPlannerNotice("Restoring the exact saved plan and matching decision evidence…");
     const allowed = [...new Set(item.planner_result.plan.steps.map((step) => step.skill))];
@@ -1056,8 +1153,11 @@ export default function App() {
     setPlannerSavePending(true);
     setPlannerNotice("Revalidating the exact plan and confirmed digest before immutable storage…");
     try {
-      const stored = await saveReviewedPlannerPlan(plannerResult);
+      const stored = await saveReviewedPlannerPlan(plannerResult, currentTaskId);
       setSavedPlannerResult(stored);
+      if (stored.task_reference?.status === "failed") setTaskNotice(stored.task_reference.reason ?? "Task reference could not be recorded.");
+      else if (currentTaskId) void loadTaskContext(currentTaskId).then(setTaskContext).catch(() => setTaskNotice("Task context could not be reopened."));
+
       void loadSavedPlans().then(setSavedPlanInventory).catch(() => setSavedPlanInventory(null));
       setPlannerNotice(stored.status === "already_stored"
         ? "Exact reviewed plan was already stored. The artifact was not modified; approval preparation is now available."
@@ -1092,10 +1192,12 @@ export default function App() {
     setPlanDecisionPending(true);
     setPlannerNotice("Revalidating the immutable plan and prepared request before append-only recording…");
     try {
-      const recorded = await recordPlannerApproval({ stored: savedPlannerResult, prepared: preparedPlanApproval, decision: planDecision, approver: planApprover.trim(), reason: planReason.trim(), validForMinutes: minutes });
+      const recorded = await recordPlannerApproval({ taskId: currentTaskId, stored: savedPlannerResult, prepared: preparedPlanApproval, decision: planDecision, approver: planApprover.trim(), reason: planReason.trim(), validForMinutes: minutes });
       setRecordedPlanApproval(recorded);
       void loadSavedPlans().then(setSavedPlanInventory).catch(() => setSavedPlanInventory(null));
       setPlannerNotice(`${recorded.decision === "approved" ? "Approval" : "Denial"} recorded. Nothing was executed.`);
+      if (currentTaskId) await appendCurrentTaskEvent(currentTaskId, "decision", `Plan ${recorded.decision} recorded as ${recorded.approval_filename}. History entry is not approval authority.`);
+      if (recorded.task_reference?.status === "failed") setTaskNotice(recorded.task_reference.reason ?? "Task reference could not be recorded.");
     } catch (error) {
       setPlannerNotice(error instanceof Error ? error.message : "Plan decision could not be recorded.");
     } finally { setPlanDecisionPending(false); }
@@ -1143,7 +1245,13 @@ export default function App() {
     if (!compiledPlanRecipe || !savedPlannerResult || !preparedPlanApproval || !recordedPlanApproval || !planRecipeReviewConfirmed || planRecipeSavePending) return;
     setPlanRecipeSavePending(true); setPlanRecipeSaveError("");
     try {
-      setSavedPlanRecipe(await saveCompiledPlannerRecipe(compiledPlanRecipe, savedPlannerResult, preparedPlanApproval, recordedPlanApproval));
+      const saved = await saveCompiledPlannerRecipe(compiledPlanRecipe, savedPlannerResult, preparedPlanApproval, recordedPlanApproval, currentTaskId);
+      setSavedPlanRecipe(saved);
+      if (saved.task_reference?.status === "failed") setTaskNotice(saved.task_reference.reason ?? "Recipe reference could not be recorded.");
+      else if (currentTaskId) {
+        setViewedTaskId(currentTaskId);
+        void loadTaskContext(currentTaskId).then(setTaskContext).catch(() => setTaskNotice("Task context could not be reopened."));
+      }
       setPlannerNotice("Reviewed Planner recipe stored immutably. Separate recipe approval is still required.");
     } catch (error) { setPlanRecipeSaveError(error instanceof Error ? error.message : "Reviewed Planner recipe could not be saved."); }
     finally { setPlanRecipeSavePending(false); }
@@ -1467,15 +1575,19 @@ export default function App() {
     };
     const progressTimer = window.setInterval(() => void refreshProgress(), 250);
     try {
-      setExecutionResult(await executeExactPreview(preparedApproval, recordedApproval, executionPreview));
+      const result = await executeExactPreview(preparedApproval, recordedApproval, executionPreview, currentTaskId && savedPlanRecipe?.recipe_sha256 === activeRecipe?.recipeSha256 ? currentTaskId : null);
+      setExecutionResult(result);
       await refreshProgress();
       setSelectedId("active_validation");
       setExecutionNotice("");
+      if (currentTaskId && savedPlanRecipe?.recipe_sha256 === activeRecipe?.recipeSha256) await appendCurrentTaskEvent(currentTaskId, "outcome", `Governed run response: ${result.status}. Result ${result.run_result_sha256}. Inspect durable run evidence for authority and validation.`);
+      if (result.task_references?.some((reference) => reference.status === "failed")) setTaskNotice("Run completed, but some task evidence references could not be recorded. Inspect durable run evidence before retrying.");
     } catch (error) {
       const finalProgress = await refreshProgress();
       setExecutionNotice("");
       setExecutionFailure(error instanceof Error ? error.message : "Approved execution failed. Inspect outputs and evidence before retrying.");
       setSelectedId(finalProgress?.failed_step_id ? `active_${finalProgress.failed_step_id}` : "active_executor");
+      if (currentTaskId && savedPlanRecipe?.recipe_sha256 === activeRecipe?.recipeSha256) await appendCurrentTaskEvent(currentTaskId, "failure", `Governed execution did not complete successfully. Inspect durable attempt ${executionPreview.execution_preview_sha256}.`);
     } finally {
       window.clearInterval(progressTimer);
       setExecutionPending(false);
@@ -1650,7 +1762,7 @@ export default function App() {
       </nav>
       <div className="top-actions">{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => openJourneyStage("run")}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="advanced-toggle" aria-expanded={advancedOpen} aria-controls="advanced-actions" onClick={() => setAdvancedOpen((open) => !open)}><span>{advancedOpen ? "Close Advanced" : "Advanced"}</span><ChevronDown size={15}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Governed"}</span></div></div>
     </header>
-    {advancedOpen && <nav id="advanced-actions" className="advanced-actions" aria-label="Advanced tools"><button aria-current={journeyStage === "review" ? "page" : undefined} onClick={() => openJourneyStage("review")}><Workflow size={15}/> Flow graph</button><button onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/> Templates</button><button onClick={() => void openSavedRecipes()}><LayoutList size={15}/> Recipes</button><button onClick={() => void openExecutionInventory()}><History size={15}/> Runs</button><button onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/> Assurance</button><button onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New draft graph" : "Exit draft graph"}</button></nav>}
+    {advancedOpen && <nav id="advanced-actions" className="advanced-actions" aria-label="Advanced tools"><button aria-current={journeyStage === "review" ? "page" : undefined} onClick={() => openJourneyStage("review")}><Workflow size={15}/> Flow graph</button><button onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/> Templates</button><button onClick={() => void openSavedRecipes()}><LayoutList size={15}/> Recipes</button><button onClick={showTaskHistory}><History size={15}/> Task history</button><button onClick={() => void openExecutionInventory()}><History size={15}/> Runs</button><button onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/> Assurance</button><button onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New draft graph" : "Exit draft graph"}</button></nav>}
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
         <header className="template-workspace-head"><div><p className="eyebrow">Reusable governed starting points</p><h2 id="template-title">Choose a recipe template</h2><p>Select a recipe, review the skills it uses, provide its inputs, then preview the workflow graph.</p></div><button aria-label="Close templates" onClick={() => setTemplatePanelOpen(false)}><X size={18}/></button></header>
@@ -1770,6 +1882,16 @@ export default function App() {
       </section>
       <aside className="inspector">
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>
+        <details id="task-history" className="task-context-pane" open={taskPaneOpen} onToggle={(event) => { if (event.target === event.currentTarget) setTaskPaneOpen(event.currentTarget.open); }}>
+          <summary><span>Task history</span><strong>{taskContext ? `${taskContext.event_count} events` : currentTaskId ? "Loading" : "No task selected"}</strong></summary>
+          <div className="task-history-actions"><button type="button" disabled={plannerPending} onClick={() => void openSavedTasks()}>Saved tasks</button><button type="button" disabled={plannerPending || !viewedTaskId} onClick={() => void refreshViewedTask()}>Refresh checked context</button></div>
+          <div className="task-context-content">
+            {taskInventoryOpen && taskInventory && <section className="saved-task-list"><header><strong>Checked saved histories</strong><button type="button" onClick={() => setTaskInventoryOpen(false)}>Close list</button></header>{taskInventory.tasks.length ? taskInventory.tasks.map((task) => <button type="button" key={task.task_id} onClick={() => void inspectSavedTask(task.task_id)}><strong>{task.summary}</strong><span>{task.event_count} events · {new Date(task.updated_at).toLocaleString()}</span><small>{task.task_id}</small></button>) : <p>No checked task histories found.</p>}{taskInventory.findings.map((finding) => <p className="task-context-warning" key={finding.task_id}>{finding.task_id}: {finding.finding}</p>)}{taskInventory.truncated && <small>Only the 50 most recently changed histories were inspected.</small>}</section>}
+            {viewedTaskId ? <p>Task {viewedTaskId} · {viewedTaskId === currentTaskId ? "active planning history" : "saved history inspection"}. The graph source may be different.</p> : <p>Generate a new plan or choose a saved task to inspect its history. Existing saved plans and runs are not assigned automatically.</p>}
+            {taskNotice && <p className="task-context-warning" role="alert">{taskNotice}</p>}
+            {taskContext && <><ol>{taskContext.excerpts.map((entry) => <li key={entry.sequence}><span>{entry.event_type.replaceAll("_", " ")} · {entry.sequence}</span><p>{entry.summary}</p><details><summary>Source event</summary><small>{entry.source.path}</small><code>{entry.source.sha256}</code></details></li>)}</ol>{taskContext.truncated && <small>Older events omitted from this bounded preview; original records remain stored.</small>}<details><summary>Context audit identity</summary><code>{taskContext.context_sha256}</code></details><small>Read-only context · no model call · no execution · history decisions grant no approval</small></>}
+          </div>
+        </details>
         <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>{mode === "proposal" ? "Uncommitted proposal state" : "Evidence-backed status"}</span></div></div>
         {mode === "proposal" && <>
           <section className="detail-section proposal-fields">

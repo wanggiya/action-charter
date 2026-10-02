@@ -29,6 +29,48 @@ app = typer.Typer(
 )
 
 
+@app.command("record-task-event")
+def record_task_event_command(
+    task_id: Annotated[str, typer.Argument(help="Task identity, beginning with task-.")],
+    event_type: Annotated[str, typer.Option("--event-type", help="request, clarification, selection, decision, outcome, failure or artifact_reference.")],
+    summary: Annotated[str, typer.Option("--summary", help="Short event statement; secrets are redacted before storage.")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+    artifact_path: Annotated[str | None, typer.Option("--artifact-path")] = None,
+    artifact_sha256: Annotated[str | None, typer.Option("--artifact-sha256")] = None,
+) -> None:
+    """Append one governed task event without approving or executing work."""
+
+    from geoagent_harness.task_history import TaskHistoryError, append_task_event
+
+    try:
+        result = append_task_event(
+            root=project_root.resolve() / "task-history", task_id=task_id,
+            event_type=event_type, summary=summary, artifact_path=artifact_path,
+            artifact_sha256=artifact_sha256,
+        )
+        typer.echo(json.dumps(result, indent=2))
+    except (TaskHistoryError, OSError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("build-task-context")
+def build_task_context_command(
+    task_id: Annotated[str, typer.Argument(help="Task identity, beginning with task-.")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Inspect a deterministic bounded task context without model use."""
+
+    from geoagent_harness.task_history import TaskHistoryError, build_task_context
+
+    try:
+        result = build_task_context(root=project_root.resolve() / "task-history", task_id=task_id)
+        typer.echo(json.dumps(result, indent=2))
+    except (TaskHistoryError, OSError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
 @app.command("serve-interface-api")
 def serve_interface_api_command(
     project_root: Annotated[

@@ -1,5 +1,31 @@
 # Changelog
 
+## Checkpoint 21D — saved-task history recovery
+
+- List independently checked task histories and reopen their source-backed context after restarting the interface.
+- Keep historical inspection separate from active planning and execution authority; damaged histories appear as findings.
+
+## Checkpoint 21 — task-history failure visibility and product sequence
+
+- Stop planning with an actionable message if the task request cannot be recorded, so a failed plan cannot appear without a task ID.
+- Prioritize reviewed intent and a task-centered agent interface before new data-tool families.
+
+## Checkpoint 21C — current task and context inspector
+
+- Capture explicit Planner request, selection, outcome/failure, plan-decision note, and matching governed run outcome under one current task ID.
+- Show a checked, collapsible context view beside the graph and reopen the current task within the browser session.
+- Preserve complete bounded request text in the original redacted event while previewing a short cited summary.
+
+## Checkpoint 21B — local task-history API
+
+- Add an explicit loopback endpoint to record a task request and subsequent history events, and a checked context endpoint.
+- Keep historical decision notes separate from human approval authority and execution.
+
+## Checkpoint 21A — task history foundation
+
+- Add bounded append-only task events with redaction, chain verification and explicit CLI commands.
+- Derive deterministic cited context from the first and latest task events without model or execution authority.
+
 ## Checkpoint 20 — verified authority and evidence graph
 
 - Join exact saved Planner definitions to recipe definitions, and exact durable runs to stored traces, Critic records and releases in the read-only flow graph.
@@ -485,3 +511,27 @@ project follows Semantic Versioning after the initial public alpha.
 - Checkpoint 20: Critic recipe candidates now require an exact, unique run and evidence relationship; the candidate can reopen its linked run graph.
 - Interface navigation: rename Review graph to Flow graph, expose it in Advanced, and clarify the graph source selector without triggering execution.
 - Flow graph source selection is visible beside the graph title on desktop and mobile and can switch away from and back to the current run without resetting it.
+
+Checkpoint 21D refresh correction: preserve task-context, Inspector and page scroll positions during checked refresh; isolate nested details toggles; add Advanced → Task history navigation. Verify by scrolling the context, refreshing, and opening/closing Source event without collapsing the outer pane.
+
+Checkpoint 21D layout correction: move history selection/refresh controls outside the scrollable context, reserve a stable context height, and disable Inspector scroll anchoring. After this focused fix, prioritize backend task/artifact verification and reviewed context services before further interface redesign.
+
+Graph-source header correction (v19): the screenshots identify Refresh graph sources, not Refresh checked context. Replace option-dependent flex wrapping with explicit responsive grid columns and a constrained selector. Metadata occupies a consistent second row; narrow screens use a deliberate single-column header. Validate by refreshing graph sources repeatedly with long saved names at the same window width. Backend work follows this focused correction.
+
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
