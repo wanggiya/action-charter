@@ -686,3 +686,31 @@ Copyright 2026 Jay Qi. Licensed under the Apache License, Version 2.0. See
 The **Flow graph** source selector can load local saved plans, saved recipes, and durable runs through the interface API. Use **Refresh** to update the list; exported traces remain a separate, manually prepared source. Graph selection only inspects evidence and does not approve or run work. See `docs/CHECKPOINT20.md`.
 
 Checkpoint 20 adds a read-only flow graph of verified plan, recipe, decision, execution and evidence relationships. A missing, expired or mismatched record does not gain a connection. Recorded output hashes are historical evidence rather than a fresh check of the physical file. See [Checkpoint 20](docs/CHECKPOINT20.md) for the relationship rules and acceptance steps.
+
+Checkpoint 21A adds explicit task-event recording and a deterministic context view via `record-task-event` and `build-task-context`. It does not yet connect the interface actions to one task automatically. See [Checkpoint 21](docs/CHECKPOINT21.md).
+
+Checkpoint 21B exposes explicit task-event recording and checked context inspection through the local interface API. It does not yet connect task history to the visible Planner and Run journey; see [Checkpoint 21](docs/CHECKPOINT21.md).
+
+Checkpoint 21C records new Planner sessions under one task ID and previews checked task context in the graph inspector. Existing saved artifacts are not assigned to a task without evidence, and task-history decision notes do not authorize execution. See [Checkpoint 21](docs/CHECKPOINT21.md).
+
+The remaining product sequence is [task identity → reviewed agent intent → task-centered interface → tabular tools → governed capability growth → evaluation](context/AGENT_INTERFACE_SEQUENCE.md).
+
+Task history can now be reopened from **Task history → Saved tasks** in the graph inspector. Each listed history has its event chain checked; source references are available under each context entry. This inspects history only and does not resume approval or execution. See `docs/CHECKPOINT21.md`.
+
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.

@@ -187,3 +187,7 @@ and execution remain later backend-integrated slices.
 The final interface and CLI are peers over the same governed contracts. The
 interface should remove routine dependence on commands without removing the CLI
 or creating an alternate execution path.
+
+## Confirmed future Advanced view (2026-10-02)
+
+Advanced should become a navigable flow/relationship graph: task → plan → approval/denial → recipe → run → outcome/evidence. Selecting a node opens details and checked findings. Keep node identity separate from status; make denied, expired, missing, interrupted, failed and verified records recognizable by labels and consistent colors. SHA-256 and paths belong in expandable audit details. The default task workspace remains describe → review graph → decide → run → inspect outcome. Implement this after backend relationships/recovery; the current deep Inspector navigation is temporary.

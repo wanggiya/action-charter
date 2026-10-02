@@ -105,39 +105,12 @@ third-party function. Each candidate must receive:
 
 ## Product roadmap after Checkpoint 17
 
-1. Checkpoint 18: prototype release and reproducible installation/startup;
-2. Checkpoint 19: simplified default workspace plus Advanced mode;
-3. Checkpoint 20: automatic artifact/digest relationship projection;
-4. Checkpoint 21: governed task history and deterministic context assembly;
-5. Checkpoint 22: bounded Context Curator and conversational Intent Agent;
-6. Checkpoint 23: governed tabular-data vertical slice;
-7. Checkpoint 24: governed library capability discovery and candidate testing;
-8. Checkpoint 25: real user task benchmark measuring time, intervention count, failures, and
-   outcome quality against manual spreadsheet/GIS work.
+- **18–20:** Local startup, navigable prototype, and verified authority/evidence projection are in place; the alpha release remains gated.
+- **21:** Complete durable task identity, verified artifact links, and recoverable history.
+- **22:** Add reviewed context and an Intent Agent before capability mapping.
+- **23:** Build the task-centered agent interface with one exact decision and a visible outcome.
+- **24:** Add a governed tabular-data vertical slice.
+- **25:** Add governed capability discovery and promotion.
+- **26:** Benchmark real tasks and prepare a supported alpha release.
 
-## Reviewable checkpoint sequence
-
-- **18 — reproducible local startup and alpha-release gate:** one supported
-  launcher, bounded service diagnostics, clean shutdown, and release notes.
-- **19 — simplified default workspace:** make Plan → Review graph → Run →
-  Check outcome the primary navigation and move expert controls to Advanced.
-- **20 — automatic authority-chain projection:** compare digests server-side,
-  connect matching artifacts visually, and surface hashes mainly for mismatch
-  or audit.
-- **21 — governed task history:** append immutable task events and construct
-  deterministic, bounded, redacted context packages with source references.
-- **22 — Context Curator and conversational intent:** use reviewed context
-  packages for an Intent Agent above the Planner without granting tool
-  authority or treating conversation as approval.
-- **23 — governed tabular vertical slice:** inspect CSV/TSV, apply a small
-  typed Pandas transformation set, validate output, and record lineage.
-- **24 — governed capability discovery:** propose fully qualified installed-
-  library operations, isolate tests, and require explicit promotion.
-- **25 — comparative product benchmark:** measure operator interventions,
-  elapsed time, failure recovery, deterministic correctness, reproducibility,
-  and audit comprehension against a manual workflow and a general coding
-  agent.
-
-ActionCharter does not attempt to match a general agent runtime feature for
-feature. Checkpoint 18 tests whether it can be distinctly better for governed,
-reproducible professional data work.
+The default interface changes in Checkpoint 23 after the task and intent boundaries are testable. See `context/AGENT_INTERFACE_SEQUENCE.md`.

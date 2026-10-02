@@ -930,32 +930,39 @@ Physical output freshness checks and a simplified task-level decision flow are l
 
 - [ ] Append immutable requests, clarifications, selections, decisions,
   outcomes, failures, and artifact references under one task identity.
-- [ ] Build deterministic bounded context packages with redaction, source
+  The CLI, checked store and loopback API are available. New Planner sessions record selected inputs, a planning outcome or failure, and a history-only decision note; exact task-derived recipe runs record a result or failure. Historic artifact correlation remains open.
+- [x] Build deterministic bounded task-event context packages with redaction, source
   references, size limits, and reproducible selection rules.
-- [ ] Keep original records authoritative; summaries remain derived views.
+- [ ] Include independently verified existing artifact references and historic task recovery.
+- [x] Expose a bounded current-task context preview beside the flow graph.
+- [x] Keep original records authoritative; summaries remain derived views.
 
-### Checkpoint 22 — Context Curator and conversational intent
+### Checkpoint 22 — reviewed context and intent reasoning
 
-- [ ] Present the exact context package before model use.
-- [ ] Add an Intent Agent that proposes goal-level work and clarification
-  questions without approval or execution authority.
-- [ ] Pass only reviewed intent into the existing capability-mapping Planner.
-- [ ] Present task conversation and bounded context beside the process graph,
-  with linked selections and visible source references; keep explicit approval
-  separate from conversation.
-- [ ] Converge plan and recipe bookkeeping behind one reviewed task scope and
-  one explicit human decision, without dropping immutable evidence or backend
-  revalidation. Show current-task outcome first; keep attempt history and
-  internal artifacts expandable. See `context/POST_HISTORY_INTERFACE.md`.
+- [ ] Show the exact bounded task context and source references before model use.
+- [ ] Add an Intent Agent that clarifies the goal and proposes a goal-level process
+  without approval or execution authority.
+- [ ] Map reviewed intent through the existing Planner to implemented typed skills;
+  preserve deterministic policy and make unavailable-skill findings actionable.
 
-### Checkpoints 23–25
+### Checkpoint 23 — task-centered agent interface
 
-- [ ] Add the governed Pandas tabular-data vertical slice (Checkpoint 23).
-- [ ] Add governed installed-library capability discovery (Checkpoint 24).
-- [ ] Benchmark interventions, correctness, recovery, reproducibility, and
-  comprehension against manual work and a general coding agent (Checkpoint 25).
-- [ ] Include the current multi-screen interface as a baseline and measure
-  whether the post-history path reduces operator actions and elapsed time.
+- [ ] Put task conversation/context beside the reviewable process graph.
+- [ ] Converge routine plan/recipe bookkeeping behind one reviewed task scope and
+  one explicit consequential decision, followed by deliberate Run.
+- [ ] Show current validated output and responsible failure first; keep durable
+  attempts, internal artifacts, Snakemake, Critic and release in Advanced.
+- [ ] Compare a fresh PostGIS task to the Checkpoint 19 flow for user actions,
+  elapsed time, comprehension, failure recovery and exact evidence.
+
+### Checkpoints 24–26
+
+- [ ] Add governed Pandas tabular-data processing (Checkpoint 24).
+- [ ] Add governed installed-library capability discovery (Checkpoint 25).
+- [ ] Benchmark against manual and general-agent work and prepare the laptop
+  alpha release after product acceptance (Checkpoint 26).
+
+See `context/AGENT_INTERFACE_SEQUENCE.md` for the acceptance boundaries.
 
 Checkpoint 20 recipe decision linkage: read-only saved recipe inventory independently verifies exact recipe approvals; execution and evidence graph linkage remains open.
 Checkpoint 20 execution linkage: run-start recipe and approval identity verification is implemented for new interface attempts; authoritative result and evidence joins remain open.
@@ -966,3 +973,23 @@ Checkpoint 20 graph source navigation: local saved plans, recipes, and durable a
 Checkpoint 20 Critic record linkage: the read-only Assurance inventory now verifies exact stored Critic records against current trace/report evidence; release linkage remains open.
 Checkpoint 20 release linkage: read-only Assurance now connects an exact verified Critic record plus current trace/report references to a verified immutable release package; full artifact lineage remains open.
 Checkpoint 20 recorded artifact graph: verified recipe evidence now exposes bounded output references and recorded producer steps, while fresh physical output verification remains open.
+
+Checkpoint 21D implemented: reopen independently checked saved task histories without restoring workflow scope or authority. Remaining Checkpoint 21 work includes verified artifact relationships and recovery boundaries before reviewed intent in Checkpoint 22.
+
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.

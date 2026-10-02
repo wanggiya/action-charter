@@ -229,3 +229,49 @@
 }
 
 .graph-audit-identity{margin-top:6px;color:#9aa5b0;font-size:11px}.graph-audit-identity summary,.planner-plan-digest summary{cursor:pointer;list-style-position:inside}.graph-audit-identity code{display:block;margin-top:5px;color:#b8c4d0;overflow-wrap:anywhere}.planner-plan-digest{display:block}.planner-plan-digest summary{color:#a6c5af;font-size:10px;font-weight:700}.planner-plan-digest code{display:block;margin-top:6px;overflow-wrap:anywhere;white-space:normal}
+
+/* Checkpoint 21: bounded task context in the graph inspector. */
+.task-context-pane{margin:14px 0;padding:12px;border:1px solid #35516d;border-radius:10px;background:#17212d;color:#dce8f4}
+.task-context-pane>summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-size:13px;font-weight:700;list-style:none}
+.task-context-pane>summary::-webkit-details-marker{display:none}
+.task-context-pane>summary strong{font-size:11px;color:#8fc5f5;font-weight:600}
+.task-context-content{min-width:0;max-height:330px;overflow:auto;padding-top:10px;font-size:12px;line-height:1.5}
+.task-context-content p{overflow-wrap:anywhere;margin:4px 0 10px;color:#b5c6d5}
+.task-context-content button{border:1px solid #426080;border-radius:6px;padding:6px 9px;color:#d5eaff;background:#22364b;cursor:pointer}
+.task-context-content ol{padding-left:19px;margin:12px 0}
+.task-context-content li{padding:7px 2px;border-top:1px solid #31475b}
+.task-context-content li span{color:#86bceb;font-size:11px;text-transform:capitalize;font-weight:700}
+.task-context-content li p{margin:3px 0 0}
+.task-context-content .task-context-warning{color:#f2b4a9}
+.task-context-content details{margin:8px 0;color:#a9bacb}
+.task-context-content details code{display:block;overflow-wrap:anywhere;padding:5px 0;color:#dce8f4}
+.task-context-content small{display:block;color:#9dafbd}
+.task-history-actions{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.saved-task-list{margin:10px 0;padding:10px;border:1px solid #3a5065;border-radius:7px;background:#151e29}
+.saved-task-list>header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.saved-task-list>button{display:grid;gap:4px;width:100%;text-align:left;margin:7px 0;padding:9px;overflow-wrap:anywhere}
+.saved-task-list>button strong{font-size:12px;font-weight:600}
+.saved-task-list>button span{font-size:12px;color:#b9d1e7}
+.saved-task-list>button small{font-size:10px}
+
+.task-context-content{overflow-anchor:none;scrollbar-gutter:stable}
+
+/* Keep history controls outside the changing, independently scrolling context. */
+.inspector{overflow-anchor:none;scrollbar-gutter:stable}
+.task-context-pane>summary{min-height:22px;align-items:center}
+.task-context-pane>summary strong{white-space:nowrap}
+.task-context-pane[open]>.task-history-actions{display:grid;grid-template-columns:1fr;gap:7px;margin:12px 0 8px}
+.task-context-pane:not([open])>.task-history-actions{display:none}
+.task-history-actions button{min-height:34px;border:1px solid #426080;border-radius:6px;color:#d5eaff;background:#22364b;cursor:pointer}
+.task-history-actions button:disabled{opacity:.55;cursor:default}
+.task-context-pane[open]>.task-context-content{height:330px;max-height:330px;box-sizing:border-box;overflow:auto}
+
+/* Graph-source options must not determine the header's row placement. */
+.stage-heading{display:grid;grid-template-columns:minmax(220px,.85fr) minmax(0,1.65fr);align-items:start;gap:16px}
+.stage-heading>div:first-child{min-width:0}
+.stage-heading-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;width:100%;min-width:0;align-items:end;justify-content:stretch}
+.stage-heading-actions .graph-source-picker{width:100%;min-width:0;max-width:none}
+.graph-source-picker select{min-width:0;max-width:100%;box-sizing:border-box}
+.stage-heading-actions .stage-meta,.stage-heading-actions .graph-source-hint{grid-column:1/-1;justify-content:flex-start;min-width:0}
+.stage-heading-actions .stage-meta{min-height:20px;align-content:start}
+@media(max-width:800px){.stage-heading{grid-template-columns:minmax(0,1fr)}.stage-heading-actions{justify-content:stretch}.stage-heading-actions .graph-source-picker{width:100%;min-width:0}}

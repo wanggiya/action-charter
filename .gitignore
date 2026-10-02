@@ -42,6 +42,9 @@ approvals/*
 workflow-state/*
 !workflow-state/.gitkeep
 
+# Local append-only task history can contain private requests and references.
+task-history/
+
 # Runtime reusable workflow recipes
 workflow-recipes/*
 !workflow-recipes/.gitkeep

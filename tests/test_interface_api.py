@@ -42,6 +42,9 @@ from geoagent_harness.interface_api import (
     serve_interface_api,
 )
 from geoagent_harness.interface_api.server import _handler
+from geoagent_harness.interface_api.server import (
+    InterfaceTaskEventRequest, record_interface_task_event, inspect_interface_task_context,
+)
 from geoagent_harness.interface_api.server import InterfaceApprovalDecision
 from geoagent_harness.interface_api.server import InterfaceApprovalVerificationRequest
 from geoagent_harness.interface_api.server import InterfaceExecutionPreviewRequest
@@ -1653,6 +1656,69 @@ def test_interface_server_refuses_non_loopback_binding() -> None:
         serve_interface_api(project_root=PROJECT_ROOT, host="0.0.0.0")
 
 
+def test_interface_task_history_is_explicit_and_has_no_authority(tmp_path: Path) -> None:
+    task_root = tmp_path / "tasks"
+    created = record_interface_task_event(
+        InterfaceTaskEventRequest(action="record_task_event", event_type="request", summary="Inspect password=private data", details="Long task: " + "data " * 1200),
+        project_root=PROJECT_ROOT, task_root=task_root,
+    )
+    assert created["task_id"].startswith("task-")
+    assert created["approval_recorded"] is False
+    assert created["execution_performed"] is False
+    record_interface_task_event(
+        InterfaceTaskEventRequest(action="record_task_event", task_id=created["task_id"], event_type="decision", summary="Operator wants more information"),
+        project_root=PROJECT_ROOT, task_root=task_root,
+    )
+    context = inspect_interface_task_context(
+        project_root=PROJECT_ROOT, task_id=created["task_id"], task_root=task_root,
+    )
+    assert context["selected_count"] == 2
+    assert len(interface_api_module.load_task_events(root=task_root, task_id=created["task_id"])[0]["payload"]["details"]) > 6000
+    assert "private" not in json.dumps(context)
+    assert context["execution_performed"] is False
+    assert context == inspect_interface_task_context(
+        project_root=PROJECT_ROOT, task_id=created["task_id"], task_root=task_root,
+    )
+    with pytest.raises(interface_api_module.TaskHistoryError, match="does not exist"):
+        record_interface_task_event(
+            InterfaceTaskEventRequest(action="record_task_event", task_id="task-missing", event_type="outcome", summary="Fake result"),
+            project_root=PROJECT_ROOT, task_root=task_root,
+        )
+
+
+def test_task_history_http_route_stays_separate_from_approval(tmp_path: Path) -> None:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(PROJECT_ROOT, task_root=tmp_path / "tasks"))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+        connection.request("POST", "/api/v1/tasks/events", body=json.dumps({
+            "action": "record_task_event", "event_type": "request", "summary": "Inspect the sample data",
+        }), headers={"Content-Type": "application/json", "Origin": "http://localhost:5173"})
+        response = connection.getresponse()
+        created = json.loads(response.read())
+        assert response.status == 200
+        assert created["status"] == "recorded_history_only"
+        assert created["approval_recorded"] is False
+        connection.request("GET", "/api/v1/tasks")
+        listed = connection.getresponse()
+        inventory = json.loads(listed.read())
+        assert listed.status == 200
+        assert inventory["tasks"][0]["task_id"] == created["task_id"]
+        assert inventory["execution_performed"] is False
+        connection.request("GET", f"/api/v1/tasks/{created['task_id']}/context")
+        reopened = connection.getresponse()
+        context = json.loads(reopened.read())
+        assert reopened.status == 200
+        assert context["event_count"] == 1
+        assert context["model_called"] is False
+        connection.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=3)
+
+
 def test_http_boundary_compiles_json_and_rejects_foreign_origin() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(PROJECT_ROOT))
     thread = Thread(target=server.serve_forever, daemon=True)
@@ -1754,3 +1820,21 @@ def test_http_planner_policy_rejection_returns_safe_actionable_finding(
         server.shutdown()
         server.server_close()
         thread.join(timeout=3)
+
+
+def test_interrupted_progress_reopens_task_note_without_retry(tmp_path: Path) -> None:
+    from geoagent_harness.task_history import append_task_event, load_task_events
+    append_task_event(root=tmp_path / "task-history", task_id="task-recovery", event_type="request", summary="Recovery fixture")
+    digest = "f" * 64
+    progress_root = tmp_path / "progress"
+    state = {"schema_version": "1.0", "status": "running", "execution_preview_sha256": digest,
+             "task_id": "task-recovery", "steps": [{"step_id": "step_1", "status": "running"}],
+             "execution_performed": False}
+    interface_api_module._persist_execution_progress(tmp_path, state, progress_root=progress_root)
+    first = interface_api_module._load_execution_progress(tmp_path, digest, progress_root=progress_root)
+    second = interface_api_module._load_execution_progress(tmp_path, digest, progress_root=progress_root)
+    assert first["status"] == second["status"] == "interrupted"
+    assert first["execution_performed"] is False
+    events = load_task_events(root=tmp_path / "task-history", task_id="task-recovery")
+    assert len(events) == 2
+    assert events[-1]["payload"]["status"] == "interrupted"
