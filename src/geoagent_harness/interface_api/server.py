@@ -413,6 +413,60 @@ class InterfaceApiError(RuntimeError):
     """Raised when the bounded interface API cannot fulfill a request."""
 
 
+class InterfaceContextRetrievalRequest(BaseModel):
+    """Read-only candidates from explicit task selection; not reviewed memory."""
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["retrieve_task_context"]
+    query: str = Field(min_length=1, max_length=1000)
+    task_ids: list[str] = Field(min_length=1, max_length=5)
+
+
+class InterfaceContextReviewRequest(InterfaceContextRetrievalRequest):
+    action: Literal["review_task_context"]
+    confirmed_context_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    reviewer: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class InterfaceIntentRequest(BaseModel):
+    """Reasoning-only current request and explicit answers, without hidden history."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    action: Literal["reason_task_intent"]
+    review_filename: str | None = Field(pattern=r"^context-review\.[a-f0-9]{64}\.json$")
+    request: str = Field(min_length=1, max_length=4000)
+    clarification_answers: list[str] = Field(default_factory=list, max_length=5)
+
+
+class InterfaceIntentInspectionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    action: Literal["inspect_intent_proposal"]
+    intent: dict[str, Any]
+
+
+class InterfaceIntentReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    action: Literal["review_task_intent"]
+    intent: dict[str, Any]
+    confirmed_intent_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    reviewer: str = Field(min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class InterfaceIntentHandoffRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    action: Literal["plan_reviewed_intent"]
+    review_filename: str = Field(pattern=r"^intent-review\.[a-f0-9]{64}\.json$")
+    allowed_skill_ids: list[str] = Field(min_length=1, max_length=1)
+
+
+class InterfaceIntentPlanSaveRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["save_reviewed_intent_plan"]
+    review_filename: str = Field(pattern=r"^intent-review\.[a-f0-9]{64}\.json$")
+    planner_result: PlannerResult
+    confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class InterfaceTaskEventRequest(BaseModel):
     """History entry only; no approval or execution authority is conferred."""
 
@@ -2820,6 +2874,34 @@ def _handler(
                 except (OSError, ValueError):
                     self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "task evidence could not be inspected"})
                 return
+            if self.path == "/api/v1/reviewed-context-inventory":
+                from geoagent_harness.intent.inventory import reviewed_context_inventory
+                try:
+                    self._send(HTTPStatus.OK, reviewed_context_inventory(project_root=_trusted_root(project_root)))
+                except (OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "review inventory is unavailable"})
+                return
+            review_match = re.fullmatch(r"/api/v1/context/reviews/(context-review\.[a-f0-9]{64}\.json)", self.path)
+            if review_match:
+                from geoagent_harness.context_retrieval import load_reviewed_context, ContextReviewError, ContextRetrievalError
+                try:
+                    self._send(HTTPStatus.OK, load_reviewed_context(
+                        review_root=_trusted_root(project_root) / "reviewed-contexts",
+                        history_root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                        filename=review_match.group(1),
+                    ))
+                except (ContextReviewError, ContextRetrievalError, OSError, ValueError, KeyError):
+                    self._send(HTTPStatus.CONFLICT, {"error": "reviewed context is unavailable or stale; retrieve and review again"})
+                return
+            intent_review_match = re.fullmatch(r"/api/v1/intent/reviews/(intent-review\.[a-f0-9]{64}\.json)", self.path)
+            if intent_review_match:
+                from geoagent_harness.intent.review import load_reviewed_intent
+                try:
+                    self._send(HTTPStatus.OK, load_reviewed_intent(
+                        project_root=_trusted_root(project_root), filename=intent_review_match.group(1)))
+                except (OSError, ValueError, KeyError):
+                    self._send(HTTPStatus.CONFLICT, {"error": "reviewed intent is unavailable, invalid or stale; inspect and review again", "execution_performed": False})
+                return
             if self.path == "/api/v1/executions":
                 try:
                     self._send(
@@ -2921,6 +3003,13 @@ def _handler(
             if self.path not in {
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/tasks/events",
+                "/api/v1/context/retrieve",
+                "/api/v1/context/review",
+                "/api/v1/intent/reason",
+                "/api/v1/intent/inspect",
+                "/api/v1/intent/review",
+                "/api/v1/intent/plan",
+                "/api/v1/intent/save-plan",
                 "/api/v1/recipe-proposals/save-reviewed",
                 "/api/v1/recipes/prepare-approval",
                 "/api/v1/recipes/record-approval",
@@ -2957,7 +3046,88 @@ def _handler(
                 return
             try:
                 payload = json.loads(self.rfile.read(length))
-                if self.path == "/api/v1/tasks/events":
+                if self.path == "/api/v1/context/retrieve":
+                    from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
+                    context_request = InterfaceContextRetrievalRequest.model_validate(payload)
+                    try:
+                        response = retrieve_task_context(
+                            root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                            query=context_request.query, task_ids=context_request.task_ids,
+                        )
+                    except ContextRetrievalError as exc:
+                        self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                        return
+                elif self.path == "/api/v1/context/review":
+                    from geoagent_harness.context_retrieval import save_reviewed_context, ContextReviewError, ContextRetrievalError
+                    review_request = InterfaceContextReviewRequest.model_validate(payload)
+                    try:
+                        response = save_reviewed_context(
+                            history_root=task_root if task_root is not None else _trusted_root(project_root) / "task-history",
+                            review_root=_trusted_root(project_root) / "reviewed-contexts",
+                            query=review_request.query, task_ids=review_request.task_ids,
+                            confirmed_context_sha256=review_request.confirmed_context_sha256,
+                            reviewer=review_request.reviewer, reason=review_request.reason,
+                        )
+                    except (ContextReviewError, ContextRetrievalError) as exc:
+                        self._send(HTTPStatus.CONFLICT, {"error": str(exc)})
+                        return
+                elif self.path == "/api/v1/intent/reason":
+                    from geoagent_harness.intent.service import reason_task_intent, IntentError
+                    from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
+                    from geoagent_harness.model import ModelClientError, ModelSettingsError
+                    intent_request = InterfaceIntentRequest.model_validate(payload)
+                    try:
+                        response = reason_task_intent(
+                            project_root=_trusted_root(project_root),
+                            history_root=task_root,
+                            review_filename=intent_request.review_filename,
+                            request=intent_request.request,
+                            clarification_answers=intent_request.clarification_answers,
+                        )
+                    except (ContextReviewError, ContextRetrievalError, OSError, KeyError) as exc:
+                        self._send(HTTPStatus.CONFLICT, {"error": "reviewed context is unavailable or stale; retrieve and review again", "execution_performed": False})
+                        return
+                    except IntentError as exc:
+                        self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc), "execution_performed": False})
+                        return
+                    except (ModelClientError, ModelSettingsError) as exc:
+                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "intent model request failed; check local model service and settings", "execution_performed": False})
+                        return
+                elif self.path in {"/api/v1/intent/inspect", "/api/v1/intent/review", "/api/v1/intent/plan", "/api/v1/intent/save-plan"}:
+                    from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
+                    from geoagent_harness.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
+                    from geoagent_harness.intent.service import IntentError
+                    from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
+                    from geoagent_harness.model import ModelClientError, ModelSettingsError
+                    try:
+                        if self.path == "/api/v1/intent/inspect":
+                            inspected = InterfaceIntentInspectionRequest.model_validate(payload)
+                            response = inspect_intent_for_review(payload=inspected.intent, project_root=_trusted_root(project_root))
+                        elif self.path == "/api/v1/intent/review":
+                            confirmed = InterfaceIntentReviewRequest.model_validate(payload)
+                            response = save_reviewed_intent(payload=confirmed.intent, project_root=_trusted_root(project_root),
+                                confirmed_intent_sha256=confirmed.confirmed_intent_sha256,
+                                reviewer=confirmed.reviewer, reason=confirmed.reason)
+                        elif self.path == "/api/v1/intent/save-plan":
+                            saving = InterfaceIntentPlanSaveRequest.model_validate(payload)
+                            response = save_reviewed_intent_plan(project_root=_trusted_root(project_root),
+                                filename=saving.review_filename, planner_result=saving.planner_result,
+                                confirmed_plan_sha256=saving.confirmed_plan_sha256)
+                        else:
+                            handoff = InterfaceIntentHandoffRequest.model_validate(payload)
+                            response = plan_reviewed_intent(project_root=_trusted_root(project_root),
+                                filename=handoff.review_filename, allowed_skill_ids=handoff.allowed_skill_ids)
+                    except (ContextReviewError, ContextRetrievalError, OSError, KeyError):
+                        self._send(HTTPStatus.CONFLICT, {"error": "reviewed intent/context is unavailable or stale; inspect and review again", "execution_performed": False})
+                        return
+                    except IntentError as exc:
+                        status = HTTPStatus.CONFLICT if "already exists" in str(exc) or "changed" in str(exc) else HTTPStatus.BAD_REQUEST
+                        self._send(status, {"error": redact_text(str(exc)), "execution_performed": False})
+                        return
+                    except (ModelClientError, ModelSettingsError):
+                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "Planner model request failed; check local model service and settings", "execution_performed": False})
+                        return
+                elif self.path == "/api/v1/tasks/events":
                     response = record_interface_task_event(
                         InterfaceTaskEventRequest.model_validate(payload),
                         project_root=project_root, task_root=task_root,

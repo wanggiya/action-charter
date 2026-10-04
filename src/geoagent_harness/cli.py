@@ -71,6 +71,168 @@ def build_task_context_command(
         raise typer.Exit(code=2) from exc
 
 
+@app.command("retrieve-task-context")
+def retrieve_task_context_command(
+    query: Annotated[str, typer.Option("--query")],
+    task_ids: Annotated[list[str], typer.Option("--task-id", help="Repeat for each explicitly selected history, at most five.")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Retrieve unreviewed context candidates without calling a model or executing."""
+    from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
+    try:
+        result = retrieve_task_context(root=project_root.resolve() / "task-history", query=query, task_ids=task_ids)
+        typer.echo(json.dumps(result, indent=2))
+    except ContextRetrievalError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("review-task-context")
+def review_task_context_command(
+    query: Annotated[str, typer.Option("--query")],
+    task_ids: Annotated[list[str], typer.Option("--task-id")],
+    confirmed_context_sha256: Annotated[str, typer.Option("--confirmed-context-sha256")],
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    reason: Annotated[str, typer.Option("--reason")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Confirm exact context for reasoning only, never approve work."""
+    from geoagent_harness.context_retrieval import save_reviewed_context, ContextReviewError, ContextRetrievalError
+    try:
+        result = save_reviewed_context(history_root=project_root.resolve() / "task-history",
+            review_root=project_root.resolve() / "reviewed-contexts", query=query, task_ids=task_ids,
+            confirmed_context_sha256=confirmed_context_sha256, reviewer=reviewer, reason=reason)
+        typer.echo(json.dumps(result, indent=2))
+    except (ContextReviewError, ContextRetrievalError, OSError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("inspect-reviewed-context")
+def inspect_reviewed_context_command(
+    filename: Annotated[str, typer.Argument()],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    from geoagent_harness.context_retrieval import load_reviewed_context, ContextReviewError, ContextRetrievalError
+    try:
+        typer.echo(json.dumps(load_reviewed_context(review_root=project_root.resolve() / "reviewed-contexts",
+            history_root=project_root.resolve() / "task-history", filename=filename), indent=2))
+    except (ContextReviewError, ContextRetrievalError, OSError, ValueError, KeyError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("reason-task-intent")
+def reason_task_intent_command(
+    request: Annotated[str, typer.Option("--request")],
+    review_filename: Annotated[str | None, typer.Option("--review-filename", help="Omit to start explicitly without historical context.")] = None,
+    clarification_answers: Annotated[list[str] | None, typer.Option("--clarification", help="Repeat for up to five explicit answers; no authority is conferred.")] = None,
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Propose intent with optional reviewed history; never execute."""
+    from geoagent_harness.intent.service import reason_task_intent, IntentError
+    from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
+    from geoagent_harness.model import ModelClientError, ModelSettingsError
+    try:
+        result = reason_task_intent(project_root=project_root, review_filename=review_filename, request=request, clarification_answers=clarification_answers)
+        typer.echo(json.dumps(result, indent=2))
+    except (IntentError, ContextReviewError, ContextRetrievalError, ModelClientError,
+            ModelSettingsError, OSError, ValueError, KeyError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("inspect-intent-proposal")
+def inspect_intent_proposal_command(
+    proposal_file: Annotated[Path, typer.Argument()],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    from geoagent_harness.intent.review import read_intent_file, inspect_intent_for_review
+    try:
+        typer.echo(json.dumps(inspect_intent_for_review(payload=read_intent_file(proposal_file), project_root=project_root), indent=2))
+    except (ValueError, OSError, KeyError) as exc:
+        typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
+
+
+@app.command("review-task-intent")
+def review_task_intent_command(
+    proposal_file: Annotated[Path, typer.Argument()],
+    confirmed_intent_sha256: Annotated[str, typer.Option("--confirmed-intent-sha256")],
+    reviewer: Annotated[str, typer.Option("--reviewer")],
+    reason: Annotated[str, typer.Option("--reason")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    from geoagent_harness.intent.review import read_intent_file, save_reviewed_intent
+    try:
+        result=save_reviewed_intent(payload=read_intent_file(proposal_file),project_root=project_root,
+            confirmed_intent_sha256=confirmed_intent_sha256,reviewer=reviewer,reason=reason)
+        typer.echo(json.dumps(result,indent=2))
+    except (ValueError, OSError, KeyError) as exc:
+        typer.echo(f"Error: {exc}",err=True);raise typer.Exit(code=2) from exc
+
+
+@app.command("inspect-reviewed-intent")
+def inspect_reviewed_intent_command(
+    filename: Annotated[str, typer.Argument()],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    from geoagent_harness.intent.review import load_reviewed_intent
+    try:
+        typer.echo(json.dumps(load_reviewed_intent(project_root=project_root,filename=filename),indent=2))
+    except (ValueError, OSError, KeyError) as exc:
+        typer.echo(f"Error: {exc}",err=True);raise typer.Exit(code=2) from exc
+
+
+@app.command("plan-reviewed-intent")
+def plan_reviewed_intent_command(
+    filename: Annotated[str, typer.Argument()],
+    allowed_skill_ids: Annotated[list[str], typer.Option("--allowed-skill")],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Plan one exact reviewed vector inspection; never save or execute."""
+    from geoagent_harness.intent.handoff import plan_reviewed_intent
+    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.model import ModelClientError, ModelSettingsError
+    try:
+        typer.echo(json.dumps(plan_reviewed_intent(project_root=project_root,filename=filename,
+            allowed_skill_ids=allowed_skill_ids),indent=2))
+    except (ValueError, OSError, KeyError, PlannerAgentError, ModelClientError, ModelSettingsError) as exc:
+        typer.echo(f"Error: {exc}",err=True);raise typer.Exit(code=2) from exc
+
+
+@app.command("save-reviewed-intent-plan")
+def save_reviewed_intent_plan_command(
+    handoff_file: Annotated[Path, typer.Argument()],
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """Store the exact reviewed handoff plan, without approval or execution."""
+    from geoagent_harness.intent.review import read_intent_file
+    from geoagent_harness.intent.handoff import save_reviewed_intent_plan
+    from geoagent_harness.planner.schemas import PlannerResult
+    try:
+        payload = read_intent_file(handoff_file)
+        typer.echo(json.dumps(save_reviewed_intent_plan(project_root=project_root,
+            filename=payload['intent_review_filename'],
+            planner_result=PlannerResult.model_validate(payload['planner_result']),
+            confirmed_plan_sha256=payload['plan_sha256']), indent=2))
+    except (ValueError, OSError, KeyError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
+@app.command("list-reviewed-context")
+def list_reviewed_context_command(
+    project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
+) -> None:
+    """List source-checked saved context and intent reviews without inference."""
+    from geoagent_harness.intent.inventory import reviewed_context_inventory
+    try:
+        typer.echo(json.dumps(reviewed_context_inventory(project_root=project_root), indent=2))
+    except (OSError, ValueError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+
 @app.command("serve-interface-api")
 def serve_interface_api_command(
     project_root: Annotated[

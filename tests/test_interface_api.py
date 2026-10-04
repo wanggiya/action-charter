@@ -1712,6 +1712,16 @@ def test_task_history_http_route_stays_separate_from_approval(tmp_path: Path) ->
         assert reopened.status == 200
         assert context["event_count"] == 1
         assert context["model_called"] is False
+        connection.request("POST", "/api/v1/context/retrieve", body=json.dumps({
+            "action": "retrieve_task_context", "query": "sample", "task_ids": [created["task_id"]],
+        }), headers={"Content-Type": "application/json", "Origin": "http://localhost:5173"})
+        retrieved = connection.getresponse()
+        candidate = json.loads(retrieved.read())
+        assert retrieved.status == 200
+        assert candidate["status"] == "retrieved_not_reviewed"
+        assert candidate["excerpts"][0]["task_id"] == created["task_id"]
+        assert candidate["model_called"] is False
+        assert candidate["review_performed"] is False
         connection.close()
     finally:
         server.shutdown()
@@ -1838,3 +1848,176 @@ def test_interrupted_progress_reopens_task_note_without_retry(tmp_path: Path) ->
     events = load_task_events(root=tmp_path / "task-history", task_id="task-recovery")
     assert len(events) == 2
     assert events[-1]["payload"]["status"] == "interrupted"
+
+
+def test_context_review_http_storage_and_stale_rejection(tmp_path: Path) -> None:
+    from geoagent_harness.task_history import append_task_event
+    from geoagent_harness.context_retrieval import retrieve_task_context
+    history = tmp_path / "task-history"
+    append_task_event(root=history, task_id="task-context-http", event_type="request", summary="Inspect vector")
+    context = retrieve_task_context(root=history, query="vector", task_ids=["task-context-http"])
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _handler(tmp_path, task_root=history))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
+        payload = {"action": "review_task_context", "query": "vector", "task_ids": ["task-context-http"],
+                   "confirmed_context_sha256": context["context_sha256"], "reviewer": "fixture", "reason": "Relevant history"}
+        headers = {"Content-Type": "application/json", "Origin": "http://localhost:5173"}
+        connection.request("POST", "/api/v1/context/review", body=json.dumps(payload), headers=headers)
+        response = connection.getresponse(); saved = json.loads(response.read())
+        assert response.status == 200
+        assert saved["plan_approved"] is False
+        connection.request("GET", "/api/v1/context/reviews/" + saved["review_filename"])
+        response = connection.getresponse(); record = json.loads(response.read())
+        assert response.status == 200
+        assert record["context"] == context
+        append_task_event(root=history, task_id="task-context-http", event_type="failure", summary="Vector changed")
+        connection.request("POST", "/api/v1/context/review", body=json.dumps(payload), headers=headers)
+        response = connection.getresponse(); response.read()
+        assert response.status == 409
+        connection.close()
+    finally:
+        server.shutdown(); server.server_close(); thread.join(timeout=3)
+
+
+def test_intent_http_reasoning_clarification_and_stale_context(tmp_path: Path, monkeypatch) -> None:
+    from geoagent_harness.task_history import append_task_event
+    from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
+    from geoagent_harness.model import ModelResult
+    import geoagent_harness.intent.service as intent_module
+    history=tmp_path/'task-history'
+    append_task_event(root=history,task_id='task-intent-http',event_type='decision',summary='Plan denied')
+    context=retrieve_task_context(root=history,query='denied',task_ids=['task-intent-http'])
+    saved=save_reviewed_context(history_root=history,review_root=tmp_path/'reviewed-contexts',query='denied',task_ids=['task-intent-http'],confirmed_context_sha256=context['context_sha256'],reviewer='fixture',reason='Context only')
+    calls=[]
+    class Fake:
+        def complete(self,request):
+            calls.append(request)
+            assert json.loads(request.messages[1].content)['clarification_answers']==['Use sample_points.geojson']
+            return ModelResult(model='fake',finish_reason='stop',content=json.dumps(dict(status='intent_proposed',objective='Inspect selected dataset',known_inputs=['sample_points.geojson'],requested_outputs=['inspection summary'],constraints=['Do not reuse denied approval'],clarification_questions=[],cited_sequences=[1])))
+    monkeypatch.setattr(intent_module,'SharedModelClient',lambda _settings:Fake())
+    monkeypatch.setattr(intent_module,'load_model_settings',lambda:None)
+    server=ThreadingHTTPServer(('127.0.0.1',0),_handler(tmp_path,task_root=history))
+    thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        connection=HTTPConnection('127.0.0.1',server.server_port,timeout=3)
+        body=dict(action='reason_task_intent',review_filename=saved['review_filename'],request='Inspect a new dataset',clarification_answers=['Use sample_points.geojson'])
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173'}
+        connection.request('POST','/api/v1/intent/reason',body=json.dumps(body),headers=headers)
+        response=connection.getresponse();result=json.loads(response.read())
+        assert response.status==200
+        assert result['human_review_required'] is True
+        assert result['tools_called'] is result['execution_performed'] is result['approval_inferred'] is False
+        append_task_event(root=history,task_id='task-intent-http',event_type='clarification',summary='History changed')
+        connection.request('POST','/api/v1/intent/reason',body=json.dumps(body),headers=headers)
+        response=connection.getresponse();response.read();assert response.status==409
+        assert len(calls)==1
+        body['approval']=True
+        connection.request('POST','/api/v1/intent/reason',body=json.dumps(body),headers=headers)
+        response=connection.getresponse();response.read();assert response.status==400
+        connection.close()
+    finally:
+        server.shutdown();server.server_close();thread.join(timeout=3)
+
+
+def test_intent_review_and_handoff_http_keep_exact_scope_and_authority(tmp_path: Path, monkeypatch) -> None:
+    from geoagent_harness.task_history import append_task_event
+    from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
+    from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
+    import geoagent_harness.intent.handoff as handoff_module
+    history=tmp_path/'task-history'
+    append_task_event(root=history,task_id='task-review-http',event_type='decision',summary='Plan denied')
+    context=retrieve_task_context(root=history,query='denied',task_ids=['task-review-http'])
+    saved_context=save_reviewed_context(history_root=history,review_root=tmp_path/'reviewed-contexts',query='denied',task_ids=['task-review-http'],confirmed_context_sha256=context['context_sha256'],reviewer='fixture',reason='History only')
+    intent=dict(schema_version='1.0',agent_id='intent',model='fake',original_request='Inspect metadata',clarification_answers=['Read memory, no persistent writes'],review_filename=saved_context['review_filename'],context_sha256=context['context_sha256'],proposal=dict(status='intent_proposed',objective='Inspect selected data',known_inputs=['data/input/sample.geojson'],requested_outputs=['feature count','fields','CRS'],constraints=['No writes'],clarification_questions=[],cited_sequences=[1]),status='proposed_not_saved',human_review_required=True,correction_attempted=False,model_called=True,plan_created=False,approval_inferred=False,execution_performed=False,tools_called=False)
+    calls=[]
+    def fake_planner(**kwargs):
+        calls.append(kwargs)
+        assert kwargs['allowed_skill_ids']==['inspect_vector']
+        return PlannerResult(model='fake',original_request=kwargs['original_request'],context_references=[],plan=WorkflowPlan(summary='Inspect',steps=[PlanStep(step_id='step_1',skill='inspect_vector',purpose='Inspect exact input',arguments={'path':'data/input/sample.geojson'},requires_approval=True)]))
+    monkeypatch.setattr(handoff_module,'plan_task',fake_planner)
+    server=ThreadingHTTPServer(('127.0.0.1',0),_handler(tmp_path))
+    thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        connection=HTTPConnection('127.0.0.1',server.server_port,timeout=3)
+        headers={'Content-Type':'application/json','Origin':'http://localhost:5173'}
+        def post(route,body):
+            connection.request('POST',route,body=json.dumps(body),headers=headers)
+            response=connection.getresponse();return response.status,json.loads(response.read())
+        code,preview=post('/api/v1/intent/inspect',dict(action='inspect_intent_proposal',intent=intent))
+        assert code==200 and preview['review_allowed'] is True
+        body=dict(action='review_task_intent',intent=intent,confirmed_intent_sha256=preview['intent_sha256'],reviewer='operator',reason='Exact read-only intent, no work approval')
+        code,saved=post('/api/v1/intent/review',body)
+        assert code==200 and saved['status']=='reviewed_intent_stored'
+        assert saved['plan_approved'] is saved['execution_performed'] is saved['model_called'] is False
+        connection.request('GET','/api/v1/intent/reviews/'+saved['review_filename'])
+        response=connection.getresponse();record=json.loads(response.read())
+        assert response.status==200 and record['status']=='reviewed_intent_only'
+        handoff=dict(action='plan_reviewed_intent',review_filename=saved['review_filename'],allowed_skill_ids=['inspect_vector'])
+        connection.request('GET','/api/v1/reviewed-context-inventory')
+        inventory_response = connection.getresponse()
+        inventory = json.loads(inventory_response.read())
+        assert inventory_response.status == 200 and inventory['review_count'] == 2
+        assert all(item['status'] == 'available' for item in inventory['reviews'])
+        assert {item['kind'] for item in inventory['reviews']} == {'context', 'intent'}
+        assert inventory['model_called'] is inventory['execution_performed'] is inventory['files_modified'] is False
+        assert len(calls) == 0
+        code,result=post('/api/v1/intent/plan',handoff)
+        assert code==200 and result['status']=='planned_not_saved'
+        assert result['additional_human_approval_required'] is True
+        assert result['planner_result']['plan']['steps'][0]['requires_approval'] is True
+        assert result['plan_saved'] is result['execution_performed'] is result['approval_inferred'] is False
+        assert not (tmp_path/'plans').exists()
+        from types import SimpleNamespace
+        monkeypatch.setattr(interface_api_module, 'load_skill_registry', lambda root: SimpleNamespace(implemented_skills=lambda: [SimpleNamespace(id='inspect_vector')]))
+        save_body = dict(action='save_reviewed_intent_plan', review_filename=saved['review_filename'], planner_result=result['planner_result'], confirmed_plan_sha256=result['plan_sha256'])
+        code, _ = post('/api/v1/intent/save-plan', {**save_body, 'confirmed_plan_sha256': '0'*64})
+        assert code == 409 and not (tmp_path/'plans').exists()
+        altered = json.loads(json.dumps(save_body))
+        altered['planner_result']['plan']['steps'][0]['arguments']['path'] = 'data/input/other.geojson'
+        code, failure = post('/api/v1/intent/save-plan', altered)
+        assert code == 409, failure
+        assert not (tmp_path/'plans').exists()
+        altered = json.loads(json.dumps(save_body))
+        altered['planner_result']['original_request'] = '{}'
+        code, failure = post('/api/v1/intent/save-plan', altered)
+        assert code == 400, failure
+        assert not (tmp_path/'plans').exists()
+        code, stored_plan = post('/api/v1/intent/save-plan', save_body)
+        assert code == 200 and stored_plan['status'] == 'stored'
+        assert stored_plan['model_called'] is stored_plan['approval_performed'] is stored_plan['execution_performed'] is False
+        plan_path = tmp_path/'plans'/stored_plan['plan_filename']
+        original_bytes = plan_path.read_bytes()
+        assert json.loads(original_bytes)['plan']['steps'][0]['requires_approval'] is True
+        code, duplicate = post('/api/v1/intent/save-plan', save_body)
+        assert code == 200 and duplicate['status'] == 'already_stored'
+        assert plan_path.read_bytes() == original_bytes and len(calls) == 1
+        code,_=post('/api/v1/intent/plan',{**handoff,'allowed_skill_ids':['convert_vector']})
+        assert code==400 and len(calls)==1
+        code,_=post('/api/v1/intent/plan',{**handoff,'execute':True})
+        assert code==400 and len(calls)==1
+        body['confirmed_intent_sha256']='0'*64
+        code,_=post('/api/v1/intent/review',body);assert code==409
+        intent['proposal'].update(status='clarification_required',clarification_questions=['Which file?'])
+        code,unresolved=post('/api/v1/intent/inspect',dict(action='inspect_intent_proposal',intent=intent))
+        assert code==200 and unresolved['review_allowed'] is False
+        body['confirmed_intent_sha256']=unresolved['intent_sha256']
+        code,_=post('/api/v1/intent/review',body);assert code==400
+        append_task_event(root=history,task_id='task-review-http',event_type='clarification',summary='Source changed')
+        code,_=post('/api/v1/intent/plan',handoff)
+        assert code==409 and len(calls)==1
+        code,_=post('/api/v1/intent/save-plan',save_body)
+        assert code==409 and plan_path.read_bytes()==original_bytes
+        connection.request('GET','/api/v1/reviewed-context-inventory')
+        inventory_response = connection.getresponse()
+        inventory = json.loads(inventory_response.read())
+        assert inventory_response.status == 200
+        assert all(item['status'] == 'blocked' for item in inventory['reviews'])
+        assert len(calls) == 1
+
+        connection.request('GET','/api/v1/intent/reviews/'+saved['review_filename'])
+        response=connection.getresponse();response.read();assert response.status==409
+        connection.close()
+    finally:
+        server.shutdown();server.server_close();thread.join(timeout=3)

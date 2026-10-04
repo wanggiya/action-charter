@@ -1,6 +1,6 @@
 # Project Summary
 
-ActionCharter is a CLI-first, local-first governed execution harness for AI
+ActionCharter is a local-first governed execution harness for AI
 agents using professional tools. Models interpret requests and propose bounded
 work; deterministic software owns authorization, execution, validation,
 verification, and evidence. The current reference domain is geospatial
@@ -31,7 +31,11 @@ different contexts and permissions. The Executor has no model access or direct
 database authority. Generated text and generated code remain untrusted until
 they pass their respective deterministic governance boundaries.
 
-## Reference workflows
+## Current context and intent
+
+Intent can clarify a fresh task or reviewed history and hand off one exact vector/raster metadata inspection scope. Stored reviews are checked on recovery. This does not authorize work, and unified conversation-to-run integration remains in progress. See CURRENT_STATUS.md for current limits.
+
+## Historical reference workflows
 
 Checkpoint 14F demonstrates the integrated workflow path:
 

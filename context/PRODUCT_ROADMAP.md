@@ -1,6 +1,10 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-09-07
+Updated: 2026-10-04
+
+## Immediate priority
+
+Checkpoint 22 implementation closes with checked context/Intent and inspection-plan handoff. Checkpoint 23 integrates conversation, explicit input selection, current graph and governed execution. It must support read-only continuation without fabricated approval and preserve exact approval for writes. A public demo follows actual end-to-end acceptance; tabular expansion follows later.
 
 ## Product direction
 
@@ -993,3 +997,67 @@ Checkpoint 21K links task-derived completed run result/evidence references and c
 Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
 
 Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+
+Checkpoint 22A implemented for validation: explicitly scoped keyword retrieval from checked task histories. Next are exact context review/storage and bounded Intent Agent reasoning/clarification. No automatic memory or frontend conversation redesign is claimed. See `docs/CHECKPOINT22.md`.
+
+Checkpoint 22B implemented for validation: explicit context review/storage and stale-source rejection on reopening. Next is bounded Intent reasoning/clarification. Context review is not approval of work. See `docs/CHECKPOINT22B.md`.
+
+
+## Checkpoint 22C — Intent reasoning
+
+CLI `reason-task-intent` now consumes a rechecked context review and proposes intent or clarification without creating a plan or granting authority. Context is checked again after inference. See `docs/CHECKPOINT22C.md` for validation. API/UI integration and reviewed Intent-to-Planner handoff remain next.
+
+
+## Checkpoint 22D — Intent clarification API
+
+Explicit clarification answers are available through `reason-task-intent --clarification` and `POST /api/v1/intent/reason`. Each stateless call checks reviewed history, proposes intent or questions and grants no work authority. Current-task prompt improved after live model feedback. See `docs/CHECKPOINT22D.md`; UI and reviewed Planner handoff follow.
+
+
+## Checkpoint 22E — resolved Intent review
+
+Intent may make one fresh re-evaluation when supplied answers leave a clarification response. Unresolved output stays blocked. CLI proposal inspection and explicit digest review now store resolved reasoning under ignored `reviewed-intents/`; reopening rechecks sources and record bytes. This grants no work authority. See `docs/CHECKPOINT22E.md`. Actual Planner handoff and review API/UI follow.
+
+
+## Checkpoint 22F — reviewed Planner handoff
+
+CLI `plan-reviewed-intent` now produces an unsaved plan from a rechecked intent review, initially bounded to one exact `inspect_vector` input and metadata output scope. It rejects broader capabilities and never executes or infers approval. See `docs/CHECKPOINT22F.md`. Review/handoff API, conversation UI and broader supported envelopes follow.
+
+
+## Checkpoint 22G — Intent review/handoff API
+
+The local API now supports checked proposal inspection, exact resolved-intent review, rechecked reopening and bounded Planner handoff through the same CLI services. No work approval or execution is granted. See `docs/CHECKPOINT22G.md`; conversation UI beside the graph follows.
+
+
+## Checkpoint 22H — Context & intent interface
+
+The new **Context & intent** panel uses explicitly selected history, checked review storage, structured reasoning and the bounded Planner handoff. It sits beside the graph on wide screens and above it on narrow screens. No plan is saved or executed. See `docs/CHECKPOINT22H.md` for the full frontend test flow. Saved-review recovery and integration with the existing governed run flow follow.
+
+
+## Checkpoint 22I implementation
+
+Bridge reviewed-intent inspection plans to immutable saved plans and existing approval review. Next: recover saved context/intent reviews, then simplify the conversational path. Broad execution envelopes remain future work.
+
+
+## Checkpoint 22J — saved-review recovery
+
+Checked saved-review recovery implemented. Next simplify the task-centered conversation journey and graph provenance. Durable chat and broader Intent capabilities remain future work.
+
+
+## Checkpoint 22K — focused task stages
+
+One-current-stage Context & intent journey implemented. Prioritize fresh-task reasoning without mandatory historical context next, then wider explicit capability envelopes. Unified conversation/run interface and durable chat remain future work.
+
+
+## Checkpoint 22L — fresh tasks
+
+Fresh-task Intent reasoning no longer requires historical context. Explicit null source identity, no invented citations, reviewed-intent recovery and graph omission are implemented. Next broaden explicit supported capability envelopes; durable chat and unified run journey remain future work.
+
+
+## Checkpoint 22M — inspection envelopes
+
+Bounded vector/raster metadata handoff implemented with shared scope checks and explicit selection. Checkpoint 22 integration acceptance now covers history-backed/history-free reasoning, review, recovery and plan storage. Next unify the task/conversation and governed execution journey; write-capable Intent scopes and general library functions remain future work.
+
+
+## Checkpoint 22N and Checkpoint 23 scope
+
+22N integration acceptance implemented; 22O closeout remains. Checkpoint 23 is limited to three bundled groups: conversation/graph, exact governed continuation, acceptance/demo. Target a reproducible demonstration by October 4 evening, America/New_York. LinkedIn publication follows successful acceptance, not the calendar alone. Pandas, arbitrary packages and 3D remain deferred.

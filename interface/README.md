@@ -1,6 +1,6 @@
 # ActionCharter interface
 
-The Checkpoint 17 interface provides immutable evidence inspection and a separate browser-local proposal editor. It renders schema-validated workflow projections as a Blueprint-style node graph, supports draft block and typed-connection editing, and can create a non-executable proposal from the existing trusted recipe-template catalog.
+This is the frontend developer guide. For product capabilities and one-command startup, use the [root README](../README.md). The browser provides graph/evidence views, reviewed planning and governed recipe actions through the loopback backend; it does not itself enforce or grant execution authority.
 
 ## Technology
 
@@ -44,7 +44,10 @@ mkdir -p interface/public/runtime
 
 The generated runtime file is ignored by Git.
 
-## Run
+## Frontend-only development
+
+For normal use, run `make interface-start` from the repository root to start both services. The commands below start only Vite and are for frontend debugging; API-backed actions also need the backend.
+
 
 ```bash
 cd interface
