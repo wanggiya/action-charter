@@ -26,6 +26,10 @@ make test
 The supported development environment is Linux. WSL2 with Docker Desktop is
 the primary documented local configuration.
 
+## Documentation changes
+
+Follow [documentation responsibilities](docs/DOCUMENTATION_GUIDE.md). Keep README focused on current onboarding, docs on procedures, context on concise state and architecture, and CHANGELOG on behavior changes. Keep checkpoint numbers in development records rather than public flow diagrams. Do not duplicate a full product overview in interface/README.md.
+
 ## Security and trust-boundary changes
 
 Changes involving approvals, credentials, filesystem containment, execution,

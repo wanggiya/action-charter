@@ -275,3 +275,49 @@
 .stage-heading-actions .stage-meta,.stage-heading-actions .graph-source-hint{grid-column:1/-1;justify-content:flex-start;min-width:0}
 .stage-heading-actions .stage-meta{min-height:20px;align-content:start}
 @media(max-width:800px){.stage-heading{grid-template-columns:minmax(0,1fr)}.stage-heading-actions{justify-content:stretch}.stage-heading-actions .graph-source-picker{width:100%;min-width:0}}
+
+/* Context reasoning is a sibling of the graph, never a floating overlay. */
+.workspace.intent-open,.app-shell:not(.advanced-open) .workspace.intent-open{grid-template-columns:minmax(320px,400px) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.workspace.intent-open>.rail,.workspace.intent-open>.inspector{display:none}
+.workspace.intent-open>.flow-stage{grid-column:2;grid-row:1;min-width:0}
+.intent-workbench[hidden]{display:none}
+.intent-workbench{grid-column:1;grid-row:1;min-width:0;max-height:100%;overflow-y:auto;padding:20px;background:#171b22;border-right:1px solid #343c49;color:#e8eaed;box-sizing:border-box;scrollbar-gutter:stable}
+.intent-workbench>header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.intent-workbench h2{font-size:19px;margin:7px 0 15px;display:flex;gap:9px;align-items:center}.intent-workbench h3{display:flex;align-items:center;gap:10px;font-size:16px;margin:0 0 12px}.intent-workbench h3>span{border:1px solid #60a5fa;border-radius:50%;width:25px;height:25px;display:grid;place-items:center;color:#93c5fd;font-size:12px}.intent-workbench h4{margin:14px 0 6px;color:#a7caff;font-size:13px}
+.intent-workbench fieldset{border:0;padding:0;margin:0;min-width:0}.intent-workbench section{margin-top:24px;padding-top:22px;border-top:1px solid #343c49}.intent-workbench label:not(.intent-history-choice):not(.intent-confirm){display:flex;flex-direction:column;gap:7px;margin:14px 0;font-size:13px;font-weight:600}.intent-workbench input:not([type=checkbox]),.intent-workbench textarea{box-sizing:border-box;width:100%;padding:11px;border:1px solid #475569;border-radius:7px;background:#0f1115;color:#e8eaed;font:14px Arial,sans-serif}.intent-workbench textarea{resize:vertical}.intent-workbench button{padding:10px 13px;border:1px solid #4f83c9;border-radius:7px;background:#203c65;color:#e8eaed;font-weight:600;display:inline-flex;gap:7px;align-items:center}.intent-workbench button:disabled{opacity:.45;cursor:not-allowed}.intent-workbench .intent-secondary{background:#252a33;border-color:#475569}.intent-workbench p,.intent-workbench li{font-size:13px;line-height:1.6;overflow-wrap:anywhere}.intent-workbench p{margin:9px 0}.intent-workbench small,.intent-workbench footer{color:#b0bac9;font-size:12px;line-height:1.5}.intent-workbench footer{margin-top:24px}.intent-workbench code{display:block;overflow-wrap:anywhere;white-space:normal;font-size:11px;color:#bac8da;margin:6px 0}.intent-workbench pre{overflow:auto;max-height:260px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.intent-workbench summary{cursor:pointer;color:#bac8da;font-size:12px;margin-top:14px}.intent-workbench summary svg{vertical-align:middle}
+.intent-authority,.intent-result,.intent-error{border:1px solid #3d4b61;border-radius:8px;padding:13px;background:#1e222a}.intent-authority strong,.intent-authority span,.intent-error strong,.intent-error span{display:block}.intent-authority strong{font-size:15px;color:#93c5fd}.intent-authority span{font-size:13px;color:#c4ccd8;line-height:1.5;margin-top:6px}.intent-result{margin-top:16px}.intent-result>strong{font-size:15px;color:#a9cff7}.intent-result article{border-bottom:1px solid #343c49;padding-bottom:10px}.intent-error{border-color:#b65764;background:#351e27;margin-top:14px}.intent-error strong{color:#f4a4b0;font-size:17px}.intent-error span{margin:8px 0;font-size:13px;overflow-wrap:anywhere}.intent-notice{color:#b2d6f8}.intent-workbench .intent-warning{color:#f6c882}.intent-workbench .intent-stored{color:#9cd8b7;font-weight:600}.intent-confirm{display:flex;align-items:flex-start;gap:9px;margin:15px 0;font-size:13px;line-height:1.5}.intent-confirm input{margin-top:3px;flex-shrink:0}.intent-history-list{max-height:200px;overflow-y:auto;margin-top:12px}.intent-history-choice{display:flex;gap:9px;align-items:flex-start;padding:10px 0;cursor:pointer}.intent-history-choice input{margin-top:4px}.intent-history-choice strong,.intent-history-choice small{display:block;overflow-wrap:anywhere}.intent-history-choice strong{font-size:12px}.context-intent-toggle{white-space:nowrap}
+@media(max-width:1050px){.workspace.intent-open,.app-shell:not(.advanced-open) .workspace.intent-open{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;height:auto;overflow:visible}.workspace.intent-open>.flow-stage{grid-column:1;grid-row:2}.intent-workbench{grid-column:1;grid-row:1;max-height:70vh;border-right:0;border-bottom:1px solid #343c49}.context-intent-toggle{font-size:11px;padding:7px!important}}
+
+/* Use the header's established secondary-button treatment. */
+.context-intent-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid #526279;border-radius:7px;color:#d8e5f1;background:#1f2936;cursor:pointer;font-size:12px;font-weight:750;line-height:1.2}
+.context-intent-toggle[aria-expanded="true"]{border-color:#3b82f6;color:#dbeafe;background:#1c3551}
+.context-intent-toggle:hover:not(:disabled){border-color:#8ca2bc}.context-intent-toggle:disabled{opacity:.45;cursor:not-allowed}.context-intent-toggle:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.intent-workbench .intent-selection-count{font-size:13px;font-weight:650;color:#a7caff;margin:12px 0}
+.intent-workbench .intent-retrieve-hint{font-size:13px;color:#c8d5e6;margin:9px 0 12px}
+.intent-history-choice{border:1px solid transparent;border-radius:7px;padding:10px 8px;margin-bottom:5px}
+.intent-history-choice.is-selected{border-color:#4a79af;background:#203047}
+.intent-history-choice input[type=checkbox]{width:17px;height:17px;accent-color:#60a5fa;flex-shrink:0}
+
+/* Checked review recovery stays compact until explicitly opened. */
+.intent-workbench .intent-recovery { padding: 12px; border: 1px solid #3a4150; background: #1e222a; border-radius: 8px; }
+.intent-workbench .intent-recovery > summary { color: #e8eaed; font-weight: 700; cursor: pointer; }
+.intent-workbench .intent-recovery select { width: 100%; padding: 9px; color: #e8eaed; background: #151920; border: 1px solid #526279; border-radius: 6px; }
+.intent-workbench .intent-review-list { max-height: 330px; overflow-y: auto; display: grid; gap: 10px; }
+.intent-workbench .intent-review-list article { padding: 12px; border: 1px solid #3a4150; border-radius: 6px; display: grid; gap: 8px; }
+.intent-workbench .intent-review-list time { font: 700 14px Arial, sans-serif; color: #b8d5f6; }
+
+/* One current stage, with earlier evidence available on demand. */
+.intent-workbench .intent-task-state { padding: 14px; margin-bottom: 12px; background: #1e2835; border: 1px solid #537393; border-radius: 8px; }
+.intent-workbench .intent-task-state > strong { display: block; color: #d5e8fb; font: 700 16px/1.4 Arial, sans-serif; }
+.intent-workbench .intent-task-state > span { display: block; margin-top: 7px; color: #b9c7d7; font-size: 13px; }
+.intent-workbench .intent-stage-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+.intent-workbench .intent-stage-nav button { justify-content: center; min-width: 0; padding: 9px 3px; background: #252a33; border-color: #475569; font: 600 12px Arial, sans-serif; }
+.intent-workbench .intent-stage-nav button[aria-current="step"] { background: #203c65; border-color: #76ade6; color: #e8f2ff; }
+.intent-workbench .intent-stage-heading { width: 100%; justify-content: space-between; flex-wrap: wrap; text-align: left; background: #252a33; border-color: #526279; gap: 8px; margin-bottom: 10px; }
+.intent-workbench .intent-stage-heading > span { font: 700 14px/1.4 Arial, sans-serif; }
+.intent-workbench .intent-stage-heading > small { font-size: 12px; color: #b8cce3; }
+.intent-workbench .intent-stage-heading[aria-expanded="true"] { border-color: #729fcf; background: #24384f; }
+.intent-workbench [data-intent-stage] { margin-top: 12px; padding-top: 12px; }
+.intent-workbench [data-intent-stage] > div[hidden] { display: none !important; }
+.intent-workbench [data-intent-stage="continue"] .intent-secondary { margin-top: 10px; }
+.intent-workbench button:focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+.intent-workbench select { width: 100%; box-sizing: border-box; padding: 10px; color: #e8eaed; background: #151920; border: 1px solid #526279; border-radius: 6px; font: 14px Arial, sans-serif; }

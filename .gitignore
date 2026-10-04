@@ -132,3 +132,8 @@ critic-results/
 # Environment-specific GeoServer publication evidence
 /geoserver-publication-evidence/*
 !/geoserver-publication-evidence/.gitkeep
+
+# Local reviewed context records (runtime evidence)
+/reviewed-contexts/
+
+/reviewed-intents/

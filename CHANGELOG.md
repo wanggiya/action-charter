@@ -1,4 +1,113 @@
+# Documentation organization
+
+- Replaced the incremental README with capability-based onboarding and checkpoint-free workflow/agent diagrams.
+- Added documentation/context indexes and audience/update rules.
+- Shortened current status and preserved earlier README/status as labelled development snapshots.
+- Clarified frontend-only startup versus the combined launcher; no execution contracts changed.
+
+# Checkpoint 22O — closeout
+
+- Consolidated current scope, acceptance limits and commit/PR instructions.
+- Recorded explicit input selection and approval-free read-only continuation as Checkpoint 23 acceptance requirements.
+- Documentation only; no execution authority or model behavior changed.
+
+# Checkpoint 22N
+
+- Added 12-case real-service integration matrix for reviewed Intent → plan → decision → recipe without execution.
+- Saved-plan continuation displays readable reviewed objectives while retaining exact stored provenance.
+- Scoped Checkpoint 23 around conversation/graph, governed continuation and a validated demo; broader capabilities deferred.
+
+# Checkpoint 22M
+
+- Extended reviewed-intent planning/storage to explicit inspect_raster metadata alongside vector metadata.
+- Shared exact-scope checks, persisted selected capability and retained legacy vector compatibility.
+- Added matching capability selector and raster lifecycle/rejection regressions; no execution authority added.
+
+# Checkpoint 22L
+
+- Added explicit history-free Intent reasoning, review, storage and recovery while retaining existing historical source checks.
+- Added frontend Start without history and omitted unused graph history nodes.
+- Added nullable-pair/citation validation and fresh-task lifecycle/API regressions; no inferred approval or execution.
+
+# Checkpoint 22K
+
+- Added one-current-stage navigation and automatic advancement after successful review/storage.
+- Recovery opens the appropriate stage; edits invalidate downstream proposals; failures keep the stage and reveal feedback.
+- Corrected labels for reviewed/stored artifacts; no new approval gates or backend authority.
+
+# Checkpoint 22J
+
+- Added bounded read-only review inventory and CLI parity.
+- Added collapsible saved context/intent recovery with source rechecking, sorting and restoration of request/answers.
+- Added regressions for stale sources, unsafe paths, damaged artifacts and limits; no inferred work authority.
+
+# Checkpoint 22I
+
+Explicit reviewed-intent plan storage, exact provenance/scope checks, existing Plan continuation and CLI parity; no inferred approval or execution.
+
+# Checkpoint 22H UI correction
+
+- Matched Context & intent to the established header button styling.
+- Made retrieval prerequisites and checked-history selection visible; retained history loading/failure messages across query edits.
+
+# Checkpoint 22H
+
+- Added nonmodal context/intent panel with explicit history selection, review, clarification and bounded Planner handoff.
+- Added typed frontend API boundaries, downstream invalidation and Intent/data/history plan graph projection.
+- Added wide/narrow layout and exact frontend acceptance guide; no backend authority changes.
+
+# Checkpoint 22G
+
+- Added typed local Intent inspection/review/reopening and Planner handoff API routes.
+- Added HTTP regressions for preserved approval, exact scope, stale context, unresolved intent and rejected authority fields.
+- Updated current status and live API validation guide; no frontend controls or automatic execution.
+
+# Checkpoint 22F conservative approval correction
+
+- Accept and preserve an additional approval requirement on the exact reviewed read-only inspection plan. Report the gate explicitly; never infer or bypass approval.
+- Added regression confirming true remains true and saving/execution/approval remain false.
+
+# Checkpoint 22F diagnostic correction
+
+- Exact handoff rejection now names field mismatches with bounded credential-redacted arguments. Scope checks remain unchanged.
+- Added regression for detailed flag/path diagnostics and credential redaction.
+
+# Checkpoint 22F
+
+- Added rechecked reviewed-intent handoff to capability Planner for one exact read-only vector inspection.
+- Added changed-path, extra-step, unsupported-skill and in-flight stale-source regressions.
+- Updated current status and exact terminal acceptance guide; no plan saving, execution or frontend changes.
+
+# Checkpoint 22E
+
+- Added one bounded Intent re-evaluation for explicit answers and unresolved proposals; no forced status changes.
+- Added canonical resolved-intent review, immutable storage/reopen CLI and runtime ignore rule.
+- Added rejection regressions and terminal validation guide; Planner handoff remains separate.
+
+# Checkpoint 22D
+
+- Added explicit bounded clarification answers and reasoning-only Intent HTTP endpoint.
+- Improved current-task/dataset clarification prompt; added redaction, bounds and HTTP stale-context regressions.
+- Updated current status and terminal/API validation guide. No execution authority or frontend changes.
+
+# Checkpoint 22C
+
+- Added bounded reasoning-only Intent CLI with strict proposal validation and before/after context checks.
+- Added fake-model regression tests and terminal acceptance guide. No frontend or execution authority changes.
+
 # Changelog
+
+## Checkpoint 22B — exact context review and storage
+
+- Recheck selected source snapshots and confirmed context digest before immutable review storage.
+- Reject stale/tampered context on reopening; keep review separate from plan approval.
+- Add review CLI/API routes, runtime ignore rule, tests and validation guide.
+
+## Checkpoint 22A — selected task-context retrieval
+
+- Add bounded deterministic CLI/API retrieval with checked event citations, redaction and snapshot identity.
+- Keep retrieval unreviewed and separate from approval, models and execution.
+- Add selected-scope, bounds, tamper and snapshot tests; update current documentation.
 
 ## Checkpoint 21D — saved-task history recovery
 

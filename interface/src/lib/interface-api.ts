@@ -339,7 +339,7 @@ const executionInventorySchema = z.object({
 
 export type ExecutionInventory = z.infer<typeof executionInventorySchema>;
 
-const plannerResultSchema = z.object({
+export const plannerResultSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.literal("planned_not_saved"),
   agent_id: z.literal("planner"),
@@ -626,7 +626,7 @@ const recipeReleaseResultSchema = z.object({
 }).passthrough();
 export type RecipeReleaseResult = z.infer<typeof recipeReleaseResultSchema>;
 
-async function boundedJson(response: Response): Promise<unknown> {
+export async function boundedJson(response: Response): Promise<unknown> {
   const declaredLength = Number(response.headers.get("content-length") ?? "0");
   if (declaredLength > MAX_INTERFACE_RESPONSE_BYTES) throw new Error("interface response is too large");
   const text = await response.text();
