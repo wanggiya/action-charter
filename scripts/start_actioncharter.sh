@@ -118,6 +118,11 @@ probe_http_reachability() {
   fi
 }
 
+if [[ -n "${MODEL_NAME:-}" ]]; then
+  status "model selection: configured (availability is checked by model actions)"
+else
+  status "model selection: missing; set MODEL_NAME in this launch terminal for model-assisted actions"
+fi
 ollama_base="${MODEL_BASE_URL:-http://127.0.0.1:11434/v1}"
 probe_url "Ollama" "${ollama_base%/v1}/api/tags"
 

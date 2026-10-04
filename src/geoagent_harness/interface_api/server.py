@@ -434,6 +434,7 @@ class InterfaceIntentRequest(BaseModel):
     action: Literal["reason_task_intent"]
     review_filename: str | None = Field(pattern=r"^context-review\.[a-f0-9]{64}\.json$")
     request: str = Field(min_length=1, max_length=4000)
+    selected_input_path: str | None = Field(default=None, min_length=1, max_length=960)
     clarification_answers: list[str] = Field(default_factory=list, max_length=5)
 
 
@@ -2827,10 +2828,16 @@ def _handler(
                     "schema_version": "1.0",
                     "status": "ready",
                     "bound_to_loopback": True,
+                    "planner_contract_revision": "schema-correction-v52",
+                    "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            if self.path == "/api/v1/model-status":
+                from geoagent_harness.model.diagnostics import inspect_model_configuration
+                self._send(HTTPStatus.OK, inspect_model_configuration())
                 return
             task_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context", self.path)
             if self.path == "/api/v1/tasks":
@@ -3083,6 +3090,7 @@ def _handler(
                             review_filename=intent_request.review_filename,
                             request=intent_request.request,
                             clarification_answers=intent_request.clarification_answers,
+                            selected_input_path=intent_request.selected_input_path,
                         )
                     except (ContextReviewError, ContextRetrievalError, OSError, KeyError) as exc:
                         self._send(HTTPStatus.CONFLICT, {"error": "reviewed context is unavailable or stale; retrieve and review again", "execution_performed": False})
@@ -3091,7 +3099,8 @@ def _handler(
                         self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc), "execution_performed": False})
                         return
                     except (ModelClientError, ModelSettingsError) as exc:
-                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "intent model request failed; check local model service and settings", "execution_performed": False})
+                        from geoagent_harness.model.diagnostics import model_failure
+                        self._send(HTTPStatus.BAD_GATEWAY, model_failure(exc))
                         return
                 elif self.path in {"/api/v1/intent/inspect", "/api/v1/intent/review", "/api/v1/intent/plan", "/api/v1/intent/save-plan"}:
                     from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
@@ -3124,8 +3133,9 @@ def _handler(
                         status = HTTPStatus.CONFLICT if "already exists" in str(exc) or "changed" in str(exc) else HTTPStatus.BAD_REQUEST
                         self._send(status, {"error": redact_text(str(exc)), "execution_performed": False})
                         return
-                    except (ModelClientError, ModelSettingsError):
-                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "Planner model request failed; check local model service and settings", "execution_performed": False})
+                    except (ModelClientError, ModelSettingsError) as exc:
+                        from geoagent_harness.model.diagnostics import model_failure
+                        self._send(HTTPStatus.BAD_GATEWAY, model_failure(exc))
                         return
                 elif self.path == "/api/v1/tasks/events":
                     response = record_interface_task_event(
@@ -3376,11 +3386,11 @@ def _handler(
                 elif "invalid plan schema" in message:
                     error = "planner model returned an invalid plan schema"
                     code = "planner_invalid_schema"
-                    finding = "The model response did not satisfy the required workflow-plan schema."
+                    finding = "; ".join(exc.findings) or "The model response did not satisfy the required workflow-plan schema."
                 elif "deterministic policy" in message:
                     error = "planner plan was rejected by deterministic policy"
                     code = "planner_policy_rejected"
-                    finding = message.partition("deterministic policy:")[2].strip() or "The candidate plan violated deterministic policy."
+                    finding = "; ".join(exc.findings) or message.partition("deterministic policy:")[2].strip() or "The candidate plan violated deterministic policy."
                 else:
                     error = "planner could not produce a validated plan"
                     code = "planner_generation_failed"
@@ -3390,7 +3400,9 @@ def _handler(
                     "code": code,
                     "finding": finding[:1000],
                     "retryable": True,
-                    "retry_guidance": "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry.",
+                    "schema_findings": exc.findings,
+                    "correction_attempted": exc.correction_attempted,
+                    "retry_guidance": ("The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,

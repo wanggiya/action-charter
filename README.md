@@ -14,6 +14,24 @@ The current reference domain is geospatial data: vector and raster inspection/co
 
 **Status: single-operator alpha.** Existing recipe workflows can execute through the interface. The newer Context & intent journey supports reviewed vector/raster metadata plans, but its seamless continuation into execution is still being integrated. This is not yet a packaged desktop app or a hardened multi-user service.
 
+## Why ActionCharter?
+
+Giving a model access to a powerful tool is easy. The harder problem is proving
+that an AI-assisted operation:
+
+1. used the correct input;
+2. selected an allowed operation;
+3. remained inside an explicitly bounded scope;
+4. received approval for the exact consequential steps;
+5. executed only what was approved;
+6. produced a valid result;
+7. was independently verified; and
+8. left evidence that can be inspected later.
+
+Generated text never becomes authority merely because a model generated it.
+ActionCharter turns an uncertain proposal into a chain of typed, digest-bound,
+and independently checkable artifacts.
+
 ## What you can do
 
 | Capability | Current behavior |
@@ -104,7 +122,7 @@ export MODEL_MAX_TOKENS=4096
 make interface-start
 ```
 
-Open **http://127.0.0.1:5173**. One launcher starts the loopback API and frontend; one Ctrl+C stops both. It does not install dependencies, start containers or enable execution by default. Model latency and plan quality depend on the configured model and machine.
+Open **http://127.0.0.1:5173**. One launcher starts the loopback API and frontend; one Ctrl+C stops both. It does not install dependencies, start containers or enable execution by default. Model latency and plan quality depend on the configured model and machine. Set exports in the same launch terminal; the running API does not inherit later exports. See [model troubleshooting](docs/MODEL_TROUBLESHOOTING.md).
 
 To deliberately enable the existing bounded execution actions for reviewed local work:
 
@@ -118,7 +136,7 @@ For frontend-specific development, see [interface setup](interface/README.md), [
 
 ## Using the interface
 
-- **Context & intent:** describe or clarify a task, optionally select history, review intent and generate a supported inspection plan.
+- **Task workspace:** select a project input, describe or clarify a task, optionally select history, review intent and generate a supported inspection plan.
 - **Plan:** inspect and store a validated proposal. Storage does not approve or execute it.
 - **Flow graph:** inspect the current proposal or recorded plans, recipes and runs. Viewing a graph does not run it.
 - **Run:** choose the relevant stored recipe, review its exact scope and use the available governed execution controls.

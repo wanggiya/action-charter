@@ -85,3 +85,17 @@ def test_planner_prompt_remains_bounded_as_status_grows(
     assert user_payload["warnings"] == pack.warnings
     assert "context_pack" not in user_payload
     assert "current_status" not in user_payload
+
+
+def test_checkpoint_history_stays_on_disk_but_not_in_current_model_context(tmp_path: Path) -> None:
+    from geoagent_harness.context_pack.builder import CURRENT_STATUS_HISTORY_MARKER
+    shutil.copytree(PROJECT_ROOT / 'context', tmp_path / 'context')
+    source = '# Current status\nMetadata planning only\n' + CURRENT_STATUS_HISTORY_MARKER + '\n# Checkpoint old\nobsolete runtime guidance'
+    path = tmp_path/'context/CURRENT_STATUS.md'; path.write_text(source)
+    pack = build_context_pack('Inspect metadata', tmp_path)
+    assert 'Metadata planning only' in pack.current_status
+    assert 'obsolete runtime guidance' not in pack.current_status
+    assert 'Checkpoint old' in path.read_text()
+    reference = next(item for item in pack.context_references if item.path == 'context/CURRENT_STATUS.md')
+    assert reference.sha256 == hashlib.sha256(source.encode()).hexdigest()
+    assert any('Historical checkpoint' in warning for warning in pack.warnings)

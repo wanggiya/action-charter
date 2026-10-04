@@ -1,3 +1,33 @@
+# Planner runtime identification
+
+- Exposes a loaded Planner contract revision through API health and launcher output.
+- Clarifies read-only inspection approval guidance while preserving any extra model-proposed approval gate.
+
+# Planner structure correction
+
+- Adds an exact inspection response-shape example and one shared JSON/schema/policy correction budget.
+- Revalidates fresh proposals and displays safe field findings; no authority or execution is inferred.
+
+# Checkpoint 23 — metadata scope compatibility
+
+- Recognizes a closed vocabulary of equivalent vector/raster metadata labels and complete enumerations; unsupported outputs still fail before Planner inference.
+- Preserves immutable reviewed Intent, shows original and canonical metadata scope, and identifies unsupported labels in findings.
+- Applies the same scope mapping during planning and storage and rejects changed derived mappings.
+
+# Checkpoint 23 — actionable model diagnostics
+
+- Distinguishes Intent/Planner model configuration, connection, timeout, rejection and response failures without exposing raw exceptions.
+- Adds read-only API-process model settings inspection and frontend recovery guidance; launcher reports missing model selection.
+- Makes conversation-and-execution layout an explicit completion criterion; broader capabilities remain later work.
+
+# Checkpoint 23 — task/input workspace foundation
+
+- Opens Task workspace directly to a fresh request; historical context remains optional.
+- Adds existing-file and filename/relative-path input selection, visible pending draft graph and readable Intent response.
+- Checks selected input availability before inference and rejects resolved input mismatches; CLI supports --selected-input.
+- Restores Why ActionCharter and detailed current-status checkpoint history; only the current overview enters model context, with full-file digest retained.
+- Governed execution continuation and complete live-demo acceptance remain in progress.
+
 # Documentation organization
 
 - Replaced the incremental README with capability-based onboarding and checkpoint-free workflow/agent diagrams.

@@ -9,6 +9,7 @@ Start with the [project README](../README.md) for installation, scope and the ex
 - [Interface scope](INTERFACE_PRODUCT_SCOPE.md)
 - [WSL frontend setup](WSL_FRONTEND_SETUP.md)
 - [API troubleshooting](INTERFACE_API_TROUBLESHOOTING.md)
+- [Local model troubleshooting](MODEL_TROUBLESHOOTING.md)
 - [Remote development](REMOTE_DEVELOPMENT.md)
 - [Security](../SECURITY.md)
 
@@ -23,6 +24,6 @@ Start with the [project README](../README.md) for installation, scope and the ex
 
 ## Development records
 
-CHECKPOINT*.md files describe incremental delivery and acceptance. They are retained for traceability; consult current guides before following old setup instructions. The current closeout is [context and intent acceptance](CHECKPOINT22O.md); the next integration scope is [task-centered interface plan](CHECKPOINT23_PLAN.md).
+CHECKPOINT*.md files describe incremental delivery and acceptance. They are retained for traceability; consult current guides before following old setup instructions. The current closeout is [context and intent acceptance](CHECKPOINT22O.md); the current integration scope is [task-centered interface plan](CHECKPOINT23_PLAN.md), with [task/input acceptance](CHECKPOINT23A.md).
 
 [Previous README](development/README_BEFORE_REORGANIZATION.md) and [previous status](development/STATUS_BEFORE_REORGANIZATION.md) are preserved historical snapshots, not current guidance.

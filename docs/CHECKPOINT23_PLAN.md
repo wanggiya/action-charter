@@ -6,6 +6,20 @@ Make the normal interface substantially clearer: describe a task, inspect its pr
 
 Target: a validated demonstration by the end of October 4, 2026 in America/New_York. This is a delivery target, not evidence that the checkpoint is already complete. Ship a smaller verified journey if live-model/integration problems prevent the wider scope.
 
+## Visible end state — not yet delivered
+
+The current task-input bundle is a foundation, not the finished conversation experience. Checkpoint 23 should not be closed merely by renaming a form panel.
+
+| Normal workspace | Content |
+|---|---|
+| Left: task conversation | Input selection, user request, agent interpretation, clarification responses and current task state |
+| Right: current work | Actual proposed graph, relevant decision scope, live execution/progress and readable outcome |
+| Expandable details / Advanced | Recipe definitions, exact identities, approval records, evidence, attempt history and infrastructure controls |
+
+On narrower windows these areas may stack; they must not cover one another. A task should remain understandable through clarification, plan review and run. This is a task-specific assistant, not an unrestricted chatbot. Broad conversation memory and unsupported operations are not promised by the layout.
+
+Model configuration errors must distinguish missing settings, connectivity, timeouts and rejected requests. Diagnostics inspect the actual API process. A settings check is not a connectivity check or a successful model inference.
+
 ## Three implementation groups
 
 1. Conversation and graph: one obvious entry point for a new request, visible input/context, readable agent responses and clarification, graph beside it, clear current task and resume behavior. Keep unnecessary technical forms collapsed. Do not advertise generalized durable memory when only checked task history is implemented.
@@ -35,3 +49,7 @@ Pandas/tabular processing, arbitrary package discovery, general-purpose library 
 ## LinkedIn readiness
 
 Prepare the post when the demonstration is reproducible and the README explains current capabilities. Publish after acceptance, preferably with a short real screen recording and repository link. Posting on the target date is conditional on the working demonstration; do not substitute untested feature claims for a missed deadline. Describe local governed data workflows and precise current capabilities rather than claiming fully autonomous execution or superiority over other products.
+
+## After this checkpoint
+
+The existing sequence remains: 24 adds typed tabular/CSV/Pandas operations through this same workspace; 25 adds governed capability discovery and promotion; 26 evaluates interventions, correctness, time and recovery and prepares a distributable alpha. These are proposed scopes, not delivery dates. Do not postpone the basic conversation-and-execution layout until them.

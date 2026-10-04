@@ -127,6 +127,7 @@ def reason_task_intent_command(
     request: Annotated[str, typer.Option("--request")],
     review_filename: Annotated[str | None, typer.Option("--review-filename", help="Omit to start explicitly without historical context.")] = None,
     clarification_answers: Annotated[list[str] | None, typer.Option("--clarification", help="Repeat for up to five explicit answers; no authority is conferred.")] = None,
+    selected_input: Annotated[str | None, typer.Option("--selected-input", help="Optional existing filename or relative path under data/input; checked before inference.")] = None,
     project_root: Annotated[Path, typer.Option("--project-root")] = Path("."),
 ) -> None:
     """Propose intent with optional reviewed history; never execute."""
@@ -134,7 +135,7 @@ def reason_task_intent_command(
     from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
     from geoagent_harness.model import ModelClientError, ModelSettingsError
     try:
-        result = reason_task_intent(project_root=project_root, review_filename=review_filename, request=request, clarification_answers=clarification_answers)
+        result = reason_task_intent(project_root=project_root, review_filename=review_filename, request=request, clarification_answers=clarification_answers, selected_input_path=selected_input)
         typer.echo(json.dumps(result, indent=2))
     except (IntentError, ContextReviewError, ContextRetrievalError, ModelClientError,
             ModelSettingsError, OSError, ValueError, KeyError) as exc:
