@@ -1,3 +1,32 @@
+# Planning context and inspector visibility
+
+- Enlarges the context composer, removes redundant caption and keeps the inspector visible with Text planner.
+- Starts Task history collapsed and adds governed input filename normalization.
+- Documents proposed navigation; executable graph editing remains outstanding.
+
+# Compact planning graph and suggestions
+
+- Uses short generated workflow/intake titles with full step and request text in the inspector.
+- Reuses Plan skill recommendations while typing natural-language planning context; additions remain explicit.
+- Keeps top-navigation redesign and executable graph editing separate.
+
+# Text planner skill selection
+
+- Adds searchable, scrollable skill selection with readable names and removable tags.
+- Aligns Text planner button styling and marks automatically saved graph proposals accurately.
+- Keeps capability IDs, approval rules and executable editing boundaries unchanged.
+
+# Direct text planning
+
+- Adds Text planner agent: context composer, adjacent validated graph and automatic proposal storage.
+- Introduces a generated-plan storage route that reports no human review, approval or execution.
+- Retains validated plans after storage failures for storage-only retry.
+
+# Conversation workspace simplification
+
+- Shows only the active task stage and collapses history, recovery and technical controls.
+- Combines reviewed Intent storage and plan generation into one explicit user action, retaining separate backend validation and recoverable planning failures.
+
 # Planner runtime identification
 
 - Exposes a loaded Planner contract revision through API health and launcher output.

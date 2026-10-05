@@ -12,6 +12,26 @@ API health identifies the loaded Planner correction revision; restart after sour
 
 Malformed JSON, schema or policy proposals receive at most one fresh correction. The corrected plan is independently revalidated; persistent failures show safe field findings. Exact reviewed inspection scope remains enforced. This does not complete the read-only execution integration.
 
+## Composer and inspector
+
+Text planner shows a larger context composer and a reachable inspector while open. Task history defaults to collapsed. Optional input filename/path selection is canonicalized under data/input by request validation; adapter checks still govern actual file access. Navigation redesign and executable graph editing remain future work.
+
+## Planning presentation
+
+Generated workflow titles are compact. Selected-node inspection exposes full request/step parameters. Text planner shares keyword-based suggestions with Plan; users explicitly add suggested capabilities. Natural-language requests are supported by the model, with schema/policy validation remaining mandatory.
+
+## Text planner controls
+
+Skill selection is searchable and scrollable, with readable presentation labels and removable tags. Internal capability IDs remain unchanged. Generated graph labels identify saved proposal evidence. Executable graph editing is not yet integrated.
+
+## Direct text planning
+
+Text planner agent generates a capability-scoped plan directly from user context, shows the graph and automatically stores the exact validated proposal. Generated storage does not record human review, approve or execute work. Default capability is inspect_vector; others require selection. Intent/history reasoning remains separate.
+
+## Task workspace presentation
+
+The current stage is shown alone; support and technical controls are expandable. Confirm understanding and generate plan sequences reviewed Intent storage and planning. Failures retain the stored review for retry. Conversation execution and persistent chat memory remain incomplete.
+
 ## Context and intent
 
 Implemented: checked task history, bounded retrieval from explicitly selected histories, immutable context review, reasoning-only Intent with clarification, history-free tasks, immutable resolved Intent review, saved-review recovery and exact vector/raster metadata inspection handoff. Reviewed plans can be stored and reopened in the existing Plan workspace with provenance retained. A Planner-added approval requirement is preserved.

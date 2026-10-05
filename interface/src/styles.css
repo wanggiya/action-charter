@@ -336,3 +336,54 @@
 .intent-workbench .model-recovery-guidance { color: #f1ccd0; font-size: 14px; line-height: 1.6; border-top: 1px solid #71414a; padding-top: 10px; }
 .intent-workbench .intent-model-settings { padding: 10px 0; border-bottom: 1px solid #343c49; }
 .intent-workbench .intent-model-settings summary { margin-top: 4px; font-size: 13px; }
+
+/* Conversation workspace: show current stage; support controls stay secondary. */
+.intent-workbench section[hidden] { display: none !important; }
+.intent-workbench .task-support-details, .intent-workbench .task-advanced-navigation { margin: 10px 0; border-bottom: 1px solid #343c49; padding-bottom: 10px; }
+.intent-workbench .task-support-details > summary, .intent-workbench .task-advanced-navigation > summary { color: #a9b5c6; font-size: 13px; cursor: pointer; }
+.intent-workbench .task-clarifications, .intent-workbench .task-input-options { margin: 10px 0; }
+.intent-workbench .task-agent-response { background: #20232e; border-radius: 10px; }
+.intent-workbench .task-input-card { padding: 12px; }
+.intent-workbench [data-intent-stage] { margin-top: 8px; padding-top: 0; }
+.intent-workbench .intent-stage-heading { background: transparent; border: 0; padding-left: 0; cursor: default; }
+
+.text-planner textarea { min-height: 220px; resize: vertical; font: 15px/1.65 Arial, sans-serif; }
+.text-planner fieldset > button { width: 100%; justify-content: center; margin: 16px 0; }
+.text-planner pre { overflow: auto; max-height: 300px; }
+
+/* Text planner uses the same restrained blue/charcoal controls as the workspace. */
+.text-planner .skill-picker-trigger { width: 100%; justify-content: space-between; min-height: 40px; }
+.text-planner .selected-skill-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.text-planner button.selected-skill-tag { padding: 5px 8px; font-size: 12px; background: #253247; border-color: #526279; }
+.text-planner .skill-picker-dropdown { margin: 8px 0; padding: 10px; background: #1e222a; border: 1px solid #526279; border-radius: 8px; }
+.text-planner label.skill-search-label { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0 0 8px; }
+.text-planner .skill-picker-options { max-height: 240px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 4px; }
+.text-planner button.skill-picker-option { width: 100%; padding: 10px 8px; text-align: left; background: #252a33; border-color: transparent; }
+.text-planner .skill-picker-option[aria-pressed="true"] { border-color: #60a5fa; background: #24384f; }
+.text-planner .skill-picker-option strong, .text-planner .skill-picker-option small { display: block; }
+.text-planner .skill-choice-mark { width: 16px; min-width: 16px; height: 16px; border: 1px solid #64748b; border-radius: 4px; display: grid; place-items: center; }
+.text-planner button.text-generate-plan { min-height: 42px; background: #203c65; border-color: #4f83c9; font: 600 14px Arial, sans-serif; }
+.text-planner button:hover:not(:disabled) { border-color: #93c5fd; }
+
+.text-skill-suggestions { margin: 12px 0; }
+.text-skill-suggestions > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.text-planner .text-skill-suggestions button { font-size: 12px; padding: 6px 9px; }
+.inspector .detail-section pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; }
+
+/* Keep node inspection reachable while the context composer remains open. */
+.text-planner textarea { min-height: clamp(300px, 42vh, 520px); background: #151920; border-color: #64748b; font-size: 15px; }
+.text-planner header h2 { margin-top: 0; }
+.workspace.text-planner-open > .inspector { display: block; grid-column: 3; grid-row: 1; min-width: 0; }
+.workspace.text-planner-open, .app-shell:not(.advanced-open) .workspace.text-planner-open { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) 290px; }
+.task-context-content { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 1350px) {
+ .workspace.text-planner-open, .app-shell:not(.advanced-open) .workspace.text-planner-open { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); grid-template-rows: minmax(500px, 1fr) auto; overflow-y: auto; }
+ .workspace.text-planner-open > .inspector { grid-column: 2; grid-row: 2; max-height: 420px; }
+ .workspace.text-planner-open > .intent-workbench { grid-row: 1 / span 2; }
+}
+@media (max-width: 1050px) {
+ .workspace.text-planner-open, .app-shell:not(.advanced-open) .workspace.text-planner-open { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; height: auto; }
+ .workspace.text-planner-open > .intent-workbench { grid-column: 1; grid-row: 1; }
+ .workspace.text-planner-open > .flow-stage { grid-column: 1; grid-row: 2; }
+ .workspace.text-planner-open > .inspector { grid-column: 1; grid-row: 3; max-height: none; }
+}

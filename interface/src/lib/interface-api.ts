@@ -983,7 +983,7 @@ export async function loadSavedPlans(): Promise<SavedPlanInventory> {
 export async function createPlannerPlan(request: string, allowedSkillIds: string[], inputPaths: string[] = []): Promise<InterfacePlannerResult> {
   const boundedRequest = z.string().trim().min(1).max(8000).parse(request);
   const boundedSkills = z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).min(1).max(20).parse(allowedSkillIds);
-  const boundedInputs = z.array(z.string().regex(/^data\/input\/[A-Za-z0-9._/-]+$/)).max(20).parse(inputPaths);
+  const boundedInputs = z.array(z.string().trim().min(1).max(960)).max(20).parse(inputPaths);
   const response = await fetch("/api/v1/plans/create", {
     method: "POST",
     cache: "no-store",
@@ -1009,6 +1009,35 @@ export async function saveReviewedPlannerPlan(result: InterfacePlannerResult, ta
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "save_reviewed_plan",
+      task_id: taskId,
+      confirmed_plan_sha256: result.plan_sha256,
+      allowed_skill_ids: result.allowed_skill_ids,
+      planner_result: {
+        agent_id: result.agent_id,
+        model: result.model,
+        original_request: result.original_request,
+        context_references: result.context_references,
+        plan: result.plan,
+        warnings: result.warnings,
+      },
+    }),
+  });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const message = z.object({ error: z.string().max(300) }).safeParse(payload);
+    throw new Error(message.success ? message.data.error : "reviewed plan could not be stored");
+  }
+  return savedPlannerResultSchema.parse(payload);
+}
+
+export async function saveGeneratedPlannerPlan(result: InterfacePlannerResult, taskId: string | null = null): Promise<SavedPlannerResult> {
+  const response = await fetch("/api/v1/plans/save-generated", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "save_generated_plan",
       task_id: taskId,
       confirmed_plan_sha256: result.plan_sha256,
       allowed_skill_ids: result.allowed_skill_ids,

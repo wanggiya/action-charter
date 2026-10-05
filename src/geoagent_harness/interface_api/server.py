@@ -558,15 +558,21 @@ class InterfacePlanRequest(BaseModel):
     @field_validator("input_paths")
     @classmethod
     def input_paths_are_bounded(cls, value: list[str]) -> list[str]:
-        if len(value) != len(set(value)):
-            raise ValueError("input paths must be unique")
-        if any(
-            not re.fullmatch(r"data/input/[A-Za-z0-9._/-]+", item)
-            or ".." in item.split("/")
-            for item in value
-        ):
-            raise ValueError("input path is outside the governed input root")
-        return value
+        normalized = []
+        for item in value:
+            if len(item) > 960:
+                raise ValueError("input path is too long")
+            item = item.strip()
+            if "/" not in item:
+                item = "data/input/" + item
+            if (not re.fullmatch(r"data/input/[A-Za-z0-9._/-]+", item)
+                    or any(part in {"", ".", ".."} for part in item.split("/"))):
+                raise ValueError("input path is outside the governed input root")
+            normalized.append(item)
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("input paths must be unique after normalization")
+        return normalized
+
 
 
 class InterfaceReviewedPlanSaveRequest(BaseModel):
@@ -588,6 +594,12 @@ class InterfaceReviewedPlanSaveRequest(BaseModel):
         if any(not re.fullmatch(r"[a-z][a-z0-9_]*", item) for item in value):
             raise ValueError("allowed skill ID is invalid")
         return value
+
+
+class InterfaceGeneratedPlanSaveRequest(InterfaceReviewedPlanSaveRequest):
+    """Storage of a generated proposal is not human review or approval."""
+
+    action: Literal["save_generated_plan"]
 
 
 class InterfacePlanApprovalPreparationRequest(BaseModel):
@@ -1457,9 +1469,9 @@ def plan_interface_task(
 
     root = _trusted_root(project_root)
     trusted_agents = agents_root if agents_root is not None else root / "agents"
-    selected_context = ""
+    selected_context = "\n\nFile input convention: resolve a bare input filename under data/input. Keep explicit normalized data/input paths. This convention does not grant file access or execution authority."
     if request.input_paths:
-        selected_context = "\n\nOperator-selected governed input references:\n" + "\n".join(
+        selected_context += "\n\nOperator-selected governed input references:\n" + "\n".join(
             f"- {path}" for path in request.input_paths
         )
     result = plan_task(
@@ -3024,6 +3036,7 @@ def _handler(
                 "/api/v1/recipes/preview-execution",
                 "/api/v1/recipes/execute",
                 "/api/v1/plans/create",
+                "/api/v1/plans/save-generated",
                 "/api/v1/plans/save-reviewed",
                 "/api/v1/plans/prepare-approval",
                 "/api/v1/plans/record-approval",
@@ -3184,6 +3197,15 @@ def _handler(
                         InterfacePlanRequest.model_validate(payload),
                         project_root=project_root,
                     )
+                elif self.path == "/api/v1/plans/save-generated":
+                    generated = InterfaceGeneratedPlanSaveRequest.model_validate(payload)
+                    response = save_interface_reviewed_plan(
+                        InterfaceReviewedPlanSaveRequest.model_validate({
+                            **generated.model_dump(mode="json"), "action": "save_reviewed_plan",
+                        }), project_root=project_root,
+                    )
+                    response["human_review_performed"] = False
+                    response["storage_kind"] = "generated_proposal"
                 elif self.path == "/api/v1/plans/save-reviewed":
                     response = save_interface_reviewed_plan(
                         InterfaceReviewedPlanSaveRequest.model_validate(payload),

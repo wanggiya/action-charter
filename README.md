@@ -192,3 +192,5 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing a contract or authority 
 The Python distribution is `actioncharter`; the retained compatibility interfaces are the `geoagent_harness` package and `geoagent` / `geoagent-mcp` commands.
 
 Created by **Jay Qi**. [Citation metadata](CITATION.cff). Licensed under [Apache License 2.0](LICENSE); see [NOTICE](NOTICE).
+
+The **Text planner agent** opens a planning-context composer beside the graph. Generate plan validates and automatically stores a proposal; saving does not approve or execute it. Optional capability selection remains available.
