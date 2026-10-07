@@ -342,3 +342,5 @@ The production Chromium regression passes nine groups: Add/search/scroll, pointe
 ## Publication audit
 
 The operator authorized commit/push, PR merge with --merge and feature-branch deletion. The proposed branch and staged files were checked against actual local secret values and common encoded variants without displaying those values. No matches, private keys, detected access tokens, archives or runtime/config outputs were found. Explicit staging includes checkpoint source, tests, documentation and acceptance templates only; .env, .secrets, generated GIS/package/evidence records and temporary browser dependencies/results remain excluded. Staged review also caught and corrected an accidental documentation overwrite before publication.
+
+CI portability follow-up: the Python runner installs dependencies globally rather than under repository .venv. Acceptance fixtures now wrap the active sys.executable instead of linking an assumed developer venv, retaining the same isolated snapshot checks. No application startup requirement, authority guard or test coverage was relaxed.

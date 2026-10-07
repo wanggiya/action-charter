@@ -2,6 +2,8 @@
 import importlib.util
 import json
 import os
+import shlex
+import sys
 from pathlib import Path
 from shutil import copyfile
 
@@ -21,7 +23,12 @@ def source(tmp_path):
         (root / name).mkdir()
     for name in acceptance.COPY_FILES:
         (root / name).write_text('acceptance fixture source\n')
-    (root / '.venv').symlink_to(PROJECT / '.venv', target_is_directory=True)
+    # CI installs into the active interpreter, not a checkout-local .venv.
+    # A fixture launcher preserves that environment without requiring frontend installs.
+    python = root / '.venv/bin/python'
+    python.parent.mkdir(parents=True)
+    python.write_text('#!/bin/sh\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+    python.chmod(0o755)
     (root / 'interface/node_modules/.bin').mkdir(parents=True)
     (root / 'interface/node_modules/.bin/vite').write_text('dependency sentinel')
     (root / 'context/SKILLS_INDEX.yaml').write_text((PROJECT / 'context/SKILLS_INDEX.yaml').read_text())
