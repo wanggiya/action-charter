@@ -7,7 +7,7 @@ SKILL_TEST_RECORD_FILE ?=
 .PHONY: checkpoint6-accept
 .PHONY: critic-container
 .PHONY: help install test inspect config build interface-start interface-check
-.PHONY: interface-validate validate
+.PHONY: interface-validate interface-acceptance validate
 .PHONY: agent-info mcp-smoke planner-smoke
 .PHONY: state-container
 .PHONY: workflow-version
@@ -27,6 +27,7 @@ help:
 	@echo "make interface-start Start the local API and frontend (writes disabled)"
 	@echo "make interface-check Validate local interface startup prerequisites"
 	@echo "make interface-validate Typecheck and production-build the frontend"
+	@echo "make interface-acceptance Prepare an isolated browser acceptance session"
 	@echo "make validate    Run Python, frontend, shell, and Compose validation"
 	@echo "make agent-info  Exercise all three independent agent images"
 	@echo "make mcp-smoke   Run the read-only MCP protocol test"
@@ -69,6 +70,9 @@ interface-start:
 
 interface-check:
 	bash scripts/start_actioncharter.sh --check
+
+interface-acceptance:
+	.venv/bin/python scripts/interface_acceptance.py prepare
 
 interface-validate:
 	corepack pnpm@10.17.1 --dir interface typecheck

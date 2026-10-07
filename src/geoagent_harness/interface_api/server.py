@@ -2998,6 +2998,13 @@ def _handler(
                 except (InterfaceApiError, ApprovalError, OSError, ValueError):
                     self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "saved plan inventory is unavailable"})
                 return
+            if self.path == "/api/v1/inspection-runs":
+                from .workflow import inspection_inventory
+                try:
+                    self._send(HTTPStatus.OK, inspection_inventory(project_root=project_root))
+                except (InterfaceApiError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "inspection history unavailable"})
+                return
             if self.path == "/api/v1/recipes":
                 try:
                     self._send(HTTPStatus.OK, interface_saved_recipe_inventory(
@@ -3035,6 +3042,11 @@ def _handler(
                 "/api/v1/recipes/verify-approval",
                 "/api/v1/recipes/preview-execution",
                 "/api/v1/recipes/execute",
+                "/api/v1/plans/validate-edit",
+                "/api/v1/workflow/prepare",
+                "/api/v1/workflow/authorize",
+                "/api/v1/workflow/execute",
+                "/api/v1/planner/conversation",
                 "/api/v1/plans/create",
                 "/api/v1/plans/save-generated",
                 "/api/v1/plans/save-reviewed",
@@ -3192,6 +3204,19 @@ def _handler(
                         InterfaceSnakemakeExportRequest.model_validate(payload),
                         project_root=project_root,
                     )
+                elif self.path == "/api/v1/plans/validate-edit":
+                    from .workflow import EditRequest, validate_edit
+                    response = validate_edit(EditRequest.model_validate(payload), project_root=project_root)
+                elif self.path in {"/api/v1/workflow/prepare", "/api/v1/workflow/authorize", "/api/v1/workflow/execute"}:
+                    from .workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
+                    workflow_request = WorkflowRequest.model_validate(payload)
+                    expected_action = {"prepare": "prepare_workflow", "authorize": "authorize_workflow", "execute": "execute_workflow"}[self.path.rsplit("/", 1)[-1]]
+                    if workflow_request.action != expected_action:
+                        raise InterfaceApiError("workflow action does not match endpoint")
+                    response = {"prepare_workflow": prepare_workflow, "authorize_workflow": authorize_workflow, "execute_workflow": execute_workflow}[expected_action](workflow_request, project_root=project_root)
+                elif self.path == "/api/v1/planner/conversation":
+                    from .conversation import TurnRequest, conversation_turn
+                    response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
                 elif self.path == "/api/v1/plans/create":
                     response = plan_interface_task(
                         InterfacePlanRequest.model_validate(payload),
@@ -3357,8 +3382,9 @@ def _handler(
             except RecipeApprovalError:
                 self._send(HTTPStatus.CONFLICT, {"error": "recipe approval could not be recorded"})
                 return
-            except ApprovedRecipeError:
-                self._send(HTTPStatus.CONFLICT, {"error": "approved recipe execution failed; inspect evidence and outputs"})
+            except ApprovedRecipeError as exc:
+                from .workflow import execution_failure_payload
+                self._send(HTTPStatus.CONFLICT, execution_failure_payload(exc))
                 return
             except CriticAgentError as exc:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {
@@ -3431,8 +3457,9 @@ def _handler(
                     "execution_performed": False,
                 })
                 return
-            except PlannerPolicyError:
-                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "reviewed plan was rejected by deterministic policy"})
+            except PlannerPolicyError as exc:
+                message = ("Edited workflow failed policy: " + str(exc)[:240]) if self.path == "/api/v1/plans/validate-edit" else "reviewed plan was rejected by deterministic policy"
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": message})
                 return
             except (ContextPackError, ModelClientError, ModelSettingsError):
                 if self.path == "/api/v1/critic-evidence/run":

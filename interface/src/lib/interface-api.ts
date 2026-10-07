@@ -359,6 +359,7 @@ export const plannerResultSchema = z.object({
       requires_approval: z.boolean(),
       expected_artifacts: z.array(z.string().max(1000)).max(100),
       validation_required: z.boolean(),
+      depends_on: z.array(z.string().regex(/^step_[1-9][0-9]*$/)).max(20).nullable().optional(),
     })).min(1).max(20),
     assumptions: z.array(z.string().max(2000)).max(100),
     risks: z.array(z.string().max(2000)).max(100),
@@ -1131,4 +1132,61 @@ export async function previewPlannerExecution(stored: SavedPlannerResult, prepar
 export async function compilePlannerRecipe(stored: SavedPlannerResult, prepared: PreparedPlanApproval, recorded: RecordedPlanApproval): Promise<CompiledPlanRecipe> {
   const response = await fetch("/api/v1/plans/compile-recipe", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "compile_plan_recipe", plan_filename: stored.plan_filename, confirmed_plan_sha256: stored.plan_sha256, confirmed_approval_request_sha256: prepared.approval_request_sha256, approval_filename: recorded.approval_filename }) });
   const payload = await boundedJson(response); if (!response.ok) { const message = z.object({ error: z.string().max(500) }).safeParse(payload); throw new Error(message.success ? message.data.error : "Planner recipe compilation failed"); } return compiledPlanRecipeSchema.parse(payload);
+}
+
+const workflowReviewSchema = z.object({
+  workflow_kind: z.literal("snakemake_export").optional(),
+  export_path: z.string().optional(),
+  source_attempt_sha256: z.string().optional(),
+  schema_version: z.literal("1.0"), plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  recipe_filename: z.string(), recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  review_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  steps: z.array(z.object({ step_id: z.string(), skill: z.string(), purpose: z.string(), depends_on: z.array(z.string()).max(20).optional(), arguments: z.record(z.string(), z.unknown()), requires_approval: z.boolean(), validation_required: z.boolean(), execution_mode: z.enum(["execute", "reuse_completed"]).optional() })).max(20),
+  approval_required_step_ids: z.array(z.string()).max(20), write_step_ids: z.array(z.string()).max(20),
+  execution_available: z.boolean(), execution_performed: z.literal(false),
+});
+export type WorkflowReview = z.infer<typeof workflowReviewSchema>;
+const inspectionRunSchema = z.object({
+  workflow_kind: z.literal("snakemake_export").optional(),
+  schema_version: z.literal("1.0"), run_id: z.string().regex(/^[a-f0-9]{32}$/), plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  started_at: z.string(), finished_at: z.string().nullable(), status: z.enum(["running", "completed", "failed"]),
+  step_results: z.array(z.object({ step_id: z.string(), skill_id: z.string(), status: z.string(), validation_performed: z.boolean(), outcome: z.unknown(), validation_outcome: z.unknown() })).max(20),
+  approval_recorded: z.boolean(), execution_performed: z.boolean(), finding: z.string().optional(),
+});
+export type InspectionRun = z.infer<typeof inspectionRunSchema>;
+async function workflowPost(path: string, body: unknown) {
+  const response = await fetch(path, { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const payload = await boundedJson(response);
+  if (!response.ok) {
+    const error = z.object({ error: z.string().max(2000), failure_code: z.string().max(100).optional(), failed_step_id: z.string().max(100).nullable().optional(), recovery_guidance: z.string().max(2000).optional() }).safeParse(payload);
+    throw new Error(error.success ? [error.data.failed_step_id ? `${error.data.failed_step_id}: ${error.data.error}` : error.data.error, error.data.recovery_guidance].filter(Boolean).join("\n\n") : "Workflow request blocked");
+  }
+  return payload;
+}
+export async function validatePlanEdit(result: InterfacePlannerResult) {
+  const { agent_id, model, original_request, context_references, plan, warnings } = result;
+  return plannerResultSchema.parse(await workflowPost("/api/v1/plans/validate-edit", { action: "validate_plan_edit", planner_result: { agent_id, model, original_request, context_references, plan, warnings } }));
+}
+export async function prepareCurrentWorkflow(stored: SavedPlannerResult) {
+  return workflowReviewSchema.parse(await workflowPost("/api/v1/workflow/prepare", { action: "prepare_workflow", plan_filename: stored.plan_filename, confirmed_plan_sha256: stored.plan_sha256 }));
+}
+const workflowAuthorizationSchema = z.object({
+  schema_version: z.literal("1.0"), review_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  plan_approval_filename: z.string().nullable(), recipe_approval_filename: z.string().nullable(),
+  approval_recorded: z.literal(true), execution_performed: z.literal(false),
+});
+export type WorkflowAuthorization = z.infer<typeof workflowAuthorizationSchema>;
+export async function authorizeCurrentWorkflow(review: WorkflowReview, approver: string, reason: string) {
+  return workflowAuthorizationSchema.parse(await workflowPost("/api/v1/workflow/authorize", { action: "authorize_workflow", plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, approve_required_steps: true, approver, reason }));
+}
+export async function executeCurrentWorkflow(review: WorkflowReview, authorization: WorkflowAuthorization | null): Promise<InspectionRun | RecipeExecutionResult> {
+  const payload = await workflowPost("/api/v1/workflow/execute", { action: "execute_workflow", plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, confirm_execution: true, ...(authorization ? { plan_approval_filename: authorization.plan_approval_filename, recipe_approval_filename: authorization.recipe_approval_filename } : {}) });
+  const inspection = inspectionRunSchema.safeParse(payload);
+  return inspection.success ? inspection.data : recipeExecutionSchema.parse(payload);
+}
+export async function loadInspectionRuns(): Promise<InspectionRun[]> {
+  const response = await fetch("/api/v1/inspection-runs", { credentials: "same-origin", cache: "no-store" });
+  const payload = await boundedJson(response);
+  if (!response.ok) throw new Error("Inspection history unavailable. Restart the updated API.");
+  return z.object({ records: z.array(inspectionRunSchema).max(100), execution_performed: z.literal(false) }).parse(payload).records;
 }

@@ -1,61 +1,108 @@
-import { useEffect, useState } from "react";
-import { Bot, X, ChevronDown, Check, Search } from "lucide-react";
-import { createPlannerPlan, loadPlannerSkills, saveGeneratedPlannerPlan, type InterfacePlannerResult, type PlannerSkillCatalog, type SavedPlannerResult } from "../lib/interface-api";
-
-import { skillRecommendationScore } from "../lib/skill-recommendations";
+import { useEffect, useRef, useState } from "react";
+import { Bot, X, Send, Plus, ChevronDown, Search, Check } from "lucide-react";
+import { loadPlannerSkills, saveGeneratedPlannerPlan, type InterfacePlannerResult, type SavedPlannerResult, type PlannerSkillCatalog } from "../lib/interface-api";
 import { skillLabel } from "../lib/skill-labels";
+import { loadPlannerConversations, newConversationId, plannerConversation, type PlannerConversation } from "../lib/planner-conversation";
 
-type Props = { visible: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onInvalidate: () => void };
-export function TextPlanner({ visible, onClose, onPlan, onSaved, onInvalidate }: Props) {
+type Props = { currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void };
+const storageKey = "actioncharter:planner-conversation:v1";
+function initialId() {
+  try { const id = localStorage.getItem(storageKey); if (id && /^[a-f0-9]{32}$/.test(id)) return id; } catch { /* Storage is optional. */ }
+  return newConversationId();
+}
+export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved }: Props) {
+  const [id, setId] = useState(initialId);
+  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadPlannerConversations>>>([]);
+  const [conversation, setConversation] = useState<PlannerConversation | null>(null);
+  const [draft, setDraft] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
-  const [inputFile, setInputFile] = useState("");
-  const [context, setContext] = useState("");
   const [catalog, setCatalog] = useState<PlannerSkillCatalog | null>(null);
-  const [skills, setSkills] = useState(["inspect_vector"]);
-  const [plan, setPlan] = useState<InterfacePlannerResult | null>(null);
-  const [saved, setSaved] = useState<SavedPlannerResult | null>(null);
-  const [busy, setBusy] = useState("");
-  const [error, setError] = useState("");
+  const [catalogError, setCatalogError] = useState("");
   useEffect(() => {
-    if (!visible || catalog) return;
     let active = true;
-    void loadPlannerSkills().then((value) => { if (active) setCatalog(value); }).catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : "Capabilities unavailable"); });
+    void loadPlannerSkills().then((value) => { if (active) setCatalog(value); }).catch(() => { if (active) setCatalogError("Skill catalog unavailable; automatic planning remains available."); });
     return () => { active = false; };
-  }, [visible, catalog]);
-  const store = async (result: InterfacePlannerResult) => {
-    setBusy("Saving validated proposal");
+  }, []);
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
+  const [pendingMessage, setPendingMessage] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const currentRef = useRef({ plan, editsPending, id });
+  currentRef.current = { plan, editsPending, id };
+  const callbacks = useRef({ onPlan, onSaved });
+  callbacks.current = { onPlan, onSaved };
+  useEffect(() => {
+    let active = true;
+    setLoaded(false);
+    try { localStorage.setItem(storageKey, id); } catch { /* Conversation remains usable. */ }
+    void plannerConversation("read", id).then(async (state) => {
+      if (!active) return;
+      setConversation(state); setSelectedSkills(state.selected_skill_ids); setLoaded(true);
+      void loadPlannerConversations().then((items) => { if (active) setSessions(items); }).catch(() => { /* Current conversation still works. */ });
+      // Recovery is explicit: never replace a plan already open in the workspace.
+    }).catch((e: unknown) => { if (active) { setError(e instanceof Error ? e.message : "Conversation recovery failed"); setLoaded(true); } });
+    return () => { active = false; };
+  }, [id]);
+  useEffect(() => { if (visible) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [conversation, pendingMessage, visible]);
+  const publish = async (result: InterfacePlannerResult) => {
+    // Saving must succeed before replacing the current workflow.
+    const base = currentRef.current.plan?.plan_sha256;
+    const identity = currentRef.current.id;
     const stored = await saveGeneratedPlannerPlan(result);
-    setSaved(stored); onSaved(stored);
+    if (currentRef.current.editsPending || currentRef.current.id !== identity || currentRef.current.plan?.plan_sha256 !== base) throw new Error("The workspace changed while opening this proposal. Your current workflow is preserved.");
+    callbacks.current.onPlan(result); callbacks.current.onSaved(stored);
   };
-  const generate = async () => {
-    if (busy || !context.trim() || !skills.length || !catalog) return;
-    setBusy("Generating and validating plan"); setError(""); setPlan(null); setSaved(null); onInvalidate();
+  const send = async () => {
+    const text = draft.trim();
+    if (busy || !loaded || !text || editsPending) return;
+    const base = plan; const submittedId = id;
+    setBusy(true); setError(""); setPendingMessage(text);
     try {
-      const result = await createPlannerPlan(context, skills, inputFile.trim() ? [inputFile.trim()] : []);
-      setPlan(result); onPlan(result);
-      await store(result);
-    } catch (e) { setError(e instanceof Error ? e.message : "Plan request blocked"); }
-    finally { setBusy(""); }
+      const state = await plannerConversation("turn", id, conversation?.revision ?? 0, text, base, selectedSkills, saved?.plan_sha256 === base?.plan_sha256 ? saved?.plan_filename ?? null : null);
+      setConversation(state); setDraft("");
+      void loadPlannerConversations().then(setSessions).catch(() => { /* Current transcript is saved. */ });
+      if (state.proposal_changed && state.planner_result) {
+        if (currentRef.current.id !== submittedId || currentRef.current.editsPending || currentRef.current.plan?.plan_sha256 !== base?.plan_sha256) {
+          setError("The workspace changed while the planner was responding. Its proposal is saved in this conversation; reopen it when you are ready.");
+        } else {
+          const stored = await saveGeneratedPlannerPlan(state.planner_result);
+          // Recheck after storage: manual graph edits can happen while saving.
+          if (currentRef.current.id === submittedId && !currentRef.current.editsPending && currentRef.current.plan?.plan_sha256 === base?.plan_sha256) {
+            callbacks.current.onPlan(state.planner_result); callbacks.current.onSaved(stored);
+          } else setError("The workspace changed while saving. Your current graph is preserved; use Open conversation plan to review the response.");
+        }
+      }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Planning failed; current plan preserved"); }
+    finally { setBusy(false); setPendingMessage(""); }
   };
-  const recommendations = (catalog?.skills ?? []).map((skill) => ({ skill, score: skillRecommendationScore(skill, context) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score || a.skill.id.localeCompare(b.skill.id)).slice(0, 5);
-  return <aside hidden={!visible} className="intent-workbench text-planner" aria-label="Text planner agent">
-    <header><div><h2><Bot size={20}/> Text planner agent</h2></div><button onClick={onClose} aria-label="Close text planner"><X size={18}/></button></header>
-    <p>Describe your goal, inputs, outputs and constraints in ordinary language. Exact skill IDs are optional. The plan appears alongside this context and is saved automatically after validation.</p>
-    <fieldset disabled={Boolean(busy)}>
-      <label>Input file <small>Optional · defaults to data/input</small><input value={inputFile} maxLength={960} placeholder="sample_points.geojson or data/input/sample_points.geojson" onChange={(event) => { setInputFile(event.target.value); setPlan(null); setSaved(null); setError(""); onInvalidate(); }}/></label>
-      <label>Planning context<textarea rows={14} maxLength={8000} value={context} placeholder={'Inspect data/input/sample_points.geojson. Return feature count, fields and CRS only. No writes or database loading.'} onChange={(e) => { setContext(e.target.value); setPlan(null); setSaved(null); setError(""); onInvalidate(); }}/></label>
-      {context.trim() && recommendations.length > 0 && <div className="text-skill-suggestions"><small>Suggested skills · add only what this task needs</small><div>{recommendations.map(({ skill }) => <button type="button" className="intent-secondary" key={skill.id} disabled={skills.includes(skill.id) || skills.length >= 20} title={skill.id} onClick={() => { setSkills((items) => [...items, skill.id]); setPlan(null); setSaved(null); onInvalidate(); }}>{skills.includes(skill.id) ? "Selected · " : "+ "}{skillLabel(skill.id)}</button>)}</div></div>}
-      <div className="text-skill-picker" onKeyDown={(event) => { if (event.key === "Escape") setSkillsOpen(false); }}>
-        <button type="button" className="intent-secondary skill-picker-trigger" aria-expanded={skillsOpen} aria-controls="text-planner-skills" onClick={() => setSkillsOpen((open) => !open)}><span>Skills · {skills.length} selected</span><ChevronDown size={16}/></button>
-        <div className="selected-skill-tags">{skills.map((id) => <button type="button" className="selected-skill-tag" key={id} title={id} aria-label={`Remove ${skillLabel(id)}`} onClick={() => { setSkills((items) => items.filter((item) => item !== id)); setPlan(null); setSaved(null); onInvalidate(); }}>{skillLabel(id)}<X size={12}/></button>)}</div>
-        {skillsOpen && <div id="text-planner-skills" className="skill-picker-dropdown"><label className="skill-search-label"><Search size={15}/><input autoFocus aria-label="Search skills" placeholder="Search by name or technical ID…" value={skillSearch} onChange={(event) => setSkillSearch(event.target.value)}/></label><div className="skill-picker-options" role="group" aria-label="Available planning skills">{catalog?.skills.filter((skill) => `${skillLabel(skill.id)} ${skill.id} ${skill.access ?? ""}`.toLowerCase().includes(skillSearch.trim().toLowerCase())).sort((a, b) => skillLabel(a.id).localeCompare(skillLabel(b.id))).map((skill) => <button type="button" className="skill-picker-option" key={skill.id} aria-pressed={skills.includes(skill.id)} disabled={!skills.includes(skill.id) && skills.length >= 20} onClick={() => { setSkills((items) => items.includes(skill.id) ? items.filter((id) => id !== skill.id) : [...items, skill.id]); setPlan(null); setSaved(null); onInvalidate(); }}><span className="skill-choice-mark">{skills.includes(skill.id) && <Check size={14}/>}</span><span><strong>{skillLabel(skill.id)}</strong><small>{skill.id} · {skill.approval_required ? "Approval required for action" : "Read-only / no approval requirement"}</small></span></button>)}</div>{catalog && !catalog.skills.some((skill) => `${skillLabel(skill.id)} ${skill.id} ${skill.access ?? ""}`.toLowerCase().includes(skillSearch.trim().toLowerCase())) && <p>No matching skills. Try another name.</p>}<button type="button" className="intent-secondary" onClick={() => setSkillsOpen(false)}>Done</button></div>}
-        <small>Select the skills your task needs. Selection allows planning, not execution.</small>
+  return <aside hidden={!visible} className="intent-workbench text-planner planner-dialogue" aria-label="Planner agent">
+    <header><h2><Bot size={20}/> Planner agent</h2><div><button disabled={busy} title="Start a new conversation; keep the current workflow as context" onClick={() => { setId(newConversationId()); setConversation(null); setSelectedSkills([]); setDraft(""); setError(""); }}><Plus size={15}/> New chat</button><button onClick={onClose} aria-label="Close planner"><X size={18}/></button></div></header>
+    {sessions.length > 0 && <select className="planner-session-picker" aria-label="Saved planning conversation" disabled={busy} value={sessions.some((session) => session.conversation_id === id) ? id : ""} onChange={(event) => { if (event.target.value) { setId(event.target.value); setError(""); setDraft(""); } }}><option value="" disabled>Current new conversation</option>{sessions.map((session) => <option key={session.conversation_id} value={session.conversation_id}>{session.summary}</option>)}</select>}
+    <div className="planner-messages" ref={scrollRef} role="log" aria-label="Planning conversation" aria-live="polite">
+      {!conversation?.messages.length && <p className="planner-welcome">Describe your task and files. Then ask me to add, remove or change workflow steps. Bare filenames resolve under data/input.</p>}
+      {conversation?.messages.map((entry, index) => {
+        const ids = entry.role === "user" ? entry.selected_skill_ids : entry.plan_skill_ids;
+        const previous = conversation.messages.slice(0, index).reverse().find((item) => item.role === "assistant" && item.plan_skill_ids != null)?.plan_skill_ids ?? [];
+        const added = entry.role === "assistant" && ids ? ids.filter((skill) => !previous.includes(skill)) : [];
+        const removed = entry.role === "assistant" && ids ? previous.filter((skill) => !ids.includes(skill)) : [];
+        return <article className={`planner-message role-${entry.role}`} key={`${id}-${index}`}><small>{entry.role === "user" ? "You" : "Planner"}</small><p>{entry.content}</p><div className="conversation-skill-tags" aria-label={entry.role === "user" ? "Submitted skill selection" : "Workflow skills at this reply"}><small>{entry.role === "user" ? "Selected skills" : "Workflow skills"}</small>{ids == null ? <span className="conversation-skill-tag">Not recorded for this older message</span> : ids.length ? ids.map((skill) => <span className="conversation-skill-tag" title={skill} key={skill}>{skillLabel(skill)}</span>) : <span className="conversation-skill-tag">{entry.role === "user" ? "Automatic" : "No proposal yet"}</span>}{added.map((skill) => <span className="conversation-skill-tag skill-added" key={`added-${skill}`} title={skill}>+ {skillLabel(skill)}</span>)}{removed.map((skill) => <span className="conversation-skill-tag skill-removed" key={`removed-${skill}`} title={skill}>− {skillLabel(skill)}</span>)}</div></article>;
+      })}
+      {pendingMessage && <article className="planner-message role-user"><small>You · sending</small><p>{pendingMessage}</p><div className="conversation-skill-tags"><small>Selected skills</small>{selectedSkills.length ? selectedSkills.map((skill) => <span className="conversation-skill-tag" key={skill}>{skillLabel(skill)}</span>) : <span className="conversation-skill-tag">Automatic</span>}</div></article>}
+      {busy && <p className="intent-notice">Thinking and validating…</p>}
+    </div>
+    {conversation?.planner_result && conversation.planner_result.plan_sha256 !== plan?.plan_sha256 && <button disabled={busy || editsPending} onClick={() => { setBusy(true); setError(""); void publish(conversation.planner_result!).catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not open conversation plan")).finally(() => setBusy(false)); }}>Open conversation plan</button>}
+    {error && <div className="intent-error" role="alert"><p>{error}</p><small>Current workflow preserved. Nothing approved or executed.</small><button disabled={busy} onClick={() => { setBusy(true); void plannerConversation("read", id).then((state) => { setConversation(state); setSelectedSkills(state.selected_skill_ids); setError(""); }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Recovery failed")).finally(() => setBusy(false)); }}>Reload conversation</button></div>}
+    {editsPending && <p className="intent-notice">Validate and save, or discard your graph edits before sending a planner message.</p>}
+    <form className="planner-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}><label className="planning-writing-surface"><span className="sr-only">Message Planner</span><textarea rows={4} maxLength={8000} value={draft} placeholder={plan ? "Ask for a change to this workflow…" : "Inspect sample_points.geojson. Return feature count, fields and CRS."} disabled={busy} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }}/></label><button type="submit" disabled={busy || !loaded || !draft.trim() || editsPending}><Send size={15}/>{busy ? "Thinking…" : "Send"}</button>
+      <div className="conversation-skill-picker" onKeyDown={(event) => { if (event.key === "Escape") setSkillsOpen(false); }}>
+        <button type="button" disabled={busy || !loaded} aria-expanded={skillsOpen} aria-controls="conversation-skill-options" onClick={() => setSkillsOpen((open) => !open)}><ChevronDown size={14}/> Skills · optional{selectedSkills.length ? ` · ${selectedSkills.length} selected` : " · automatic"}</button>
+        <div className="conversation-selected-skills">{selectedSkills.map((skill) => <button type="button" key={skill} disabled={busy} title={skill} aria-label={`Remove ${skillLabel(skill)} selection`} onClick={() => setSelectedSkills((items) => items.filter((id) => id !== skill))}>{skillLabel(skill)}<X size={12}/></button>)}</div>
+        {skillsOpen && <div id="conversation-skill-options"><label className="conversation-skill-search"><Search size={14}/><input aria-label="Search planning skills" value={skillSearch} placeholder="Search skills…" onChange={(event) => setSkillSearch(event.target.value)}/></label><div className="conversation-skill-options">{catalog?.skills.filter((skill) => conversation?.supported_skill_ids.includes(skill.id) && `${skill.id} ${skillLabel(skill.id)}`.toLowerCase().includes(skillSearch.trim().toLowerCase())).map((skill) => <button type="button" disabled={busy} aria-pressed={selectedSkills.includes(skill.id)} key={skill.id} title={skill.id} onClick={() => setSelectedSkills((items) => items.includes(skill.id) ? items.filter((id) => id !== skill.id) : [...items, skill.id])}>{selectedSkills.includes(skill.id) && <Check size={12}/>}<span>{skillLabel(skill.id)}</span><small>{skill.approval_required ? "Authorization required" : "Read-only"}</small></button>)}</div><button type="button" disabled={busy || !selectedSkills.length} onClick={() => setSelectedSkills([])}>Clear selection · use automatic</button>{catalogError && <small role="status">{catalogError}</small>}<small>Empty selection lets Planner choose. Selected skills permit additions; existing workflow skills and required load dependencies stay available. Selection grants no execution authority.</small></div>}
       </div>
-      <button className="text-generate-plan" disabled={!context.trim() || !skills.length || !catalog} onClick={() => void generate()}>Generate plan</button>
-    </fieldset>
-    <div aria-live="polite">{busy && <p className="intent-notice">{busy}…</p>}{error && <div role="alert" className="intent-error"><strong>{plan ? "Plan ready · automatic save failed" : "Planning blocked"}</strong><p>{error}</p><small>Nothing approved or executed.</small>{plan && !saved && <button disabled={Boolean(busy)} onClick={() => { setError(""); void store(plan).catch((e: unknown) => setError(e instanceof Error ? e.message : "Storage blocked")).finally(() => setBusy("")); }}>Retry saving this plan</button>}</div>}
-    {plan && <div className="intent-result"><strong>{saved ? "Plan saved automatically · review in graph" : "Validated plan · graph ready"}</strong><p>{plan.plan.summary}</p><p>{plan.plan.steps.length} steps · {plan.plan.steps.filter((step) => step.requires_approval).length} approval gates</p><details><summary>Steps and technical details</summary><pre>{JSON.stringify(plan.plan.steps, null, 2)}</pre>{saved && <code>{saved.plan_filename}</code>}</details></div>}</div>
-    <footer>Automatic storage preserves a generated proposal. It does not record human review, approve work or execute tools. Closing keeps this draft; refresh clears it. Stored plans remain available in Saved plans.</footer>
+    </form>
+    <footer>{saved ? "Current plan saved · " : ""}Enter to send · Shift+Enter for a new line. Messages propose changes; Authorize and Execute remain separate.</footer>
   </aside>;
 }

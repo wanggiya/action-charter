@@ -1,71 +1,54 @@
 # Current implementation status
 
-Updated: 2026-10-04
+Updated: 2026-10-07
 
 ## Product boundary
 
-ActionCharter is a local, single-operator alpha for governed data workflows. The React interface and CLI use typed backend services. Existing registered recipe workflows support explicit approval, bounded execution, deterministic validation and durable evidence. Vector/raster, PostGIS and limited GeoServer capabilities are implemented; interface coverage is narrower than CLI coverage.
+ActionCharter is a local single-operator alpha. The interface and CLI use typed backend services for registered vector/raster, PostGIS and limited GeoServer workflows. CLI coverage is broader. Models propose and assess; deterministic policy, exact decisions, runtime validation and durable evidence establish permission and results. Context text, confidence, stored proposals and historical decisions never grant new execution authority.
 
-## Planner response validation
+## Planner and execution
 
-API health identifies the loaded Planner correction revision; restart after source updates. Read-only guidance distinguishes planning from approval, while conservative extra approval gates remain recorded.
+Planner agent is the primary entry: a saved conversation beside the graph proposes revisions or asks for missing scope. Optional skills below Send persist per chat: empty means automatic; explicit selections constrain additions while retaining existing operations and mandatory load dependencies. Each turn records selections/workflow skills. Its backend coordinator is limited to nine supported main-workflow operations; existing CLI/Advanced planner contracts remain available. Bare input filenames normalize under data/input before policy/hashing. Backend rejects unsafe paths; runtime adapters retain access checks. Availability checks establish neither byte identity nor dataset validity.
 
-Malformed JSON, schema or policy proposals receive at most one fresh correction. The corrected plan is independently revalidated; persistent failures show safe field findings. Exact reviewed inspection scope remains enforced. This does not complete the read-only execution integration.
+JSON/schema/policy failures share one fresh correction, independently revalidated; persistent errors expose safe findings. Restart the API after source updates. Natural language and compact graph titles are supported; inspector shows exact request/arguments. Storage performs neither human review nor approval/execution. Typing, pending/failed replies and view changes retain the current proposal. Completed turns persist in planner-conversations; the latest 20 chats can be reopened. Refresh offers explicit plan recovery. Stale replies cannot overwrite manual edits.
 
-## Composer and inspector
+Orange Authorize highlights required operations and records exact plan/recipe decisions for 30 minutes without execution. Yellow Play/Execute independently rechecks scope and authority. Conservative Planner-added gates remain enforced. Direct vector/raster inspections use trusted adapters without invented approval; supported writes use the existing governed recipe executor and output validation. Unsupported dispatch is blocked. Source/content limitations remain visible.
 
-Text planner shows a larger context composer and a reachable inspector while open. Task history defaults to collapsed. Optional input filename/path selection is canonicalized under data/input by request validation; adapter checks still govern actual file access. Navigation redesign and executable graph editing remain future work.
+## Workspace and operation graph
 
-## Planning presentation
+History, execution review and Outcome are docked right of the graph, with responsive stacking. Outcome/review use full-width paired rows: left headings/descriptions/labels, right operation names/values/status, and same-line Authorize/Execute; Add/authorization typing is local, the opaque-tinted Add header/search/× stays pinned over scrolling results, and the 30-minute authorization duration is emphasized; toolbar icons/text share a baseline. The operator reports the host-configured run worked; new appearance/block-action acceptance is pending. Review typography/parameter alignment is explicit; layout dragging remains available during review/run. Failed governed executions expose safe step/recovery diagnostics; The reported PostGIS conflict was traced to a missing host secret path: the launcher now reads allowlisted .env settings and resolves host .secrets paths, preserving terminal overrides and explicit write authority. Saved records browses plans/recipes with loading, empty and failure states. Settings checks the running model configuration but cannot set its MODEL_NAME. Technical Plan, Task workspace, templates and Assurance remain under Advanced.
 
-Generated workflow titles are compact. Selected-node inspection exposes full request/step parameters. Text planner shares keyword-based suggestions with Plan; users explicitly add suggested capabilities. Natural-language requests are supported by the model, with schema/policy validation remaining mandatory.
+The compact toolbar keeps Add visible and exposes Delete/Move/Connect/Disconnect/Parameters through Block tools. The timeline defaults compact and expands on demand; node dragging uses direct node/wire previews and one layout commit on release; Chromium pointer/drop/cancel checks pass; user-device frame rate is not claimed. Snakemake choices lead the scrolling list in yellow/orange; only search/× are pinned. Inspector values share the right-aligned information grid. Move changes local layout; operation drafts cannot authorize/run until backend validation and new proposal storage. Optional typed dependencies preserve old digests when absent and compile explicit DAGs in reviewed topological order. Backend checks references, duplicates, self/cycles and required inspection/validation ancestry. Connections specify completion prerequisites, not automatic output substitution or parallel execution. Planning/policy scaffold nodes remain explanatory. Advanced presentation drafts are separate and non-executable.
 
-## Text planner controls
+Pins support drag in either direction, Alt-click break, Ctrl-drag atomic transfer, right-click actions, hover feedback and pin-to-empty add/connect. Right-button drag pans the graph. These adapt common Blueprint gestures, not its engine language, casts, loops or macros. Shift+A opens Add; canvas-focused Delete cannot remove the final operation. Zoom/legend defaults are lower-left; scrollbars share the timeline style.
 
-Skill selection is searchable and scrollable, with readable presentation labels and removable tags. Internal capability IDs remain unchanged. Generated graph labels identify saved proposal evidence. Executable graph editing is not yet integrated.
+Snakemake export/static verification are now main-workflow blocks in Add and Planner. They bind an original saved plan and independently verified completed recipe evidence; retained operations are reused, not rerun. Export requires fresh exact plan approval and write mode, and package scope/hash verification. No Snakemake process or new source recipe approval is created. Fresh sources must complete before export review. The deterministic Chromium regression passes; live-model/GIS acceptance remains separate.
 
-## Direct text planning
+## Appearance
 
-Text planner agent generates a capability-scoped plan directly from user context, shows the graph and automatically stores the exact validated proposal. Generated storage does not record human review, approve or execute work. Default capability is inspect_vector; others require selection. Intent/history reasoning remains separate.
+Settings selects solid fill or Outline with hue-matched tint fading from top/bottom edges into a clear center and opaque content. Filled text can be black/white, with readable shades. Execute stays yellow/gold, Authorize orange and utility controls cyan. Selected navigation is outlined. Graph categories, statuses and authorization highlights remain distinct. Timeline status text stays unfilled, stage labels fill in solid mode, and selected/running stages frame both labels.
 
-## Task workspace presentation
+Outline uses near-white text and is the initial material; prior text-color choice and later explicit preferences persist per browser origin, with a session fallback if storage is blocked. Appearance changes preserve workflow state and call no backend. Evidence-backed status text and Governed follow the selected material.
 
-The current stage is shown alone; support and technical controls are expandable. Confirm understanding and generate plan sequences reviewed Intent storage and planning. Failures retain the stored review for retry. Conversation execution and persistent chat memory remain incomplete.
+Automated interface/dialogue/launcher/Snakemake validation: 1,460 tests passed; interface typecheck/build and diff checks passed. Deterministic production-browser checks pass; the operator reported the live PostGIS flow working. Live-model acceptance records remain separate. Implementation passed commit review; the operator authorized commit/push, --merge and feature-branch deletion after a clean sensitive-file audit.
 
-## Context and intent
+## Context, intent and current limitations
 
-Implemented: checked task history, bounded retrieval from explicitly selected histories, immutable context review, reasoning-only Intent with clarification, history-free tasks, immutable resolved Intent review, saved-review recovery and exact vector/raster metadata inspection handoff. Reviewed plans can be stored and reopened in the existing Plan workspace with provenance retained. A Planner-added approval requirement is preserved.
+Checked task history, bounded retrieval from explicitly selected histories, immutable context/Intent review, clarification, history-free requests, review recovery and exact vector/raster metadata handoff are implemented. Historical denial remains denial; changed source records block reuse. Equivalent metadata output labels use a closed vocabulary; unsupported outputs fail explicitly.
 
-Historical denial remains denial. Context review, Intent review and plan storage never infer approval or execute tools. Changed source records block historical review reuse. Fresh tasks require no invented history or citations.
+The separate Task workspace shows its active stage and sequences reviewed Intent storage/planning, retaining the review on failure. It supports one metadata input, not arbitrary write intent. Its typed input does not automatically select a picker item. The legacy approval-dependent compiler still cannot continue read-only work; current saved inspections use direct Execute instead. Conversation execution and generalized memory remain incomplete. Unsaved browser drafts clear on refresh. Snakemake static validation does not prove replay.
 
-## Known integration gaps
+## Verification and next work
 
-- The new Intent bridge supports one metadata inspection input, not arbitrary write tasks.
-- No-approval-required inspection plans cannot yet continue through the legacy approval-dependent plan-to-recipe compiler. Never create artificial approval as a workaround.
-- An input path typed in Intent does not automatically select a file picker item.
-- Refresh clears unsaved browser drafts. Stored reviews/plans can be recovered; this is not generalized conversation memory.
-- Draft graph editing does not change an authoritative executable plan.
-- Snakemake static export validation does not run a replay.
+The [acceptance guide](../docs/INTERFACE_ACCEPTANCE.md) separates live-model/browser cases from deterministic proposals. Preparation snapshots current source/public fixtures and report templates without model calls, approvals or execution. Acceptance launch strips operational credentials/root overrides. New snapshots test fixes; same-session restarts test recovery. Audit checks file identity/operator statuses, not semantic or browser correctness.
 
-## Verification and acceptance
+The latest prior complete baseline passed 1,412 offline tests and frontend typecheck/build, including temporary vector conversion, exact-scope/expiry checks, dependency order and a golden historical digest. The twelve-case Intent integration matrix remains fixture evidence, not live-model quality. The operator reported the main flow working; newer appearance/pin gestures and the full 32-case pass need retesting. Prior PostGIS acceptance is historical, not a fresh database check.
 
-The backend integration matrix covers twelve fresh/history-backed vector/raster and decision combinations with fixture models and real registry/storage services. Offline tests and frontend typecheck/build were checked during implementation. Fixture tests do not establish live-model quality or browser usability. The most recent documentation cleanup changes no execution contract; 27 focused Planner/integration cases passed after the current-context cleanup.
-
-Local operator acceptance and PR review remain separate. See [acceptance and commit instructions](../docs/CHECKPOINT22O.md). Earlier operator PostGIS acceptance observed two rows, EPSG:4326 and POINT geometry; it is historical evidence, not a fresh database check.
-
-## Current development — Checkpoint 23
-
-The first task-workspace bundle opens fresh requests directly, offers explicit existing-file or filename/relative-path selection, and shows a pending input/request graph before planning. Optional historical review remains available. Selected input is checked read-only before model inference; a resolved proposal naming another file is blocked. This check establishes availability, not dataset validity or byte identity. Execution continuation remains the next implementation group. Model failures now expose safe categories and recovery guidance; a read-only API-process settings check distinguishes configuration from untested connectivity. Equivalent metadata output labels are now recognized through a closed vocabulary during planning and storage; original reviewed text/digests remain unchanged. Unsupported outputs produce explicit findings. The final conversation/execution layout is not yet delivered.
-
-## Next work
-
-Integrate a task-centered conversation beside the actual graph, explicit input selection and an understandable decision/run/outcome route. Support read-only continuation without fabricated approval; keep exact approval for writes. Reduce panel hunting and manual digest handling while keeping backend identity checks. Complete a reproducible live demo before making public feature claims.
-
-See [implementation plan](../docs/CHECKPOINT23_PLAN.md). Tabular processing, general package discovery, 3D, end-user packaging and generalized memory remain later work.
+Next: accept current interaction/denial/failure/recovery in the browser and with the configured model, then complete a reproducible demo. Broader typed dataflow, legacy Intent integration, tabular tools, capability discovery, 3D, packaging and generalized memory remain later work. See [Checkpoint 23 plan](../docs/CHECKPOINT23_PLAN.md) and [acceptance/commit instructions](../docs/CHECKPOINT22O.md). No commit or live-data action is implied.
 
 ## Record navigation
 
-[Architecture](ARCHITECTURE.md), [roadmap](PRODUCT_ROADMAP.md), [documentation responsibilities](../docs/DOCUMENTATION_GUIDE.md). Checkpoint-by-checkpoint descriptions are preserved below and remain available to maintainers. The model context builder uses only the current overview above the history marker; full-file identity still covers history. Historical capabilities and old next-step notes are not current scope.
+[Architecture](ARCHITECTURE.md), [roadmap](PRODUCT_ROADMAP.md), [documentation responsibilities](../docs/DOCUMENTATION_GUIDE.md). The current overview feeds model context; full-file identity still covers the preserved history below. Historical next steps are not current scope.
 
 <!-- historical-checkpoints -->
 

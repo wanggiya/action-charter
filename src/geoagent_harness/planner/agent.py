@@ -17,6 +17,7 @@ from geoagent_harness.model.schemas import (
 from geoagent_harness.planner.policy import (
     PlannerPolicyError,
     validate_plan_policy,
+    normalize_plan_input_filenames,
 )
 from geoagent_harness.planner.prompt import (
     build_planner_request,
@@ -145,6 +146,7 @@ def run_planner_agent(
                 kind = "schema"
             else:
                 try:
+                    normalize_plan_input_filenames(plan)
                     validate_plan_policy(plan, available_skills=available_skills)
                 except PlannerPolicyError as error:
                     from geoagent_harness.context_pack.redaction import redact_text

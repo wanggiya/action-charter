@@ -137,3 +137,9 @@ critic-results/
 /reviewed-contexts/
 
 /reviewed-intents/
+
+# Durable local read-only inspection attempts.
+/inspection-runs/
+
+# Recoverable local Planner conversations
+/planner-conversations/

@@ -115,3 +115,21 @@ skills:
   validation_required: true
   entrypoint: geoagent_harness.skills.convert_raster.service:convert_raster
   verifier: geoagent_harness.skills.convert_raster.validation:validate_raster_conversion
+
+- id: export_snakemake_workflow
+  version: 0.1.0
+  status: implemented
+  kind: reporting
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.interface_api.snakemake_workflow:execute_export_workflow
+  verifier: geoagent_harness.interface_api.snakemake_workflow:validate_snakemake_workflow
+- id: verify_snakemake_export
+  version: 0.1.0
+  status: implemented
+  kind: validation
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.interface_api.snakemake_workflow:validate_snakemake_workflow

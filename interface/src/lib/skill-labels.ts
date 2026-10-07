@@ -1,5 +1,6 @@
 /** Presentation labels only. Backend IDs remain the capability authority. */
 const names: Record<string, string> = {
+  export_snakemake_workflow: "Export to Snakemake", verify_snakemake_export: "Verify Snakemake package",
   inspect_vector: "Inspect vector dataset", inspect_raster: "Inspect raster dataset",
   convert_vector: "Convert vector format", convert_raster: "Convert raster format",
   inspect_postgis_table: "Inspect PostGIS table", compare_postgis_tables: "Compare PostGIS tables",

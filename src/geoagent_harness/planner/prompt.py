@@ -31,7 +31,7 @@ def build_planner_request(
         "instructions": manifest.instructions,
         "available_skills": available_skills,
         "mandatory_rules": [
-            "Return exactly one JSON object: the WorkflowPlan itself, not a PlannerResult or agent envelope. Do not include agent_id, model, plan or depends_on fields in the plan output.",
+            "Return exactly one JSON object: the WorkflowPlan itself, not a PlannerResult or agent envelope. Do not include agent_id, model or plan envelope fields. Omit depends_on for the usual sequential workflow; explicit dependencies must be valid step IDs in an acyclic graph.",
             "expected_artifacts, assumptions and risks are arrays of strings, not text strings or nested objects. status is planned and schema_version is 1.0.",
             "Do not use Markdown or JSON code fences.",
             "Use only available_skills.",

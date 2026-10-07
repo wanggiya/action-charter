@@ -237,3 +237,26 @@ def test_convert_vector_requires_canonical_recipe_arguments() -> None:
             plan,
             available_skills={"convert_vector"},
         )
+
+
+@pytest.mark.parametrize("path", ["../outside.geojson", "/tmp/input.geojson", "data/input/../outside.geojson", "data//input/a.geojson", "data/input/./a.geojson", "data\\input\\a.geojson", "a\x00.geojson"])
+def test_planner_rejects_unsafe_file_arguments(path):
+    plan = make_plan([step(1, "inspect_vector", arguments={"path": path})])
+    with pytest.raises(PlannerPolicyError, match="paths"):
+        validate_plan_policy(plan, available_skills=ALLOWED)
+
+
+def test_planner_resolves_bare_input_before_validation():
+    from geoagent_harness.planner.policy import normalize_plan_input_filenames
+    plan = make_plan([step(1, "inspect_vector", arguments={"path": "sample_points.geojson"})])
+    normalize_plan_input_filenames(plan)
+    validate_plan_policy(plan, available_skills=ALLOWED)
+    assert plan.steps[0].arguments["path"] == "data/input/sample_points.geojson"
+
+
+def test_planner_keeps_normalized_relative_input():
+    from geoagent_harness.planner.policy import normalize_plan_input_filenames
+    plan = make_plan([step(1, "inspect_vector", arguments={"path": "data/input/nested/sample.geojson"})])
+    normalize_plan_input_filenames(plan)
+    validate_plan_policy(plan, available_skills=ALLOWED)
+    assert plan.steps[0].arguments["path"] == "data/input/nested/sample.geojson"
