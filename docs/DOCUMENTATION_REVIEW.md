@@ -1,6 +1,6 @@
 # Documentation cleanup acceptance
 
-This change reorganizes onboarding and current context without changing execution code. Earlier README and status remain in labelled development snapshots. Existing checkpoint documents retain their names and historical content; they are not automatically all rewritten or guaranteed current by this change.
+This change reorganizes onboarding and current context without changing execution code. Earlier README and status remain in labelled development snapshots; detailed status history is also restored beneath the current overview in CURRENT_STATUS. Existing checkpoint documents retain their names and historical content; they are not automatically all rewritten or guaranteed current by this change.
 
 ## Check locally
 

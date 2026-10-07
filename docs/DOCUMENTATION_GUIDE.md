@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Root README | New users, employers and contributors | Explain the product, current scope, setup and workflow; link detailed guides | Incremental checkpoint diary and outdated capability claims |
 | docs/ | Operators and developers | Reproducible instructions, examples, troubleshooting, acceptance and design references | Unlabelled historical instructions presented as current |
-| context/ | Maintainers and selected agent context consumers | Current state, architecture, catalogs and accepted decisions | Repeated onboarding and long historical narration in CURRENT_STATUS |
+| context/ | Maintainers and selected agent context consumers | Current state, architecture, catalogs and accepted decisions | Repeated onboarding or unlabelled history mixed into the current overview |
 | CHANGELOG.md | Users and maintainers comparing changes | Summarize added, changed and fixed behavior over time | Setup manual or current authority definition |
 | interface/README.md | Frontend developers | Frontend dependencies, framework and local debugging | Duplicated product overview or contradictory run claims |
 
@@ -20,7 +20,7 @@ A guide answers “How do I do this?” Current context answers “What is imple
 
 - Change user-facing behavior: update its guide, relevant README capability summary and CHANGELOG.
 - Change an architectural decision: update architecture/decision records and affected contracts/guides.
-- Finish implementation: replace the concise current status; preserve prior history separately.
+- Finish implementation: update the current overview and append a checkpoint description in the clearly separated history.
 - Introduce a limitation: state it in current status and the applicable operator guide.
 - Add a development checkpoint: put its record in development documentation. Do not add its number to public flow diagrams or an onboarding paragraph.
 - When actual behavior differs from a document, investigate the implementation and tests; documentation cannot override policy.
@@ -29,6 +29,6 @@ A guide answers “How do I do this?” Current context answers “What is imple
 
 Existing CHECKPOINT*.md files are retained because they explain earlier changes, acceptance commands and decisions. They are development records, not the primary user guide. Some instructions describe a feature before later integration; read current status and current guides first. Avoid bulk renaming them because existing links refer to their names.
 
-The former incremental README and status are preserved under docs/development/ as clearly labelled snapshots. CURRENT_STATUS now contains only current scope and next work. Checkpoint labels can remain in the roadmap, historical records and CHANGELOG for traceability. They should not appear in the public workflow topology.
+The former incremental README and status are preserved under docs/development/ as clearly labelled snapshots. CURRENT_STATUS contains a current overview followed by detailed checkpoint history. A history marker separates it from the current overview consumed by the model context builder; the full file remains hashed for provenance. Checkpoint labels can remain in the roadmap, historical records and CHANGELOG for traceability. They should not appear in the public workflow topology.
 
 The CHANGELOG is still development-oriented and checkpoint-labelled. Future release entries should group user-visible changes by release/version; preserve earlier entries rather than rewriting their history. A published release has not been created by this documentation cleanup.

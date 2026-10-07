@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+launcher_args=("$@")
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 api_host="127.0.0.1"
@@ -25,7 +26,8 @@ Options:
   --frontend-port PORT    Frontend port (default: 5173).
   -h, --help              Show this help.
 
-Writes and overwrite are disabled by default. This launcher never installs
+Loads allowlisted non-secret .env settings and host .secrets file paths.
+Terminal exports override .env. Writes and overwrite are disabled by default. This launcher never installs
 packages, starts containers, or grants arbitrary shell, SQL, or Python access.
 EOF
 }
@@ -64,6 +66,9 @@ is_port "$frontend_port" || die "invalid frontend port: $frontend_port"
 
 python_path="$project_root/.venv/bin/python"
 [[ -x "$python_path" ]] || die "project virtual environment is unavailable; run make install"
+if [[ "${ACTIONCHARTER_LOCAL_ENV_ROOT:-}" != "$project_root" ]]; then
+  exec "$python_path" "$project_root/scripts/local_interface_env.py" "$project_root" "${launcher_args[@]}"
+fi
 command -v node >/dev/null 2>&1 || die "Node.js is unavailable; install the version declared by interface/package.json"
 command -v corepack >/dev/null 2>&1 || die "Corepack is unavailable; install a supported Node.js distribution"
 [[ -d "$project_root/interface/node_modules" ]] || die "frontend dependencies are unavailable; run corepack pnpm@10.17.1 --dir interface install"
@@ -118,6 +123,11 @@ probe_http_reachability() {
   fi
 }
 
+if [[ -n "${MODEL_NAME:-}" ]]; then
+  status "model selection: configured (availability is checked by model actions)"
+else
+  status "model selection: missing; set MODEL_NAME in this launch terminal for model-assisted actions"
+fi
 ollama_base="${MODEL_BASE_URL:-http://127.0.0.1:11434/v1}"
 probe_url "Ollama" "${ollama_base%/v1}/api/tags"
 

@@ -2,8 +2,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown, ArrowLeft, ArrowRight, Bot, CheckCircle2, ChevronDown, CircleDot,
   Database, FileCheck2, GitBranch, LockKeyhole, Map, Maximize2, Minus,
-  GripVertical, History, LayoutList, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, XCircle, ZoomIn,
+  CircleAlert, Move, Trash2, Link2, Unlink, Play, Settings as SettingsIcon, GripVertical, History, LayoutList, LayoutTemplate, Plus, Search, ShieldCheck, Workflow, X, XCircle, ZoomIn,
 } from "lucide-react";
+import { operationDependencies, materializeDependencies, canConnectOperations, connectOperations, disconnectOperations, deleteOperation, pinConnections, breakPinConnections, movePinConnections, type PinDirection } from "./lib/operation-graph";
+import { skillRecommendationScore } from "./lib/skill-recommendations";
+import { skillLabel } from "./lib/skill-labels";
+import { APPEARANCE_STORAGE_KEY, loadAppearance, type AppearancePreferences } from "./lib/appearance";
+import { SettingsPanel } from "./components/SettingsPanel";
+import { prepareCurrentWorkflow, authorizeCurrentWorkflow, executeCurrentWorkflow, validatePlanEdit, saveGeneratedPlannerPlan, loadInspectionRuns, type WorkflowReview, type WorkflowAuthorization, type InspectionRun } from "./lib/interface-api";
+import { canonicalDragPosition, displayDragPosition, bezierGeometry, createNodeDragPreview } from "./lib/graph-drag-preview";
+import { AddOperationMenu } from "./components/AddOperationMenu";
+import { WorkflowAuthorizationForm } from "./components/WorkflowAuthorizationForm";
+import { TextPlanner } from "./components/TextPlanner";
 import { IntentWorkbench } from "./components/IntentWorkbench";
 import type { Handoff } from "./lib/intent-api";
 import workflowFixture from "./data/demo-workflow.json";
@@ -22,7 +32,7 @@ type JourneyStage = "plan" | "review" | "run" | "outcome";
 type RecipeSort = "time_desc" | "time_asc" | "name_asc" | "name_desc";
 type ActiveRecipe = { recipeId: string; recipeSha256: string; steps: Array<{ step_id: string; skill_id: string; depends_on: string[] }> };
 type ProposalDraft = Omit<WorkflowData, "readOnly" | "source"> & { readOnly: false; source: "proposal_draft" };
-type ConnectionDrag = { pointerId: number; sourceId: string; family: PortFamily; edgeKind: EdgeKind; x: number; y: number };
+type ConnectionDrag = { originDirection: PinDirection; moveLinks: boolean; pointerId: number; sourceId: string; family: PortFamily; edgeKind: EdgeKind; x: number; y: number };
 
 const demoWorkflow = workflowSchema.parse(workflowFixture);
 const labels: Record<NodeKind, string> = { input: "INPUT", data: "DATA", agent: "AGENT", policy: "CONTROL", approval: "HUMAN GATE", tool: "TOOL", evidence: "EVIDENCE" };
@@ -114,27 +124,11 @@ const evidencePathParts = (path: string) => {
 };
 const searchableSkillText = (skill: PlannerSkillCatalog["skills"][number]) =>
   `${skill.id} ${skill.id.replaceAll("_", " ")} ${skill.kind ?? ""} ${skill.access ?? ""}`.toLowerCase();
-const skillRecommendationScore = (skill: PlannerSkillCatalog["skills"][number], request: string) => {
-  const text = request.toLowerCase();
-  const tokens = new Set(text.match(/[a-z0-9]+/g) ?? []);
-  const skillTokens = skill.id.split("_");
-  let score = skillTokens.filter((token) => tokens.has(token)).length * 3;
-  if (/\b(geojson|gpkg|shapefile|vector|feature)\b/.test(text) && skill.id.includes("vector")) score += 2;
-  if (/\b(tif|tiff|raster|imagery)\b/.test(text) && skill.id.includes("raster")) score += 2;
-  if (/\bpostgis\b/.test(text) && skill.id.includes("postgis")) score += 3;
-  if (/\bgeoserver\b/.test(text) && skill.id.includes("geoserver")) score += 3;
-  if (/\binspect\b/.test(text) && skill.id.startsWith("inspect_")) score += 4;
-  if (/\b(convert|conversion)\b/.test(text) && skill.id.startsWith("convert_")) score += 4;
-  if (/\b(load|import)\b/.test(text) && skill.id.startsWith("load_")) score += 4;
-  if (/\b(validate|validation|verify)\b/.test(text) && /validate|verify/.test(skill.id)) score += 4;
-  if (/\b(report|reporting)\b/.test(text) && skill.id.includes("report")) score += 4;
-  return score;
-};
 const plannerWorkflow = (result: Pick<InterfacePlannerResult, "plan" | "original_request" | "model">): WorkflowData => {
   const stepNodes: WorkflowData["nodes"] = result.plan.steps.map((step, index) => ({
     id: `planned_${step.step_id}`,
-    title: step.skill.replaceAll("_", " "),
-    subtitle: step.purpose,
+    title: skillLabel(step.skill),
+    subtitle: "Select to inspect parameters",
     kind: "tool",
     category: "tool",
     group: "execution",
@@ -149,22 +143,30 @@ const plannerWorkflow = (result: Pick<InterfacePlannerResult, "plan" | "original
   return {
     schemaVersion: "1.0",
     id: `planner-${Date.now()}`,
-    title: result.plan.summary,
+    title: result.plan.steps.length === 1 ? skillLabel(result.plan.steps[0].skill) : `Proposed workflow · ${result.plan.steps.length} steps`,
     correlationId: `planner-${Date.now()}`,
     readOnly: true,
     source: "planner_projection",
     nodes: [
-      { id: "planned_request", title: "User request", subtitle: result.original_request, kind: "input", category: "input", group: "intake", x: 40, y: 100, status: "complete", authority: "User-authored request", performedBy: "User", evidence: "In-memory planner request", details: null },
-      { id: "planned_planner", title: "Create plan", subtitle: result.model, kind: "agent", category: "planning", group: "planning", x: 300, y: 100, status: "complete", authority: "Planning only", performedBy: "Planner agent", evidence: "Schema-validated model output", details: null },
+      { id: "planned_request", title: "Task request", subtitle: "Select to read planning context", kind: "input", category: "input", group: "intake", x: 40, y: 100, status: "complete", authority: "User-authored request", performedBy: "User", evidence: "In-memory planner request", details: null },
+      { id: "planned_planner", title: "Plan workflow", subtitle: result.model, kind: "agent", category: "planning", group: "planning", x: 300, y: 100, status: "complete", authority: "Planning only", performedBy: "Planner agent", evidence: "Schema-validated model output", details: null },
       { id: "planned_policy", title: "Review proposed plan", subtitle: "Not saved, approved, or executed", kind: "policy", category: "policy", group: "governance", x: 620, y: 100, status: "pending", authority: "Operator review required", performedBy: "Policy engine", evidence: "No durable plan evidence yet", details: null },
       ...stepNodes,
     ],
     edges: [
       { from: "planned_request", to: "planned_planner", kind: "control", label: "request" },
       { from: "planned_planner", to: "planned_policy", kind: "control", label: "proposed plan" },
-      ...stepNodes.map((node) => ({ from: "planned_planner", to: node.id, kind: "data" as const, label: "proposed step" })),
+      ...result.plan.steps.flatMap<WorkflowData["edges"][number]>((step) => {
+        const parents = operationDependencies(result.plan.steps)[step.step_id];
+        return parents.length ? parents.map((parent) => ({ from: `planned_${parent}`, to: `planned_${step.step_id}`, kind: "data" as const, label: "dependency" })) : [{ from: "planned_planner", to: `planned_${step.step_id}`, kind: "control" as const, label: "proposed root" }];
+      }),
     ],
   };
+};
+
+const editedPlannerWorkflow = (result: InterfacePlannerResult): WorkflowData => {
+  const graph = plannerWorkflow(result);
+  return { ...graph, id: `edited-${result.plan_sha256}`, correlationId: `draft-${result.plan_sha256.slice(0,16)}`, title: `Workflow draft · ${result.plan.steps.length} operations`, nodes: graph.nodes.map((node) => node.id === "planned_planner" ? { ...node, title: "Edit workflow", subtitle: "Operator changes · not revalidated", performedBy: "Operator", evidence: "Unvalidated browser draft" } : node.id === "planned_policy" || node.kind === "tool" ? { ...node, authority: "Backend validation required", evidence: "Unvalidated operation draft", ...(node.id === "planned_policy" ? { subtitle: "Validate edits before authorization or execution" } : {}) } : node) };
 };
 
 const savedRecipeWorkflow = (recipe: SavedRecipeInventory["recipes"][number]): WorkflowData => {
@@ -270,6 +272,16 @@ const readablePlannerRequest = (original: string): string => {
   return original;
 };
 
+const taskDraftWorkflow = (input: string, request: string): WorkflowData => ({
+  schemaVersion: "1.0", id: "current-task-draft", title: "Current task · input and request", correlationId: "Browser draft · not a plan or execution", readOnly: true, source: "planner_projection",
+  nodes: [
+    { id: "task_request", title: "Your task", subtitle: request.trim().slice(0, 120) || "Describe the metadata you need", kind: "input", category: "input", group: "intake", x: 70, y: 140, status: "pending", authority: "Current user statement", performedBy: "Human", evidence: "Unsaved browser draft" },
+    { id: "task_input", title: "Input dataset", subtitle: input.trim().slice(0, 120) || "No input selected", kind: "data", category: "input", group: "intake", x: 70, y: 330, status: "pending", authority: "Checked on task submission", performedBy: "Human", evidence: input.trim().slice(0, 160) || "Choose an input" },
+    { id: "task_intent", title: "Intent agent", subtitle: "Clarification and review before planning", kind: "agent", category: "planning", group: "planning", x: 360, y: 140, status: "pending", authority: "No work permission", performedBy: "Intent", evidence: "No completed tool operation" },
+  ],
+  edges: [{ from: "task_request", to: "task_intent", kind: "control", label: "current request" }, { from: "task_input", to: "task_intent", kind: "data", label: "selected input" }],
+});
+
 const intentWorkflow = (handoff: Handoff): WorkflowData => {
   let reviewed: { objective?: string; known_inputs?: string[] } = {};
   try { reviewed = JSON.parse(handoff.planner_result.original_request).reviewed_intent_untrusted ?? {}; } catch { /* Fall back to validated plan summary. */ }
@@ -292,13 +304,61 @@ const intentWorkflow = (handoff: Handoff): WorkflowData => {
 };
 
 export default function App() {
+  const [appearance, setAppearance] = useState<AppearancePreferences>(loadAppearance);
+  const [appearanceSaved, setAppearanceSaved] = useState(true);
+  const updateAppearance = (next: AppearancePreferences) => {
+    setAppearance(next);
+    try { window.localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(next)); setAppearanceSaved(true); }
+    catch { setAppearanceSaved(false); }
+  };
+  const [textPlannerOpen, setTextPlannerOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
+  const [recordsNotice, setRecordsNotice] = useState("");
+  const [outcomeOpen, setOutcomeOpen] = useState(false);
+  const [workflowReview, setWorkflowReview] = useState<WorkflowReview | null>(null);
+  const [workflowReviewOpen, setWorkflowReviewOpen] = useState(false);
+  const [workflowBusy, setWorkflowBusy] = useState(false);
+  const [workflowNotice, setWorkflowNotice] = useState("");
+  const workflowNoticeRef = useRef<HTMLParagraphElement>(null);
+  const [workflowOutcomeNotice, setWorkflowOutcomeNotice] = useState("");
+  const [workflowAuthorization, setWorkflowAuthorization] = useState<WorkflowAuthorization | null>(null);
+  useEffect(() => { if (workflowNotice && workflowReviewOpen && !workflowBusy && !workflowAuthorization) workflowNoticeRef.current?.scrollIntoView({ block: "nearest", behavior: "auto" }); }, [workflowNotice, workflowReviewOpen, workflowBusy, workflowAuthorization]);
+  const [authorizationFocus, setAuthorizationFocus] = useState(false);
+  const [workflowApprover, setWorkflowApprover] = useState("operator");
+  const [workflowReason, setWorkflowReason] = useState("");
+  const [currentInspection, setCurrentInspection] = useState<InspectionRun | null>(null);
+  const [inspectionRuns, setInspectionRuns] = useState<InspectionRun[]>([]);
+  const [inspectionNotice, setInspectionNotice] = useState("");
+  const [editedPlan, setEditedPlan] = useState<InterfacePlannerResult | null>(null);
+  const [editNotice, setEditNotice] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  const [addMenu, setAddMenu] = useState<{ x: number; y: number; pin?: { nodeId: string; direction: PinDirection }; position?: OverlayPosition } | null>(null);
+  const [pinMenu, setPinMenu] = useState<{ x: number; y: number; nodeId: string; direction: PinDirection; family: PortFamily; scope: "pin" | "node" } | null>(null);
+  const [hoveredPin, setHoveredPin] = useState<{ nodeId: string; family: PortFamily; direction: PinDirection } | null>(null);
+  const [connectionHover, setConnectionHover] = useState<{ compatible: boolean; message: string } | null>(null);
+  const [moveBlocks, setMoveBlocks] = useState(true);
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const [operationTarget, setOperationTarget] = useState("");
+  const [connectionToRemove, setConnectionToRemove] = useState("");
+  const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+
   const [intentOpen, setIntentOpen] = useState(false);
+  const [taskDraft, setTaskDraft] = useState<{ input: string; request: string } | null>(null);
   const [intentGraphResult, setIntentGraphResult] = useState<Handoff | null>(null);
   const canvasWindowRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
-  const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null);
-  const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean } | null>(null);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
+  const [blockToolsExpanded, setBlockToolsExpanded] = useState(false);
+  const nodeFrameRef = useRef<number | null>(null);
+  const pendingNodePosition = useRef<{ id: string; position: { x: number; y: number }; proposal: boolean } | null>(null);
+  const canvasPanRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const suppressCanvasMenu = useRef(false);
+  const nodeDragRef = useRef<{ pointerId: number; nodeId: string; x: number; y: number; originX: number; originY: number; moved: boolean; displayOrigin: { x: number; y: number }; preview: ReturnType<typeof createNodeDragPreview> } | null>(null);
   const connectionDragRef = useRef<ConnectionDrag | null>(null);
+  const connectionFrameRef = useRef<number | null>(null);
+  const connectionTargetRef = useRef<string | null>(null);
+  useEffect(() => () => { if (nodeFrameRef.current !== null) cancelAnimationFrame(nodeFrameRef.current); if (connectionFrameRef.current !== null) cancelAnimationFrame(connectionFrameRef.current); }, []);
   const approvalRequestRef = useRef<HTMLElement>(null);
   const plannerRequestRef = useRef<HTMLTextAreaElement>(null);
   const plannerRequestDebounceRef = useRef<number | null>(null);
@@ -400,7 +460,7 @@ export default function App() {
   const [taskInventory, setTaskInventory] = useState<TaskInventory | null>(null);
   const [taskInventoryOpen, setTaskInventoryOpen] = useState(false);
   const [taskNotice, setTaskNotice] = useState("");
-  const [taskPaneOpen, setTaskPaneOpen] = useState(true);
+  const [taskPaneOpen, setTaskPaneOpen] = useState(false);
   useEffect(() => {
     if (!currentTaskId) return;
     setViewedTaskId(currentTaskId);
@@ -487,7 +547,8 @@ export default function App() {
     const leafSteps = activeRecipe.steps.filter((step) => !dependedOn.has(step.step_id));
     return { schemaVersion: "1.0", id: `active-${activeRecipe.recipeId}`, title: `${activeRecipe.recipeId.replaceAll("_", " ")} · governed run`, correlationId: activeRecipe.recipeSha256.slice(0, 16), readOnly: true, source: "active_workflow", nodes, edges: [{ from: "active_request", to: "active_planner", kind: "control", label: "request" }, { from: "active_data", to: "active_planner", kind: "data", label: "inputs" }, { from: "active_planner", to: "active_policy", kind: "control", label: "proposal" }, { from: "active_policy", to: "active_approval", kind: "control", label: "policy" }, { from: "active_approval", to: "active_executor", kind: "control", label: "authority" }, ...dependencyEdges, ...leafSteps.map((step) => ({ from: `active_${step.step_id}`, to: "active_validation", kind: "data" as const, label: "validate" })), { from: "active_validation", to: "active_evidence", kind: "evidence", label: "record" }] };
   }, [activeRecipe, executionFailure, executionProgress, executionResult, preparedApproval, recordedApproval]);
-  const displayedWorkflow = draft ?? localGraph ?? (showActiveGraph ? activeRecipeWorkflow : null) ?? workflow;
+  const editedGraphProjection = useMemo(() => editedPlan ? editedPlannerWorkflow(editedPlan) : null, [editedPlan]);
+  const displayedWorkflow = (graphSelection === "live-plan" ? editedGraphProjection : null) ?? draft ?? localGraph ?? (showActiveGraph ? activeRecipeWorkflow : null) ?? workflow;
   const selected = useMemo(() => displayedWorkflow.nodes.find((node) => node.id === selectedId) ?? displayedWorkflow.nodes[0], [displayedWorkflow, selectedId]);
   const performerOptions = useMemo(() => [...new Set([...standardPerformers, ...displayedWorkflow.nodes.map(performerOf)])].sort(), [displayedWorkflow.nodes]);
   const plannerSkillResults = useMemo(() => {
@@ -536,15 +597,16 @@ export default function App() {
     tools: displayedWorkflow.nodes.filter((node) => node.kind === "tool").length,
   }), [displayedWorkflow.nodes]);
   const nodes = useMemo(() => {
-    if (orientation === "horizontal") return displayedWorkflow.nodes;
+    const positioned = displayedWorkflow.nodes.map((node) => graphSelection === "live-plan" && nodePositions[node.id] ? { ...node, ...nodePositions[node.id] } : node);
+    if (orientation === "horizontal") return positioned;
     const minimumX = Math.min(...displayedWorkflow.nodes.map((node) => node.x));
     const minimumY = Math.min(...displayedWorkflow.nodes.map((node) => node.y));
-    return displayedWorkflow.nodes.map((node) => ({
+    return positioned.map((node) => ({
       ...node,
       x: 120 + ((node.y - minimumY) * 1.25),
       y: 35 + ((node.x - minimumX) * 0.72),
     }));
-  }, [displayedWorkflow.nodes, orientation]);
+  }, [displayedWorkflow.nodes, orientation, graphSelection, nodePositions]);
   const canvasSize = useMemo(() => ({
     width: Math.max(720, Math.ceil(Math.max(...nodes.map((node) => node.x)) + 270)),
     height: Math.max(620, Math.ceil(Math.max(...nodes.map((node) => node.y)) + 190)),
@@ -554,7 +616,7 @@ export default function App() {
     const source = nodes.find((node) => node.id === connectionDrag.sourceId);
     if (!source) return null;
     const horizontal = orientation === "horizontal";
-    const start = edgePoint(source, "from", connectionDrag.edgeKind, horizontal);
+    const start = edgePoint(source, connectionDrag.originDirection === "out" ? "from" : "to", connectionDrag.edgeKind, horizontal);
     const bend = horizontal ? (start.x + connectionDrag.x) / 2 : (start.y + connectionDrag.y) / 2;
     return horizontal
       ? `M ${start.x} ${start.y} C ${bend} ${start.y}, ${bend} ${connectionDrag.y}, ${connectionDrag.x} ${connectionDrag.y}`
@@ -636,7 +698,7 @@ export default function App() {
     void loadDataResources().then(setDataResources).catch(() => setTemplateNotice("Project data could not be listed. Manual relative paths remain available."));
   }, [dataResources, plannerOpen, templatePanelOpen]);
   useEffect(() => {
-    if (!plannerOpen || plannerSkills) return;
+    if (plannerSkills) return;
     setPlannerNotice("Loading implemented skills from the trusted registry…");
     void loadPlannerSkills().then((catalog) => {
       setPlannerSkills(catalog);
@@ -651,9 +713,10 @@ export default function App() {
     if (plannerRequestDebounceRef.current !== null) window.clearTimeout(plannerRequestDebounceRef.current);
   }, []);
   useEffect(() => { requestAnimationFrame(updateViewport); }, [orientation, updateViewport, zoom]);
-  useEffect(() => { requestAnimationFrame(fitGraph); }, [fitGraph, orientation]);
+  useEffect(() => { const frame = requestAnimationFrame(fitGraph); return () => cancelAnimationFrame(frame); }, [displayedWorkflow.id, orientation]);
 
   const toggleOrientation = () => {
+    cancelNodeLayoutDrag();
     setOrientation((current) => current === "horizontal" ? "vertical" : "horizontal");
     requestAnimationFrame(() => canvasWindowRef.current?.scrollTo({ left: 0, top: 0 }));
   };
@@ -689,8 +752,8 @@ export default function App() {
   }, [handleCanvasWheel]);
   const startCanvasPan = (event: React.PointerEvent<HTMLDivElement>) => {
     const element = canvasWindowRef.current;
-    if (!element || event.button !== 0 || (event.target as HTMLElement).closest("button")) return;
-    canvasPanRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: element.scrollLeft, top: element.scrollTop };
+    if (!element || ![0, 1, 2].includes(event.button) || (event.target as HTMLElement).closest(".typed-port") || (event.button === 0 && (event.target as HTMLElement).closest("button"))) return;
+    canvasPanRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: element.scrollLeft, top: element.scrollTop, moved: false };
     element.setPointerCapture(event.pointerId);
     element.classList.add("is-panning");
   };
@@ -698,6 +761,8 @@ export default function App() {
     const element = canvasWindowRef.current;
     const pan = canvasPanRef.current;
     if (!element || !pan || pan.pointerId !== event.pointerId) return;
+    pan.moved ||= Math.abs(event.clientX - pan.x) + Math.abs(event.clientY - pan.y) > 4;
+    if (pan.moved) { setAddMenu(null); setPinMenu(null); }
     element.scrollLeft = pan.left - (event.clientX - pan.x);
     element.scrollTop = pan.top - (event.clientY - pan.y);
     updateViewport();
@@ -705,6 +770,7 @@ export default function App() {
   const endCanvasPan = (event: React.PointerEvent<HTMLDivElement>) => {
     const element = canvasWindowRef.current;
     if (!element || canvasPanRef.current?.pointerId !== event.pointerId) return;
+    suppressCanvasMenu.current = event.button === 2 && Boolean(canvasPanRef.current.moved);
     canvasPanRef.current = null;
     if (element.hasPointerCapture(event.pointerId)) element.releasePointerCapture(event.pointerId);
     element.classList.remove("is-panning");
@@ -899,10 +965,16 @@ export default function App() {
     }
   };
   const openExecutionInventory = async () => {
+    setWorkflowReviewOpen(false); setOutcomeOpen(false);
+    setTextPlannerOpen(false);
+    setIntentOpen(false);
+    setPlannerOpen(false);
     setTemplatePanelOpen(false);
     setRecipePanelOpen(false);
     setExecutionInventoryOpen(true);
     setExecutionInventoryNotice("Loading durable execution attempts…");
+    setInspectionNotice("Loading inspection attempts…");
+    void loadInspectionRuns().then((runs) => { setInspectionRuns(runs); setInspectionNotice(runs.length ? "" : "No inspection attempts yet."); }).catch((e: unknown) => setInspectionNotice(e instanceof Error ? e.message : "Inspection history unavailable"));
     try {
       const inventory = await loadExecutionInventory();
       setExecutionInventory(inventory);
@@ -1328,7 +1400,9 @@ export default function App() {
   };
   const viewPlannerGraph = () => {
     if (!plannerResult) return;
+    cancelNodeLayoutDrag();
     const next = plannerWorkflow(plannerResult);
+    if (savedPlannerResult) next.nodes = next.nodes.map((node) => node.id === "planned_policy" ? { ...node, subtitle: "Saved proposal · not approved or executed", evidence: savedPlannerResult.plan_filename } : node);
     setWorkflow(next);
     setLocalGraph(null);
     setShowActiveGraph(false);
@@ -1339,12 +1413,16 @@ export default function App() {
     setJourneyStage("review");
   };
   const openJourneyStage = (stage: JourneyStage) => {
+    setWorkflowReviewOpen(false); setOutcomeOpen(false);
     if (stage === "plan") {
       setTemplatePanelOpen(false);
       setExecutionInventoryOpen(false);
       setCriticOpen(false);
       setRecipePanelOpen(false);
-      setPlannerOpen(true);
+      setPlannerOpen(false);
+      setIntentOpen(false);
+      setTextPlannerOpen(true);
+      if (plannerResult) viewPlannerGraph();
       void loadSavedPlans().then(setSavedPlanInventory).catch(() => setSavedPlanInventory(null));
     } else if (stage === "review") {
       if (journeyStage !== "review") void refreshGraphSources();
@@ -1382,9 +1460,7 @@ export default function App() {
       setLocalGraph(null);
       setGraphSelection("active");
     } else {
-      setPlannerOpen(false);
-      setCriticOpen(false);
-      void openExecutionInventory();
+      setOutcomeOpen(true);
     }
     setJourneyStage(stage);
   };
@@ -1409,7 +1485,8 @@ export default function App() {
     } else {
       let next: WorkflowData;
       try {
-        if (key === "intent-plan" && intentGraphResult) next = intentWorkflow(intentGraphResult);
+        if (key === "task-draft" && taskDraft) next = taskDraftWorkflow(taskDraft.input, taskDraft.request);
+        else if (key === "intent-plan" && intentGraphResult) next = intentWorkflow(intentGraphResult);
         else if (key === "live-plan" && plannerResult) next = plannerWorkflow(plannerResult);
         else if (key.startsWith("plan:")) {
           const item = savedPlanInventory?.plans.find((plan) => plan.plan_sha256 === key.slice(5));
@@ -1437,6 +1514,7 @@ export default function App() {
         setLoadNotice(error instanceof Error ? error.message : "Graph source could not be loaded.");
         return;
       }
+      cancelNodeLayoutDrag();
       setLocalGraph(key === "default" || key.startsWith("trace:") ? null : next);
       if (key === "default" || key.startsWith("trace:")) setWorkflow(next);
       if (key === "default" || key.startsWith("trace:")) setBaseGraphSelection(key);
@@ -1686,6 +1764,10 @@ export default function App() {
     setSelectedId(remaining[0].id);
   };
   const canConnect = (sourceId: string, targetId: string, kind: EdgeKind) => {
+    if (graphSelection === "live-plan" && (editedPlan ?? plannerResult)) {
+      if (kind !== "data" || !sourceId.startsWith("planned_step_") || !targetId.startsWith("planned_step_")) return false;
+      return canConnectOperations((editedPlan ?? plannerResult)!.plan.steps, sourceId.slice(8), targetId.slice(8));
+    }
     if (!draft || sourceId === targetId) return false;
     const source = draft.nodes.find((node) => node.id === sourceId);
     const target = draft.nodes.find((node) => node.id === targetId);
@@ -1715,14 +1797,34 @@ export default function App() {
     const bounds = element.getBoundingClientRect();
     return { x: (clientX - bounds.left + element.scrollLeft) / zoom, y: (clientY - bounds.top + element.scrollTop) / zoom };
   };
-  const startConnectionDrag = (nodeId: string, family: PortFamily, direction: "in" | "out", event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
+  const breakConnectionsAtPin = (nodeId: string, family: PortFamily, direction: PinDirection) => {
+    if (workflowBusy || editBusy) return;
+    if (graphSelection === "live-plan" && family === "data" && nodeId.startsWith("planned_step_")) {
+      const current = editedPlan ?? plannerResult;
+      if (!current) return;
+      if (!pinConnections(current.plan.steps, nodeId.slice(8), direction).length) { setEditNotice("This pin has no operation connections."); return; }
+      commitOperationEdit(breakPinConnections(current, nodeId.slice(8), direction), "Pin connections broken · validate before authorization/execution.");
+    } else if (draft) setDraft({ ...draft, edges: draft.edges.filter((edge) => !(portFamilyOf(edgeKindOf(edge)) === family && (direction === "out" ? edge.from === nodeId : edge.to === nodeId))) });
+    setPinMenu(null);
+  };
+  const breakConnectionsAtNode = (nodeId: string) => {
+    if (workflowBusy || editBusy) return;
+    const current = editedPlan ?? plannerResult;
+    if (graphSelection === "live-plan" && current && nodeId.startsWith("planned_step_")) commitOperationEdit(breakPinConnections(breakPinConnections(current, nodeId.slice(8), "in"), nodeId.slice(8), "out"), "Block links broken · backend validation required.");
+    else if (draft) setDraft({ ...draft, edges: draft.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId) });
+    setPinMenu(null);
+  };
+  const startConnectionDrag = (nodeId: string, family: PortFamily, direction: PinDirection, event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
     event.stopPropagation();
-    if (mode !== "proposal" || direction !== "out") return;
+    if (event.button !== 0 || workflowBusy || editBusy) return;
+    if (mode !== "proposal" && !(graphSelection === "live-plan" && family === "data" && nodeId.startsWith("planned_step_"))) return;
+    event.preventDefault(); canvasWindowRef.current?.focus({ preventScroll: true }); setPinMenu(null); setAddMenu(null);
+    if (event.altKey) { breakConnectionsAtPin(nodeId, family, direction); return; }
     const point = pointerToCanvas(event.clientX, event.clientY);
-    const kind = portFamilyOf(newEdgeKind) === family ? newEdgeKind : family;
-    const drag = { pointerId: event.pointerId, sourceId: nodeId, family, edgeKind: kind as EdgeKind, ...point };
-    connectionDragRef.current = drag;
-    setConnectionDrag(drag);
+    const kind = graphSelection === "live-plan" ? "data" : portFamilyOf(newEdgeKind) === family ? newEdgeKind : family;
+    const drag: ConnectionDrag = { originDirection: direction, moveLinks: event.ctrlKey, pointerId: event.pointerId, sourceId: nodeId, family, edgeKind: kind as EdgeKind, ...point };
+    connectionTargetRef.current = null;
+    connectionDragRef.current = drag; setConnectionDrag(drag); setConnectionHover(null);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveConnectionDrag = (event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
@@ -1730,45 +1832,277 @@ export default function App() {
     if (!drag || drag.pointerId !== event.pointerId) return;
     const next = { ...drag, ...pointerToCanvas(event.clientX, event.clientY) };
     connectionDragRef.current = next;
-    setConnectionDrag(next);
+    if (connectionFrameRef.current === null) connectionFrameRef.current = requestAnimationFrame(() => {
+      connectionFrameRef.current = null;
+      setConnectionDrag(connectionDragRef.current);
+    });
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-port-node]");
+    const targetKey = target ? `${target.dataset.portNode}:${target.dataset.portDirection}:${target.dataset.portFamily}` : "empty";
+    if (connectionTargetRef.current === targetKey) return;
+    connectionTargetRef.current = targetKey;
+    if (!target) { setConnectionHover({ compatible: false, message: drag.moveLinks ? "Drop onto a matching pin to move its links" : "Release on empty canvas to add a connected operation" }); return; }
+    const targetId = target.dataset.portNode!;
+    const direction = target.dataset.portDirection as PinDirection;
+    let compatible = target.dataset.portFamily === drag.family && (drag.moveLinks ? direction === drag.originDirection : direction !== drag.originDirection);
+    if (compatible && graphSelection === "live-plan" && (editedPlan ?? plannerResult)) {
+      if (drag.moveLinks) {
+        try { movePinConnections((editedPlan ?? plannerResult)!, drag.sourceId.slice(8), targetId.slice(8), drag.originDirection); } catch { compatible = false; }
+      } else compatible = canConnect(drag.originDirection === "out" ? drag.sourceId : targetId, drag.originDirection === "in" ? drag.sourceId : targetId, "data");
+    }
+    setConnectionHover({ compatible, message: compatible ? (drag.moveLinks ? "Move these connections" : "Connect these pins") : "Incompatible, duplicate or cyclic connection" });
   };
   const endConnectionDrag = (event: React.PointerEvent<SVGSVGElement | HTMLSpanElement>) => {
     const drag = connectionDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-port-direction="in"]');
+    if (connectionFrameRef.current !== null) { cancelAnimationFrame(connectionFrameRef.current); connectionFrameRef.current = null; }
+    connectionTargetRef.current = null;
+    const hit = document.elementFromPoint(event.clientX, event.clientY);
+    const target = hit?.closest<HTMLElement>("[data-port-node]");
     const targetId = target?.dataset.portNode;
-    const targetFamily = target?.dataset.portFamily;
-    if (event.type !== "pointercancel" && draft && targetId && targetFamily === drag.family && canConnect(drag.sourceId, targetId, drag.edgeKind)) {
-      setDraft({ ...draft, edges: [...draft.edges, { from: drag.sourceId, to: targetId, kind: drag.edgeKind, label: drag.edgeKind }] });
-      setSelectedId(targetId);
+    const targetDirection = target?.dataset.portDirection as PinDirection | undefined;
+    if (event.type !== "pointercancel" && targetId && target?.dataset.portFamily === drag.family) {
+      if (drag.moveLinks && targetDirection === drag.originDirection) {
+        if (graphSelection === "live-plan" && (editedPlan ?? plannerResult)) {
+          try { commitOperationEdit(movePinConnections((editedPlan ?? plannerResult)!, drag.sourceId.slice(8), targetId.slice(8), drag.originDirection), "Connections moved · backend validation required."); setSelectedId(targetId); }
+          catch (e) { setEditNotice(e instanceof Error ? e.message : "Cannot move these connections"); }
+        } else if (draft) {
+          let next = { ...draft, edges: draft.edges.filter((edge) => !(portFamilyOf(edgeKindOf(edge)) === drag.family && (drag.originDirection === "out" ? edge.from === drag.sourceId : edge.to === drag.sourceId))) };
+          const moved = draft.edges.filter((edge) => portFamilyOf(edgeKindOf(edge)) === drag.family && (drag.originDirection === "out" ? edge.from === drag.sourceId : edge.to === drag.sourceId));
+          let valid = moved.length > 0;
+          for (const edge of moved) {
+            const replacement = { ...edge, ...(drag.originDirection === "out" ? { from: targetId } : { to: targetId }) };
+            if (replacement.from === replacement.to || edgeWouldCreateCycle(next, replacement.from, replacement.to)) { valid = false; break; }
+            if (!next.edges.some((item) => item.from === replacement.from && item.to === replacement.to && edgeKindOf(item) === edgeKindOf(replacement))) next = { ...next, edges: [...next.edges, replacement] };
+          }
+          if (valid) { setDraft(next); setSelectedId(targetId); }
+        }
+      } else if (!drag.moveLinks && targetDirection !== drag.originDirection) {
+        const from = drag.originDirection === "out" ? drag.sourceId : targetId;
+        const to = drag.originDirection === "in" ? drag.sourceId : targetId;
+        if (graphSelection === "live-plan") connectPlanOperations(from, to);
+        else if (draft && canConnect(from, to, drag.edgeKind)) { setDraft({ ...draft, edges: [...draft.edges, { from, to, kind: drag.edgeKind, label: drag.edgeKind }] }); setSelectedId(to); }
+      } else setEditNotice("Connect opposite pin directions; Ctrl-drag moves links between matching directions.");
+    } else if (event.type !== "pointercancel" && graphSelection === "live-plan" && !drag.moveLinks && !hit?.closest(".flow-node, .canvas-tools, .edge-legend, .minimap")) {
+      openAddMenuAt(event.clientX, event.clientY, { nodeId: drag.sourceId, direction: drag.originDirection });
     }
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    connectionDragRef.current = null;
-    setConnectionDrag(null);
+    connectionDragRef.current = null; setConnectionDrag(null); setConnectionHover(null);
+  };
+  const cancelConnectionDrag = () => {
+    const drag = connectionDragRef.current;
+    connectionDragRef.current = null; setConnectionDrag(null); setConnectionHover(null);
+    if (!drag) return;
+    const pin = canvasWindowRef.current?.querySelector(`[data-port-node="${drag.sourceId}"][data-port-family="${drag.family}"][data-port-direction="${drag.originDirection}"]`);
+    if (pin?.hasPointerCapture(drag.pointerId)) pin.releasePointerCapture(drag.pointerId);
+  };
+  const cancelNodeLayoutDrag = () => {
+    nodeDragRef.current?.preview.finish(true);
+    nodeDragRef.current = null;
+    pendingNodePosition.current = null;
+    if (nodeFrameRef.current !== null) { cancelAnimationFrame(nodeFrameRef.current); nodeFrameRef.current = null; }
   };
   const startNodeDrag = (node: WorkflowData["nodes"][number], event: React.PointerEvent<HTMLButtonElement>) => {
-    if (mode !== "proposal") return;
+    if (mode !== "proposal" && graphSelection !== "live-plan") return;
+    if (event.button !== 0 || !moveBlocks || (mode === "proposal" && (workflowBusy || editBusy))) return;
+    if ((event.target as Element).closest(".typed-port")) return;
     event.stopPropagation();
+    canvasWindowRef.current?.focus({ preventScroll: true });
     const sourceNode = displayedWorkflow.nodes.find((candidate) => candidate.id === node.id) ?? node;
-    nodeDragRef.current = { pointerId: event.pointerId, nodeId: node.id, x: event.clientX, y: event.clientY, originX: sourceNode.x, originY: sourceNode.y, moved: false };
+    pendingNodePosition.current = null;
+    const horizontal = orientation === "horizontal";
+    const wires = displayedWorkflow.edges.filter((edge) => edge.from === node.id || edge.to === node.id).flatMap((edge) => {
+      const group = canvasWindowRef.current?.querySelector<SVGGElement>(`[data-edge-from="${edge.from}"][data-edge-to="${edge.to}"][data-edge-kind="${edgeKindOf(edge)}"]`);
+      const path = group?.querySelector<SVGPathElement>("path");
+      const start = nodes.find((item) => item.id === edge.from), end = nodes.find((item) => item.id === edge.to);
+      if (!path || !start || !end) return [];
+      return [{ path, label: group?.querySelector<SVGTextElement>("text") ?? null, geometry: (position: { x: number; y: number }) => bezierGeometry(edgePoint(edge.from === node.id ? { ...start, ...position } : start, "from", edgeKindOf(edge), horizontal), edgePoint(edge.to === node.id ? { ...end, ...position } : end, "to", edgeKindOf(edge), horizontal), horizontal) }];
+    });
+    nodeDragRef.current = { pointerId: event.pointerId, nodeId: node.id, x: event.clientX, y: event.clientY, originX: nodePositions[node.id]?.x ?? sourceNode.x, originY: nodePositions[node.id]?.y ?? sourceNode.y, moved: false, displayOrigin: { x: node.x, y: node.y }, preview: createNodeDragPreview(event.currentTarget, node, wires) };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveNode = (event: React.PointerEvent<HTMLButtonElement>) => {
     const drag = nodeDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId || mode !== "proposal") return;
-    const dx = (event.clientX - drag.x) / zoom;
-    const dy = (event.clientY - drag.y) / zoom;
-    drag.moved ||= Math.abs(dx) + Math.abs(dy) > 3;
-    const x = orientation === "horizontal" ? drag.originX + dx : drag.originX + (dy / 0.72);
-    const y = orientation === "horizontal" ? drag.originY + dy : drag.originY + (dx / 1.25);
-    updateDraftNode(drag.nodeId, { x: Math.round(clamp(x, 0, 4000)), y: Math.round(clamp(y, 0, 4000)) });
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const delta = { x: event.clientX - drag.x, y: event.clientY - drag.y };
+    drag.moved ||= Math.abs(delta.x) + Math.abs(delta.y) > 3;
+    const position = canonicalDragPosition({ x: drag.originX, y: drag.originY }, delta, zoom, orientation === "horizontal");
+    pendingNodePosition.current = { id: drag.nodeId, position, proposal: mode === "proposal" };
+    if (nodeFrameRef.current === null) nodeFrameRef.current = requestAnimationFrame(() => {
+      nodeFrameRef.current = null;
+      const pending = pendingNodePosition.current;
+      if (!pending) return;
+      const active = nodeDragRef.current;
+      if (active) active.preview.move(displayDragPosition({ x: active.originX, y: active.originY }, active.displayOrigin, pending.position, orientation === "horizontal"));
+    });
   };
   const endNodeDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (nodeDragRef.current?.pointerId !== event.pointerId) return;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    const drag = nodeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (nodeFrameRef.current !== null) { cancelAnimationFrame(nodeFrameRef.current); nodeFrameRef.current = null; }
+    const cancelled = event.type === "pointercancel";
+    if (!cancelled) moveNode(event);
+    if (nodeFrameRef.current !== null) { cancelAnimationFrame(nodeFrameRef.current); nodeFrameRef.current = null; }
+    const pending = pendingNodePosition.current;
+    drag.preview.finish(true);
+    if (pending && !cancelled) {
+      const position = { x: Math.round(pending.position.x), y: Math.round(pending.position.y) };
+      if (pending.proposal) updateDraftNode(pending.id, position);
+      else setNodePositions((positions) => ({ ...positions, [pending.id]: position }));
+    }
+    pendingNodePosition.current = null;
     nodeDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
+  useEffect(() => { return () => { nodeDragRef.current?.preview.finish(); nodeDragRef.current = null; pendingNodePosition.current = null; if (nodeFrameRef.current !== null) { cancelAnimationFrame(nodeFrameRef.current); nodeFrameRef.current = null; } }; }, [displayedWorkflow.id, graphSelection, orientation]);
 
+
+  useEffect(() => { setWorkflowAuthorization(null); }, [savedPlannerResult?.plan_sha256, editedPlan]);
+  useEffect(() => { setConnectionsOpen(false); setOperationTarget(""); setConnectionToRemove(""); }, [savedPlannerResult?.plan_sha256]);
+  const rightPanelOpen = workflowReviewOpen || executionInventoryOpen || outcomeOpen;
+  const openRecords = async () => {
+    setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setOutcomeOpen(false);
+    setRecordsOpen(true); setRecordsNotice("Loading saved records…");
+    const results = await Promise.allSettled([loadSavedPlans(), loadSavedRecipes()]);
+    if (results[0].status === "fulfilled") setSavedPlanInventory(results[0].value); else setSavedPlanInventory(null);
+    if (results[1].status === "fulfilled") setRecipeInventory(results[1].value); else setRecipeInventory(null);
+    setRecordsNotice(results.some((result) => result.status === "rejected") ? "Some saved records could not be loaded. Restart the updated API and refresh." : "");
+  };
+  const openWorkflowExecution = async (authorization = false) => {
+    setWorkflowReviewOpen(true); setExecutionInventoryOpen(false); setOutcomeOpen(false); setTextPlannerOpen(false); setIntentOpen(false); setWorkflowNotice(""); setAuthorizationFocus(authorization);
+    if (editedPlan) { setWorkflowNotice("Validate and save block edits before execution."); return; }
+    if (!savedPlannerResult) { setWorkflowNotice("Generate or restore a saved plan first."); return; }
+    if (plannerResult) viewPlannerGraph();
+    setWorkflowBusy(true);
+    try {
+      const review = await prepareCurrentWorkflow(savedPlannerResult);
+      setWorkflowReview(review);
+      if (review.workflow_kind === "snakemake_export") setWorkflow((current) => ({ ...current, nodes: current.nodes.map((node) => review.steps.some((step) => `planned_${step.step_id}` === node.id && step.execution_mode === "reuse_completed") ? { ...node, status: "complete", subtitle: "Completed source · reusing evidence", performedBy: "Recorded source run", evidence: review.source_attempt_sha256 ?? review.recipe_filename } : node) }));
+      if (workflowAuthorization?.review_sha256 !== review.review_sha256) setWorkflowAuthorization(null);
+      if (authorization) requestAnimationFrame(() => { if (!nodeDragRef.current && !connectionDragRef.current) fitGraph(); });
+      if (authorization && !review.approval_required_step_ids.length) setWorkflowNotice("No authorization required. Use Execute for this read-only inspection.");
+    } catch (e) { setWorkflowReview(null); setWorkflowNotice(e instanceof Error ? e.message : "Workflow review blocked"); }
+    finally { setWorkflowBusy(false); }
+  };
+  const authorizeReviewedWorkflow = async (approver: string, reason: string) => {
+    if (!workflowReview || !workflowReview.approval_required_step_ids.length || workflowBusy || editedPlan || workflowReview.plan_sha256 !== savedPlannerResult?.plan_sha256 || !approver.trim() || !reason.trim()) return;
+    setWorkflowBusy(true); setAuthorizationFocus(true); setWorkflowNotice("Recording exact authorization; nothing will execute…");
+    try {
+      setWorkflowAuthorization(await authorizeCurrentWorkflow(workflowReview, approver.trim(), reason.trim()));
+      setWorkflowNotice("Authorization recorded for 30 minutes. Click Execute to run this exact workflow.");
+    } catch (e) { setWorkflowAuthorization(null); setWorkflowNotice(e instanceof Error ? e.message : "Authorization blocked"); }
+    finally { setWorkflowBusy(false); }
+  };
+  const executeReviewedWorkflow = async () => {
+    if (!workflowReview || workflowBusy || editedPlan || workflowReview.plan_sha256 !== savedPlannerResult?.plan_sha256) return;
+    if (workflowReview.approval_required_step_ids.length && workflowAuthorization?.review_sha256 !== workflowReview.review_sha256) { setAuthorizationFocus(true); setWorkflowNotice("Authorize the highlighted operations before execution."); return; }
+    setWorkflowBusy(true); setWorkflowNotice("Executing the exact reviewed workflow…"); setWorkflowOutcomeNotice(""); setCurrentInspection(null); setExecutionResult(null);
+    try {
+      const result = await executeCurrentWorkflow(workflowReview, workflowAuthorization);
+      if ("run_id" in result) {
+        setCurrentInspection(result); setExecutionResult(null);
+        if (result.workflow_kind === "snakemake_export") setWorkflow((current) => ({ ...current, nodes: current.nodes.map((node) => { const step = result.step_results.find((item) => `planned_${item.step_id}` === node.id); return step ? { ...node, status: "complete", subtitle: step.status.replaceAll("_", " "), performedBy: step.status === "reused_completed" ? "Recorded source run" : "Governed export service", evidence: result.run_id } : node; }) }));
+      }
+      else { setExecutionResult(result); setCurrentInspection(null); }
+      setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setOutcomeOpen(true); setWorkflowNotice("");
+    } catch (e) { const message = e instanceof Error ? e.message : "Workflow execution failed. Inspect history before retrying."; setWorkflowNotice(message); setWorkflowOutcomeNotice(message); setWorkflowAuthorization(null); }
+    finally { setWorkflowBusy(false); }
+  };
+  const executeFromHeader = () => {
+    if (workflowReviewOpen && workflowReview && workflowReview.plan_sha256 === savedPlannerResult?.plan_sha256) void executeReviewedWorkflow();
+    else void openWorkflowExecution();
+  };
+  const revealSelectedOperation = () => requestAnimationFrame(() => {
+    const canvas = canvasWindowRef.current;
+    const block = canvas?.querySelector<HTMLElement>(".flow-node.selected");
+    if (!canvas || !block) return;
+    const frame = canvas.getBoundingClientRect();
+    const bounds = block.getBoundingClientRect();
+    canvas.scrollBy({ left: bounds.left - frame.left + bounds.width / 2 - canvas.clientWidth / 2, top: bounds.top - frame.top + bounds.height / 2 - canvas.clientHeight / 2, behavior: "smooth" });
+  });
+  const commitOperationEdit = (next: InterfacePlannerResult, notice: string) => {
+    setEditedPlan(next); setWorkflowReview(null); setWorkflowAuthorization(null); setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setOutcomeOpen(false); setOperationTarget(""); setConnectionToRemove(""); setEditNotice(notice);
+  };
+  const connectPlanOperations = (fromNode: string, toNode: string) => {
+    const current = editedPlan ?? plannerResult;
+    if (!current || workflowBusy || editBusy || graphSelection !== "live-plan") return;
+    try { commitOperationEdit(connectOperations(current, fromNode.replace(/^planned_/, ""), toNode.replace(/^planned_/, "")), "Connection changed · validate and save before authorization/execution."); setOperationTarget(""); setSelectedId(toNode); revealSelectedOperation(); }
+    catch (e) { setEditNotice(e instanceof Error ? e.message : "Connection blocked"); }
+  };
+  const disconnectPlanOperations = () => {
+    const current = editedPlan ?? plannerResult;
+    if (!current || !connectionToRemove || workflowBusy || editBusy) return;
+    const [from, to] = connectionToRemove.split(":");
+    try { commitOperationEdit(disconnectOperations(current, from, to), "Dependency disconnected · backend validation required."); setConnectionToRemove(""); }
+    catch (e) { setEditNotice(e instanceof Error ? e.message : "Disconnection blocked"); }
+  };
+  const openBlockConnections = () => {
+    if (!plannerResult || workflowBusy || editBusy || graphSelection !== "live-plan") return;
+    beginBlockEdit(); setConnectionsOpen(true); setOperationTarget(""); setConnectionToRemove("");
+  };
+  const beginBlockEdit = () => {
+    if (!plannerResult || workflowBusy || editBusy) return;
+    if (!editedPlan) commitOperationEdit(structuredClone(plannerResult), "Draft edits · backend validation required before execution");
+    if (!selectedId.startsWith("planned_step_")) setSelectedId("planned_step_1");
+    setWorkflowReview(null); setWorkflowAuthorization(null); setEditNotice("Draft edits · backend validation required before execution");
+  };
+  const addOperation = (skill: PlannerSkillCatalog["skills"][number]) => {
+    if (!plannerResult || workflowBusy || editBusy) return;
+    const next = materializeDependencies(editedPlan ?? plannerResult);
+    if (next.plan.steps.length >= 20) return;
+    if (skill.id === "export_snakemake_workflow" && next.plan.steps.length > 18) { setEditNotice("Snakemake export and verification need two available block slots."); return; }
+    if (skill.id === "export_snakemake_workflow" && addMenu?.pin?.direction === "in") { setEditNotice("Snakemake export must be appended after the completed source operations."); return; }
+    const previousExport = next.plan.steps.find((step) => step.skill === "export_snakemake_workflow");
+    const sourceReference = previousExport?.arguments ?? { source_plan_filename: savedPlannerResult?.plan_filename ?? "", source_plan_sha256: savedPlannerResult?.plan_sha256 ?? "" };
+    const argumentsBySkill: Record<string, Record<string, unknown>> = { export_snakemake_workflow: sourceReference, verify_snakemake_export: {}, inspect_vector: { path: "" }, inspect_raster: { path: "" }, convert_vector: { path: "", target_path: "" }, convert_raster: { path: "", target_path: "", target_crs: "" }, load_vector_to_postgis: { path: "", target_schema: "", target_table: "" }, validate_postgis_layer: { target_schema: "", target_table: "" }, generate_report: { task_id: "" } };
+    const id = `step_${next.plan.steps.length + 1}`;
+    next.plan.steps.push({ step_id: id, skill: skill.id, purpose: skillLabel(skill.id), arguments: argumentsBySkill[skill.id] ?? {}, requires_approval: skill.approval_required, validation_required: skill.id === "verify_snakemake_export" || skill.validation_required, expected_artifacts: [], depends_on: skill.id === "export_snakemake_workflow" ? next.plan.steps.map((step) => step.step_id) : addMenu?.pin ? (addMenu.pin.direction === "out" ? [addMenu.pin.nodeId.slice(8)] : []) : [(selectedId.startsWith("planned_step_") ? selectedId.slice(8) : next.plan.steps.at(-1)?.step_id)].filter((value): value is string => Boolean(value)) });
+    if (skill.id === "export_snakemake_workflow") next.plan.steps.push({ step_id: `step_${next.plan.steps.length + 1}`, skill: "verify_snakemake_export", purpose: "Verify the generated Snakemake package without running it", arguments: {}, requires_approval: false, validation_required: true, expected_artifacts: ["Static package verification"], depends_on: [id] });
+    if (addMenu?.pin?.direction === "in") next.plan.steps.find((step) => step.step_id === addMenu.pin!.nodeId.slice(8))!.depends_on!.push(id);
+    if (addMenu?.position) setNodePositions((positions) => ({ ...positions, [`planned_${id}`]: addMenu.position! }));
+    commitOperationEdit(next, "Set parameters in the inspector, then validate edits."); setSelectedId(`planned_${id}`); setAddMenu(null); revealSelectedOperation();
+  };
+  const removeOperation = () => {
+    const next = structuredClone(editedPlan ?? plannerResult);
+    if (!next || !selectedId.startsWith("planned_step_") || next.plan.steps.length <= 1 || workflowBusy || editBusy) return;
+    commitOperationEdit(deleteOperation(next, selectedId.slice(8)), "Block and its connections removed · backend validation required."); setSelectedId("planned_step_1"); setNodePositions({}); setConnectionToRemove("");
+  };
+  const editParameter = (stepId: string, key: string, value: unknown) => {
+    if (!editedPlan || workflowBusy || editBusy) return;
+    setEditedPlan({ ...editedPlan, plan: { ...editedPlan.plan, steps: editedPlan.plan.steps.map((step) => step.step_id === stepId ? { ...step, arguments: { ...step.arguments, [key]: value } } : step) } });
+    setWorkflowReview(null); setWorkflowAuthorization(null); setEditNotice("Draft edits · backend validation required");
+  };
+  const validateEdits = async () => {
+    if (!editedPlan || editBusy) return;
+    setEditBusy(true); setEditNotice("Validating edited operations and saving the exact proposal…");
+    try {
+      const validated = await validatePlanEdit(editedPlan);
+      const stored = await saveGeneratedPlannerPlan(validated);
+      setPlannerResult(validated); setSavedPlannerResult(stored); setEditedPlan(null);
+      setPreparedPlanApproval(null); setRecordedPlanApproval(null); setVerifiedPlanApproval(null); setCompiledPlanRecipe(null); setSavedPlanRecipe(null); setPlanExecutionPreview(null); setPlannerReviewConfirmed(false); setPlanRecipeReviewConfirmed(false);
+      setWorkflow(plannerWorkflow(validated)); setLocalGraph(null); setEditNotice("Edited plan validated and saved. Review its exact scope with Execute.");
+      void loadSavedPlans().then(setSavedPlanInventory).catch(() => setEditNotice("Plan saved; saved-record inventory refresh failed."));
+    } catch (e) { setEditNotice(e instanceof Error ? e.message : "Edited operations rejected"); }
+    finally { setEditBusy(false); }
+  };
+  const openAddMenu = (x = 24, y = 24) => { setPinMenu(null); if (graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy) return; setAddMenu({ x, y }); };
+
+  const openAddMenuAt = (clientX: number, clientY: number, pin?: { nodeId: string; direction: PinDirection }) => {
+    if (graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy) return;
+    const frame = canvasWindowRef.current?.closest(".canvas-frame")?.getBoundingClientRect();
+    if (!frame) return;
+    const point = pointerToCanvas(clientX, clientY);
+    const minimumX = Math.min(...displayedWorkflow.nodes.map((node) => node.x));
+    const minimumY = Math.min(...displayedWorkflow.nodes.map((node) => node.y));
+    const position = orientation === "horizontal" ? { x: point.x - 95, y: point.y - 54 } : { x: minimumX + (point.y - 35) / .72, y: minimumY + (point.x - 120) / 1.25 };
+    setPinMenu(null); setAddMenu({ x: Math.max(8, Math.min(clientX - frame.left, frame.width - 290)), y: Math.max(8, Math.min(clientY - frame.top, frame.height - 340)), pin, position: { x: Math.round(clamp(position.x, 0, 4000)), y: Math.round(clamp(position.y, 0, 4000)) } });
+  };
+  const openPinMenuAt = (clientX: number, clientY: number, nodeId: string, family: PortFamily, direction: PinDirection, nodeMenu = false) => {
+    if (workflowBusy || editBusy || (graphSelection !== "live-plan" && !draft)) return;
+    if (graphSelection === "live-plan" && (!nodeId.startsWith("planned_step_") || family !== "data")) return;
+    const frame = canvasWindowRef.current?.closest(".canvas-frame")?.getBoundingClientRect();
+    if (!frame) return;
+    setAddMenu(null); setPinMenu({ x: Math.max(8, Math.min(clientX - frame.left, frame.width - 270)), y: Math.max(8, Math.min(clientY - frame.top, frame.height - 280)), nodeId, family, direction, scope: nodeMenu ? "node" : "pin" });
+  };
   const plannerGuide = !plannerResult
     ? { label: "Describe the task and generate a plan", target: ".planner-submit", note: "No plan has been generated." }
     : !savedPlannerResult
@@ -1790,15 +2124,28 @@ export default function App() {
     document.querySelector<HTMLElement>(`.planner-workspace ${plannerGuide.target}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  return <main className={`app-shell ${advancedOpen ? "advanced-open" : ""}`}>
+  return <main className={`app-shell ${advancedOpen ? "advanced-open" : ""}`} data-button-style={appearance.buttonStyle} data-filled-text={appearance.filledText}>
     <header className="topbar">
       <div className="brand"><span className="brand-mark"><GitBranch size={18}/></span><span>ActionCharter</span></div>
-      <nav className="journey-nav" aria-label="Primary workflow">
-        <div className="journey-steps">{([ ["plan", "Plan", "Describe the task"], ["review", "Flow graph", "View steps without running"], ["run", "Run", "Approval and execution"], ["outcome", "Check outcome", "Results and validation"] ] as const).map(([stage, label, hint], index) => <button key={stage} className={`journey-step ${journeyStage === stage ? "active" : ""}`} aria-current={journeyStage === stage ? "step" : undefined} onClick={() => openJourneyStage(stage)}><span className="journey-index">{index + 1}</span><span><strong>{label}</strong><small>{hint}</small></span></button>)}</div>
-      </nav>
-      <div className="top-actions"><button className="context-intent-toggle" disabled={mode === "proposal"} title={mode === "proposal" ? "Exit draft graph before context reasoning" : "Reason using reviewed historical context"} aria-expanded={intentOpen} onClick={() => { setIntentOpen((open) => !open); setPlannerOpen(false); setTemplatePanelOpen(false); setRecipePanelOpen(false); setCriticOpen(false); }}><Bot size={15}/> Context &amp; intent</button>{activeRecipe && preparedApproval && !recipePanelOpen && <button className="resume-governed-run" onClick={() => openJourneyStage("run")}><ArrowRight size={15}/><span>{executionResult ? "Review execution" : recordedApproval?.decision === "denied" ? "Review denial" : recordedApproval ? "Resume execution" : "Resume approval"}</span></button>}{activeRecipe && <button className="exit-active-workflow" onClick={exitActiveWorkflow}><X size={15}/><span>Exit workflow</span></button>}<button className="advanced-toggle" aria-expanded={advancedOpen} aria-controls="advanced-actions" onClick={() => setAdvancedOpen((open) => !open)}><span>{advancedOpen ? "Close Advanced" : "Advanced"}</span><ChevronDown size={15}/></button><div className={`safe-mode ${mode === "proposal" ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" ? "Draft only" : "Governed"}</span></div></div>
+      <nav className="journey-nav" aria-label="Workspace navigation"><div className="journey-steps">
+        <button className={`journey-step ${textPlannerOpen ? "active" : ""}`} disabled={mode === "proposal" || workflowBusy || editBusy} onClick={() => openJourneyStage("plan")}><Bot size={16}/><strong>Planner agent</strong></button>
+        <button className={`journey-step ${!textPlannerOpen && !intentOpen && !rightPanelOpen ? "active" : ""}`} aria-pressed={!textPlannerOpen && !intentOpen && !rightPanelOpen} onClick={() => { setTextPlannerOpen(false); setIntentOpen(false); openJourneyStage("review"); }}><Workflow size={16}/><strong>Flow graph</strong></button>
+        <button className={`journey-step ${executionInventoryOpen ? "active" : ""}`} aria-pressed={executionInventoryOpen} onClick={() => void openExecutionInventory()}><History size={16}/><strong>Execution History</strong></button>
+        <button className={`journey-step ${outcomeOpen ? "active" : ""}`} aria-pressed={outcomeOpen} onClick={() => { setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setTextPlannerOpen(false); setIntentOpen(false); setOutcomeOpen(true); }}><FileCheck2 size={16}/><strong>Outcome</strong></button>
+      </div></nav>
+      <div className="top-actions">
+        <button className="context-intent-toggle authorize-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan)} onClick={() => void openWorkflowExecution(true)}><CircleAlert size={16}/> Authorize</button>
+        <button className="context-intent-toggle execute-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan) || Boolean(workflowReviewOpen && workflowReview?.approval_required_step_ids.length && !workflowAuthorization)} onClick={executeFromHeader}><Play size={16} fill="currentColor"/> Execute</button>
+        <button className="context-intent-toggle utility-button" disabled={mode === "proposal" || workflowBusy || editBusy} aria-expanded={recordsOpen} onClick={() => void openRecords()}><LayoutList size={15}/> Saved records</button>
+        <button className="context-intent-toggle utility-button" aria-expanded={settingsOpen} onClick={() => setSettingsOpen(true)}><SettingsIcon size={16}/> Settings</button>
+        <button className="advanced-toggle utility-button" aria-expanded={advancedOpen} aria-controls="advanced-actions" onClick={() => setAdvancedOpen((open) => !open)}><span>{advancedOpen ? "Close Advanced" : "Advanced"}</span><ChevronDown size={15}/></button>
+        <div className={`safe-mode ${mode === "proposal" || editedPlan ? "draft-mode" : ""}`}><ShieldCheck size={15}/><span>{mode === "proposal" || editedPlan ? "Draft only" : "Governed"}</span></div>
+      </div>
     </header>
-    {advancedOpen && <nav id="advanced-actions" className="advanced-actions" aria-label="Advanced tools"><button aria-current={journeyStage === "review" ? "page" : undefined} onClick={() => openJourneyStage("review")}><Workflow size={15}/> Flow graph</button><button onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/> Templates</button><button onClick={() => void openSavedRecipes()}><LayoutList size={15}/> Recipes</button><button onClick={showTaskHistory}><History size={15}/> Task history</button><button onClick={() => void openExecutionInventory()}><History size={15}/> Runs</button><button onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/> Assurance</button><button onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New draft graph" : "Exit draft graph"}</button></nav>}
+    {settingsOpen && <SettingsPanel appearance={appearance} appearanceSaved={appearanceSaved} onAppearanceChange={updateAppearance} onClose={() => setSettingsOpen(false)}/>}
+    {recordsOpen && <div className="template-overlay"><section className="record-workspace" role="dialog" aria-modal="true" aria-labelledby="records-title"><header className="template-workspace-head"><h2 id="records-title">Saved records</h2><button aria-label="Close saved records" onClick={() => setRecordsOpen(false)}><X size={18}/></button></header><button className="context-intent-toggle" onClick={() => void openRecords()}>Refresh records</button>{recordsNotice && <p role="status">{recordsNotice}</p>}<h3>Saved plans · {savedPlanInventory?.plan_count ?? "unavailable"}</h3>{savedPlanInventory && !savedPlanInventory.plans.length && <p>No saved plans yet. Generate a plan to store its validated proposal.</p>}{sortedSavedPlans.map((item) => <article className="execution-attempt" key={item.plan_sha256}><strong>{item.planner_result.plan.summary}</strong><p>{item.planner_result.plan.steps.length} steps · {new Date(item.saved_at).toLocaleString()}</p><button className="context-intent-toggle" onClick={() => { void resumeSavedPlan(item); setEditNotice(""); setNodePositions({}); setWorkflow(plannerWorkflow(item.planner_result)); setLocalGraph(null); setShowActiveGraph(false); setGraphSelection("live-plan"); setBaseGraphSelection("live-plan"); setSelectedId("planned_planner"); setEditedPlan(null); setWorkflowReview(null); setRecordsOpen(false); setTextPlannerOpen(true); }}>Open plan</button></article>)}<h3>Saved recipes · {recipeInventory?.recipe_count ?? "unavailable"}</h3>{recipeInventory && !recipeInventory.recipes.length && <p>No saved recipes yet.</p>}{sortedRecipes.map((item) => <article className="execution-attempt" key={item.recipe_sha256}><strong>{item.recipe_id}</strong><p>{item.steps.length} steps · {new Date(item.saved_at).toLocaleString()}</p><button className="context-intent-toggle" onClick={() => { setRecordsOpen(false); void openSavedRecipes(item.recipe_sha256); }}>Open recipe</button></article>)}</section></div>}
+
+    {advancedOpen && <nav id="advanced-actions" className="advanced-actions" aria-label="Advanced tools"><button onClick={() => { setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setOutcomeOpen(false); setIntentOpen(true); setTextPlannerOpen(false); }}>Task workspace</button><button onClick={() => { setTextPlannerOpen(false); setIntentOpen(false); setPlannerOpen(true); void loadSavedPlans().then(setSavedPlanInventory); }}>Technical Plan</button><button onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={15}/> Templates</button><button onClick={() => void openSavedRecipes()}><LayoutList size={15}/> Recipes</button><button onClick={showTaskHistory}><History size={15}/> Task history</button><button disabled={!activeRecipe} onClick={exitActiveWorkflow}>Exit active workflow</button><button onClick={() => void openCriticEvidence()}><ShieldCheck size={15}/> Assurance</button><button onClick={mode === "evidence" ? beginProposal : closeProposal}>{mode === "evidence" ? "New draft graph" : "Exit draft graph"}</button></nav>}
     {templatePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setTemplatePanelOpen(false); }}>
       <section className="template-workspace" role="dialog" aria-modal="true" aria-labelledby="template-title">
         <header className="template-workspace-head"><div><p className="eyebrow">Reusable governed starting points</p><h2 id="template-title">Choose a recipe template</h2><p>Select a recipe, review the skills it uses, provide its inputs, then preview the workflow graph.</p></div><button aria-label="Close templates" onClick={() => setTemplatePanelOpen(false)}><X size={18}/></button></header>
@@ -1820,7 +2167,6 @@ export default function App() {
       </section>
     </div>}
     {recipePanelOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setRecipePanelOpen(false); }}><section className="recipe-workspace" role="dialog" aria-modal="true" aria-labelledby="recipes-title"><header className="template-workspace-head"><div><p className="eyebrow">Immutable local definitions</p><h2 id="recipes-title">Saved recipes</h2><p>Inspect exact identities and prepare a digest-bound approval request. Preparing does not record approval or execute anything.</p></div><button aria-label="Close saved recipes" onClick={() => setRecipePanelOpen(false)}><X size={18}/></button></header>{recipeInventoryNotice && <p className="recipe-inventory-notice">{recipeInventoryNotice}</p>}{recipeInventory && <div className="recipe-inventory"><div className="recipe-inventory-summary"><strong>{recipeInventory.recipe_count}</strong><span>immutable recipe{recipeInventory.recipe_count === 1 ? "" : "s"}</span><small>No approval or execution performed</small><label className="recipe-sort">Order recipes<select value={recipeSort} onChange={(event) => setRecipeSort(event.target.value as RecipeSort)}><option value="time_desc">Newest first</option><option value="time_asc">Oldest first</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option></select></label></div>{recipeInventory.recipes.length ? <div className="recipe-cards">{preparedApproval && <section ref={approvalRequestRef} tabIndex={-1} className="approval-request"><header><ShieldCheck size={18}/><span><strong>Approval request prepared</strong><small>{preparedApproval.recipe_id}</small></span></header><div><span>Request SHA-256</span><code title={preparedApproval.approval_request_sha256}>{preparedApproval.approval_request_sha256}</code></div><div><span>Recipe SHA-256</span><code title={preparedApproval.recipe_sha256}>{preparedApproval.recipe_sha256}</code></div><h3>Exact approval scope</h3><ul>{preparedApproval.approval_required_step_ids.map((stepId) => { const step = preparedApproval.steps.find((candidate) => candidate.step_id === stepId); return <li key={stepId}><code>{stepId}</code><span>{step?.skill_id.replaceAll("_", " ")}</span></li>; })}</ul><p><LockKeyhole size={13}/> Prepared only · no decision recorded · nothing executed</p></section>}{sortedRecipes.map((recipe) => <article className={`recipe-card ${preparedApproval?.recipe_sha256 === recipe.recipe_sha256 ? "selected" : ""}`} key={recipe.recipe_sha256}><header><LayoutList size={16}/><span><strong>{recipe.recipe_id}</strong><small>{recipe.recipe_filename}</small></span><time dateTime={recipe.saved_at}>{new Date(recipe.saved_at).toLocaleString()}</time></header><div className="recipe-card-digest"><span>SHA-256</span><code title={recipe.recipe_sha256}>{recipe.recipe_sha256}</code></div><div className="recipe-authority" aria-label="Recorded recipe decisions">{recipe.approvals.length ? recipe.approvals.map((approval) => <span key={approval.approval_id} className={approval.authority_link} title={approval.authority_reason}>{approval.decision === "denied" ? "Denied" : approval.authority_link === "verified" ? "Exact scope verified" : "Authority blocked"} · {approval.approval_id}</span>) : <span className="unrecorded">No recipe decision recorded</span>}</div><ol>{recipe.steps.map((step) => <li key={step.step_id}><code>{step.step_id}</code><span>{step.skill_id.replaceAll("_", " ")}</span>{recipe.approval_required_step_ids.includes(step.step_id) && <em>Approval required</em>}</li>)}</ol><footer><span>{recipe.validation_required_step_ids.length} validation gate{recipe.validation_required_step_ids.length === 1 ? "" : "s"}</span><button disabled={approvalPreparationPending || !recipe.approval_required_step_ids.length} onClick={() => void prepareApproval(recipe.recipe_filename, recipe.recipe_sha256)}>{approvalPreparationPending ? "Preparing…" : "Prepare approval request"}</button></footer></article>)}</div> : <div className="recipe-inventory-empty"><LayoutList size={22}/><strong>No saved recipes yet</strong><span>Compile and explicitly save a reviewed template proposal first.</span></div>}</div>}</section></div>}
-    {executionInventoryOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setExecutionInventoryOpen(false); }}><section className="execution-inventory-workspace" role="dialog" aria-modal="true" aria-labelledby="runs-title"><header className="template-workspace-head"><div><p className="eyebrow">Durable governed history</p><h2 id="runs-title">Execution attempts</h2><p>Reopen persisted progress after closing the browser or restarting the interface API. This view cannot retry an execution.</p></div><button aria-label="Close execution attempts" onClick={() => setExecutionInventoryOpen(false)}><X size={18}/></button></header>{executionInventoryNotice && <p className="recipe-inventory-notice">{executionInventoryNotice}</p>}{executionInventory && <div className="execution-attempts"><div className="execution-attempt-summary"><strong>{executionInventory.attempt_count}</strong><span>durable attempt{executionInventory.attempt_count === 1 ? "" : "s"}</span><small>Read-only inventory · no execution performed</small></div>{executionInventory.attempts.map((attempt) => <article className={`execution-attempt status-${attempt.status}`} key={attempt.execution_preview_sha256}><header><span><strong>{attempt.recipe_id ?? "Legacy execution attempt"}</strong><small>{attempt.status.replaceAll("_", " ")}</small></span><time dateTime={attempt.started_at}>{new Date(attempt.started_at).toLocaleString()}</time></header><dl><div><dt>Steps</dt><dd>{attempt.step_count}</dd></div><div><dt>Stopped at</dt><dd>{attempt.failed_step_id ?? "—"}</dd></div><div><dt>Finished</dt><dd>{attempt.finished_at ? new Date(attempt.finished_at).toLocaleString() : "In progress"}</dd></div></dl><p className={`execution-authority ${attempt.authority_link}`} title={attempt.authority_reason}>{attempt.authority_link === "verified" ? "Approval linked at run start" : attempt.authority_link === "blocked" ? "Authority link blocked" : "Approval link unavailable"} · {attempt.authority_reason}</p><p className={`execution-authority ${attempt.result_link}`} title={attempt.result_reason}>{attempt.result_link === "verified" ? "Result and evidence verified" : attempt.result_link === "blocked" ? "Result link blocked" : "Result link unavailable"} · {attempt.result_reason}</p><code title={attempt.execution_preview_sha256}>{attempt.execution_preview_sha256}</code><button disabled={!attempt.recipe_id || !attempt.recipe_sha256} onClick={() => void reopenExecutionAttempt(attempt.execution_preview_sha256)}>{attempt.status === "running" ? "View live graph" : "Reopen run graph"}</button></article>)}</div>}</section></div>}
     {criticOpen && <div className="template-overlay" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setCriticOpen(false); }}><section className="critic-workspace" role="dialog" aria-modal="true" aria-labelledby="critic-title"><header className="template-workspace-head"><div><p className="eyebrow">Deterministic post-run assurance</p><h2 id="critic-title">Critic evidence</h2><p>Inspect trusted traces and preview truthful recipe-run adaptations before any model critique. This view writes nothing and creates no release.</p></div><button aria-label="Close Critic evidence" onClick={() => setCriticOpen(false)}><X size={18}/></button></header>{criticNotice && <p className="recipe-inventory-notice">{criticNotice}</p>}{criticInventory && <div className="critic-inventory"><div className="critic-boundary"><ShieldCheck size={22}/><span><strong>READ-ONLY ASSURANCE</strong><small>{criticInventory.item_count} stored trace{criticInventory.item_count === 1 ? "" : "s"} · {criticInventory.recipe_candidate_count} recipe-run candidate{criticInventory.recipe_candidate_count === 1 ? "" : "s"} · no model call · no release</small></span></div><p className="critic-compatibility">Recipe evidence is adapted only when its immutable recipe, approval, run result, and durable execution timing agree. The candidate remains in memory and no trace is stored.</p><section className="recipe-trace-candidates"><h3>Recipe-run trace candidates</h3>{criticInventory.recipe_candidates.map((candidate) => <article className={`recipe-trace-candidate ${candidate.adaptable ? `status-${candidate.critic_status}` : "status-unavailable"}`} key={candidate.evidence_name}><header><span><strong>{candidate.trace?.task_id ?? candidate.evidence_name}</strong><small>{candidate.adaptable ? "Critic-compatible preview" : "Not adaptable"}</small></span>{candidate.critic_status && <em>{candidate.critic_status.replaceAll("_", " ")}</em>}</header>{candidate.trace ? <><p>{candidate.trace.original_request}</p><dl><div><dt>Skills</dt><dd>{candidate.trace.selected_skills.join(" · ")}</dd></div><div><dt>Final status</dt><dd>{candidate.trace.final_status.replaceAll("_", " ")}</dd></div><div><dt>Started</dt><dd>{new Date(candidate.trace.timestamps.started_at).toLocaleString()}</dd></div><div><dt>Finished</dt><dd>{new Date(candidate.trace.timestamps.finished_at).toLocaleString()}</dd></div></dl><code title={candidate.trace.recipe_sha256}>{candidate.trace.recipe_sha256}</code><small>Preview only · trace not stored · Critic not invoked</small>{candidate.execution_preview_sha256 && <button className="linked-run-button" onClick={() => void reopenExecutionAttempt(candidate.execution_preview_sha256!)}>View exact linked run graph</button>}{candidate.critic_gaps.length > 0 && <ul>{candidate.critic_gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul>}</> : <p>{candidate.finding}</p>}</article>)}</section><h3 className="stored-traces-title">Stored WorkflowTrace evidence</h3>{criticInventory.items.map((item) => <article className={`critic-card ${item.available ? `status-${item.evidence?.deterministic_status}` : "status-unavailable"}`} key={item.trace_name}><header><span><strong>{item.evidence?.task_id ?? item.trace_name}</strong><small>{item.evidence?.deterministic_status.replaceAll("_", " ") ?? "evidence unavailable"}</small></span>{item.evidence && <em>{item.evidence.validation_passed === true ? "Validation passed" : item.evidence.validation_passed === false ? "Validation failed" : "Validation incomplete"}</em>}</header>{item.evidence ? <><p>{item.evidence.original_request}</p><dl><div><dt>Approval evidence</dt><dd>{item.evidence.approval.complete ? "complete" : "incomplete"}</dd></div><div><dt>Skills</dt><dd>{item.evidence.selected_skills.join(" · ") || "none recorded"}</dd></div><div><dt>Evidence gaps</dt><dd>{item.evidence.evidence_gaps.length}</dd></div><div><dt>Warnings</dt><dd>{item.evidence.warnings.length}</dd></div></dl>{item.evidence.evidence_gaps.length > 0 && <ul>{item.evidence.evidence_gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul>}<p className="critic-record-link" title={item.critic_record_files?.join("\n") ?? ""}>{item.critic_record_link === "verified" ? `${item.critic_record_files?.length ?? 0} exact Critic record(s) linked` : "No exact Critic record linked"}</p><p className="critic-record-link" title={item.release_manifests?.join("\n") ?? ""}>{item.release_link === "verified" ? `${item.release_manifests?.length ?? 0} immutable release(s) linked` : "No exact release linked"}</p><div className="critic-references">{item.evidence.evidence_references.map((reference) => <span key={reference.path}><strong>{reference.path}</strong><code title={reference.sha256}>{reference.sha256}</code></span>)}</div></> : <p>{item.finding}</p>}</article>)}</div>}</section></div>}
     {criticOpen && criticInventory && <aside className={`trace-persistence-drawer ${criticTraceDrawerCollapsed ? "collapsed" : ""}`} aria-label="Store reviewed adapted trace"><header><span><p className="eyebrow">Explicit evidence persistence</p><h3>{criticTraceDrawerCollapsed ? "Trace review" : "Store adapted trace"}</h3></span><div className="trace-drawer-controls"><LockKeyhole size={17}/><button aria-label={criticTraceDrawerCollapsed ? "Expand trace review" : "Minimize trace review"} title={criticTraceDrawerCollapsed ? "Expand" : "Minimize"} aria-expanded={!criticTraceDrawerCollapsed} onClick={() => setCriticTraceDrawerCollapsed((current) => !current)}>{criticTraceDrawerCollapsed ? <Maximize2 size={16}/> : <Minus size={16}/>}</button></div></header>{!criticTraceDrawerCollapsed && <><label>Critic-compatible candidate<select value={selectedCriticTraceEvidence} disabled={Boolean(criticTraceSaving)} onChange={(event) => { setSelectedCriticTraceEvidence(event.target.value); setStoredCriticTrace(null); }}><option value="">Select a candidate…</option>{criticInventory.recipe_candidates.filter((candidate) => candidate.adaptable).map((candidate) => <option key={candidate.evidence_name} value={candidate.evidence_name}>{candidate.trace?.task_id}{candidate.stored ? " · stored" : ""}</option>)}</select></label>{selectedCriticTraceCandidate?.trace && <><div className="trace-persistence-summary"><strong>{selectedCriticTraceCandidate.trace.task_id}</strong><span>{selectedCriticTraceCandidate.trace.final_status.replaceAll("_", " ")}</span><small>{selectedCriticTraceCandidate.trace.selected_skills.join(" · ")}</small></div><div className="trace-review-digest"><span>Adapted trace SHA-256</span><code title={selectedCriticTraceCandidate.trace_sha256 ?? ""}>{selectedCriticTraceCandidate.trace_sha256}</code></div>{selectedCriticTraceCandidate.stored || storedCriticTrace?.task_id === selectedCriticTraceCandidate.trace.task_id ? <div className="trace-stored"><CheckCircle2 size={17}/><span><strong>TRACE AND REPORT STORED</strong><small>Critic not invoked · no release created</small></span></div> : <><label className="trace-review-confirm"><input type="checkbox" checked={criticTraceReviews.includes(selectedCriticTraceCandidate.evidence_name)} onChange={(event) => setCriticTraceReviews((current) => event.target.checked ? [...current, selectedCriticTraceCandidate.evidence_name] : current.filter((name) => name !== selectedCriticTraceCandidate.evidence_name))}/><span>I reviewed this exact trace digest and its source evidence.</span></label><button className="store-adapted-trace" disabled={!selectedCriticTraceCandidate.trace_sha256 || !criticTraceReviews.includes(selectedCriticTraceCandidate.evidence_name) || Boolean(criticTraceSaving)} onClick={() => selectedCriticTraceCandidate.trace_sha256 && void storeCriticTrace(selectedCriticTraceCandidate.evidence_name, selectedCriticTraceCandidate.trace_sha256)}>{criticTraceSaving ? "Revalidating and storing…" : "Store trace and report"}</button><small className="trace-storage-boundary">Evidence only · no model · no release · no execution</small></>}</>}</>}</aside>}
     {criticOpen && criticInventory && <aside className={`critic-invocation-drawer ${criticInvocationCollapsed ? "collapsed" : ""}`} aria-label="Run read-only Critic"><header><span><p className="eyebrow">Model-assisted assurance</p><h3>{criticInvocationCollapsed ? "Critic review" : "Run Critic assessment"}</h3></span><button aria-label={criticInvocationCollapsed ? "Expand Critic review" : "Minimize Critic review"} title={criticInvocationCollapsed ? "Expand" : "Minimize"} onClick={() => setCriticInvocationCollapsed((current) => !current)}>{criticInvocationCollapsed ? <Maximize2 size={16}/> : <Minus size={16}/>}</button></header>{!criticInvocationCollapsed && <><label>Stored trace<select value={selectedStoredCriticTrace} disabled={criticInvocationPending} onChange={(event) => { setSelectedStoredCriticTrace(event.target.value); setCriticInvocationConfirmed(false); setCriticAssessment(null); setCriticInvocationNotice(""); }}><option value="">Select stored evidence…</option>{criticInventory.items.filter((item) => item.available && item.evidence).map((item) => <option key={item.trace_name} value={item.trace_name}>{item.evidence?.task_id} · {item.evidence?.deterministic_status.replaceAll("_", " ")}</option>)}</select></label>{selectedStoredCriticEvidence?.evidence && <><div className="critic-invocation-summary"><strong>{selectedStoredCriticEvidence.evidence.task_id}</strong><span>{selectedStoredCriticEvidence.evidence.deterministic_status.replaceAll("_", " ")}</span><small>{selectedStoredCriticEvidence.evidence.evidence_gaps.length} deterministic gap{selectedStoredCriticEvidence.evidence.evidence_gaps.length === 1 ? "" : "s"}</small></div><label className="critic-invocation-confirm"><input type="checkbox" checked={criticInvocationConfirmed} disabled={criticInvocationPending} onChange={(event) => setCriticInvocationConfirmed(event.target.checked)}/><span>Call the Critic model using only this exact stored trace/report evidence.</span></label><button className="run-critic-assessment" disabled={!criticInvocationConfirmed || criticInvocationPending} onClick={() => void invokeCritic()}>{criticInvocationPending ? "Assessing and validating…" : "Run read-only Critic"}</button></>}{criticInvocationNotice && <p className="critic-invocation-notice">{criticInvocationNotice}</p>}{criticAssessment && <section className={`critic-assessment-result status-${criticAssessment.result.deterministic_status}`}><header><span><strong>{criticAssessment.result.assessment.conclusion.replaceAll("_", " ")}</strong><small>{criticAssessment.result.model}</small></span><em>NOT RECORDED</em></header><p>{criticAssessment.result.assessment.summary}</p><div className="critic-result-digest"><span>Critic result SHA-256</span><code title={criticAssessment.critic_result_sha256}>{criticAssessment.critic_result_sha256}</code></div>{criticAssessment.result.assessment.validation_basis.length > 0 && <details><summary>Validation basis</summary><ul>{criticAssessment.result.assessment.validation_basis.map((item) => <li key={item}>{item}</li>)}</ul></details>}{criticAssessment.result.assessment.additional_risks.length > 0 && <details><summary>Additional risks</summary><ul>{criticAssessment.result.assessment.additional_risks.map((item) => <li key={item}>{item}</li>)}</ul></details>}<small>In memory only · no result record · no release · no execution</small></section>}</>}</aside>}
@@ -1873,14 +2219,26 @@ export default function App() {
       {executionProgress && <section className={`execution-progress progress-${executionProgress.status}`} aria-live="polite"><header><span><small>Live execution state</small><strong>{executionProgress.status.replaceAll("_", " ")}</strong></span><time dateTime={executionProgress.started_at}>Started {new Date(executionProgress.started_at).toLocaleTimeString()}</time></header><ol>{executionProgress.steps.map((step) => <li key={step.step_id} className={`progress-step status-${step.status}`}><span className="progress-step-marker">{step.status === "running" ? <CircleDot size={17}/> : step.status === "failed" || step.status === "validation_failed" || step.status === "interrupted" ? <XCircle size={17}/> : <CheckCircle2 size={17}/>}</span><span><strong>{step.step_id} · {step.skill_id.replaceAll("_", " ")}</strong><small>{step.status.replaceAll("_", " ")}{executionProgress.failed_step_id === step.step_id ? executionProgress.status === "interrupted" ? " · interruption location" : " · failure location" : ""}</small></span></li>)}</ol>{executionProgress.failed_step_id && <p><XCircle size={16}/> {executionProgress.status === "interrupted" ? "Interruption localized to" : "Failure localized to"} <strong>{executionProgress.failed_step_id}</strong></p>}{executionProgress.recovery_guidance && <p className="recovery-guidance"><ShieldCheck size={16}/><span><strong>Safe recovery</strong>{executionProgress.recovery_guidance}</span></p>}</section>}
       {executionResult && <section className={`execution-result result-${executionResult.status}`} aria-live="assertive"><header className="execution-verdict">{executionResult.status === "validated_success" ? <CheckCircle2 size={34}/> : <XCircle size={34}/>}<span><small>Final execution status</small><strong>{executionResult.status === "validated_success" ? "SUCCESS — OUTPUT VALIDATED" : "FAILURE — VALIDATION DID NOT PASS"}</strong><em>{executionResult.status === "validated_success" ? "The approved recipe ran and its deterministic checks passed." : "Do not treat the produced output as a successful result."}</em></span></header><ol>{executionResult.step_results.map((step) => <li key={step.step_id}><div className="execution-step-line">{step.status === "validation_failed" ? <XCircle size={15}/> : <CheckCircle2 size={15}/>}<strong>{step.step_id} · {step.skill_id.replaceAll("_", " ")}</strong><small>{step.status} · validation {step.validation_performed ? "performed" : "not required"}</small></div><div className="execution-outcome"><h3>Outcome</h3>{outcomeFacts(step.outcome).map(([name, value]) => <div key={name}><span>{name}</span><strong>{value}</strong></div>)}{step.validation_outcome !== null && <><h3>Validation</h3>{outcomeFacts(step.validation_outcome).map(([name, value]) => <div key={`validation-${name}`}><span>{name}</span><strong>{value}</strong></div>)}</>}</div></li>)}</ol><dl>{[["Run result", executionResult.run_result_path], ["Evidence", executionResult.evidence_path], ["Report", executionResult.report_path]].map(([label, path]) => { const parts = evidencePathParts(path); return <div key={label}><dt>{label}</dt><dd><strong>{parts.filename}</strong><small>{parts.directory}</small></dd></div>; })}</dl></section>}
     </section>}
-    <div className={`workspace ${intentOpen ? "intent-open" : ""}`}>
-      <IntentWorkbench onContinue={async (filename) => { const inventory = await loadSavedPlans(); const item = inventory.plans.find((entry) => entry.plan_filename === filename); if (!item) throw new Error("Stored plan is not in the bounded inventory. Reopen it through Saved plans."); setSavedPlanInventory(inventory); await resumeSavedPlan(item); setIntentOpen(false); setPlannerOpen(true); }} visible={intentOpen} onClose={() => setIntentOpen(false)} onInvalidate={() => { setIntentGraphResult(null); if (graphSelection === "intent-plan") { setWorkflow(demoWorkflow); setGraphSelection("default"); setBaseGraphSelection("default"); } }} onGraph={(next) => { setIntentGraphResult(next); setWorkflow(intentWorkflow(next)); setLocalGraph(null); setShowActiveGraph(false); setGraphSelection("intent-plan"); setBaseGraphSelection("intent-plan"); setSelectedId("planned_planner"); setJourneyStage("review"); }}/>
+    <div className={`workspace ${intentOpen || textPlannerOpen ? "intent-open" : ""} ${textPlannerOpen ? "text-planner-open" : ""} ${rightPanelOpen ? "right-panel-open" : ""}`}>
+      <TextPlanner editsPending={Boolean(editedPlan) || mode === "proposal" || workflowBusy || editBusy} currentPlan={plannerResult} currentSaved={savedPlannerResult} visible={textPlannerOpen} onClose={() => setTextPlannerOpen(false)} onPlan={(result) => { cancelNodeLayoutDrag(); setEditedPlan(null); setWorkflowReview(null); setWorkflowAuthorization(null); setNodePositions({}); setPlannerResult(result); setPlannerReviewConfirmed(false); setSavedPlannerResult(null); setPreparedPlanApproval(null); setRecordedPlanApproval(null); setVerifiedPlanApproval(null); setPlanExecutionPreview(null); setCompiledPlanRecipe(null); setSavedPlanRecipe(null); setPlanRecipeReviewConfirmed(false); setTaskDraft(null); setWorkflow(plannerWorkflow(result)); setLocalGraph(null); setShowActiveGraph(false); setGraphSelection("live-plan"); setBaseGraphSelection("live-plan"); setSelectedId("planned_planner"); }} onSaved={(stored) => { setSavedPlannerResult(stored); setWorkflow((current) => ({ ...current, nodes: current.nodes.map((node) => node.id === "planned_policy" ? { ...node, subtitle: "Saved proposal · not approved or executed", evidence: stored.plan_filename } : node) })); void loadSavedPlans().then(setSavedPlanInventory).catch(() => { /* Saved artifact still exists if inventory refresh fails. */ }); }}/>
+      <IntentWorkbench onDraft={(input, request) => { if (plannerResult) return; setTaskDraft({ input, request }); setWorkflow(taskDraftWorkflow(input, request)); setLocalGraph(null); setShowActiveGraph(false); setGraphSelection("task-draft"); setBaseGraphSelection("task-draft"); setSelectedId("task_request"); }} onContinue={async (filename) => { const inventory = await loadSavedPlans(); const item = inventory.plans.find((entry) => entry.plan_filename === filename); if (!item) throw new Error("Stored plan is not in the bounded inventory. Reopen it through Saved plans."); setSavedPlanInventory(inventory); await resumeSavedPlan(item); setIntentOpen(false); setPlannerOpen(true); }} visible={intentOpen} onClose={() => setIntentOpen(false)} onInvalidate={() => { setIntentGraphResult(null); if (graphSelection === "intent-plan") { setWorkflow(demoWorkflow); setGraphSelection("default"); setBaseGraphSelection("default"); } }} onGraph={(next) => { setTaskDraft(null); setIntentGraphResult(next); setWorkflow(intentWorkflow(next)); setLocalGraph(null); setShowActiveGraph(false); setGraphSelection("intent-plan"); setBaseGraphSelection("intent-plan"); setSelectedId("planned_planner"); setJourneyStage("review"); }}/>
 
       <aside className="rail">
         <button className="rail-item active"><Workflow size={19}/><span>Flow</span></button><button className="rail-item"><Bot size={19}/><span>Agents</span></button><button className="rail-item"><FileCheck2 size={19}/><span>Evidence</span></button><button className="rail-item"><Database size={19}/><span>Data</span></button><div className="rail-spacer"/><button className="rail-item"><Map size={19}/><span>Guide</span></button>
       </aside>
-      <section className="flow-stage" aria-label="Governed workflow graph">
-        <div className="stage-heading"><div><p className="eyebrow">{mode === "proposal" ? "Proposal editor" : "Governed workflow"}</p><h1>{displayedWorkflow.title}</h1><details className="graph-audit-identity"><summary>Audit identity</summary><code>{displayedWorkflow.correlationId}</code></details>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-heading-actions"><label className="graph-source-picker"><span>Graph to view</span><select aria-label="Graph to view" value={graphSelection} disabled={mode === "proposal"} onChange={(event) => void selectGraphSource(event.target.value)}><option value="default">Default workflow</option>{activeRecipe ? <option value="active">Current workflow · {activeRecipe.recipeId}</option> : <option value="unavailable-active" disabled>Current workflow · none open</option>}{intentGraphResult && <option value="intent-plan">Reviewed intent · unsaved plan</option>}{plannerResult && <option value="live-plan">Current unsaved plan</option>}{(executionInventory?.attempts.length ?? 0) > 0 && <optgroup label="Durable runs">{executionInventory?.attempts.map((attempt) => <option key={attempt.execution_preview_sha256} value={`run:${attempt.execution_preview_sha256}`}>{attempt.recipe_id ?? "Legacy run"} · {attempt.status.replaceAll("_", " ")} · {new Date(attempt.started_at).toLocaleString()}</option>)}</optgroup>}{(savedPlanInventory?.plans.length ?? 0) > 0 && <optgroup label="Saved plans">{savedPlanInventory?.plans.map((plan) => <option key={plan.plan_sha256} value={`plan:${plan.plan_sha256}`}>{plan.planner_result.plan.summary.slice(0, 65)} · {new Date(plan.saved_at).toLocaleString()}</option>)}</optgroup>}{(recipeInventory?.recipes.length ?? 0) > 0 && <optgroup label="Saved recipes">{recipeInventory?.recipes.map((recipe) => <option key={recipe.recipe_sha256} value={`recipe:${recipe.recipe_sha256}`}>{recipe.recipe_id} · definition only</option>)}</optgroup>}{runs.length > 0 && <optgroup label="Exported traces">{runs.map((run) => <option key={run.taskId} value={`trace:${run.taskId}`}>{run.taskId} · {run.status}</option>)}</optgroup>}</select></label><button type="button" className="graph-source-refresh" onClick={() => void refreshGraphSources()} disabled={mode === "proposal"} aria-label="Refresh graph sources" title="Refresh saved plans, recipes, runs, and exported traces"><History size={14}/> Refresh</button>{mode === "proposal" && <small className="graph-source-hint">Exit draft graph to select another graph</small>}<div className="stage-meta"><span><span className="pulse"/> {mode === "proposal" ? "Uncommitted draft" : graphSelection === "active" ? "Current workflow" : graphSelection.startsWith("run:") ? "Durable run" : graphSelection.startsWith("recipe:") ? "Stored recipe" : graphSelection.startsWith("plan:") ? "Saved plan" : (graphSelection === "live-plan" || graphSelection === "intent-plan") ? "Unsaved plan" : graphSelection.startsWith("trace:") ? "Exported trace" : "Default view"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div></div>
+      <section className={`flow-stage ${timelineExpanded ? "timeline-expanded" : "timeline-compact"}`} aria-label="Governed workflow graph">
+        <div className="stage-heading"><div><p className="eyebrow">{mode === "proposal" || editedPlan ? "Workflow draft" : "Governed workflow"}</p><h1>{displayedWorkflow.title}</h1><details className="graph-audit-identity"><summary>Audit identity</summary><code>{displayedWorkflow.correlationId}</code></details>{loadNotice && <p className="load-notice">{loadNotice}</p>}</div><div className="stage-heading-actions"><label className="graph-source-picker"><span>Graph to view</span><select aria-label="Graph to view" value={graphSelection} disabled={mode === "proposal"} onChange={(event) => void selectGraphSource(event.target.value)}><option value="default">Default workflow</option>{activeRecipe ? <option value="active">Current workflow · {activeRecipe.recipeId}</option> : <option value="unavailable-active" disabled>Current workflow · none open</option>}{taskDraft && <option value="task-draft">Current task · draft input and request</option>}{intentGraphResult && <option value="intent-plan">Reviewed intent · unsaved plan</option>}{plannerResult && <option value="live-plan">{editedPlan ? "Current workflow · draft edits" : savedPlannerResult ? "Current generated plan · saved" : "Current unsaved plan"}</option>}{(executionInventory?.attempts.length ?? 0) > 0 && <optgroup label="Durable runs">{executionInventory?.attempts.map((attempt) => <option key={attempt.execution_preview_sha256} value={`run:${attempt.execution_preview_sha256}`}>{attempt.recipe_id ?? "Legacy run"} · {attempt.status.replaceAll("_", " ")} · {new Date(attempt.started_at).toLocaleString()}</option>)}</optgroup>}{(savedPlanInventory?.plans.length ?? 0) > 0 && <optgroup label="Saved plans">{savedPlanInventory?.plans.map((plan) => <option key={plan.plan_sha256} value={`plan:${plan.plan_sha256}`}>{plan.planner_result.plan.summary.slice(0, 65)} · {new Date(plan.saved_at).toLocaleString()}</option>)}</optgroup>}{(recipeInventory?.recipes.length ?? 0) > 0 && <optgroup label="Saved recipes">{recipeInventory?.recipes.map((recipe) => <option key={recipe.recipe_sha256} value={`recipe:${recipe.recipe_sha256}`}>{recipe.recipe_id} · definition only</option>)}</optgroup>}{runs.length > 0 && <optgroup label="Exported traces">{runs.map((run) => <option key={run.taskId} value={`trace:${run.taskId}`}>{run.taskId} · {run.status}</option>)}</optgroup>}</select></label><button type="button" className="graph-source-refresh" onClick={() => void refreshGraphSources()} disabled={mode === "proposal"} aria-label="Refresh graph sources" title="Refresh saved plans, recipes, runs, and exported traces"><History size={14}/> Refresh</button>{mode === "proposal" && <small className="graph-source-hint">Exit draft graph to select another graph</small>}<div className="stage-meta"><span><span className="pulse"/> {mode === "proposal" ? "Uncommitted draft" : graphSelection === "task-draft" ? "Task draft · nothing executed" : graphSelection === "active" ? "Current workflow" : graphSelection.startsWith("run:") ? "Durable run" : graphSelection.startsWith("recipe:") ? "Stored recipe" : graphSelection.startsWith("plan:") ? "Saved plan" : graphSelection === "live-plan" ? (savedPlannerResult ? "Saved proposal" : "Unsaved plan") : graphSelection === "intent-plan" ? "Reviewed intent · unsaved" : graphSelection.startsWith("trace:") ? "Exported trace" : "Default view"}</span><span>{runFacts.inputReferences} input ref{runFacts.inputReferences === "1" ? "" : "s"}</span><span>{runFacts.tools} tool{runFacts.tools === 1 ? "" : "s"}</span><span>{nodes.length} nodes</span></div></div></div>
+        <div className={`block-actions ${blockToolsExpanded ? "tools-expanded" : "tools-compact"}`} role="toolbar" aria-label="Block actions">
+            <button disabled={graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy || (editedPlan ?? plannerResult).plan.steps.length >= 20} onClick={() => openAddMenu()}><Plus size={15}/> Add</button>
+            <button aria-expanded={blockToolsExpanded} onClick={() => setBlockToolsExpanded((value) => !value)}>{blockToolsExpanded ? "Fewer tools" : "Block tools"}</button>
+            <button className="delete-node" disabled={graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy || !selectedId.startsWith("planned_step_") || (editedPlan ?? plannerResult).plan.steps.length <= 1} onClick={removeOperation}><Trash2 size={15}/> Delete</button>
+            <button aria-pressed={moveBlocks} disabled={(mode === "proposal" && (workflowBusy || editBusy)) || (mode !== "proposal" && graphSelection !== "live-plan")} onClick={() => setMoveBlocks((value) => !value)}><Move size={15}/> Move</button>
+            <button disabled={graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy} onClick={openBlockConnections}><Link2 size={15}/> Connect</button>
+            <button disabled={graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy} onClick={openBlockConnections}><Unlink size={15}/> Disconnect</button>
+            <button disabled={graphSelection !== "live-plan" || !plannerResult || workflowBusy || editBusy} onClick={beginBlockEdit}>Parameters</button>
+            {editedPlan && <><button disabled={editBusy || workflowBusy} onClick={() => void validateEdits()}>{editBusy ? "Validating…" : "Validate and save edits"}</button><button disabled={editBusy || workflowBusy} onClick={() => { setEditedPlan(null); setConnectionsOpen(false); setEditNotice(""); }}>Discard edits</button></>}
+            <span role="status">{graphSelection === "live-plan" ? editNotice : "Generate or open a plan in Saved records to edit operations. Recorded graphs are view-only."}</span>
+        </div>
         <div className="canvas-frame">
           {mode === "proposal" && <div className="proposal-toolbar"><strong>Draft only</strong>{loadedTemplateId && <button className="return-template" onClick={() => setTemplatePanelOpen(true)}><LayoutTemplate size={14}/> Back to template setup</button>}<select aria-label="Node type" value={newNodeKind} onChange={(event) => setNewNodeKind(event.target.value as NodeKind)}>{Object.keys(labels).map((kind) => <option key={kind} value={kind}>{labels[kind as NodeKind]}</option>)}</select><button onClick={addDraftNode}><Plus size={14}/> Add node</button><span>No approval or execution authority</span></div>}
           <div className="canvas-tools draggable-overlay" style={{ transform: `translate(${overlayPositions.tools.x}px, ${overlayPositions.tools.y}px)` }}>
@@ -1899,27 +2257,52 @@ export default function App() {
             </svg>
             <div className="mini-view" style={{ left: viewport.x, top: viewport.y, width: viewport.width, height: viewport.height }}/>
           </div>
-          <div className="canvas-window" ref={canvasWindowRef} onScroll={updateViewport} onPointerDown={startCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan}>
+          {pinMenu && <div className="block-add-menu" style={{ left: pinMenu.x, top: pinMenu.y }} role="dialog" aria-label="Pin actions" onKeyDown={(event) => { if (event.key === "Escape") setPinMenu(null); }}><strong>{pinMenu.scope === "node" ? "Block actions" : "Pin actions"}</strong>{pinMenu.scope === "node" && <><button onClick={() => { setPinMenu(null); beginBlockEdit(); }}>Edit parameters</button><button disabled={(editedPlan ?? plannerResult)?.plan.steps.length === 1} onClick={() => { setPinMenu(null); removeOperation(); }}>Delete block</button><button onClick={() => breakConnectionsAtNode(pinMenu.nodeId)}>Break all block links</button></>}<button onClick={() => breakConnectionsAtPin(pinMenu.nodeId, pinMenu.family, pinMenu.direction)}>Break all links on this pin</button>{graphSelection === "live-plan" && pinMenu.family === "data" && (editedPlan ?? plannerResult) && pinConnections((editedPlan ?? plannerResult)!.plan.steps, pinMenu.nodeId.slice(8), pinMenu.direction).map((link) => <button key={`${link.from}:${link.to}`} onClick={() => { commitOperationEdit(disconnectOperations((editedPlan ?? plannerResult)!, link.from, link.to), "Link broken · backend validation required."); setPinMenu(null); }}>Break {link.from} → {link.to}</button>)}<button onClick={() => { setPinMenu(null); openBlockConnections(); }}>Inspect connections</button><button onClick={() => setPinMenu(null)}>Close</button></div>}
+          {connectionHover && <div className={`pin-drag-feedback ${connectionHover.compatible ? "compatible" : "incompatible"}`} role="status">{connectionHover.compatible ? "✓ " : ""}{connectionHover.message}</div>}
+          {addMenu && <AddOperationMenu key={`${addMenu.x}:${addMenu.y}:${addMenu.pin?.nodeId ?? ""}`} x={addMenu.x} y={addMenu.y} skills={plannerSkills?.skills ?? []} onAdd={addOperation} onClose={() => setAddMenu(null)}/>}
+
+          <div className="canvas-window" tabIndex={0} aria-label="Workflow canvas" onContextMenu={(e) => {
+            e.preventDefault();
+            if (suppressCanvasMenu.current) { suppressCanvasMenu.current = false; return; }
+            const hit = document.elementFromPoint(e.clientX, e.clientY) ?? e.target as Element;
+            const pin = hit.closest<HTMLElement>("[data-port-node]");
+            if (pin) { openPinMenuAt(e.clientX, e.clientY, pin.dataset.portNode!, pin.dataset.portFamily as PortFamily, pin.dataset.portDirection as PinDirection); return; }
+            const block = hit.closest<HTMLElement>("[data-operation-node]");
+            if (block) { setSelectedId(block.dataset.operationNode!); openPinMenuAt(e.clientX, e.clientY, block.dataset.operationNode!, "data", "out", true); return; }
+            openAddMenuAt(e.clientX, e.clientY);
+          }} onKeyDown={(e) => { if (e.key === "Escape" && nodeDragRef.current) { e.preventDefault(); cancelNodeLayoutDrag(); return; } if (e.target !== e.currentTarget) return; if (e.shiftKey && e.key.toLowerCase() === "a") { e.preventDefault(); openAddMenu(); } else if (e.key === "Delete") { e.preventDefault(); if (graphSelection === "live-plan") removeOperation(); else if (mode === "proposal") deleteDraftNode(); } else if (e.key === "Escape") { cancelNodeLayoutDrag(); cancelConnectionDrag(); setAddMenu(null); setPinMenu(null); } else if (e.key === "Home") { e.preventDefault(); fitGraph(); } }} ref={canvasWindowRef} onScroll={updateViewport} onPointerDown={startCanvasPan} onPointerMove={moveCanvasPan} onPointerUp={endCanvasPan} onPointerCancel={endCanvasPan}>
             <div className="canvas-sizer" style={{ width: canvasSize.width * zoom, height: canvasSize.height * zoom }}>
               <div className="canvas" style={{ width: canvasSize.width, height: canvasSize.height, transform: `scale(${zoom})` }}>
               {orientation === "horizontal" && <><div className="lane-guide lane-control"><span>Agent / control lane</span></div><div className="lane-guide lane-data"><span>Tool / data lane</span></div></>}
               {groupFrames.map((frame) => <div className={`node-group group-${frame.group}`} key={frame.group} style={{ left: frame.x, top: frame.y, width: frame.width, height: frame.height }}><span>{groupLabels[frame.group]}</span></div>)}
               <svg className="connections" width={canvasSize.width} height={canvasSize.height} aria-hidden="true">{displayedWorkflow.edges.map((edge) => {
                 const start = nodes.find((node) => node.id === edge.from); const end = nodes.find((node) => node.id === edge.to); if (!start || !end) return null; const horizontal = orientation === "horizontal";
-                const edgeKind = edgeKindOf(edge); const startPoint = edgePoint(start, "from", edgeKind, horizontal); const endPoint = edgePoint(end, "to", edgeKind, horizontal); const { x: x1, y: y1 } = startPoint; const { x: x2, y: y2 } = endPoint; const bend = horizontal ? (x1 + x2) / 2 : (y1 + y2) / 2;
-                const path = horizontal ? `M ${x1} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x2} ${y2}` : `M ${x1} ${y1} C ${x1} ${bend}, ${x2} ${bend}, ${x2} ${y2}`;
-                const labelX = horizontal ? bend : (x1 + x2) / 2; const labelY = horizontal ? (y1 + y2) / 2 - 7 : bend - 7;
-                return <g key={`${edge.from}-${edge.to}`} className={`connection edge-${edgeKind}`}><path d={path}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
+                const edgeKind = edgeKindOf(edge);
+                const { path, labelX, labelY } = bezierGeometry(edgePoint(start, "from", edgeKind, horizontal), edgePoint(end, "to", edgeKind, horizontal), horizontal);
+                return <g key={`${edge.from}-${edge.to}`} data-edge-from={edge.from} data-edge-to={edge.to} data-edge-kind={edgeKind} className={`connection edge-${edgeKind} ${hoveredPin && portFamilyOf(edgeKind) === hoveredPin.family && (hoveredPin.direction === "out" ? edge.from === hoveredPin.nodeId : edge.to === hoveredPin.nodeId) ? "pin-highlighted" : ""}`}><path d={path}/><text x={labelX} y={labelY}>{edge.label ?? edgeKind}</text></g>;
               })}{connectionDrag && connectionPreviewPath && <g className={`connection edge-${connectionDrag.edgeKind} draft-connection`}><path d={connectionPreviewPath}/></g>}</svg>
-                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true" data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag}/>; return <button key={node.id} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" ? "editable" : ""} ${selectedId === node.id ? "selected" : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => setSelectedId(node.id)}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state">{node.status === "failed" || node.status === "denied" || node.status === "interrupted" ? <XCircle size={13}/> : <CheckCircle2 size={13}/ >}{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
+                {nodes.map((node) => { const Icon = icons[node.kind]; const category = categoryOf(node); const incoming = [...new Set(displayedWorkflow.edges.filter((edge) => edge.to === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const outgoing = [...new Set(displayedWorkflow.edges.filter((edge) => edge.from === node.id).map((edge) => portFamilyOf(edgeKindOf(edge))))]; const available = availablePortFamilies(node); const inputPorts = [...new Set([...available, ...incoming])]; const outputPorts = [...new Set([...available, ...outgoing])]; const renderPort = (family: PortFamily, direction: "in" | "out", connected: boolean) => family === "control" ? <svg key={direction + "-" + family} className={"typed-port control-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} viewBox="0 0 16 16" aria-hidden="true" data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerEnter={() => setHoveredPin({ nodeId: node.id, family, direction })} onPointerLeave={() => setHoveredPin(null)} aria-label="Drag to connect · Alt-click to break · Ctrl-drag to move links · Right-click for actions" onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag} onClick={(event) => { event.stopPropagation(); canvasWindowRef.current?.focus({ preventScroll: true }); }}><polygon points="2,2 14,8 2,14"/></svg> : <span key={direction + "-" + family} className={"typed-port port-" + family + " " + direction + " " + (connected ? "connected" : "unconnected")} data-port-node={node.id} data-port-family={family} data-port-direction={direction} onPointerEnter={() => setHoveredPin({ nodeId: node.id, family, direction })} onPointerLeave={() => setHoveredPin(null)} title="Drag to connect · Alt-click to break · Ctrl-drag to move links · Right-click for actions" onPointerDown={(event) => startConnectionDrag(node.id, family, direction, event)} onPointerMove={moveConnectionDrag} onPointerUp={endConnectionDrag} onPointerCancel={endConnectionDrag} onClick={(event) => { event.stopPropagation(); canvasWindowRef.current?.focus({ preventScroll: true }); }}/>; return <button key={node.id} data-operation-node={node.id.startsWith("planned_step_") ? node.id : undefined} data-operation-skill={(editedPlan ?? plannerResult)?.plan.steps.find((step) => `planned_${step.step_id}` === node.id)?.skill} className={`flow-node orientation-${orientation} category-${category} status-${node.status} ${mode === "proposal" || (graphSelection === "live-plan" && moveBlocks) ? "editable" : ""} ${graphSelection === "live-plan" && node.id.startsWith("planned_step_") ? "operation-editable" : ""} ${selectedId === node.id ? "selected" : ""} ${(authorizationFocus || workflowReviewOpen) && graphSelection === "live-plan" && workflowReview?.plan_sha256 === savedPlannerResult?.plan_sha256 && workflowReview?.approval_required_step_ids.some((id) => `planned_${id}` === node.id) ? (workflowAuthorization ? "operation-authorized" : "operation-needs-authorization") : ""}`} style={{ left: node.x, top: node.y }} onPointerDown={(event) => startNodeDrag(node, event)} onPointerMove={moveNode} onPointerUp={endNodeDrag} onPointerCancel={endNodeDrag} onClick={() => { setSelectedId(node.id); if (graphSelection === "live-plan" || mode === "proposal") canvasWindowRef.current?.focus({ preventScroll: true }); }}><span className="node-accent"/>{inputPorts.map((family) => renderPort(family, "in", incoming.includes(family)))}{outputPorts.map((family) => renderPort(family, "out", outgoing.includes(family)))}<span className="node-kicker">{category.toUpperCase()}<span className="node-state">{node.status === "failed" || node.status === "denied" || node.status === "interrupted" ? <XCircle size={13}/> : <CheckCircle2 size={13}/ >}{node.status}</span></span><span className="node-main"><span className="node-icon"><Icon size={19}/></span><span><strong>{titleOf(node)}</strong><small>{node.subtitle}</small></span></span><span className="node-footer"><span className="actor-label">{performerOf(node)}</span><ZoomIn size={13}/></span></button>; })}
               </div>
             </div>
           </div>
         </div>
-        <div className="timeline"><div className="timeline-title"><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>Select a stage to inspect evidence</small><div className="timeline-navigation"><button type="button" aria-label="Scroll timeline left" onClick={() => timelineScrollRef.current?.scrollBy({ left: -Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowLeft size={14}/></button><button type="button" aria-label="Scroll timeline right" onClick={() => timelineScrollRef.current?.scrollBy({ left: Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowRight size={14}/></button></div></div><div className="timeline-scroll" ref={timelineScrollRef}><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong>{titleOf(node)}</strong></button>)}</div></div></div></div>
+        <div className={`timeline ${timelineExpanded ? "expanded" : "compact"}`}><div className="timeline-title"><button className="timeline-toggle" aria-expanded={timelineExpanded} onClick={() => setTimelineExpanded((value) => !value)}>{timelineExpanded ? "Collapse" : "Expand"}</button><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>Select a stage to inspect evidence</small><div className="timeline-navigation"><button type="button" aria-label="Scroll timeline left" onClick={() => timelineScrollRef.current?.scrollBy({ left: -Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowLeft size={14}/></button><button type="button" aria-label="Scroll timeline right" onClick={() => timelineScrollRef.current?.scrollBy({ left: Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowRight size={14}/></button></div></div><div className="timeline-scroll" ref={timelineScrollRef}><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} title={titleOf(node)} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${executionProgress?.steps.some((step) => step.status === "running" && node.id === `active_${step.step_id}`) ? "is-running" : ""} ${selected.id === node.id ? "selected" : ""}`} onClick={() => setSelectedId(node.id)}><span className="timeline-event-status">{node.status}</span><span className="timeline-event-marker"/><strong className="timeline-event-label">{titleOf(node)}</strong></button>)}</div></div></div></div>
       </section>
-      <aside className="inspector">
+      {outcomeOpen && <aside className="record-workspace workspace-right-panel workflow-outcome-panel" aria-labelledby="outcome-title"><header className="template-workspace-head"><h2 id="outcome-title">Current outcome</h2><button aria-label="Close outcome" onClick={() => setOutcomeOpen(false)}><X size={18}/></button></header>{workflowOutcomeNotice && !currentInspection && !executionResult && <p role="alert">Execution did not complete: {workflowOutcomeNotice}</p>}{!workflowOutcomeNotice && !currentInspection && !executionResult && <p>No execution outcome yet. Generate or open a saved plan, then use Execute. Previous attempts are in Execution History.</p>}{currentInspection && <><strong>{currentInspection.status} · {currentInspection.workflow_kind === "snakemake_export" ? "Snakemake export and verification" : "read-only inspection"}</strong><p>{new Date(currentInspection.started_at).toLocaleString()} · {currentInspection.approval_recorded ? "Required plan approval recorded" : "No approval required"}</p>{currentInspection.finding && <p role="alert">{currentInspection.finding}</p>}{currentInspection.step_results.map((step) => <article key={step.step_id}><h3>{skillLabel(step.skill_id)}</h3><dl>{outcomeFacts(step.outcome).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl></article>)}</>}{executionResult && <><strong>{executionResult.status === "validated_success" ? "Success · output validated" : "Failure · validation did not pass"}</strong>{executionResult.step_results.map((step) => <article key={step.step_id}><h3>{skillLabel(step.skill_id)} · {step.status}</h3><dl>{outcomeFacts(step.outcome).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl>{Boolean(step.validation_outcome) && <details className="outcome-validation-details"><summary>Validation details</summary><pre>{JSON.stringify(step.validation_outcome, null, 2)}</pre></details>}</article>)}<dl className="outcome-artifact-references"><div><dt>Evidence</dt><dd>{executionResult.evidence_path}</dd></div><div><dt>Report</dt><dd>{executionResult.report_path}</dd></div></dl></>}</aside>}
+      {executionInventoryOpen && <aside className="record-workspace execution-inventory-workspace workspace-right-panel" aria-labelledby="runs-title"><header className="template-workspace-head"><div><p className="eyebrow">Durable governed history</p><h2 id="runs-title">Execution History</h2><p>Reopen persisted progress after closing the browser or restarting the interface API. This view cannot retry an execution.</p></div><button aria-label="Close execution attempts" onClick={() => setExecutionInventoryOpen(false)}><X size={18}/></button></header>{executionInventoryNotice && <p className="recipe-inventory-notice">{executionInventoryNotice}</p>}<h3>Current-plan attempts · inspections and exports</h3>{inspectionNotice && <p role="status">{inspectionNotice}</p>}{inspectionRuns.map((run) => <article className="execution-attempt" key={run.run_id}><strong>{run.status} · {run.plan_sha256.slice(0, 12)}</strong><p>{new Date(run.started_at).toLocaleString()} · {run.step_results.length} completed steps</p><button className="context-intent-toggle" onClick={() => { setCurrentInspection(run); setExecutionResult(null); setWorkflowOutcomeNotice(""); setExecutionInventoryOpen(false); setOutcomeOpen(true); }}>View outcome</button></article>)}<h3>Governed recipe attempts</h3>{executionInventory && <div className="execution-attempts"><div className="execution-attempt-summary"><strong>{executionInventory.attempt_count}</strong><span>durable attempt{executionInventory.attempt_count === 1 ? "" : "s"}</span><small>Read-only inventory · no execution performed</small></div>{executionInventory.attempts.map((attempt) => <article className={`execution-attempt status-${attempt.status}`} key={attempt.execution_preview_sha256}><header><span><strong>{attempt.recipe_id ?? "Legacy execution attempt"}</strong><small>{attempt.status.replaceAll("_", " ")}</small></span><time dateTime={attempt.started_at}>{new Date(attempt.started_at).toLocaleString()}</time></header><dl><div><dt>Steps</dt><dd>{attempt.step_count}</dd></div><div><dt>Stopped at</dt><dd>{attempt.failed_step_id ?? "—"}</dd></div><div><dt>Finished</dt><dd>{attempt.finished_at ? new Date(attempt.finished_at).toLocaleString() : "In progress"}</dd></div></dl><p className={`execution-authority ${attempt.authority_link}`} title={attempt.authority_reason}>{attempt.authority_link === "verified" ? "Approval linked at run start" : attempt.authority_link === "blocked" ? "Authority link blocked" : "Approval link unavailable"} · {attempt.authority_reason}</p><p className={`execution-authority ${attempt.result_link}`} title={attempt.result_reason}>{attempt.result_link === "verified" ? "Result and evidence verified" : attempt.result_link === "blocked" ? "Result link blocked" : "Result link unavailable"} · {attempt.result_reason}</p><code title={attempt.execution_preview_sha256}>{attempt.execution_preview_sha256}</code><button disabled={!attempt.recipe_id || !attempt.recipe_sha256} onClick={() => void reopenExecutionAttempt(attempt.execution_preview_sha256)}>{attempt.status === "running" ? "View live graph" : "Reopen run graph"}</button></article>)}</div>}</aside>}
+      {workflowReviewOpen && <aside className="record-workspace workspace-right-panel workflow-review-panel" aria-labelledby="execute-title">
+        <header className="template-workspace-head"><h2 id="execute-title">{authorizationFocus ? "Authorize operations" : "Execute workflow"}</h2><button aria-label="Close workflow review" onClick={() => setWorkflowReviewOpen(false)}><X size={18}/></button></header>
+        {workflowNotice && <p className="workflow-review-notice" ref={workflowNoticeRef} role="status">{workflowAuthorization && workflowNotice.startsWith("Authorization recorded for") ? <>Authorization recorded for <strong className="authorization-duration">30 minutes</strong>. Click Execute to run this exact workflow.</> : workflowNotice}</p>}
+        {workflowReview && <><p>{workflowReview.workflow_kind === "snakemake_export" ? "Export and static verification only. Completed source operations are reused; PostGIS and Snakemake will not run." : "Review the exact inputs, operations and affected resources beside the graph."}</p>{workflowReview.export_path && <dl><div><dt>Package</dt><dd>{workflowReview.export_path}</dd></div></dl>}<ol>{workflowReview.steps.map((step) => <li key={step.step_id} className={authorizationFocus && step.requires_approval ? "authorization-step" : ""}><button className="review-step-link" onClick={() => { setSelectedId(`planned_${step.step_id}`); requestAnimationFrame(() => revealSelectedOperation()); }}><small>{step.step_id.replace("step_", "Step ")}</small><strong>{skillLabel(step.skill)}</strong></button><p>{step.purpose}</p><dl>{Object.entries(step.arguments).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd></div>)}</dl><div className="review-step-footer"><small className="review-step-dependencies">After: {step.depends_on?.join(", ") || "workflow start"}</small><small className="review-step-gates">{step.execution_mode === "reuse_completed" ? "Reusing completed evidence · will not rerun" : step.requires_approval ? "Authorization required · highlighted in graph" : "No authorization required"} · {step.validation_required ? "Result validation required" : "Inspection result"}</small></div></li>)}</ol>
+        {workflowReview.approval_required_step_ids.length > 0 ? <WorkflowAuthorizationForm executionButton={<button type="button" className="context-intent-toggle execute-button" disabled={workflowBusy || !workflowReview.execution_available || Boolean(workflowReview.approval_required_step_ids.length && !workflowAuthorization)} onClick={() => void executeReviewedWorkflow()}><Play size={16} fill="currentColor"/>{workflowBusy ? "Working…" : "Execute"}</button>} initialApprover={workflowApprover} initialReason={workflowReason} busy={workflowBusy} authorized={Boolean(workflowAuthorization)} available={workflowReview.execution_available} onDraft={(approver, reason) => { setWorkflowApprover(approver); setWorkflowReason(reason); }} onAuthorize={(approver, reason) => void authorizeReviewedWorkflow(approver, reason)}/> : <p>Read-only inspection: clicking Execute authorizes this exact inspection. No approval record is needed.</p>}
+        {!workflowReview.execution_available && <p role="alert">Write tools are disabled. Restart with --enable-write-tools, then reopen this review.</p>}
+        {!workflowReview.approval_required_step_ids.length && <div className="workflow-decision-actions"><button type="button" className="context-intent-toggle execute-button" disabled={workflowBusy || !workflowReview.execution_available || Boolean(workflowReview.approval_required_step_ids.length && !workflowAuthorization)} onClick={() => void executeReviewedWorkflow()}><Play size={16} fill="currentColor"/>{workflowBusy ? "Working…" : "Execute"}</button></div>}</>}
+      </aside>}
+      <aside className={`inspector category-${categoryOf(selected)}`}>
         <div className="inspector-head"><div><p className="eyebrow">Inspector</p><h2>{titleOf(selected)}</h2></div><span className={`type-chip category-${categoryOf(selected)}`}>{categoryOf(selected)}</span></div>
+        {editedPlan && graphSelection === "live-plan" && selectedId.startsWith("planned_step_") && <section className="detail-section operation-parameters"><h3>Operation parameters</h3><p>Draft · validate before approval or execution.</p>{editedPlan.plan.steps.filter((step) => `planned_${step.step_id}` === selectedId).map((step) => <div key={step.step_id}>{Object.entries(step.arguments).map(([key, value]) => <label key={key}>{key.replaceAll("_", " ")}{typeof value === "boolean" ? <input type="checkbox" checked={value} disabled={editBusy || workflowBusy} onChange={(e) => editParameter(step.step_id, key, e.target.checked)}/> : <input disabled={editBusy || workflowBusy} type={typeof value === "number" ? "number" : "text"} value={typeof value === "object" && value !== null ? JSON.stringify(value) : String(value ?? "")} maxLength={2000} onChange={(e) => { if (typeof value === "number") editParameter(step.step_id, key, Number(e.target.value)); else if (typeof value !== "object" || value === null) editParameter(step.step_id, key, e.target.value); }} />}</label>)}</div>)}</section>}
+        {connectionsOpen && (editedPlan ?? plannerResult) && graphSelection === "live-plan" && <section className="detail-section operation-connections"><h3>Block connections</h3><p>Drag between matching pins in either direction. Alt-click breaks links; Ctrl-drag moves links. Right-click a pin for actions. Connections define completion order; file parameters remain explicit.</p><label>From block<select value={selectedId.startsWith("planned_step_") ? selectedId : ""} onChange={(event) => { setSelectedId(event.target.value); setOperationTarget(""); setConnectionToRemove(""); }}><option value="">Select operation…</option>{(editedPlan ?? plannerResult)!.plan.steps.map((step) => <option key={step.step_id} value={`planned_${step.step_id}`}>{step.step_id} · {skillLabel(step.skill)}</option>)}</select></label><label>To block<select value={operationTarget} onChange={(event) => setOperationTarget(event.target.value)}><option value="">Select operation…</option>{(editedPlan ?? plannerResult)!.plan.steps.filter((step) => `planned_${step.step_id}` !== selectedId).map((step) => <option key={step.step_id} value={`planned_${step.step_id}`}>{step.step_id} · {skillLabel(step.skill)}</option>)}</select></label><button disabled={workflowBusy || editBusy || !operationTarget || !canConnect(selectedId, operationTarget, "data")} onClick={() => connectPlanOperations(selectedId, operationTarget)}><Link2 size={14}/> Connect blocks</button><label>Existing dependency<select value={connectionToRemove} onChange={(event) => setConnectionToRemove(event.target.value)}><option value="">Select connection…</option>{Object.entries(operationDependencies((editedPlan ?? plannerResult)!.plan.steps)).flatMap(([to, parents]) => parents.map((from) => <option key={`${from}:${to}`} value={`${from}:${to}`}>{from} → {to}</option>))}</select></label><button disabled={workflowBusy || editBusy || !connectionToRemove} onClick={disconnectPlanOperations}><Unlink size={14}/> Disconnect blocks</button></section>}
+        {plannerResult && graphSelection === "live-plan" && <section className="detail-section"><h3>Planning details</h3>{selected.id === "planned_request" ? <p>{plannerResult.original_request}</p> : selected.id.startsWith("planned_step_") ? <>{(editedPlan ?? plannerResult).plan.steps.filter((step) => `planned_${step.step_id}` === selected.id).map((step) => <div key={step.step_id}><p>{step.purpose}</p><code>{step.skill}</code><pre>{JSON.stringify(step.arguments, null, 2)}</pre><p>{step.requires_approval ? "Human approval required" : "No approval gate proposed"} · {step.validation_required ? "Validation required" : "Validation not required"}</p></div>)}</> : <p>{plannerResult.plan.summary}</p>}</section>}
         <details id="task-history" className="task-context-pane" open={taskPaneOpen} onToggle={(event) => { if (event.target === event.currentTarget) setTaskPaneOpen(event.currentTarget.open); }}>
           <summary><span>Task history</span><strong>{taskContext ? `${taskContext.event_count} events` : currentTaskId ? "Loading" : "No task selected"}</strong></summary>
           <div className="task-history-actions"><button type="button" disabled={plannerPending} onClick={() => void openSavedTasks()}>Saved tasks</button><button type="button" disabled={plannerPending || !viewedTaskId} onClick={() => void refreshViewedTask()}>Refresh checked context</button></div>
@@ -1930,7 +2313,7 @@ export default function App() {
             {taskContext && <><ol>{taskContext.excerpts.map((entry) => <li key={entry.sequence}><span>{entry.event_type.replaceAll("_", " ")} · {entry.sequence}</span><p>{entry.summary}</p><details><summary>Source event</summary><small>{entry.source.path}</small><code>{entry.source.sha256}</code></details></li>)}</ol>{taskContext.truncated && <small>Older events omitted from this bounded preview; original records remain stored.</small>}<details><summary>Context audit identity</summary><code>{taskContext.context_sha256}</code></details><small>Read-only context · no model call · no execution · history decisions grant no approval</small></>}
           </div>
         </details>
-        <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>{mode === "proposal" ? "Uncommitted proposal state" : "Evidence-backed status"}</span></div></div>
+        <div className={`status-card status-${selected.status}`}><CheckCircle2 size={20}/><div><strong>{selected.status.replace("_", " ")}</strong><span>{mode === "proposal" || editedPlan ? "Unvalidated draft state" : "Evidence-backed status"}</span></div></div>
         {mode === "proposal" && <>
           <section className="detail-section proposal-fields">
             <h3>Edit selected block</h3>

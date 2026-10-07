@@ -481,6 +481,7 @@ def test_interface_planner_uses_existing_service_without_execution(
 
     assert captured["original_request"] == (
         request_text
+        + "\n\nFile input convention: resolve a bare input filename under data/input. Keep explicit normalized data/input paths. This convention does not grant file access or execution authority."
         + "\n\nOperator-selected governed input references:\n"
         + "- data/input/sample_points.geojson"
     )
@@ -2021,3 +2022,48 @@ def test_intent_review_and_handoff_http_keep_exact_scope_and_authority(tmp_path:
         connection.close()
     finally:
         server.shutdown();server.server_close();thread.join(timeout=3)
+
+
+def test_generated_plan_storage_does_not_claim_human_review(tmp_path, monkeypatch):
+    original_save = interface_api_module.save_interface_reviewed_plan
+    def isolated_save(request, *, project_root):
+        return original_save(request, project_root=project_root, plan_root=tmp_path / 'plans')
+    monkeypatch.setattr(interface_api_module, 'save_interface_reviewed_plan', isolated_save)
+    server = ThreadingHTTPServer(('127.0.0.1', 0), _handler(PROJECT_ROOT))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection('127.0.0.1', server.server_port, timeout=3)
+        body = reviewed_write_plan_request().model_dump(mode='json')
+        body['action'] = 'save_generated_plan'
+        def post(value):
+            connection.request('POST', '/api/v1/plans/save-generated', body=json.dumps(value), headers={'Content-Type':'application/json','Origin':'http://localhost:5173'})
+            response = connection.getresponse()
+            return response.status, json.loads(response.read())
+        code, result = post(body)
+        assert code == 200
+        assert result['plan_saved'] is True
+        assert result['human_review_performed'] is False
+        assert result['storage_kind'] == 'generated_proposal'
+        assert result['approval_performed'] is result['execution_performed'] is False
+        assert (tmp_path / 'plans' / result['plan_filename']).is_file()
+        code, again = post(body)
+        assert code == 200 and again['status'] == 'already_stored'
+        code, _ = post({**body, 'confirmed_plan_sha256':'f'*64})
+        assert code != 200
+        code, _ = post({**body, 'execute':True})
+        assert code != 200
+        assert len(list((tmp_path / 'plans').glob('*.json'))) == 1
+        connection.close()
+    finally:
+        server.shutdown(); server.server_close(); thread.join(timeout=3)
+
+@pytest.mark.parametrize('path, expected', [('sample_points.geojson','data/input/sample_points.geojson'), ('data/input/sample_points.geojson','data/input/sample_points.geojson'), ('data/input/sub/sample.geojson','data/input/sub/sample.geojson')])
+def test_planner_input_filename_normalization(path, expected):
+    request = InterfacePlanRequest(action='plan_task',request='Inspect metadata',allowed_skill_ids=['inspect_vector'],input_paths=[path])
+    assert request.input_paths == [expected]
+
+@pytest.mark.parametrize('paths', [['../outside.geojson'], ['/tmp/data.geojson'], ['data/input/../outside'], ['data/input//sample.geojson'], ['data/input/./sample.geojson'], ['sample.geojson','data/input/sample.geojson']])
+def test_planner_input_normalization_rejects_unsafe_or_duplicate_paths(paths):
+    with pytest.raises(ValueError):
+        InterfacePlanRequest(action='plan_task',request='Inspect metadata',allowed_skill_ids=['inspect_vector'],input_paths=paths)

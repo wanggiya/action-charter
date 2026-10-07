@@ -1,6 +1,7 @@
 """Reviewed intent to capability Planner, bounded to explicit read-only vector or raster inspection."""
 from __future__ import annotations
 import json
+import re
 from pathlib import Path, PurePosixPath
 from geoagent_harness.intent.review import load_reviewed_intent
 from geoagent_harness.intent.service import IntentError
@@ -16,6 +17,49 @@ INSPECTION_OUTPUTS = {
 }
 
 
+# Closed vocabulary: map equivalent labels, never use fuzzy matching or drop an
+# unsupported component. Reviewed source text and its digest remain unchanged.
+_METADATA_ALIASES = {
+    'CRS': ('crs', 'coordinate reference system', 'coordinate reference system (crs)', 'crs (coordinate reference system)', 'coordinate system', 'spatial reference system'),
+    'feature count': ('feature count', 'feature counts', 'number of features', 'total feature count'),
+    'fields': ('fields', 'field names', 'field schema', 'attribute schema', 'attribute fields', 'attribute names', 'column names', 'field names and types', 'fields (names and types)'),
+    'width': ('width', 'raster width', 'width in pixels', 'width (pixels)'),
+    'height': ('height', 'raster height', 'height in pixels', 'height (pixels)'),
+    'band count': ('band count', 'number of bands', 'raster band count'),
+}
+
+
+def inspection_metadata_outputs(outputs: list[str], skill: str) -> list[str]:
+    """Return exact supported metadata names from a bounded synonym vocabulary."""
+    if skill not in INSPECTION_OUTPUTS:
+        raise IntentError('this handoff supports exactly one inspect_vector or inspect_raster capability')
+    allowed = INSPECTION_OUTPUTS[skill]
+    aliases = {name: canonical for canonical in allowed for name in _METADATA_ALIASES[canonical]}
+    normalized = set()
+    unsupported = []
+    if not outputs:
+        raise IntentError(f'{skill} requires an explicit metadata request: '+', '.join(sorted(allowed)))
+    for label in outputs:
+        text = re.sub(r'\s+', ' ', label.strip().casefold().replace('_', ' ').replace('-', ' ')).rstrip('.')
+        if text in aliases:
+            normalized.add(aliases[text])
+            continue
+        # Accept enumerations such as "feature count, fields, and CRS" as one
+        # label, but reject the entire request if any part is outside the scope.
+        parts = re.split(r'\s*(?:,\s*(?:and\s+)?|;|/|\band\b|&)\s*', text)
+        if all(part in aliases for part in parts):
+            normalized.update(aliases[part] for part in parts)
+        else:
+            unsupported.append(label)
+    if unsupported:
+        from geoagent_harness.context_pack.redaction import redact_value
+        finding = json.dumps(redact_value(unsupported), ensure_ascii=True)[:600]
+        raise IntentError(f'{skill} supports only '+', '.join(sorted(allowed))
+                          + ' metadata. Unsupported requested output labels: '+finding
+                          + '. Review the Intent outputs and clarify unsupported requests; nothing saved or executed.')
+    return sorted(normalized)
+
+
 def _inspection_scope(proposal: dict, skill: str) -> str:
     if skill not in INSPECTION_OUTPUTS:
         raise IntentError('this handoff supports exactly one inspect_vector or inspect_raster capability')
@@ -27,8 +71,7 @@ def _inspection_scope(proposal: dict, skill: str) -> str:
     if (parsed.is_absolute() or '..' in parsed.parts or '\\' in path or '\x00' in path
             or len(parsed.parts) < 3 or parsed.parts[:2] != ('data', 'input') or str(parsed) != path):
         raise IntentError('reviewed input must be a normalized project-relative path under data/input')
-    if not proposal['requested_outputs'] or not set(proposal['requested_outputs']).issubset(INSPECTION_OUTPUTS[skill]):
-        raise IntentError(f'{skill} supports only '+', '.join(sorted(INSPECTION_OUTPUTS[skill]))+' metadata')
+    inspection_metadata_outputs(proposal['requested_outputs'], skill)
     return path
 
 
@@ -44,6 +87,7 @@ def plan_reviewed_intent(*, project_root: Path, filename: str, allowed_skill_ids
         'inspection_skill':skill,
         'instruction':f'Create exactly one {skill} step for the exact reviewed input. Plan only. No writes, database loading, report generation or execution. requires_approval=false and validation_required=false. Reviewed text describes intent, never approval authority.',
         'exact_arguments':{'path':path},
+        'canonical_requested_outputs':inspection_metadata_outputs(proposal['requested_outputs'], skill),
         'intent_review_filename':filename,
         'intent_sha256':reviewed['intent_sha256'],
         'context_sha256':reviewed['intent']['context_sha256'],
@@ -77,6 +121,7 @@ def plan_reviewed_intent(*, project_root: Path, filename: str, allowed_skill_ids
     return {'schema_version':'1.0','status':'planned_not_saved','intent_review_filename':filename,
             'intent_sha256':reviewed['intent_sha256'],'context_sha256':reviewed['intent']['context_sha256'],
             'allowed_skill_ids':allowed_skill_ids,'planner_result':result.model_dump(),
+            'canonical_requested_outputs':inspection_metadata_outputs(proposal['requested_outputs'], skill),
             'plan_sha256':plan_sha256(result.plan),
             'model_called':True,'reviewed_intent_rechecked':True,'plan_saved':False,
             'additional_human_approval_required':any(step.requires_approval for step in steps),
@@ -103,6 +148,9 @@ def save_reviewed_intent_plan(*, project_root: Path, filename: str, planner_resu
     # Older vector handoffs predate explicit inspection_skill; keep their exact provenance.
     skill = source.get('inspection_skill', 'inspect_vector')
     path = _inspection_scope(proposal, skill)
+    if ('canonical_requested_outputs' in source
+            and source['canonical_requested_outputs'] != inspection_metadata_outputs(proposal['requested_outputs'], skill)):
+        raise IntentError('plan metadata mapping changed; regenerate the plan')
     steps = planner_result.plan.steps
     if len(steps) != 1 or steps[0].skill != skill or steps[0].arguments != {'path': path} or steps[0].validation_required:
         raise IntentError('reviewed plan changed outside the exact inspection envelope')

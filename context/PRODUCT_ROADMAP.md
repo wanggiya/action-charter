@@ -6,6 +6,8 @@ Updated: 2026-10-04
 
 Checkpoint 22 implementation closes with checked context/Intent and inspection-plan handoff. Checkpoint 23 integrates conversation, explicit input selection, current graph and governed execution. It must support read-only continuation without fabricated approval and preserve exact approval for writes. A public demo follows actual end-to-end acceptance; tabular expansion follows later.
 
+Task workspace foundation now includes explicit input selection, pre-inference existence checks and a pending task graph. Seamless read-only/write execution and outcome acceptance remain in progress. See docs/CHECKPOINT23A.md.
+
 ## Product direction
 
 ActionCharter is a local-first, approval-gated execution and release system for AI agents using professional tools. A local model may interpret a request and propose a constrained workflow, but deterministic policy, typed schemas, human approval, trusted adapters, independent validation, evidence, and reproducible replay determine what becomes authoritative. GIS is the first complete reference domain, not the architectural limit.

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import PurePosixPath
 from collections.abc import Collection
 
 from geoagent_harness.planner.schemas import WorkflowPlan
+from geoagent_harness.planner.topology import plan_dependencies, plan_topological_order, ancestors
 
 FORBIDDEN_ARGUMENT_KEYS = {
     "command",
@@ -32,12 +34,14 @@ FORBIDDEN_TEXT_PATTERNS = (
 )
 
 WRITE_SKILLS = {
+    "export_snakemake_workflow",
     "convert_vector",
     "load_vector_to_postgis",
     "generate_report",
 }
 
 REQUIRED_SKILL_ARGUMENTS = {
+    "export_snakemake_workflow": {"source_plan_filename", "source_plan_sha256"},
     "inspect_vector": {
         "path",
     },
@@ -78,6 +82,31 @@ def _argument_keys(value: object) -> set[str]:
     return keys
 
 
+def normalize_plan_input_filenames(plan: WorkflowPlan) -> None:
+    """Resolve model-proposed bare input filenames before policy and hashing."""
+    for step in plan.steps:
+        value = step.arguments.get("path")
+        if isinstance(value, str) and value and "/" not in value and "\\" not in value and value not in {".", ".."}:
+            step.arguments["path"] = "data/input/" + value
+
+
+def _validate_argument_paths(value: object) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "path" or key.endswith("_path"):
+                if not isinstance(item, str) or not item or len(item) > 960:
+                    raise PlannerPolicyError("file paths must be bounded normalized relative paths")
+                parsed = PurePosixPath(item)
+                if (parsed.is_absolute() or ".." in parsed.parts or "\\" in item
+                        or any(ord(char) < 32 for char in item) or str(parsed) != item
+                        or item in {".", ".."}):
+                    raise PlannerPolicyError("file paths must be safe normalized relative paths")
+            _validate_argument_paths(item)
+    elif isinstance(value, list):
+        for item in value:
+            _validate_argument_paths(item)
+
+
 def validate_plan_policy(
     plan: WorkflowPlan,
     *,
@@ -86,8 +115,15 @@ def validate_plan_policy(
     """Reject unapproved, unsafe, or unverifiable plans."""
 
     allowed = set(available_skills)
+    try:
+        dependencies = plan_dependencies(plan)
+        ordered_ids = plan_topological_order(plan)
+    except ValueError as error:
+        raise PlannerPolicyError(str(error)) from error
+    by_id = {step.step_id: step for step in plan.steps}
 
     for step in plan.steps:
+        _validate_argument_paths(step.arguments)
         if step.skill not in allowed:
             raise PlannerPolicyError(
                 f"skill is not implemented and approved: "
@@ -156,10 +192,18 @@ def validate_plan_policy(
                 f"{step.skill} must require approval"
             )
 
-    skill_order = [
-        step.skill
-        for step in plan.steps
-    ]
+    export_steps = [step for step in plan.steps if step.skill == "export_snakemake_workflow"]
+    verify_steps = [step for step in plan.steps if step.skill == "verify_snakemake_export"]
+    if export_steps or verify_steps:
+        if len(export_steps) != 1 or len(verify_steps) != 1:
+            raise PlannerPolicyError("Snakemake export requires exactly one export and one verification step")
+        export, verify = export_steps[0], verify_steps[0]
+        if not export.validation_required or not verify.validation_required:
+            raise PlannerPolicyError("Snakemake export and verification must require static validation")
+        if export.step_id not in ancestors(verify.step_id, dependencies) or ordered_ids[-2:] != [export.step_id, verify.step_id]:
+            raise PlannerPolicyError("Snakemake verification must follow export at the end of the workflow")
+
+    skill_order = [by_id[step_id].skill for step_id in ordered_ids]
 
     if "load_vector_to_postgis" in skill_order:
         load_index = skill_order.index(
@@ -192,6 +236,14 @@ def validate_plan_policy(
             )
 
     for step in plan.steps:
+        preceding = ancestors(step.step_id, dependencies)
+        if step.skill == "load_vector_to_postgis":
+            if not any(by_id[parent].skill == "inspect_vector" for parent in preceding):
+                raise PlannerPolicyError("PostGIS loading must depend on vector inspection")
+            if not any(candidate.skill == "validate_postgis_layer" and step.step_id in ancestors(candidate.step_id, dependencies) for candidate in plan.steps):
+                raise PlannerPolicyError("PostGIS loading must be followed by dependent deterministic validation")
+        if step.skill == "generate_report" and not any(by_id[parent].skill == "validate_postgis_layer" for parent in preceding):
+            raise PlannerPolicyError("report generation must depend on validation")
         if step.skill == "validate_postgis_layer":
             if not step.validation_required:
                 raise PlannerPolicyError(

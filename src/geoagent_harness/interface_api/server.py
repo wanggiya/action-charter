@@ -434,6 +434,7 @@ class InterfaceIntentRequest(BaseModel):
     action: Literal["reason_task_intent"]
     review_filename: str | None = Field(pattern=r"^context-review\.[a-f0-9]{64}\.json$")
     request: str = Field(min_length=1, max_length=4000)
+    selected_input_path: str | None = Field(default=None, min_length=1, max_length=960)
     clarification_answers: list[str] = Field(default_factory=list, max_length=5)
 
 
@@ -557,15 +558,21 @@ class InterfacePlanRequest(BaseModel):
     @field_validator("input_paths")
     @classmethod
     def input_paths_are_bounded(cls, value: list[str]) -> list[str]:
-        if len(value) != len(set(value)):
-            raise ValueError("input paths must be unique")
-        if any(
-            not re.fullmatch(r"data/input/[A-Za-z0-9._/-]+", item)
-            or ".." in item.split("/")
-            for item in value
-        ):
-            raise ValueError("input path is outside the governed input root")
-        return value
+        normalized = []
+        for item in value:
+            if len(item) > 960:
+                raise ValueError("input path is too long")
+            item = item.strip()
+            if "/" not in item:
+                item = "data/input/" + item
+            if (not re.fullmatch(r"data/input/[A-Za-z0-9._/-]+", item)
+                    or any(part in {"", ".", ".."} for part in item.split("/"))):
+                raise ValueError("input path is outside the governed input root")
+            normalized.append(item)
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("input paths must be unique after normalization")
+        return normalized
+
 
 
 class InterfaceReviewedPlanSaveRequest(BaseModel):
@@ -587,6 +594,12 @@ class InterfaceReviewedPlanSaveRequest(BaseModel):
         if any(not re.fullmatch(r"[a-z][a-z0-9_]*", item) for item in value):
             raise ValueError("allowed skill ID is invalid")
         return value
+
+
+class InterfaceGeneratedPlanSaveRequest(InterfaceReviewedPlanSaveRequest):
+    """Storage of a generated proposal is not human review or approval."""
+
+    action: Literal["save_generated_plan"]
 
 
 class InterfacePlanApprovalPreparationRequest(BaseModel):
@@ -1456,9 +1469,9 @@ def plan_interface_task(
 
     root = _trusted_root(project_root)
     trusted_agents = agents_root if agents_root is not None else root / "agents"
-    selected_context = ""
+    selected_context = "\n\nFile input convention: resolve a bare input filename under data/input. Keep explicit normalized data/input paths. This convention does not grant file access or execution authority."
     if request.input_paths:
-        selected_context = "\n\nOperator-selected governed input references:\n" + "\n".join(
+        selected_context += "\n\nOperator-selected governed input references:\n" + "\n".join(
             f"- {path}" for path in request.input_paths
         )
     result = plan_task(
@@ -2827,10 +2840,16 @@ def _handler(
                     "schema_version": "1.0",
                     "status": "ready",
                     "bound_to_loopback": True,
+                    "planner_contract_revision": "schema-correction-v52",
+                    "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            if self.path == "/api/v1/model-status":
+                from geoagent_harness.model.diagnostics import inspect_model_configuration
+                self._send(HTTPStatus.OK, inspect_model_configuration())
                 return
             task_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context", self.path)
             if self.path == "/api/v1/tasks":
@@ -2979,6 +2998,13 @@ def _handler(
                 except (InterfaceApiError, ApprovalError, OSError, ValueError):
                     self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "saved plan inventory is unavailable"})
                 return
+            if self.path == "/api/v1/inspection-runs":
+                from .workflow import inspection_inventory
+                try:
+                    self._send(HTTPStatus.OK, inspection_inventory(project_root=project_root))
+                except (InterfaceApiError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "inspection history unavailable"})
+                return
             if self.path == "/api/v1/recipes":
                 try:
                     self._send(HTTPStatus.OK, interface_saved_recipe_inventory(
@@ -3016,7 +3042,13 @@ def _handler(
                 "/api/v1/recipes/verify-approval",
                 "/api/v1/recipes/preview-execution",
                 "/api/v1/recipes/execute",
+                "/api/v1/plans/validate-edit",
+                "/api/v1/workflow/prepare",
+                "/api/v1/workflow/authorize",
+                "/api/v1/workflow/execute",
+                "/api/v1/planner/conversation",
                 "/api/v1/plans/create",
+                "/api/v1/plans/save-generated",
                 "/api/v1/plans/save-reviewed",
                 "/api/v1/plans/prepare-approval",
                 "/api/v1/plans/record-approval",
@@ -3083,6 +3115,7 @@ def _handler(
                             review_filename=intent_request.review_filename,
                             request=intent_request.request,
                             clarification_answers=intent_request.clarification_answers,
+                            selected_input_path=intent_request.selected_input_path,
                         )
                     except (ContextReviewError, ContextRetrievalError, OSError, KeyError) as exc:
                         self._send(HTTPStatus.CONFLICT, {"error": "reviewed context is unavailable or stale; retrieve and review again", "execution_performed": False})
@@ -3091,7 +3124,8 @@ def _handler(
                         self._send(HTTPStatus.BAD_REQUEST, {"error": str(exc), "execution_performed": False})
                         return
                     except (ModelClientError, ModelSettingsError) as exc:
-                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "intent model request failed; check local model service and settings", "execution_performed": False})
+                        from geoagent_harness.model.diagnostics import model_failure
+                        self._send(HTTPStatus.BAD_GATEWAY, model_failure(exc))
                         return
                 elif self.path in {"/api/v1/intent/inspect", "/api/v1/intent/review", "/api/v1/intent/plan", "/api/v1/intent/save-plan"}:
                     from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
@@ -3124,8 +3158,9 @@ def _handler(
                         status = HTTPStatus.CONFLICT if "already exists" in str(exc) or "changed" in str(exc) else HTTPStatus.BAD_REQUEST
                         self._send(status, {"error": redact_text(str(exc)), "execution_performed": False})
                         return
-                    except (ModelClientError, ModelSettingsError):
-                        self._send(HTTPStatus.BAD_GATEWAY, {"error": "Planner model request failed; check local model service and settings", "execution_performed": False})
+                    except (ModelClientError, ModelSettingsError) as exc:
+                        from geoagent_harness.model.diagnostics import model_failure
+                        self._send(HTTPStatus.BAD_GATEWAY, model_failure(exc))
                         return
                 elif self.path == "/api/v1/tasks/events":
                     response = record_interface_task_event(
@@ -3169,11 +3204,33 @@ def _handler(
                         InterfaceSnakemakeExportRequest.model_validate(payload),
                         project_root=project_root,
                     )
+                elif self.path == "/api/v1/plans/validate-edit":
+                    from .workflow import EditRequest, validate_edit
+                    response = validate_edit(EditRequest.model_validate(payload), project_root=project_root)
+                elif self.path in {"/api/v1/workflow/prepare", "/api/v1/workflow/authorize", "/api/v1/workflow/execute"}:
+                    from .workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
+                    workflow_request = WorkflowRequest.model_validate(payload)
+                    expected_action = {"prepare": "prepare_workflow", "authorize": "authorize_workflow", "execute": "execute_workflow"}[self.path.rsplit("/", 1)[-1]]
+                    if workflow_request.action != expected_action:
+                        raise InterfaceApiError("workflow action does not match endpoint")
+                    response = {"prepare_workflow": prepare_workflow, "authorize_workflow": authorize_workflow, "execute_workflow": execute_workflow}[expected_action](workflow_request, project_root=project_root)
+                elif self.path == "/api/v1/planner/conversation":
+                    from .conversation import TurnRequest, conversation_turn
+                    response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
                 elif self.path == "/api/v1/plans/create":
                     response = plan_interface_task(
                         InterfacePlanRequest.model_validate(payload),
                         project_root=project_root,
                     )
+                elif self.path == "/api/v1/plans/save-generated":
+                    generated = InterfaceGeneratedPlanSaveRequest.model_validate(payload)
+                    response = save_interface_reviewed_plan(
+                        InterfaceReviewedPlanSaveRequest.model_validate({
+                            **generated.model_dump(mode="json"), "action": "save_reviewed_plan",
+                        }), project_root=project_root,
+                    )
+                    response["human_review_performed"] = False
+                    response["storage_kind"] = "generated_proposal"
                 elif self.path == "/api/v1/plans/save-reviewed":
                     response = save_interface_reviewed_plan(
                         InterfaceReviewedPlanSaveRequest.model_validate(payload),
@@ -3325,8 +3382,9 @@ def _handler(
             except RecipeApprovalError:
                 self._send(HTTPStatus.CONFLICT, {"error": "recipe approval could not be recorded"})
                 return
-            except ApprovedRecipeError:
-                self._send(HTTPStatus.CONFLICT, {"error": "approved recipe execution failed; inspect evidence and outputs"})
+            except ApprovedRecipeError as exc:
+                from .workflow import execution_failure_payload
+                self._send(HTTPStatus.CONFLICT, execution_failure_payload(exc))
                 return
             except CriticAgentError as exc:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {
@@ -3376,11 +3434,11 @@ def _handler(
                 elif "invalid plan schema" in message:
                     error = "planner model returned an invalid plan schema"
                     code = "planner_invalid_schema"
-                    finding = "The model response did not satisfy the required workflow-plan schema."
+                    finding = "; ".join(exc.findings) or "The model response did not satisfy the required workflow-plan schema."
                 elif "deterministic policy" in message:
                     error = "planner plan was rejected by deterministic policy"
                     code = "planner_policy_rejected"
-                    finding = message.partition("deterministic policy:")[2].strip() or "The candidate plan violated deterministic policy."
+                    finding = "; ".join(exc.findings) or message.partition("deterministic policy:")[2].strip() or "The candidate plan violated deterministic policy."
                 else:
                     error = "planner could not produce a validated plan"
                     code = "planner_generation_failed"
@@ -3390,15 +3448,18 @@ def _handler(
                     "code": code,
                     "finding": finding[:1000],
                     "retryable": True,
-                    "retry_guidance": "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry.",
+                    "schema_findings": exc.findings,
+                    "correction_attempted": exc.correction_attempted,
+                    "retry_guidance": ("The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,
                     "execution_performed": False,
                 })
                 return
-            except PlannerPolicyError:
-                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "reviewed plan was rejected by deterministic policy"})
+            except PlannerPolicyError as exc:
+                message = ("Edited workflow failed policy: " + str(exc)[:240]) if self.path == "/api/v1/plans/validate-edit" else "reviewed plan was rejected by deterministic policy"
+                self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": message})
                 return
             except (ContextPackError, ModelClientError, ModelSettingsError):
                 if self.path == "/api/v1/critic-evidence/run":

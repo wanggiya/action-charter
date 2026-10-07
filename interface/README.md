@@ -77,8 +77,8 @@ the repository root so the running API is pinned to the edited `src` tree. See
 `docs/INTERFACE_API_TROUBLESHOOTING.md`.
 
 Then start this Vite application in another terminal. Vite proxies `/api` to
-`127.0.0.1:8765`. Execution remains disabled unless the service process is
-started with `ENABLE_WRITE_TOOLS=true`; the health endpoint reports that fact.
+`127.0.0.1:8765` by default; `INTERFACE_API_PORT` selects the proxy target for alternate-port development. Write execution remains disabled unless the service process is
+started with `ENABLE_WRITE_TOOLS=true`; the health endpoint reports that fact. Direct read-only inspection remains separately available.
 
 After successful compilation, the interface can immutably save the reviewed
 recipe. It requires confirmation of the displayed SHA-256 and step order, then
@@ -86,18 +86,10 @@ the backend recompiles and checks the digest again. Saved recipe JSON is local
 runtime state under `workflow-recipes/` and is ignored by Git. This does not
 approve or execute the recipe.
 
-The top-level **Runs** workspace reads bounded durable progress from
-`workflow-state/interface-executions/`. It can restore an eligible attempt's
-run-specific graph after restarting the browser or API. This inventory is
-observational only and cannot resume, retry, approve, or execute an attempt.
+The primary **Planner agent** generates and automatically stores validated proposals. **Saved records** browses plans/recipes; **Execution History** browses durable inspection and governed recipe attempts. **Outcome** shows the current result. **Execute** opens exact-scope review for supported saved plans. Read-only vector/raster inspection does not need fabricated approval; writes retain exact approval, validation and evidence checks. Technical Plan and Task workspace remain under Advanced.
 
-The top-level **Plan** workspace calls the existing Planner Agent through the
-loopback service and configured model provider. It returns a schema-validated,
-planning-only result and visual graph. It does not save, approve, or execute the
-plan; those remain separate authority increments. The operator explicitly
-selects the exact implemented skills the Planner may use. The backend verifies
-those IDs against the trusted registry and sends only that compact selection to
-the model.
+Current-plan operation edits require backend validation and new proposal storage before execution. Presentation-only Advanced drafts remain separate. See the [interface acceptance process](../docs/INTERFACE_ACCEPTANCE.md) for isolated sessions, live-model and deterministic cases, evidence capture and bug retesting.
+
 # Input and output filenames
 
 Trusted template forms accept either a filename or an explicit path. A
@@ -105,3 +97,13 @@ filename-only input is resolved under `data/input`; a filename-only output is
 resolved under `data/output`. Always review the canonical paths in the compiled
 recipe before preparing approval. The CLI remains available for explicit root
 and path control.
+
+Planner agent now uses a persistent conversation with clarification and complete, validated revisions. Send uses Enter; Shift+Enter inserts a newline. The conversation selector lists the 20 most recent saved chats. Open conversation plan restores its last proposal explicitly. New chat keeps the current workflow available as context. Block tools expands secondary editing buttons, and Expand reveals the full timeline. See [dialogue frontend tests](../docs/PLANNER_DIALOGUE_ACCEPTANCE.md).
+
+The optional searchable Skills picker remains below Send. Empty selection uses automatic capability choice; selected chips persist across messages. Each user message records its submitted selection and replies show workflow skill snapshots/deltas. Opening a saved chat restores its last submitted selection. See the staged 27-case checklist in the dialogue acceptance guide before local conversion or a reviewed PostGIS run.
+
+Outline material now fades its category/control color from the top/bottom edges into a transparent center. Compact timeline markers and their connector are aligned; full stage titles appear on hover. Follow the [vector-to-PostGIS frontend walkthrough](../docs/FRONTEND_VECTOR_POSTGIS_WALKTHROUGH.md) for the next acceptance pass.
+
+The normal host launcher now reads allowlisted non-secret project .env settings and resolves local secret-file paths under the project root. Terminal exports win. Container postgis/geoserver defaults resolve to loopback for this host process; /run/secrets defaults resolve to the corresponding .secrets host file unless explicitly overridden in the terminal. Password contents stay in files, and startup logs show only file readiness. .env write/overwrite flags do not grant execution authority.
+
+Main-workflow Snakemake export and static verification now appear in Add/Planner. Add Export automatically appends Verify and binds the original saved plan. Completed source operations reuse independently checked historical evidence; no PostGIS reload or Snakemake process runs. See [block acceptance](../docs/WORKFLOW_SNAKEMAKE_BLOCKS.md). This supersedes the earlier export-only-in-Advanced limitation for completed governed workflows.

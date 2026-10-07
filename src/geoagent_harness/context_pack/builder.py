@@ -40,6 +40,7 @@ CONTEXT_FILES = (
 MAX_FILE_BYTES = 128_000
 MAX_DECISIONS = 8
 MAX_CURRENT_STATUS_CHARACTERS = 16_000
+CURRENT_STATUS_HISTORY_MARKER = "<!-- historical-checkpoints -->"
 
 CURRENT_STATUS_TRUNCATION_MARKER = (
     "\n\n[... context/CURRENT_STATUS.md truncated for model context ...]\n\n"
@@ -61,6 +62,7 @@ class ContextPackError(RuntimeError):
 def _bound_current_status(value: str) -> tuple[str, bool]:
     """Preserve the overview and latest status within a fixed bound."""
 
+    value = value.split(CURRENT_STATUS_HISTORY_MARKER, 1)[0].rstrip() if CURRENT_STATUS_HISTORY_MARKER in value else value
     if len(value) <= MAX_CURRENT_STATUS_CHARACTERS:
         return value, False
 
@@ -299,6 +301,8 @@ def build_context_pack(
         redact_text(contents["context/CURRENT_STATUS.md"])
     )
     warnings: list[str] = []
+    if CURRENT_STATUS_HISTORY_MARKER in contents["context/CURRENT_STATUS.md"]:
+        warnings.append("Historical checkpoint descriptions remain on disk; only the current status overview is included in model context")
     if status_truncated:
         warnings.append(
             "context/CURRENT_STATUS.md was truncated to "

@@ -24,6 +24,7 @@ host, port, root = sys.argv[1], int(sys.argv[2]), Path(sys.argv[3])
 handler_source = inspect.getsource(server._handler)
 route = "/api/v1/plans/save-reviewed-recipe"
 print(f"Interface API source: {server.__file__}", flush=True)
+print("Planner contract revision: schema-correction-v52", flush=True)
 print(f"Planner recipe-save route occurrences: {handler_source.count(route)}", flush=True)
 print(f"Listening on http://{host}:{port}", flush=True)
 try:

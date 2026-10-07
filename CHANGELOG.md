@@ -1,3 +1,175 @@
+# Paired review layout and browser regression
+
+- Restores left-aligned headings/descriptions/labels with right-edge operation/value/status pairs.
+- Fixes the shared legacy 58% value-width cap and preserves file/identifier casing.
+- Places Authorize/Execute on one row without resubmitting approval or scrolling away after success.
+- Makes Snakemake choices scroll from the top while search/close stay pinned.
+- Removes camera interpolation/draft-ID instability and verifies interactions in isolated production Chromium.
+
+# Drag previews and checkpoint review
+
+- Removes whole-App updates from node-drag frames and keeps connected curves/labels tracking the preview.
+- Aligns inspector values with Outcome/review and preserves identifier/boolean casing.
+- Pins yellow/orange Snakemake choices above the scrolling Add list.
+- Documents remaining frontend acceptance and final review gates before any requested commit/push.
+
+# Main-workflow Snakemake export and verification
+
+- Adds Export to Snakemake and Verify Snakemake package to Add and conversational Planner.
+- Binds a saved original plan and verified successful source evidence; retained operations reuse results without reexecution.
+- Requires exact plan authorization for package creation, statically verifies its source scope/hashes and records export history.
+- Blocks missing/tampered source evidence, changed scope, invalid topology, expired authority, package tampering and symlinks.
+
+# Pinned Add panel and smoother form typing
+
+- Keeps Add search/close above a separately scrolling list and darkens the translucent whole panel.
+- Isolates Add search and authorization field typing from workflow rendering.
+- Emphasizes the 30-minute authorization duration and aligns full-width Outcome content to the right.
+
+# Information-panel and block-toolbar alignment
+
+- Aligns Outcome/review values and status to a common right edge, with consistent labels and typography.
+- Moves detailed validation JSON into a disclosure and labels outcome artifact references.
+- Aligns Add and other block action icons/text on one baseline.
+
+# Host launcher configuration and secrets
+
+- Loads allowlisted non-secret .env settings as data, preserving terminal overrides.
+- Resolves host service defaults and secret-file paths so the local API can use the existing PostGIS configuration.
+- Keeps passwords in files and startup output limited to readiness; .env cannot enable writes/overwrite or override operational roots.
+- Preserves isolated acceptance endpoint and missing-secret overrides.
+
+# Authorization review and execution diagnostics
+
+- Aligns review typography, inputs, operation headings and parameter rows; brings status/failure messages into view.
+- Keeps layout-only node dragging available during review/run and avoids interrupting active drags with review fitting.
+- Adds secret-free PostGIS/evidence failure codes and failed-step recovery guidance for governed execution conflicts.
+
+# Outline edge tint and timeline alignment
+
+- Fades Outline color from the top/bottom edges into a clear center.
+- Aligns compact timeline connectors and markers, improves label spacing/tooltips and refines selected/running frames.
+- Adds a focused frontend inspection-to-PostGIS acceptance walkthrough.
+
+# Optional conversation skill selection
+
+- Restores persistent optional skill selection below Send, with automatic planning when empty.
+- Records per-turn selected/workflow skills and displays additions/removals; restores selections from saved chats without inventing legacy metadata.
+- Clarifies that GeoJSON-to-GeoPackage conversion needs an output path, not a database schema or mandatory layer names.
+- Adds staged frontend acceptance and a 27-case results template.
+
+# Conversational Planner and compact workspace
+
+- Adds recoverable planning dialogue with clarification, validated complete revisions, bounded transcripts and stale-turn protection.
+- Preserves the current plan while composing/waiting/failing and keeps authorization/execution separate.
+- Adds compact expandable timeline/block controls, near-white Outline text and animation-frame bounded graph dragging.
+- Documents frontend dialogue and staged PostGIS acceptance.
+
+# Hue-matched material and familiar pin gestures
+
+- Tints translucent fills with their semantic border color and simplifies Add's label.
+- Adds bidirectional pin dragging, Alt-click break, Ctrl-drag atomic rewiring, pin/block context menus, hover feedback and pin-to-empty add/connect.
+- Supports right-button canvas pan while retaining governed DAG validation and approval boundaries.
+
+# Governed operation dependency editing
+
+- Adds visible Add/Delete/Move/Connect/Disconnect/Parameters controls, inspector dependency editing and data-port connections for current plans.
+- Adds optional digest-bound dependencies with cycle/reference/mandatory-ancestry validation; historical plans retain their existing digests and sequential mapping.
+- Docks zoom/legend defaults lower-left, unifies scrollbars and gives Outline a half-transparent fill with opaque content.
+- Keeps operation drafts blocked until validation/storage and rechecks authorization for changed scope.
+
+# Refined timeline material and status readability
+
+- Makes Outline the initial material while preserving prior text-color choice and later explicit preferences.
+- Fixes filled Evidence-backed status foreground and applies material to Governed/Draft badges.
+- Separates timeline statuses, track and stage labels; fills stage labels only and frames selected/running stages instead of all event cards.
+- Adds timeline spacing; animation and further block actions remain subsequent work.
+
+# Complete interface appearance coverage
+
+- Adds selected outlines for Execution History and Outcome, with cyan Saved records/Settings/Advanced controls.
+- Extends solid/outline and filled-text preferences to graph selection, timeline stages, workflow blocks and information surfaces.
+- Preserves category/status colors, selected-node emphasis and separate authorization highlights.
+
+# Configurable action-button appearance
+
+- Adds Settings controls for solid-fill or transparent-outline action buttons and black/white filled text, with a live preview and browser-local persistence.
+- Applies shared button appearance across header, planning and review actions, while retaining semantic Execute/Authorize colors and graph presentation.
+- Adapts white-text fill shades for readable contrast; appearance changes preserve current workflow state.
+
+# Separate authorization and docked execution controls
+
+- Adds Settings gear, orange exclamation Authorize and yellow Play/Execute controls.
+- Docks execution review, history and outcomes beside the graph, with responsive stacking.
+- Removes the redundant read-only inspection checkbox; required operations use separate exact authorization followed by independently verified execution.
+- Highlights authorization-required operations and retains approval digest/expiry checks.
+
+# Repeatable interface acceptance
+
+- Adds isolated source snapshots, public fixtures, deterministic proposal seeding, artifact audits and a 32-case operator test/bug/retest process.
+- Keeps acceptance credentials and runtime records separate from normal workflows; preparation creates no approval or execution.
+- Fixes the frontend API proxy to follow the selected launcher port.
+- Keeps durable inspection runtime records out of Git.
+
+# Planning context and inspector visibility
+
+- Enlarges the context composer, removes redundant caption and keeps the inspector visible with Text planner.
+- Starts Task history collapsed and adds governed input filename normalization.
+- Documents proposed navigation; executable graph editing remains outstanding.
+
+# Compact planning graph and suggestions
+
+- Uses short generated workflow/intake titles with full step and request text in the inspector.
+- Reuses Plan skill recommendations while typing natural-language planning context; additions remain explicit.
+- Keeps top-navigation redesign and executable graph editing separate.
+
+# Text planner skill selection
+
+- Adds searchable, scrollable skill selection with readable names and removable tags.
+- Aligns Text planner button styling and marks automatically saved graph proposals accurately.
+- Keeps capability IDs, approval rules and executable editing boundaries unchanged.
+
+# Direct text planning
+
+- Adds Text planner agent: context composer, adjacent validated graph and automatic proposal storage.
+- Introduces a generated-plan storage route that reports no human review, approval or execution.
+- Retains validated plans after storage failures for storage-only retry.
+
+# Conversation workspace simplification
+
+- Shows only the active task stage and collapses history, recovery and technical controls.
+- Combines reviewed Intent storage and plan generation into one explicit user action, retaining separate backend validation and recoverable planning failures.
+
+# Planner runtime identification
+
+- Exposes a loaded Planner contract revision through API health and launcher output.
+- Clarifies read-only inspection approval guidance while preserving any extra model-proposed approval gate.
+
+# Planner structure correction
+
+- Adds an exact inspection response-shape example and one shared JSON/schema/policy correction budget.
+- Revalidates fresh proposals and displays safe field findings; no authority or execution is inferred.
+
+# Checkpoint 23 — metadata scope compatibility
+
+- Recognizes a closed vocabulary of equivalent vector/raster metadata labels and complete enumerations; unsupported outputs still fail before Planner inference.
+- Preserves immutable reviewed Intent, shows original and canonical metadata scope, and identifies unsupported labels in findings.
+- Applies the same scope mapping during planning and storage and rejects changed derived mappings.
+
+# Checkpoint 23 — actionable model diagnostics
+
+- Distinguishes Intent/Planner model configuration, connection, timeout, rejection and response failures without exposing raw exceptions.
+- Adds read-only API-process model settings inspection and frontend recovery guidance; launcher reports missing model selection.
+- Makes conversation-and-execution layout an explicit completion criterion; broader capabilities remain later work.
+
+# Checkpoint 23 — task/input workspace foundation
+
+- Opens Task workspace directly to a fresh request; historical context remains optional.
+- Adds existing-file and filename/relative-path input selection, visible pending draft graph and readable Intent response.
+- Checks selected input availability before inference and rejects resolved input mismatches; CLI supports --selected-input.
+- Restores Why ActionCharter and detailed current-status checkpoint history; only the current overview enters model context, with full-file digest retained.
+- Governed execution continuation and complete live-demo acceptance remain in progress.
+
 # Documentation organization
 
 - Replaced the incremental README with capability-based onboarding and checkpoint-free workflow/agent diagrams.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from pydantic import (
@@ -9,6 +10,7 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
 )
 
 
@@ -29,6 +31,23 @@ class PlanStep(BaseModel):
     requires_approval: bool = False
     expected_artifacts: list[str] = Field(default_factory=list)
     validation_required: bool = False
+
+    depends_on: list[str] | None = Field(default=None, max_length=20)
+
+    @field_validator("depends_on")
+    @classmethod
+    def dependencies_are_step_ids(cls, value: list[str] | None):
+        if value is not None and any(re.fullmatch(r"step_[1-9][0-9]*", item) is None for item in value):
+            raise ValueError("dependencies must reference step IDs")
+        return value
+
+    @model_serializer(mode="wrap")
+    def serialize_optional_dependencies(self, handler):
+        payload = handler(self)
+        # Preserve canonical digests and storage bytes for all historical plans.
+        if self.depends_on is None:
+            payload.pop("depends_on", None)
+        return payload
 
 
 class WorkflowPlan(BaseModel):

@@ -16,6 +16,7 @@ from geoagent_harness.executor.schemas import (
 )
 from geoagent_harness.planner.policy import (
     validate_plan_policy,
+    PlannerPolicyError,
 )
 from geoagent_harness.planner.schemas import (
     PlannerResult,
@@ -129,12 +130,15 @@ def build_execution_envelope(
 ) -> ExecutionEnvelope:
     """Build a non-executed request for the fixed workflow tool."""
 
-    validate_plan_policy(
-        planner_result.plan,
-        available_skills=set(
-            SUPPORTED_SKILL_SEQUENCE
-        ),
-    )
+    try:
+        validate_plan_policy(
+            planner_result.plan,
+            available_skills=set(SUPPORTED_SKILL_SEQUENCE),
+        )
+    except PlannerPolicyError as error:
+        raise ExecutorPolicyError(
+            "plan failed policy; input must remain under data/input: " + str(error)
+        ) from error
 
     skills = tuple(
         step.skill
