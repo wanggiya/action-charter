@@ -66,6 +66,10 @@ _EXPECTED_VERIFIERS = {
 }
 
 
+from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS
+from geoagent_harness.tabular.service import validate_output as validate_tabular_output, TabularError
+_EXPECTED_VERIFIERS.update({id: 'geoagent_harness.tabular.service:validate_output' for id in TABULAR_WRITE_IDS})
+
 class RecipeRunError(RuntimeError):
     """Raised when an approved recipe cannot run safely."""
 
@@ -259,6 +263,7 @@ def run_approved_recipe(
                 step_id=step_id,
                 registry=registry,
                 settings=settings,
+                **({"completed_results": {item.step_id: item for item in step_results}} if step.skill_id in TABULAR_WRITE_IDS else {}),
             )
         except RecipeDispatchError as exc:
             if progress_callback is not None:
@@ -304,7 +309,9 @@ def run_approved_recipe(
             )
 
         try:
-            if step.skill_id == "convert_vector":
+            if step.skill_id in TABULAR_WRITE_IDS:
+                validation = validate_tabular_output(execution.result, settings)
+            elif step.skill_id == "convert_vector":
                 validation = (
                     _validate_conversion_step(
                         arguments=step.arguments,
@@ -331,6 +338,7 @@ def run_approved_recipe(
                     "implemented recipe verifier"
                 )
         except (
+            TabularError,
             ConvertRasterValidationError,
             ConvertVectorValidationError,
             PostGISVerificationError,

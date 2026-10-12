@@ -158,7 +158,7 @@ try {
   await page.getByRole('button',{name:'Close settings'}).click();
   cases.push('Outline and both solid text materials preserve mixed review alignment');
   await page.locator('.workflow-review-panel .execute-button').click();
-  await page.locator('.workflow-outcome-panel article').first().waitFor();
+  await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
   const right=await page.locator('.workflow-outcome-panel dd').evaluateAll(els=>els.every(el=>getComputedStyle(el).textAlign==='right'));
   assert(right);
   await page.screenshot({path:resolve(output,'outcome.png')});
@@ -174,7 +174,7 @@ try {
   await page.locator('[data-operation-node="planned_step_4"]').waitFor();
   await page.getByRole('button',{name:'Execution History',exact:true}).click();
   await page.getByRole('button',{name:'View outcome',exact:true}).click();
-  await page.locator('.workflow-outcome-panel article').first().waitFor();
+  await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
   assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/execute').length,1,'Recovery must not rerun operations');
   cases.push('Refresh: conversation-plan recovery and history outcome reopen without execution');
   assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/authorize').length,1,'Execute must not resubmit authorization');

@@ -122,6 +122,9 @@ class SharedModelClient:
             "stream": False,
         }
 
+        if self._settings.reasoning_effort is not None:
+            payload["reasoning_effort"] = self._settings.reasoning_effort
+
         if request.json_mode:
             payload["response_format"] = {
                 "type": "json_object",

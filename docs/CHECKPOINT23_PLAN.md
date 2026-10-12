@@ -52,4 +52,4 @@ Prepare the post when the demonstration is reproducible and the README explains 
 
 ## After this checkpoint
 
-The existing sequence remains: 24 adds typed tabular/CSV/Pandas operations through this same workspace; 25 adds governed capability discovery and promotion; 26 evaluates interventions, correctness, time and recovery and prepares a distributable alpha. These are proposed scopes, not delivery dates. Do not postpone the basic conversation-and-execution layout until them.
+The existing sequence remains: 24 adds typed tabular/CSV/Pandas operations through this same workspace; 25 adds governed capability discovery and promotion; 26 completes scheduling/cancellation/durable recovery; 27 evaluates interventions, correctness and time and prepares a distributable alpha. This dependency refinement is defined in context/PRODUCT_ROADMAP.md. These are proposed scopes, not delivery dates. Do not postpone the basic conversation-and-execution layout until them.

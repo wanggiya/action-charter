@@ -10,9 +10,11 @@
 
 Describe a task, inspect the proposed steps, and run supported operations through a governed backend. Models help interpret requests and assess evidence; deterministic software checks scope, permissions and results. The interface and CLI use the same backend contracts.
 
-The current reference domain is geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
+Supported domains now include bounded pandas-backed CSV processing and geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
 
 **Status: single-operator alpha.** Existing recipe workflows can execute through the interface. Planner agent now offers exact-scope execution for supported inspection and recipe workflows. The separate Context & intent journey still has integration limits. This is not yet a packaged desktop app or a hardened multi-user service.
+
+Planner chat retains its full transcript while sending bounded recent excerpts to the model. Previous-message context can be disabled without deleting history; the current workflow remains explicit context. Model errors distinguish timeout, HTTP rejection and configuration failures. Supported Ollama models can optionally use `MODEL_REASONING_EFFORT=none` to test non-thinking generation; it is not a guaranteed timeout fix. Planned input-file nodes and inspector source paths show declared data scope. Existing saved workflow scope recovers on startup without model calls or execution. Desktop Planner/information panels resize; outcomes and workflow-source groups expand/collapse without execution. See [conversation context guidance](docs/CHECKPOINT24.md#conversation-context-and-model-diagnostics).
 
 ## Why ActionCharter?
 
@@ -38,6 +40,8 @@ and independently checkable artifacts.
 |---|---|
 | Describe and clarify a task | Intent reasoning supports fresh requests or explicitly reviewed historical context |
 | Inspect a plan | Typed steps, input scope and policy checks; graph and evidence inspection |
+| Process tabular data | Inspect CSV/TSV, select/filter, fill/drop missing values, join, aggregate and export fresh CSV artifacts with bounded previews and exact approval; [checkpoint 24 examples](docs/CHECKPOINT24.md) |
+| Combine spatial and tabular data | Inspect GeoJSON and extract flat attributes into validated CSV intermediates; geometry is deliberately omitted |
 | Process spatial data | Registered vector/raster capabilities and governed PostGIS operations |
 | Review and run recipes | Exact-scope decisions, bounded execution, validation and durable attempt records |
 | Inspect results | Evidence, reports, independent checks and Critic assessment |

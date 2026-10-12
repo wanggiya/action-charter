@@ -35,7 +35,7 @@ durable records remain; see `context/POST_HISTORY_INTERFACE.md`.
 | Planning and policy | Proposed steps, dependencies, parameters, warnings and deterministic policy results |
 | Approval | Exact digest, affected resources, required steps, expiry and explicit human decision |
 | Vector and raster | Inspection, conversion, validation and safe previews using existing controlled adapters |
-| Tabular data | Governed pandas capability after its typed adapter and policy contracts exist |
+| Tabular data | Checkpoint 24: typed CSV/TSV inspection and pandas transforms/export, bounded previews, exact authority, validated ancestor-table inputs and a flat GeoJSON attribute bridge |
 | PostGIS | Inspect, load, validate, compare, assess, promote, verify and rollback through existing boundaries |
 | Recipes | Create, review, approve, execute and inspect reusable recipe evidence |
 | Snakemake | Export, validate, dry-run and replay without requiring users to write commands |

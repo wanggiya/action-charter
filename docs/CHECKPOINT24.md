@@ -1,0 +1,70 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Python 3.12 offline tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONUNBUFFERED: "1"
+      NO_COLOR: "1"
+      ACTIONCHARTER_REQUIRE_FRONTEND_TESTS: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install locked frontend dependencies
+        run: |
+          corepack enable
+          corepack pnpm@10.17.1 --dir interface install --frozen-lockfile
+
+      - name: Show environment
+        run: |
+          python --version
+          python -m pip --version
+          uname -a
+
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
+      - name: Show important package versions
+        run: |
+          python -m pip list --format=freeze \
+            | grep -Ei '^(geopandas|pyogrio|shapely|pyproj|pydantic|typer|pytest|mcp|httpx|psycopg|sqlalchemy|geoalchemy2|pyyaml)==' \
+            | sort
+
+      - name: Run offline test suite
+        run: python -m pytest
+      - name: Validate frontend
+        run: make interface-validate

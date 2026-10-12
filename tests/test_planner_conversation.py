@@ -252,3 +252,137 @@ def test_legacy_transcript_without_skill_metadata_can_be_recovered(project):
     assert recovered['selected_skill_ids'] == []
     assert recovered['messages'][0]['selected_skill_ids'] is None
     assert recovered['messages'][1]['plan_skill_ids'] is None
+
+@pytest.mark.parametrize('failure', ['http404', 'settings', 'timeout'])
+def test_conversation_model_failure_returns_json_without_socket_hangup(project, monkeypatch, failure):
+    from http.client import HTTPConnection
+    from http.server import ThreadingHTTPServer
+    from threading import Thread
+    from geoagent_harness.interface_api.server import _handler
+    from geoagent_harness.model import ModelClientError, ModelSettingsError
+    import geoagent_harness.interface_api.conversation as service
+    error = ModelClientError.timeout() if failure == 'timeout' else ModelClientError.http_status(404) if failure == 'http404' else ModelSettingsError('MODEL_NAME is required')
+    def fail(request, *, project_root):
+        raise error
+    monkeypatch.setattr(service, 'conversation_turn', fail)
+    server = ThreadingHTTPServer(('127.0.0.1', 0), _handler(project))
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        connection = HTTPConnection(*server.server_address)
+        connection.request('POST', '/api/v1/planner/conversation', json.dumps({'action':'turn','conversation_id':ID,'message':'Inspect CSV'}), {'Content-Type':'application/json'})
+        response = connection.getresponse()
+        assert response.status == 503
+        body = json.loads(response.read())
+        assert body['code'] == ('model_timeout' if failure == 'timeout' else 'model_http_error' if failure == 'http404' else 'model_configuration_failed')
+        assert 'retry_guidance' in body and body['execution_performed'] is False
+        if failure == 'http404': assert '404' in body['error']
+        if failure == 'timeout':
+            assert 'MODEL_TIMEOUT_SECONDS' in body['retry_guidance']
+            assert 'HTTP 404' not in body['retry_guidance']
+        connection.close()
+    finally:
+        server.shutdown(); server.server_close(); thread.join(timeout=5)
+
+
+def test_history_excerpt_budget_and_disable_preserve_full_transcript(project):
+    directory = project / 'planner-conversations'; directory.mkdir()
+    transcript = [{'role':'user' if i % 2 == 0 else 'assistant', 'content':f'Entry {i}: '+('历史'*3000)} for i in range(20)]
+    (directory / (ID+'.json')).write_text(json.dumps({'conversation_id':ID,'revision':10,'messages':transcript}))
+    client = Client({'message':'What output path?', 'plan':None})
+    result = conversation_turn(TurnRequest(action='turn',conversation_id=ID,expected_revision=10,message='Export the table'),project_root=project,model_client=client)
+    payload = json.loads(client.requests[0].messages[1].content)
+    assert len(json.dumps(payload['recent_conversation'],ensure_ascii=False).encode()) <= 6000
+    assert payload['history_excerpts_truncated'] and payload['older_messages_omitted']
+    assert result['messages'][0]['content'] == transcript[0]['content']
+    assert result['context_usage']['prompt_bytes'] <= 64000
+    second = Client({'message':'Choose source and output', 'plan':None})
+    without = conversation_turn(TurnRequest(action='turn',conversation_id=ID,expected_revision=11,message='Start fresh',use_history=False),project_root=project,model_client=second)
+    payload = json.loads(second.requests[0].messages[1].content)
+    assert payload['recent_conversation']==[] and payload['initial_request'] is None
+    assert len(without['messages'])==24
+    assert without['context_usage']['included_messages']==0
+    assert without['context_usage']['omitted_messages']==22
+    system = json.loads(second.requests[0].messages[0].content)
+    assert 'tabular_argument_schemas' not in system and 'workflow_json_schema' not in system
+
+
+def test_prompt_budget_blocks_before_model_call_and_preserves_transcript(project,monkeypatch):
+    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.context_pack.builder import ContextPackError
+    monkeypatch.setattr(service,'MAX_PROMPT_BYTES',100)
+    client = Client({'message':'unused','plan':None})
+    with pytest.raises(ContextPackError,match='context exceeds'):
+        conversation_turn(TurnRequest(action='turn',conversation_id=ID,message='Inspect CSV'),project_root=project,model_client=client)
+    assert client.requests==[]
+    assert read(project)['revision']==0
+
+
+def test_failed_conversation_explains_schema_and_supplies_candidate_to_correction(project):
+    client = Client({'plan':None}, {'plan':None})
+    with pytest.raises(PlannerAgentError) as caught:
+        turn(project,client)
+    assert caught.value.correction_attempted
+    assert any('message' in finding and 'missing' in finding for finding in caught.value.findings)
+    correction = json.loads(client.requests[1].messages[-1].content)
+    assert correction['failure_kind']=='schema'
+    assert correction['deterministic_findings']==caught.value.findings
+    assert client.requests[1].messages[-2].role=='assistant'
+    assert read(project)['revision']==0
+
+
+def test_failed_policy_correction_explains_safe_path_failure(project):
+    invalid={'message':'Proposal', 'plan':plan('../private.geojson')}
+    client=Client(invalid,invalid)
+    with pytest.raises(PlannerAgentError) as caught:
+        turn(project,client)
+    assert caught.value.findings
+    assert 'policy' in str(caught.value)
+    assert json.loads(client.requests[1].messages[-1].content)['failure_kind']=='policy'
+
+
+def test_legacy_plan_only_reply_passes_same_policy_without_execution(project):
+    client=Client(plan())
+    response=turn(project,client)
+    assert response['planner_result']['plan']['steps'][0]['skill']=='inspect_vector'
+    assert len(client.requests)==1
+    assert not response['approval_performed'] and not response['execution_performed']
+    invalid=plan('../private.geojson')
+    with pytest.raises(PlannerAgentError) as caught:
+        turn(project,Client(invalid,invalid),revision=1)
+    assert caught.value.findings and 'policy' in str(caught.value)
+    assert read(project)['revision']==1
+
+
+def test_csv_inspection_reference_correction_names_the_consumer_and_producer(project):
+    workflow={'summary':'Inspect and export selected CSV columns','steps':[
+        {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
+        {'step_id':'step_2','skill':'select_csv_columns','purpose':'Select','arguments':{'source_step':'step_1','columns':['order_id'],'target_path':'data/output/selected.csv'},'requires_approval':True,'validation_required':True}
+    ]}
+    fixed=json.loads(json.dumps(workflow))
+    fixed['steps'][1]['arguments'].pop('source_step')
+    fixed['steps'][1]['arguments']['path']='data/input/sample_orders.csv'
+    client=Client({'message':'Proposed','plan':workflow},{'message':'Corrected source','plan':fixed})
+    result=turn(project,client,'Inspect CSV and select order_id')
+    findings=json.loads(client.requests[1].messages[-1].content)['deterministic_findings']
+    assert 'step_2' in findings[0] and 'source_step=step_1' in findings[0]
+    assert 'Inspection returns metadata only' in findings[0]
+    assert result['planner_result']['plan']['steps'][1]['arguments']['path']=='data/input/sample_orders.csv'
+    assert not result['execution_performed'] and not result['approval_performed']
+
+
+def test_step_numbering_finding_reaches_correction_and_preserves_references(project):
+    invalid=plan()
+    invalid['steps'][0]['step_id']='step_2'
+    client=Client({'message':'Plan','plan':invalid},{'message':'Fixed numbering','plan':plan()})
+    result=turn(project,client)
+    finding=json.loads(client.requests[1].messages[-1].content)['deterministic_findings'][0]
+    assert finding.startswith('plan.steps: step IDs must be sequential in array order')
+    assert 'source_step' in finding and 'producer identities' in finding
+    assert result['planner_result']['plan']['steps'][0]['step_id']=='step_1'
+    assert not result['execution_performed']
+    broken=Client({'message':'Plan','plan':invalid},{'message':'Still broken','plan':invalid})
+    with pytest.raises(PlannerAgentError) as caught:
+        turn(project,broken,revision=1)
+    assert caught.value.findings[0]==finding
+    assert read(project)['revision']==1

@@ -54,7 +54,10 @@ def _schema_findings(error: ValidationError) -> list[str]:
                    'risks', 'execution_performed', 'validation_performed',
                    'step_id', 'skill', 'purpose', 'arguments', 'requires_approval',
                    'expected_artifacts', 'validation_required', 'agent_id', 'plan',
-                   'depends_on', 'skill_id', 'tool', 'name', 'id'}
+                   'depends_on', 'skill_id', 'tool', 'name', 'id', 'message',
+                   'path', 'right_path', 'source_step', 'right_step', 'target_path',
+                   'columns', 'predicates', 'column', 'operator', 'value', 'value_type',
+                   'fill_values', 'method', 'keys', 'aggregations', 'by', 'function', 'output_column'}
     descriptions = {'missing': 'required field is missing', 'extra_forbidden': 'unexpected field is not allowed',
                     'list_type': 'must be a list', 'dict_type': 'must be an object',
                     'string_type': 'must be a string', 'bool_type': 'must be a boolean',
@@ -67,7 +70,13 @@ def _schema_findings(error: ValidationError) -> list[str]:
     for item in error.errors(include_input=False, include_context=False, include_url=False)[:6]:
         path = '.'.join(str(part) if isinstance(part, int) or part in safe_fields else '[unexpected field]'
                         for part in item['loc']) or 'plan'
-        findings.append(path + ': ' + descriptions.get(item['type'], 'does not match the required schema type'))
+        description = descriptions.get(item['type'], 'does not match the required schema type')
+        # Match trusted validator messages exactly; never echo arbitrary model values.
+        if item['type'] == 'value_error' and item['msg'] == 'Value error, step IDs must be sequential starting at step_1':
+            description = 'step IDs must be sequential in array order: step_1, step_2, step_3, and so on, with no duplicates or gaps. When renumbering, repair depends_on, source_step and right_step to preserve the same producer identities.'
+        elif item['type'] == 'value_error' and item['msg'] == 'Value error, dependencies must reference step IDs':
+            description = 'dependencies must reference step IDs such as step_1; do not use operation names or numeric indexes'
+        findings.append(path + ': ' + description)
     return findings
 
 

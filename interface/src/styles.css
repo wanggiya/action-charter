@@ -883,3 +883,85 @@
 /* Legacy flex rows capped dd at 58%; grid cells must occupy their full assigned column. */
 .app-shell :is(.workflow-review-panel,.workflow-outcome-panel,.execution-inventory-workspace,.inspector) dd { max-width:none; }
 .app-shell .record-workspace dl>div>dd { max-width:none; text-transform:none; }
+.table-result-preview>div { max-width:100%; overflow:auto; max-height:260px; }
+.table-result-preview table { border-collapse:collapse; width:max-content; min-width:100%; font-size:11px; }
+.table-result-preview :is(th,td) { text-align:left; padding:6px 8px; border-bottom:1px solid #354150; max-width:240px; overflow-wrap:anywhere; }
+.table-result-preview th { position:sticky; top:0; background:#152534; }
+.operation-parameters textarea { width:100%; min-width:0; padding:8px; background:#101923; color:#e8f3ff; border:1px solid #35485d; font:12px/1.5 ui-monospace,monospace; }
+
+.planner-history-control { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+/* Two visible stops share a track; the light thumb slides to the active stop. */
+.planner-history-control .planner-history-switch {
+  position:relative; display:grid; grid-template-columns:1fr 1fr; align-items:center;
+  flex-shrink:0; width:112px; min-width:112px; height:36px; padding:3px;
+  border:1px solid #526875; border-radius:18px; background:#09131a;
+  color:#81939e; box-shadow:none; overflow:hidden; isolation:isolate;
+}
+.planner-history-switch .history-switch-track {
+  position:absolute; left:18px; right:18px; top:50%; height:2px;
+  transform:translateY(-50%); background:#607d8c; z-index:0;
+}
+.planner-history-switch .history-switch-thumb {
+  position:absolute; left:3px; top:3px; width:calc(50% - 3px); bottom:3px;
+  border-radius:15px; background:#d9eef4; border:1px solid #f0fbff;
+  box-shadow:0 1px 5px #0006; z-index:1;
+  transition:transform 180ms ease;
+}
+.planner-history-switch[aria-checked="true"] .history-switch-thumb { transform:translateX(100%); }
+.planner-history-switch .history-switch-label {
+  position:relative; z-index:2; font-size:12px; font-weight:700; line-height:1;
+  text-align:center; color:#81939e; transition:color 180ms ease;
+}
+.planner-history-switch[aria-checked="false"] .history-switch-off,
+.planner-history-switch[aria-checked="true"] .history-switch-on { color:#10232e; }
+.planner-history-control .planner-history-switch:focus-visible { outline:2px solid #72d6ea; outline-offset:3px; }
+.planner-history-control .planner-history-switch:disabled { opacity:.55; cursor:wait; }
+@media (prefers-reduced-motion:reduce) {
+  .planner-history-switch .history-switch-thumb,
+  .planner-history-switch .history-switch-label { transition:none; }
+}
+/* Keep the two stops readable in both outline and solid interface materials. */
+.app-shell[data-button-style] .planner-history-control .planner-history-switch { background:#09131a!important; }
+.planner-history-switch .history-switch-label { justify-self:center; padding:4px; border-radius:8px; background:#09131a; }
+.planner-history-switch[aria-checked="false"] .history-switch-off,
+.planner-history-switch[aria-checked="true"] .history-switch-on { background:transparent; }
+
+/* Bracketed, sliding selection: ---[OFF]-ON--- or ---OFF-[ON]---. */
+.app-shell[data-button-style] .planner-history-control .planner-history-switch { border:0!important; background:transparent!important; width:132px; min-width:132px; }
+.planner-history-switch .history-switch-track { left:0; right:0; }
+.planner-history-switch .history-switch-thumb { left:10px; width:calc(50% - 10px); border-radius:3px; background:#11222c; border:1px solid #83d5e8; box-shadow:none; }
+.planner-history-switch[aria-checked="true"] .history-switch-thumb { transform:translateX(100%); }
+.planner-history-switch .history-switch-label { background:#101923; color:#7f909d; text-transform:uppercase; }
+.planner-history-switch[aria-checked="false"] .history-switch-off,
+.planner-history-switch[aria-checked="true"] .history-switch-on { color:#edfaff; background:transparent; }
+
+/* Input resources are blue; operation tools retain cyan. */
+.app-shell .category-input { --node-accent:#60a5fa; --outline-edge-accent:#60a5fa; --item-fill:#2861a8; }
+.app-shell .minimap .mini-node.category-input { stroke:#60a5fa; }
+.flow-node .node-main > :last-child { min-width:0; flex:1; overflow:hidden; }
+.flow-node .node-main :is(strong,small) { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.panel-resize-handle { position:absolute; top:0; bottom:0; width:8px; z-index:80; cursor:col-resize; touch-action:none; background:transparent; }
+.resize-planner { right:0; } .resize-information { left:0; }
+.panel-resize-handle:hover,.panel-resize-handle:focus-visible { background:#67e8f955; outline:1px solid #67e8f9; }
+.workspace-right-panel,.planner-dialogue { position:relative; }
+@media(min-width:1051px) {
+ .app-shell:not(.advanced-open) .workspace { grid-template-columns:minmax(0,1fr) var(--information-panel-width,310px); }
+ .workspace.text-planner-open,.app-shell:not(.advanced-open) .workspace.text-planner-open { grid-template-columns:var(--planner-panel-width,360px) minmax(220px,1fr) var(--information-panel-width,310px); }
+ .workspace.right-panel-open,.app-shell:not(.advanced-open) .workspace.right-panel-open { grid-template-columns:minmax(220px,1fr) var(--information-panel-width,400px); }
+}
+@media(max-width:1050px) { .panel-resize-handle { display:none; } }
+.outcome-step { padding:12px 0; border-bottom:1px solid #354150; }
+.outcome-step>summary { cursor:pointer; color:#ecf4fc; font-weight:600; line-height:1.5; }
+.outcome-step[open]>summary { margin-bottom:12px; }
+.graph-source-disclosure { position:relative; min-width:180px; }
+.graph-source-options { position:absolute; right:0; top:100%; z-index:90; width:min(420px,80vw); max-height:60vh; overflow:auto; padding:12px; background:#15212af5; border:1px solid #466173; border-radius:8px; }
+.graph-source-options summary { cursor:pointer; padding:8px 0; color:#b8e9f3; }
+.graph-source-options button { display:block; width:100%; text-align:left; margin:4px 0; padding:8px; white-space:normal; }
+
+.graph-source-disclosure>button { max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.graph-source-options button[aria-pressed="true"] { border-width:2px; border-color:#67e8f9; }
+
+.app-shell .graph-source-picker { gap:6px; font-size:13px; }
+.app-shell .graph-source-disclosure>button { font-size:14px; line-height:1.4; min-height:38px; max-width:340px; padding:8px 12px; }
+.app-shell .graph-source-options :is(summary,button) { font-size:14px; line-height:1.5; }

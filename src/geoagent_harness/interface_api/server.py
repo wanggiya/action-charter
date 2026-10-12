@@ -379,6 +379,9 @@ def interface_execution_inventory(
             "result_link": result_link,
             "result_reason": result_reason,
             "recorded_outputs": recorded_outputs,
+            **({"partial_outputs": state["partial_outputs"][:20],
+                "recovery_guidance": state.get("recovery_guidance")}
+               if "partial_outputs" in state else {}),
             "outputs_truncated": outputs_truncated,
             "started_at": state.get("started_at"),
             "finished_at": state.get("finished_at"),
@@ -2671,6 +2674,20 @@ def execute_interface_recipe(
     record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
                               attempt_sha256=progress_key, state="running")
 
+    from geoagent_harness.tabular.schemas import WRITE_IDS as TABLE_WRITE_IDS
+    from geoagent_harness.tabular.service import read_bytes as read_table_bytes, TabularError
+    table_targets = {
+        step.step_id: step.arguments["target_path"]
+        for step in envelope.steps if step.skill_id in TABLE_WRITE_IDS
+    }
+    existing_table_targets = set()
+    for target in table_targets.values():
+        try:
+            read_table_bytes(root, target, "output")
+            existing_table_targets.add(target)
+        except TabularError:
+            pass
+
     def progress_callback(step_id: str, skill_id: str, status: str) -> None:
         with _EXECUTION_LOCK:
             state = _EXECUTION_PROGRESS[progress_key]
@@ -2680,6 +2697,8 @@ def execute_interface_recipe(
                     break
             if status in {"failed", "validation_failed"}:
                 state["failed_step_id"] = step_id
+            if status in {"completed", "validated_success", "validation_failed"}:
+                state["execution_performed"] = True
             snapshot = json.loads(json.dumps(state))
         _persist_execution_progress(root, snapshot, progress_root=progress_root)
 
@@ -2692,6 +2711,17 @@ def execute_interface_recipe(
             progress_callback=progress_callback,
         )
     except Exception:
+        partial_outputs = []
+        for step_id, target in table_targets.items():
+            if target in existing_table_targets:
+                continue
+            try:
+                data = read_table_bytes(root, target, "output")
+            except TabularError:
+                continue
+            partial_outputs.append({"step_id": step_id, "path": target,
+                                    "sha256": hashlib.sha256(data).hexdigest(),
+                                    "status": "present_after_failure"})
         with _EXECUTION_LOCK:
             state = _EXECUTION_PROGRESS[progress_key]
             state["status"] = "failed"
@@ -2702,8 +2732,12 @@ def execute_interface_recipe(
             )
             state["recovery_guidance"] = (
                 "Inspect the failed step and durable evidence before creating "
-                "a new approval for any retry."
+                "a new approval for any retry. Existing CSV outputs cannot be overwritten; "
+                "choose fresh target paths. No retry is performed automatically."
             )
+            if table_targets:
+                state["partial_outputs"] = partial_outputs
+                state["execution_performed"] = state["execution_performed"] or bool(partial_outputs)
             failed_snapshot = json.loads(json.dumps(state))
         _persist_execution_progress(root, failed_snapshot, progress_root=progress_root)
         record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
@@ -3106,7 +3140,6 @@ def _handler(
                 elif self.path == "/api/v1/intent/reason":
                     from geoagent_harness.intent.service import reason_task_intent, IntentError
                     from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
-                    from geoagent_harness.model import ModelClientError, ModelSettingsError
                     intent_request = InterfaceIntentRequest.model_validate(payload)
                     try:
                         response = reason_task_intent(
@@ -3132,7 +3165,6 @@ def _handler(
                     from geoagent_harness.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
                     from geoagent_harness.intent.service import IntentError
                     from geoagent_harness.context_retrieval import ContextReviewError, ContextRetrievalError
-                    from geoagent_harness.model import ModelClientError, ModelSettingsError
                     try:
                         if self.path == "/api/v1/intent/inspect":
                             inspected = InterfaceIntentInspectionRequest.model_validate(payload)
@@ -3461,7 +3493,20 @@ def _handler(
                 message = ("Edited workflow failed policy: " + str(exc)[:240]) if self.path == "/api/v1/plans/validate-edit" else "reviewed plan was rejected by deterministic policy"
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": message})
                 return
-            except (ContextPackError, ModelClientError, ModelSettingsError):
+            except (ContextPackError, ModelClientError, ModelSettingsError) as exc:
+                if self.path == "/api/v1/planner/conversation":
+                    if isinstance(exc, ModelClientError):
+                        message, code = str(exc), exc.code
+                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; no retry or execution happened. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
+                                    if code == "model_timeout" else "Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.")
+                    elif isinstance(exc, ModelSettingsError):
+                        message, code = "Planner model configuration is invalid or missing", "model_configuration_failed"
+                        guidance = "Check MODEL_NAME and MODEL_BASE_URL in the launcher environment, then restart the launcher."
+                    else:
+                        message, code = "Planner context could not be prepared", "planner_context_failed"
+                        guidance = "Check trusted context files and the current workflow. Disable previous messages or reduce selected skills if the prompt exceeds its budget."
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": message, "code": code, "retry_guidance": guidance, "approval_performed": False, "execution_performed": False})
+                    return
                 if self.path == "/api/v1/critic-evidence/run":
                     self._send(
                         HTTPStatus.SERVICE_UNAVAILABLE,

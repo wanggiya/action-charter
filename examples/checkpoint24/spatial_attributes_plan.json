@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "status": "planned",
+  "summary": "Inspect spatial data and export its name attributes as CSV",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "skill": "inspect_vector",
+      "purpose": "inspect_vector",
+      "arguments": {
+        "path": "data/input/sample_points.geojson"
+      },
+      "requires_approval": false,
+      "expected_artifacts": [],
+      "validation_required": false
+    },
+    {
+      "step_id": "step_2",
+      "skill": "vector_attributes_to_csv",
+      "purpose": "vector_attributes_to_csv",
+      "arguments": {
+        "path": "data/input/sample_points.geojson",
+        "target_path": "data/output/point_attributes.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_3",
+      "skill": "select_csv_columns",
+      "purpose": "select_csv_columns",
+      "arguments": {
+        "source_step": "step_2",
+        "columns": [
+          "name"
+        ],
+        "target_path": "data/output/point_names.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_4",
+      "skill": "export_csv",
+      "purpose": "export_csv",
+      "arguments": {
+        "source_step": "step_3",
+        "target_path": "data/output/final_names.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "execution_performed": false,
+  "validation_performed": false
+}

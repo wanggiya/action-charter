@@ -288,6 +288,7 @@ const snakemakeExportResultSchema = z.object({
 });
 export type SnakemakeExportResult = z.infer<typeof snakemakeExportResultSchema>;
 
+const partialTableOutputsSchema = z.array(z.object({step_id:z.string().max(120),path:z.string().max(960),sha256:z.string().regex(/^[a-f0-9]{64}$/),status:z.literal("present_after_failure")})).max(20).default([]);
 const executionProgressSchema = z.object({
   schema_version: z.literal("1.0"),
   status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
@@ -300,6 +301,7 @@ const executionProgressSchema = z.object({
   failed_step_id: z.string().max(120).nullable(),
   interruption_detected: z.boolean(),
   recovery_guidance: z.string().max(1000).nullable(),
+  partial_outputs: partialTableOutputsSchema,
   steps: z.array(z.object({
     step_id: z.string().min(1).max(120),
     skill_id: z.string().min(1).max(120),
@@ -326,6 +328,8 @@ const executionInventorySchema = z.object({
     result_reason: z.string().max(300),
     recorded_outputs: z.array(z.object({ artifact_id: z.string().max(101), path: z.string().max(2000), sha256: z.string().regex(/^[a-f0-9]{64}$/), producer_step_id: z.string().nullable() })).max(20),
     outputs_truncated: z.boolean(),
+    partial_outputs: partialTableOutputsSchema,
+    recovery_guidance: z.string().max(1000).nullable().optional(),
     started_at: z.string().datetime({ offset: true }),
     finished_at: z.string().datetime({ offset: true }).nullable(),
     failed_step_id: z.string().max(120).nullable(),

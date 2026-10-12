@@ -1,12 +1,21 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-10-04
+Updated: 2026-10-07
 
 ## Immediate priority
 
-Checkpoint 22 implementation closes with checked context/Intent and inspection-plan handoff. Checkpoint 23 integrates conversation, explicit input selection, current graph and governed execution. It must support read-only continuation without fabricated approval and preserve exact approval for writes. A public demo follows actual end-to-end acceptance; tabular expansion follows later.
+Checkpoint 23 is merged: conversational planning, governed graph edits, exact authorization/execution, host startup and completed-workflow Snakemake export/static verification are implemented. Checkpoint 24 now implements bounded tabular workflows; see [delivery and acceptance](../docs/CHECKPOINT24.md). Next is Checkpoint 25 below. Historical checkpoint proposals remain preserved; the former 26 evaluation/release scope is moved to 27 so execution/recovery is completed first. No release publication is authorized.
 
-Task workspace foundation now includes explicit input selection, pre-inference existence checks and a pending task graph. Seamless read-only/write execution and outcome acceptance remain in progress. See docs/CHECKPOINT23A.md.
+## Dependency-ordered checkpoints 24–27
+
+| Checkpoint | Depends on | Coherent functionality | Measurable acceptance |
+| --- | --- | --- | --- |
+| **24 — bounded tabular workflows** | 23's typed plan/graph/approval/recipe services | Explicit pandas-backed inspect, select, filter, missing-value handling, join, aggregation and CSV export; bounded previews, intermediate ancestor-output references, deterministic verification, CLI/interface parity and a compatible GeoJSON-attributes bridge. Reuse the existing registry rather than exposing Python functions. | A fixture pipeline of every operation yields exact expected rows/columns/values and evidence; a spatial→tabular pipeline passes. Read-only inspection requires no invented approval. Unsafe paths/expressions, malformed/oversized tables, incompatible references, missing/expired/mismatched authority and output collisions reject without unrelated writes. Model proposal, manual graph editing, review/execute/outcome/history and CLI use shared contracts. |
+| **25 — operation contracts and governed extensions** | 24's working multi-domain operation contracts | Consolidate stable IDs/readable labels, typed inputs/outputs/parameters, dependencies/runtime requirements, effects/gates and preview/validation contracts into a shared searchable registry. Adapt existing IDs compatibly. Add documented package/adapter authoring, isolated testing and explicit installation, using one small example. | Existing plan/recipe digests and fixtures retain their behavior. CLI/UI discovery agree. A small extension is packaged, tested and explicitly installed, with invalid signatures/contracts/entrypoints rejected. Installing a dependency never enables or approves its operation; arbitrary library functions remain unavailable. |
+| **26 — scheduling and recovery correctness** | 25's consistent contracts; existing DAG order, persisted attempts and approvals | Extend existing dependency scheduling and durable state with cooperative cancellation, partial-output reporting, safe retry/resume, reusable workflow parameters and intermediate inspection. Preserve exact authority per consequential attempt. | Stop/restart/cancel at queued, read, write and validation boundaries produces durable truthful states and identified partial outputs. Failed/changed/expired-authority writes cannot repeat automatically. Read-only retry and explicitly reapproved write recovery demonstrate correct dependencies with no duplicate table/file writes. Reusable workflows and intermediate previews are source/digest-bound. |
+| **27 — evaluated laptop/PC prototype preparation** | 24–26 acceptance | Preserve the previous 26 benchmark direction: compare correctness, interventions, elapsed time and recovery against manual/general-agent work. Prepare one-command setup, explicit dependency guidance, spatial/tabular/combined examples, full manual acceptance and bounded portable packaging/release materials. | Clean-environment installation/startup checks pass on documented supported platforms. All three examples produce expected evidence. Benchmark results and capability/limitation tables are reproducible, packaging contains no secrets/runtime/private datasets, and release materials are prepared without publishing. No KNIME/Ansible parity claim is made. |
+
+Order: **24 → 25 → 26 → 27**. Finish each checkpoint's functionality and relevant automated/interface acceptance before starting the next. Missing browser/live-service acceptance is reported explicitly, never substituted with model text. Only temporary fixtures are used by automation; live services require separate explicit permission.
 
 ## Product direction
 
@@ -961,12 +970,13 @@ Physical output freshness checks and a simplified task-level decision flow are l
 - [ ] Compare a fresh PostGIS task to the Checkpoint 19 flow for user actions,
   elapsed time, comprehension, failure recovery and exact evidence.
 
-### Checkpoints 24–26
+### Checkpoints 24–27
 
-- [ ] Add governed Pandas tabular-data processing (Checkpoint 24).
+- [x] Add governed Pandas tabular-data processing (Checkpoint 24).
 - [ ] Add governed installed-library capability discovery (Checkpoint 25).
+- [ ] Complete scheduling/cancellation/durable recovery (Checkpoint 26).
 - [ ] Benchmark against manual and general-agent work and prepare the laptop
-  alpha release after product acceptance (Checkpoint 26).
+  alpha release after product acceptance (Checkpoint 27).
 
 See `context/AGENT_INTERFACE_SEQUENCE.md` for the acceptance boundaries.
 
