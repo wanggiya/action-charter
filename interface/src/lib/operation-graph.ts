@@ -41,7 +41,16 @@ export function deleteOperation(result: InterfacePlannerResult, id: string): Int
   const next = materializeDependencies(result);
   const remaining = next.plan.steps.filter((step) => step.step_id !== id);
   const renamed = Object.fromEntries(remaining.map((step, index) => [step.step_id, `step_${index + 1}`]));
-  next.plan.steps = remaining.map((step) => ({ ...step, step_id: renamed[step.step_id], depends_on: step.depends_on!.filter((parent) => parent in renamed).map((parent) => renamed[parent]) }));
+  next.plan.steps = remaining.map((step) => {
+    const argumentsValue = { ...step.arguments };
+    // References track producer identity when IDs close up after deletion.
+    // A removed producer leaves an invalid draft, never binds a different table.
+    for (const key of ["source_step", "right_step"]) {
+      const source = argumentsValue[key];
+      if (typeof source === "string") argumentsValue[key] = renamed[source] ?? "";
+    }
+    return { ...step, arguments: argumentsValue, step_id: renamed[step.step_id], depends_on: step.depends_on!.filter((parent) => parent in renamed).map((parent) => renamed[parent]) };
+  });
   return next;
 }
 

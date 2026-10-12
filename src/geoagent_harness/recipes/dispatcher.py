@@ -96,6 +96,10 @@ _EXPECTED_ENTRYPOINTS = {
 }
 
 
+from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS, WRITE_IDS as TABULAR_WRITE_IDS
+from geoagent_harness.tabular.service import run_operation as run_tabular, inspect_csv, TabularError
+_EXPECTED_ENTRYPOINTS.update({id: 'geoagent_harness.tabular.service:' + ('inspect_csv' if id == 'inspect_csv' else 'run_operation') for id in TABULAR_ARGUMENTS})
+
 class RecipeDispatchError(RuntimeError):
     """Raised when a recipe step cannot be safely dispatched."""
 
@@ -187,6 +191,7 @@ def dispatch_recipe_step(
     step_id: str,
     registry: SkillRegistry,
     settings: MCPSettings,
+    completed_results: dict | None = None,
 ) -> RecipeStepExecutionResult:
     """Dispatch one exact allowlisted envelope step."""
 
@@ -222,7 +227,17 @@ def dispatch_recipe_step(
         )
 
     try:
-        if step.skill_id == "inspect_vector":
+        if step.skill_id in TABULAR_ARGUMENTS:
+            typed = TABULAR_ARGUMENTS[step.skill_id].model_validate(step.arguments)
+            if step.skill_id == 'inspect_csv':
+                value = inspect_csv(**typed.model_dump(), settings=settings)
+                status = 'completed'
+            else:
+                value = run_tabular(step.skill_id, step.arguments, settings, completed_results)
+                status = 'completed_pending_validation'
+            validation_performed = False
+
+        elif step.skill_id == "inspect_vector":
             arguments = (
                 InspectVectorRecipeArguments.model_validate(
                     step.arguments
@@ -377,6 +392,7 @@ def dispatch_recipe_step(
             f"{step.skill_id!r} are invalid"
         ) from exc
     except (
+        TabularError,
         ConvertRasterError,
         ConvertVectorError,
         InspectRasterPolicyError,

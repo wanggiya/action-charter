@@ -15,9 +15,10 @@ from geoagent_harness.approvals import plan_sha256
 from geoagent_harness.agent_manifest import load_agent_manifest
 from geoagent_harness.context_pack.redaction import redact_text, redact_value
 from geoagent_harness.context_pack import build_context_pack
+from geoagent_harness.context_pack.builder import ContextPackError
 from geoagent_harness.model import SharedModelClient, load_model_settings
 from geoagent_harness.model.schemas import ChatMessage
-from geoagent_harness.planner.agent import _validate_planner_manifest, PlannerAgentError
+from geoagent_harness.planner.agent import _validate_planner_manifest, _schema_findings, PlannerAgentError
 from geoagent_harness.planner.prompt import build_planner_request
 from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan
 from geoagent_harness.planner.policy import normalize_plan_input_filenames, PlannerPolicyError
@@ -25,6 +26,28 @@ from .workflow import _check, ARGUMENTS
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
+MAX_HISTORY_BYTES = 6000
+MAX_PROMPT_BYTES = 64000
+
+def _history(entries, enabled):
+    selected = []
+    shortened = False
+    for entry in reversed(entries[-12:] if enabled else []):
+        item = redact_value(entry.model_dump())
+        text = item['content']
+        item['content'] = text[:1000]
+        item['content_truncated'] = len(text) > 1000
+        if len(json.dumps([item, *selected], ensure_ascii=False).encode()) > MAX_HISTORY_BYTES:
+            break
+        shortened = shortened or item['content_truncated']
+        selected.insert(0, item)
+    return selected, len(entries) - len(selected), shortened
+
+def _check_prompt(request):
+    size = sum(len(message.content.encode()) for message in request.messages)
+    if size > MAX_PROMPT_BYTES:
+        raise ContextPackError('Planner context exceeds its 64 KB budget; disable previous messages, reduce the current workflow or selected skills, then retry. Nothing executed.')
+    return size
 
 
 class TurnRequest(BaseModel):
@@ -33,6 +56,7 @@ class TurnRequest(BaseModel):
     conversation_id: str = Field(pattern=r'^[a-f0-9]{32}$')
     expected_revision: int = Field(default=0, ge=0)
     message: str = Field(default='', max_length=8000)
+    use_history: bool = True
     current_plan: PlannerResult | None = None
     current_plan_filename: str | None = Field(default=None, pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
     allowed_skill_ids: list[str] = Field(default_factory=list, max_length=20)
@@ -58,6 +82,7 @@ class Conversation(BaseModel):
     model_config = ConfigDict(extra='forbid')
     conversation_id: str = Field(pattern=r'^[a-f0-9]{32}$')
     revision: int = Field(default=0, ge=0)
+    context_usage: dict | None = None
     messages: list[Entry] = Field(default_factory=list, max_length=100)
     planner_result: PlannerResult | None = None
     selected_skill_ids: list[str] = Field(default_factory=list, max_length=20)
@@ -165,12 +190,17 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
         model_request = build_planner_request(pack, manifest)
         system = json.loads(model_request.messages[0].content)
         system['mandatory_rules'][0] = 'Return exactly one JSON object matching required_json_schema. A null plan means a clarification or explanation; a plan is the complete revised workflow, never a patch.'
-        system['workflow_json_schema'] = system.pop('required_json_schema')
+        system.pop('required_json_schema')
+        system.pop('tabular_argument_schemas', None)
         system['required_json_schema'] = Reply.model_json_schema()
+        system['required_json_schema']['$defs']['PlanStep']['properties']['skill']['enum'] = available
         system['operation_argument_schemas'] = {name: ARGUMENTS[name].model_json_schema() for name in available}
+        system['tabular_dataflow_example'] = {'step_1': {'skill':'inspect_csv','arguments':{'path':'data/input/sample_orders.csv'}}, 'step_2': {'skill':'select_csv_columns','arguments':{'path':'data/input/sample_orders.csv','columns':['order_id','region','amount'],'target_path':'data/output/selected.csv'},'depends_on':['step_1']}, 'step_3': {'skill':'handle_csv_missing','arguments':{'source_step':'step_2','method':'fill','fill_values':{'region':'unknown','amount':0},'target_path':'data/output/filled.csv'},'depends_on':['step_2']}} if {'inspect_csv','select_csv_columns','handle_csv_missing'}.issubset(available) else None
+        system['reply_shape_example'] = {'message': 'Which file should I inspect?', 'plan': None, 'approval_performed': False, 'execution_performed': False}
         system['conversion_clarification_example'] = {'message': 'Where should I save the GeoPackage? You can use data/output/sample_points.gpkg. No database schema is needed for this file conversion.', 'plan': None}
         system['conversion_arguments_example'] = {'path': 'data/input/sample_points.geojson', 'target_path': 'data/output/sample_points.gpkg'}
         system['mandatory_rules'] += [
+            'Tabular operations are explicit pandas-backed contracts. inspect_csv reads CSV/TSV and returns metadata/previews only, never a CSV artifact; NEVER use inspect_csv as source_step/right_step. The first transform must read the original data/input path, even when its completion dependency is inspect_csv; later source references name CSV-producing transforms. table transforms/export require approval and validation. Preserve identifiers as strings, treat only empty CSV cells as missing. Use path for original data/input files or source_step for an ancestor table-producing operation; join uses right_path or right_step. Omit unused source fields rather than null. Every transform needs a unique data/output/*.csv target. Do not use expressions, query(), eval, callables or library function names. CSV-producing intermediates are referred to by step ID, never arbitrary data/output input paths. vector_attributes_to_csv explicitly drops geometry after inspect_vector of the same GeoJSON and can feed tabular steps. Ask for missing columns/keys/strategies/targets rather than invent them.',
             'export_snakemake_workflow and verify_snakemake_export are terminal main-workflow operations, not replay execution. To add Snakemake to a saved workflow, preserve existing steps exactly; append export_snakemake_workflow with source_plan_filename/source_plan_sha256 from saved_source_reference, requires_approval=true and validation_required=true, depending on all preceding operations, then verify_snakemake_export with arguments={}, requires_approval=false and validation_required=true depending on export. The source workflow must complete with verified successful evidence before export can execute. Do not invent source references. Ask the operator to save/complete the original workflow if no reference exists. Original operations are reused, not rerun.',
             'Ask only for missing REQUIRED arguments for the requested operation. A local convert_vector requires path and target_path, not a database schema. For GeoJSON to GeoPackage, .gpkg on target_path defines the format. source_layer and target_layer are optional; do not require them for the single-layer sample GeoJSON. Ask only for the output filename/path if missing, and suggest data/output/sample_points.gpkg as a proposed choice, without treating it as accepted. Database target_schema/target_table belong to PostGIS operations only. Do not invent required scope.',
             'Selected skills constrain additions, not a command to include every selected skill. Existing workflow operations and mandatory load dependencies remain available. Empty selection means automatic choice among registered supported operations. Explain unavailable additions and invite the operator to update their selection.',
@@ -185,24 +215,38 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                 reference = existing.arguments
             elif request.current_plan_filename:
                 reference = {'source_plan_filename': request.current_plan_filename, 'source_plan_sha256': plan_sha256(base.plan)}
-        model_request.messages = [ChatMessage(role='system', content=json.dumps(system)), ChatMessage(role='user', content=json.dumps({
-            'initial_request': redact_text(state.messages[0].content) if state.messages else pack.original_request,
+        recent, omitted, shortened = _history(state.messages, request.use_history)
+        model_request.messages = [ChatMessage(role='system', content=json.dumps(system, separators=(',', ':'))), ChatMessage(role='user', content=json.dumps({
+            'initial_request': redact_text(state.messages[0].content)[:1000] if state.messages and request.use_history else None,
             'latest_message': pack.original_request,
             'saved_source_reference': reference,
             'selected_skill_ids': selected,
             'skill_selection_mode': 'selected' if selected else 'automatic',
-            'recent_conversation': redact_value([entry.model_dump() for entry in state.messages[-12:]]),
-            'older_messages_omitted': len(state.messages) > 12,
+            'recent_conversation': recent,
+            'older_messages_omitted': omitted > 0,
+            'history_messages_omitted': omitted,
+            'history_excerpts_truncated': shortened,
             'current_plan': redact_value(base.plan.model_dump(mode='json')) if base else None,
             'datasets': [dataset.model_dump(mode='json') for dataset in pack.datasets],
-        }))]
+        }, ensure_ascii=False, separators=(',', ':')))]
+        prompt_bytes = _check_prompt(model_request)
         client = model_client or SharedModelClient(load_model_settings())
         proposed = None
         for attempt in range(2):
             proposed = None
+            prompt_bytes = _check_prompt(model_request)
             result = client.complete(model_request)
             try:
-                reply = Reply.model_validate_json(result.content)
+                try:
+                    reply = Reply.model_validate_json(result.content)
+                except ValidationError as reply_error:
+                    # Compatibility with the old Planner's closed plan-only schema.
+                    # No coercion, arbitrary envelope extraction or gate relaxation.
+                    try:
+                        legacy_plan = WorkflowPlan.model_validate_json(result.content)
+                    except ValidationError:
+                        raise reply_error
+                    reply = Reply(message=legacy_plan.summary, plan=legacy_plan)
                 if reply.plan is not None:
                     plan = reply.plan
                     normalize_plan_input_filenames(plan)
@@ -222,9 +266,24 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                                         raise InterfaceApiError('Existing validation gates must be preserved')
                 break
             except (ValidationError, PlannerPolicyError, InterfaceApiError, ValueError) as error:
+                if isinstance(error, ValidationError):
+                    findings = _schema_findings(error)
+                    kind = "JSON" if any(item['type'] == 'json_invalid' for item in error.errors()) else "schema"
+                    message = "Planner model returned invalid JSON" if kind == "JSON" else "Planner model returned an invalid plan schema"
+                else:
+                    findings = [redact_text(str(error))[:600]]
+                    kind = "policy"
+                    message = "Planner plan failed deterministic policy after one correction attempt"
                 if attempt:
-                    raise PlannerAgentError('Conversation did not produce a valid proposal', correction_attempted=True) from error
-                model_request.messages.append(ChatMessage(role='user', content='Response failed deterministic validation. Return a corrected response matching the schema and safe registered-operation requirements, or ask a clarification with plan=null. Do not claim approval or execution.'))
+                    raise PlannerAgentError(message, findings=findings, correction_attempted=True) from error
+                model_request.messages.extend([
+                    ChatMessage(role='assistant', content=redact_text(result.content).encode()[:max(0, min(8000, MAX_PROMPT_BYTES - prompt_bytes - 2048))].decode('utf-8', errors='ignore') or '[response omitted for prompt budget]'),
+                    ChatMessage(role='user', content=json.dumps({
+                        'task': 'Correct this non-executing proposal once or ask a clarification with plan=null.',
+                        'failure_kind': kind, 'deterministic_findings': findings,
+                        'instruction': 'Return the complete Reply object with message and plan, matching required_json_schema and operation_argument_schemas. Use only available skills, preserve requested scope and required approval/validation. Never claim authorization or execution.',
+                    }, separators=(',', ':'))),
+                ])
         with _LOCK:
             latest = _read(path, request.conversation_id)
             if latest.revision != request.expected_revision:
@@ -232,6 +291,7 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             state.messages.extend([Entry(role='user', content=pack.original_request, selected_skill_ids=selected), Entry(role='assistant', content=redact_text(reply.message)[:8000], plan_skill_ids=list(dict.fromkeys(step.skill for step in (proposed or base).plan.steps)) if (proposed or base) else [])])
             state.selected_skill_ids = selected
             state.allowed_skill_ids = available
+            state.context_usage = {'history_enabled': request.use_history, 'included_messages': len(recent), 'omitted_messages': omitted, 'excerpts_truncated': shortened, 'prompt_bytes': prompt_bytes, 'prompt_limit_bytes': MAX_PROMPT_BYTES}
             state.revision += 1
             state.planner_result = proposed or base
             _write(path, state)

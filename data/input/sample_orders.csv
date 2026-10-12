@@ -1,0 +1,7 @@
+order_id,region,amount,customer_id,unused
+001,north,10,01,a
+002,north,20,02,b
+003,south,,03,c
+004,south,40,04,d
+005,north,5,05,e
+006,,30,06,f

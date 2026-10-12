@@ -18,6 +18,8 @@ def planner_recipe_definition(result: PlannerResult, plan_digest: str) -> Workfl
         "validate_postgis_layer": ["postgis_validation"],
         "generate_report": ["workflow_report"],
     }
+    from geoagent_harness.tabular.schemas import ARGUMENTS
+    supported_outputs.update({id: ['table_metadata' if id == 'inspect_csv' else 'table_output'] for id in ARGUMENTS})
     unsupported = [step.skill for step in result.plan.steps if step.skill not in supported_outputs]
     if unsupported:
         raise PlannerRecipeDefinitionError("plan contains skills not supported by the governed recipe dispatcher: " + ", ".join(unsupported))
@@ -27,7 +29,7 @@ def planner_recipe_definition(result: PlannerResult, plan_digest: str) -> Workfl
         skill_id=step.skill,
         depends_on=dependencies[step.step_id],
         arguments=step.arguments,
-        output_ids=supported_outputs[step.skill],
+        output_ids=[f"table_{step.step_id}"] if step.skill in ARGUMENTS and step.skill != "inspect_csv" else supported_outputs[step.skill],
     ) for index, step in enumerate(result.plan.steps)]
     recipe = WorkflowRecipe(
         recipe_id=f"planner-{plan_digest[:16]}",

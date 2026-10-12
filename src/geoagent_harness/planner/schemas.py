@@ -58,7 +58,7 @@ class WorkflowPlan(BaseModel):
     schema_version: Literal["1.0"] = "1.0"
     status: Literal["planned"] = "planned"
     summary: str = Field(min_length=1, max_length=2000)
-    steps: list[PlanStep] = Field(min_length=1, max_length=20)
+    steps: list[PlanStep] = Field(min_length=1, max_length=20, description="Ordered operations with IDs step_1, step_2, step_3, and so on in array order, with no gaps or duplicates. References must preserve the intended producer when renumbering.")
     assumptions: list[str] = Field(default_factory=list)
     risks: list[str] = Field(default_factory=list)
     execution_performed: Literal[False] = False

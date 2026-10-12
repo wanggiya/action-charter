@@ -24,6 +24,8 @@ reports/*
 # Real GIS datasets are local unless explicitly reviewed for publication.
 data/input/*
 !data/input/sample_points.geojson
+!data/input/sample_orders.csv
+!data/input/sample_regions.csv
 *.gpkg
 *.shp
 *.shx

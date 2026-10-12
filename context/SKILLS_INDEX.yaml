@@ -133,3 +133,82 @@ skills:
   approval_required: false
   validation_required: false
   entrypoint: geoagent_harness.interface_api.snakemake_workflow:validate_snakemake_workflow
+
+- id: inspect_csv
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.tabular.service:inspect_csv
+
+- id: select_csv_columns
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: filter_csv_rows
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: handle_csv_missing
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: join_csv
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: aggregate_csv
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: export_csv
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
+
+- id: vector_attributes_to_csv
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output

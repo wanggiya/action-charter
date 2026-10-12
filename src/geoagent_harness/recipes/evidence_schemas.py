@@ -262,10 +262,17 @@ class RecipeRunEvidence(BaseModel):
             ]
 
             if source.role != ArtifactRole.INPUT:
-                raise ValueError(
-                    "lineage source must be an "
-                    "input artifact"
-                )
+                from geoagent_harness.tabular.schemas import WRITE_IDS
+                producer = steps_by_id.get(source.producer_step_id)
+                order = [item.step_id for item in self.run_result.step_results]
+                references = step.execution.result.get('sources', [])
+                if (step.skill_id not in WRITE_IDS or producer is None
+                    or order.index(producer.step_id) >= order.index(step.step_id)
+                    or not producer.validation_performed or not producer.validation_result
+                    or producer.validation_result.get('passed') is not True
+                    or producer.execution.result.get('data_contract') != 'table/csv-v1'
+                    or not any(ref.get('source_step') == producer.step_id and ref.get('path') == source.path and ref.get('sha256') == source.sha256 for ref in references)):
+                    raise ValueError('lineage source must be an input artifact or exact validated earlier CSV producer')
 
             if target.role != ArtifactRole.OUTPUT:
                 raise ValueError(

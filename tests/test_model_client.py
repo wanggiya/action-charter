@@ -192,3 +192,16 @@ def test_model_client_sends_json_mode(
     )
 
     assert result.content == '{"status":"ok"}'
+
+def test_explicit_reasoning_control_is_forwarded_without_default_change(settings):
+    from dataclasses import replace
+    import json
+    observed = []
+    def handler(request):
+        observed.append(json.loads(request.content))
+        return httpx.Response(200,json={'model':'fixture','choices':[{'message':{'content':'{}'}}]})
+    request = ModelRequest(messages=[ChatMessage(role='user',content='Plan only')])
+    SharedModelClient(settings,transport=httpx.MockTransport(handler)).complete(request)
+    SharedModelClient(replace(settings,reasoning_effort='none'),transport=httpx.MockTransport(handler)).complete(request)
+    assert 'reasoning_effort' not in observed[0]
+    assert observed[1]['reasoning_effort']=='none'

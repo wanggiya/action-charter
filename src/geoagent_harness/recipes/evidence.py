@@ -46,6 +46,9 @@ MAX_EVIDENCE_ARTIFACT_BYTES = 2_000_000_000
 _HASH_CHUNK_BYTES = 1024 * 1024
 
 _MEDIA_TYPES = {
+    ".csv": "text/csv",
+    ".tsv": "text/tab-separated-values",
+    ".json": "application/json",
     ".geojson": "application/geo+json",
     ".gpkg": "application/geopackage+sqlite3",
     ".tif": "image/tiff",
@@ -269,6 +272,28 @@ def build_recipe_run_evidence(
             )
 
         skill_versions[skill.id] = skill.version
+
+        from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, WRITE_IDS
+        if step.skill_id in TABLE_ARGUMENTS:
+            value=step.execution.result
+            inputs=[]
+            sources=value.get('sources',[]) if step.skill_id in WRITE_IDS else [{'path':value['source'],'area':'input','sha256':value['source_sha256']}]
+            for source_record in sources:
+                if source_record['area']=='input':
+                    source=_artifact_reference(path_value=source_record['path'], root=input_root, role=ArtifactRole.INPUT, artifact_id=_input_artifact_id(source_record['path']))
+                    artifacts_by_path[(ArtifactRole.INPUT,source.path)]=source
+                else:
+                    source=next((item for (role,path),item in artifacts_by_path.items() if role==ArtifactRole.OUTPUT and path==source_record['path'] and item.producer_step_id==source_record.get('source_step')),None)
+                    if source is None:raise RecipeEvidenceError('CSV intermediate has no verified producer artifact')
+                if source.sha256!=source_record['sha256']:raise RecipeEvidenceError('CSV source digest changed before evidence persistence')
+                inputs.append(source)
+            if step.skill_id in WRITE_IDS:
+                if sanitized_result.final_status=='validated_success' and (not step.validation_result or not step.validation_result.get('passed')):raise RecipeEvidenceError('Table write lacks passing validation')
+                output=_artifact_reference(path_value=value['output']['path'],root=output_root,role=ArtifactRole.OUTPUT,artifact_id=step.execution.output_ids[0],producer_step_id=step.step_id)
+                if output.sha256!=value['output']['sha256']:raise RecipeEvidenceError('CSV output digest changed before evidence persistence')
+                artifacts_by_path[(ArtifactRole.OUTPUT,output.path)]=output
+                for source in inputs:lineage.append(LineageEdge(source_artifact_id=source.artifact_id,target_artifact_id=output.artifact_id,step_id=step.step_id,skill_id=step.skill_id))
+            continue
 
         if step.skill_id == "inspect_vector":
             source_value = step.execution.result.get(

@@ -160,6 +160,8 @@ def validate_recipe_policy(
                 )
 
     order = _topological_order(recipe)
+    from geoagent_harness.tabular.policy import validate_steps
+    validate_steps(recipe.steps, {step.step_id: step.depends_on for step in recipe.steps})
 
     return RecipeValidation(
         recipe_id=recipe.recipe_id,

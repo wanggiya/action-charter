@@ -20,6 +20,7 @@ class ModelSettings:
     model: str
     timeout_seconds: float
     max_tokens: int
+    reasoning_effort: str | None = None
 
 
 def load_model_settings(
@@ -77,9 +78,13 @@ def load_model_settings(
             "MODEL_MAX_TOKENS must be between 1 and 32768"
         )
 
+    reasoning = values.get("MODEL_REASONING_EFFORT", "").strip() or None
+    if reasoning not in {None, "none", "low", "medium", "high"}:
+        raise ModelSettingsError("MODEL_REASONING_EFFORT must be none, low, medium or high")
     return ModelSettings(
         base_url=base_url,
         model=model,
         timeout_seconds=timeout_seconds,
         max_tokens=max_tokens,
+        reasoning_effort=reasoning,
     )

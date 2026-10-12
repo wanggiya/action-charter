@@ -7,7 +7,20 @@
       "format": "GeoJSON",
       "purpose": "Checkpoint 1 inspection fixture",
       "read_only": true
+    },
+    {
+      "id": "sample_orders",
+      "path": "data/input/sample_orders.csv",
+      "format": "CSV",
+      "purpose": "Checkpoint 24 public orders fixture; empty amount/region fields and leading-zero identifiers",
+      "read_only": true
+    },
+    {
+      "id": "sample_regions",
+      "path": "data/input/sample_regions.csv",
+      "format": "CSV",
+      "purpose": "Checkpoint 24 public lookup fixture",
+      "read_only": true
     }
   ]
 }
-

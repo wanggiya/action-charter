@@ -63,6 +63,11 @@ REQUIRED_SKILL_ARGUMENTS = {
     },
 }
 
+from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS
+WRITE_SKILLS.update(TABULAR_WRITE_IDS)
+REQUIRED_SKILL_ARGUMENTS.update({id: {'target_path'} for id in TABULAR_WRITE_IDS})
+REQUIRED_SKILL_ARGUMENTS['inspect_csv'] = {'path'}
+
 class PlannerPolicyError(ValueError):
     """Raised when a model-generated plan violates policy."""
 
@@ -85,9 +90,10 @@ def _argument_keys(value: object) -> set[str]:
 def normalize_plan_input_filenames(plan: WorkflowPlan) -> None:
     """Resolve model-proposed bare input filenames before policy and hashing."""
     for step in plan.steps:
-        value = step.arguments.get("path")
-        if isinstance(value, str) and value and "/" not in value and "\\" not in value and value not in {".", ".."}:
-            step.arguments["path"] = "data/input/" + value
+        for key in ("path", "right_path"):
+            value = step.arguments.get(key)
+            if isinstance(value, str) and value and "/" not in value and "\\" not in value and value not in {".", ".."}:
+                step.arguments[key] = "data/input/" + value
 
 
 def _validate_argument_paths(value: object) -> None:
@@ -123,7 +129,12 @@ def validate_plan_policy(
     by_id = {step.step_id: step for step in plan.steps}
 
     for step in plan.steps:
-        _validate_argument_paths(step.arguments)
+        path_arguments = step.arguments
+        if step.skill in TABULAR_WRITE_IDS:
+            # Typed table sources allow null for the unused path/reference arm.
+            path_arguments = {key: value for key, value in step.arguments.items()
+                              if not (key in {'path', 'right_path'} and value is None)}
+        _validate_argument_paths(path_arguments)
         if step.skill not in allowed:
             raise PlannerPolicyError(
                 f"skill is not implemented and approved: "
@@ -203,6 +214,11 @@ def validate_plan_policy(
         if export.step_id not in ancestors(verify.step_id, dependencies) or ordered_ids[-2:] != [export.step_id, verify.step_id]:
             raise PlannerPolicyError("Snakemake verification must follow export at the end of the workflow")
 
+    from geoagent_harness.tabular.policy import validate_steps
+    try:
+        validate_steps(plan.steps, dependencies)
+    except ValueError as error:
+        raise PlannerPolicyError(str(error)) from error
     skill_order = [by_id[step_id].skill for step_id in ordered_ids]
 
     if "load_vector_to_postgis" in skill_order:

@@ -35,6 +35,9 @@ ARGUMENTS = {
     'export_snakemake_workflow': ExportArguments,
     'verify_snakemake_export': VerifyArguments,
 }
+from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS
+ARGUMENTS.update(TABULAR_ARGUMENTS)
+
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
 
@@ -77,9 +80,11 @@ def _check(result, root):
         except RecipeDispatchError as error:
             raise InterfaceApiError('Registered operation does not match the trusted dispatcher') from error
         ARGUMENTS[step.skill].model_validate(step.arguments)
-        if 'path' in step.arguments:
+        for input_key in ('path', 'right_path'):
+            if step.arguments.get(input_key) is None:
+                continue
             try:
-                check_task_input(project_root=root, input_path=step.arguments['path'])
+                check_task_input(project_root=root, input_path=step.arguments[input_key])
             except IntentError as error:
                 raise InterfaceApiError('Input must be an available regular file under data/input') from error
         if 'target_path' in step.arguments and not step.arguments['target_path'].startswith('data/output/'):
@@ -112,8 +117,8 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
         return prepare_export_workflow(request, project_root=root)
     registry, recipe, policy = _check(result, root)
     required = list(dict.fromkeys([*prepared['approval_required_step_ids'], *policy.approval_required_step_ids]))
-    if not policy.write_step_ids and any(s.skill not in {'inspect_vector', 'inspect_raster'} for s in result.plan.steps):
-        raise InterfaceApiError('Direct read-only execution currently supports vector and raster inspection')
+    if not policy.write_step_ids and any(s.skill not in {'inspect_vector', 'inspect_raster', 'inspect_csv'} for s in result.plan.steps):
+        raise InterfaceApiError('Direct read-only execution supports vector, raster and CSV inspection')
     recipes = root / 'workflow-recipes'
     if recipes.is_symlink():
         raise InterfaceApiError('recipe root cannot be a symlink')
@@ -267,12 +272,17 @@ def _execute_inspections(review, root):
         for step in review['steps']:
             relative = check_task_input(project_root=root, input_path=step['arguments']['path'])
             record['execution_performed'] = True
-            if step['skill'] == 'inspect_vector':
+            if step['skill'] == 'inspect_csv':
+                from geoagent_harness.tabular.service import inspect_csv
+                from .server import load_settings
+                settings = load_settings().model_copy(update={'project_root': root})
+                result = inspect_csv(**step['arguments'], settings=settings)
+            elif step['skill'] == 'inspect_vector':
                 result = inspect_vector(root / relative, input_root=root / 'data/input')
             else:
                 result = inspect_raster(InspectRasterArguments(path=root / relative, input_root=root / 'data/input'))
             record['step_results'].append(dict(step_id=step['step_id'], skill_id=step['skill'],
-                status='inspected', validation_performed=False, outcome=_bounded_outcome(result.model_dump(mode='json')), validation_outcome=None))
+                status='inspected', validation_performed=False, outcome=_bounded_outcome(result if isinstance(result, dict) else result.model_dump(mode='json')), validation_outcome=None))
             persist()
         record['status'] = 'completed'
     except Exception as error:
@@ -325,6 +335,8 @@ def execution_failure_payload(error):
                 code, message = 'postgis_target_exists', 'The target PostGIS table already exists. Choose a fresh reviewed table; destructive replacement remains blocked.'
             elif text.startswith('PostGIS load failed;'):
                 code, message = 'postgis_load_failed', 'PostGIS connection or loading failed. Check database reachability, credentials and permissions in the launcher environment; driver details remain private.'
+        elif name == 'TabularError':
+            code, message = 'tabular_operation_rejected', 'Table operation rejected: ' + text[:500]
         elif name == 'RecipeEvidencePersistenceError':
             code, message = 'execution_evidence_failed', 'Operations may have completed, but durable evidence storage failed. Inspect the target and execution history before retrying.'
     failed_step = None

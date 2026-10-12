@@ -1,19 +1,22 @@
+import { recoverableSavedPlan, canRestorePlan } from "../lib/saved-plan-recovery";
+import { PanelResize } from "./PanelResize";
 import { useEffect, useRef, useState } from "react";
 import { Bot, X, Send, Plus, ChevronDown, Search, Check } from "lucide-react";
-import { loadPlannerSkills, saveGeneratedPlannerPlan, type InterfacePlannerResult, type SavedPlannerResult, type PlannerSkillCatalog } from "../lib/interface-api";
+import { loadSavedPlans, loadPlannerSkills, saveGeneratedPlannerPlan, type SavedPlanInventory, type InterfacePlannerResult, type SavedPlannerResult, type PlannerSkillCatalog } from "../lib/interface-api";
 import { skillLabel } from "../lib/skill-labels";
 import { loadPlannerConversations, newConversationId, plannerConversation, type PlannerConversation } from "../lib/planner-conversation";
 
-type Props = { currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void };
+type Props = { currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onRestore: (plan: SavedPlanInventory["plans"][number]) => Promise<void> };
 const storageKey = "actioncharter:planner-conversation:v1";
 function initialId() {
   try { const id = localStorage.getItem(storageKey); if (id && /^[a-f0-9]{32}$/.test(id)) return id; } catch { /* Storage is optional. */ }
   return newConversationId();
 }
-export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved }: Props) {
+export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved, onRestore }: Props) {
   const [id, setId] = useState(initialId);
   const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadPlannerConversations>>>([]);
   const [conversation, setConversation] = useState<PlannerConversation | null>(null);
+  const [useHistory, setUseHistory] = useState(true);
   const [draft, setDraft] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillsOpen, setSkillsOpen] = useState(false);
@@ -32,17 +35,25 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef({ plan, editsPending, id });
   currentRef.current = { plan, editsPending, id };
-  const callbacks = useRef({ onPlan, onSaved });
-  callbacks.current = { onPlan, onSaved };
+  const callbacks = useRef({ onPlan, onSaved, onRestore });
+  callbacks.current = { onPlan, onSaved, onRestore };
   useEffect(() => {
     let active = true;
     setLoaded(false);
     try { localStorage.setItem(storageKey, id); } catch { /* Conversation remains usable. */ }
     void plannerConversation("read", id).then(async (state) => {
       if (!active) return;
-      setConversation(state); setSelectedSkills(state.selected_skill_ids); setLoaded(true);
+      setConversation(state); setSelectedSkills(state.selected_skill_ids);
       void loadPlannerConversations().then((items) => { if (active) setSessions(items); }).catch(() => { /* Current conversation still works. */ });
-      // Recovery is explicit: never replace a plan already open in the workspace.
+      // Restore existing storage only; do not save, approve, execute or overwrite edits.
+      if (!currentRef.current.plan && !currentRef.current.editsPending) {
+        const inventory = await loadSavedPlans();
+        let remembered: string | null = null;
+        try { remembered = localStorage.getItem("actioncharter:current-saved-plan:v1"); } catch { /* Optional storage. */ }
+        const savedPlan = recoverableSavedPlan(inventory.plans, remembered, state.planner_result?.plan_sha256);
+        if (savedPlan && canRestorePlan(active, currentRef.current.id === id, Boolean(currentRef.current.plan), currentRef.current.editsPending)) await callbacks.current.onRestore(savedPlan);
+      }
+      if (active) setLoaded(true);
     }).catch((e: unknown) => { if (active) { setError(e instanceof Error ? e.message : "Conversation recovery failed"); setLoaded(true); } });
     return () => { active = false; };
   }, [id]);
@@ -61,7 +72,7 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     const base = plan; const submittedId = id;
     setBusy(true); setError(""); setPendingMessage(text);
     try {
-      const state = await plannerConversation("turn", id, conversation?.revision ?? 0, text, base, selectedSkills, saved?.plan_sha256 === base?.plan_sha256 ? saved?.plan_filename ?? null : null);
+      const state = await plannerConversation("turn", id, conversation?.revision ?? 0, text, base, selectedSkills, saved?.plan_sha256 === base?.plan_sha256 ? saved?.plan_filename ?? null : null, useHistory);
       setConversation(state); setDraft("");
       void loadPlannerConversations().then(setSessions).catch(() => { /* Current transcript is saved. */ });
       if (state.proposal_changed && state.planner_result) {
@@ -79,8 +90,12 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     finally { setBusy(false); setPendingMessage(""); }
   };
   return <aside hidden={!visible} className="intent-workbench text-planner planner-dialogue" aria-label="Planner agent">
+    <PanelResize side="planner"/>
     <header><h2><Bot size={20}/> Planner agent</h2><div><button disabled={busy} title="Start a new conversation; keep the current workflow as context" onClick={() => { setId(newConversationId()); setConversation(null); setSelectedSkills([]); setDraft(""); setError(""); }}><Plus size={15}/> New chat</button><button onClick={onClose} aria-label="Close planner"><X size={18}/></button></div></header>
     {sessions.length > 0 && <select className="planner-session-picker" aria-label="Saved planning conversation" disabled={busy} value={sessions.some((session) => session.conversation_id === id) ? id : ""} onChange={(event) => { if (event.target.value) { setId(event.target.value); setError(""); setDraft(""); } }}><option value="" disabled>Current new conversation</option>{sessions.map((session) => <option key={session.conversation_id} value={session.conversation_id}>{session.summary}</option>)}</select>}
+    <div className="planner-history-control"><span id="planner-history-label">Use previous messages as planning context</span><button className="planner-history-switch" type="button" role="switch" aria-labelledby="planner-history-label" aria-checked={useHistory} disabled={busy} onClick={() => setUseHistory(value => !value)}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div>
+    <small>Full transcript stays saved. Only bounded excerpts from this chat enter the model; the current workflow stays included. History grants no authority.</small>
+    {conversation?.context_usage && <small role="status">Last completed turn: {conversation.context_usage.included_messages} previous messages included · {conversation.context_usage.omitted_messages} omitted · {conversation.context_usage.prompt_bytes.toLocaleString()} prompt bytes{conversation.context_usage.excerpts_truncated ? " · excerpts shortened" : ""}</small>}
     <div className="planner-messages" ref={scrollRef} role="log" aria-label="Planning conversation" aria-live="polite">
       {!conversation?.messages.length && <p className="planner-welcome">Describe your task and files. Then ask me to add, remove or change workflow steps. Bare filenames resolve under data/input.</p>}
       {conversation?.messages.map((entry, index) => {

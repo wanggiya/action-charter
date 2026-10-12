@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0",
+  "status": "planned",
+  "summary": "Regional CSV totals",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "skill": "inspect_csv",
+      "purpose": "inspect_csv",
+      "arguments": {
+        "path": "data/input/sample_orders.csv"
+      },
+      "requires_approval": false,
+      "expected_artifacts": [],
+      "validation_required": false
+    },
+    {
+      "step_id": "step_2",
+      "skill": "select_csv_columns",
+      "purpose": "select_csv_columns",
+      "arguments": {
+        "path": "data/input/sample_orders.csv",
+        "columns": [
+          "order_id",
+          "region",
+          "amount"
+        ],
+        "target_path": "data/output/selected.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_3",
+      "skill": "handle_csv_missing",
+      "purpose": "handle_csv_missing",
+      "arguments": {
+        "source_step": "step_2",
+        "method": "fill",
+        "fill_values": {
+          "region": "unknown",
+          "amount": 0
+        },
+        "target_path": "data/output/filled.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_4",
+      "skill": "filter_csv_rows",
+      "purpose": "filter_csv_rows",
+      "arguments": {
+        "source_step": "step_3",
+        "predicates": [
+          {
+            "column": "amount",
+            "operator": "ge",
+            "value": 10,
+            "value_type": "number"
+          }
+        ],
+        "target_path": "data/output/filtered.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_5",
+      "skill": "join_csv",
+      "purpose": "join_csv",
+      "arguments": {
+        "source_step": "step_4",
+        "right_path": "data/input/sample_regions.csv",
+        "keys": [
+          "region"
+        ],
+        "how": "left",
+        "cardinality": "many_to_one",
+        "target_path": "data/output/joined.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_6",
+      "skill": "aggregate_csv",
+      "purpose": "aggregate_csv",
+      "arguments": {
+        "source_step": "step_5",
+        "by": [
+          "region_name"
+        ],
+        "aggregations": [
+          {
+            "column": "amount",
+            "function": "sum",
+            "output_column": "total"
+          },
+          {
+            "column": "order_id",
+            "function": "count",
+            "output_column": "orders"
+          }
+        ],
+        "target_path": "data/output/grouped.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    },
+    {
+      "step_id": "step_7",
+      "skill": "export_csv",
+      "purpose": "export_csv",
+      "arguments": {
+        "source_step": "step_6",
+        "target_path": "data/output/final.csv"
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "execution_performed": false,
+  "validation_performed": false
+}

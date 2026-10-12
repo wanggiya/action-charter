@@ -1,3 +1,71 @@
+# Read-only startup recovery and readable graph selection
+
+- Loads saved workflow sources at startup and restores the remembered saved revision, falling back to the current conversation’s existing saved proposal.
+- Protects open plans, pending edits and stale conversation replies; recovery makes no model call, new save, approval or execution.
+- Increases graph selector labels/options to readable 13–14 px text.
+
+# Resizable workflow workspace and collapsible results
+
+- Adds bounded Planner/information panel drag handles with keyboard adjustment and optional saved widths.
+- Shows a recorded, read-only outcome block for the matching current workflow; editing/switching scope hides it.
+- Makes per-operation outcome details and workflow-source groups independently collapsible.
+- Records operator-reported success of the seven-operation CSV workflow; no automatic rerun is performed.
+
+# Saved plan restoration and input presentation
+
+- Restores the exact current plan when opening a saved graph from either navigation path, clearing stale presentation/review state without granting authority.
+- Groups equivalent bare/relative input references for display while preserving stored arguments and hashes.
+- Distinguishes blue input resources from cyan tools and contains long node labels.
+
+# Exact step-numbering diagnostics
+
+- Exposes the trusted sequential-ID rule in schema findings and the bounded correction request, including dependency/data-reference repair.
+- Documents that numbering corrections preserve producer identities and cannot bypass validation or grant execution authority.
+
+# CSV inspection versus artifact dataflow
+
+- Makes both planner prompts explicit that CSV inspection returns metadata, not a CSV-producing intermediate.
+- Adds a first-transform path/later-transform source_step example and names invalid consumers/references in policy findings.
+- Tests a model correction from an inspection source_step to the original input path without weakening validation.
+
+# Conversation correction findings and readable switch
+
+- Gives the one correction attempt the bounded rejected candidate and actual schema/policy findings.
+- Reports those findings through the API and Planner instead of an empty generic generation failure.
+- Changes history selection to a sliding dark bracket with bright selected text and visible connecting track.
+
+# Sliding history-context switch
+
+- Shows Off left and On right, with a light active thumb sliding along a connecting track.
+- Retains keyboard/screen-reader switch behavior and respects reduced-motion preference.
+
+# Timeout mitigation and declared input visibility
+
+- Adds optional trusted MODEL_REASONING_EFFORT forwarding, preserving model defaults unless explicitly configured.
+- Gives model timeouts specific guidance without automatic retry or execution.
+- Shows declared input file nodes and exact source/intermediate/output references in planned graphs.
+- Replaces the history checkbox with a same-line accessible On/Off switch.
+
+# Bounded conversation history and model diagnostics
+
+- Retains full transcripts while bounding recent model history and total prompt bytes; removes duplicate schemas.
+- Adds an explicit previous-message context control and last-completed-turn usage display, preserving the current workflow.
+- Reports safe model failure codes and guidance without inheriting historical execution authority.
+
+# Planner model failure handling
+
+- Fixes function-local imports shadowing model exceptions in the HTTP handler, which caused socket hangups on conversation model failures.
+- Adds HTTP regressions for model HTTP 404 and missing model configuration; failures return bounded JSON without execution.
+
+# Checkpoint 24 — bounded tabular workflows
+
+- Adds eight typed pandas/table-bridge operations to planner, graph, shared execution and CLI.
+- Preserves string identifiers, bounds previews/data, verifies output/source hashes and records intermediate lineage.
+- Requires exact authorization for create-only CSV outputs; rejects unsafe paths, incompatible references and arbitrary expressions.
+- Adds structured parameter editing and bounded outcome tables; records partial CSV outputs on failed attempts.
+- Verifies 1,484 backend tests, frontend typecheck/build, six real-backend CSV browser checks and nine spatial/UI regression groups.
+- Adds public fixtures, typed examples and manual acceptance; orders remaining registry, orchestration and prototype work as checkpoints 25–27.
+
 # Paired review layout and browser regression
 
 - Restores left-aligned headings/descriptions/labels with right-edge operation/value/status pairs.
