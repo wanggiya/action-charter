@@ -1,3 +1,8 @@
+# CI frontend dependency coverage
+
+- Installs pinned pnpm/locked frontend dependencies and supported Node before the offline suite; frontend typecheck/build also runs in CI.
+- Makes dependency checks consistent across graph regression tests; CI explicitly requires them rather than silently skipping.
+
 # Read-only startup recovery and readable graph selection
 
 - Loads saved workflow sources at startup and restores the remembered saved revision, falling back to the current conversation’s existing saved proposal.

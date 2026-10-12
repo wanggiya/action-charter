@@ -1,5 +1,6 @@
 """Exercise real frontend dependency edits, including deletion and cycle guards."""
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import pytest
@@ -7,9 +8,21 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def require_frontend_dependencies():
+    available = shutil.which('node') and all(
+        (ROOT / 'interface/node_modules' / package).exists()
+        for package in ('vite', 'react')
+    )
+    if available:
+        return
+    message = 'Install locked frontend dependencies to run operation-graph tests'
+    if os.environ.get('ACTIONCHARTER_REQUIRE_FRONTEND_TESTS') == '1':
+        pytest.fail(message)
+    pytest.skip(message)
+
+
 def test_frontend_operation_edits_preserve_dependencies_and_reject_cycles():
-    if not shutil.which('node') or not (ROOT / 'interface/node_modules/vite').exists():
-        pytest.skip('Installed frontend dependencies required for operation-graph integration')
     code = r'''
 import {transformWithEsbuild} from 'vite';
 import {readFile} from 'node:fs/promises';
