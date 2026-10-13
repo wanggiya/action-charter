@@ -262,11 +262,11 @@ class RecipeRunEvidence(BaseModel):
             ]
 
             if source.role != ArtifactRole.INPUT:
-                from geoagent_harness.tabular.schemas import WRITE_IDS
+                from geoagent_harness.tabular.schemas import is_table_write
                 producer = steps_by_id.get(source.producer_step_id)
                 order = [item.step_id for item in self.run_result.step_results]
                 references = step.execution.result.get('sources', [])
-                if (step.skill_id not in WRITE_IDS or producer is None
+                if (not is_table_write(step.skill_id) or producer is None
                     or order.index(producer.step_id) >= order.index(step.step_id)
                     or not producer.validation_performed or not producer.validation_result
                     or producer.validation_result.get('passed') is not True

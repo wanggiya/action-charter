@@ -9,7 +9,10 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const root=await mkdtemp(resolve(tmpdir(),'actioncharter-cp24-'));
-const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??'playwright';
+const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??resolve(repo,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(repo,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 const {chromium}=await import(isAbsolute(provider)?pathToFileURL(provider).href:provider);
 let apiPort,child,browser; const calls=[],errors=[],cases=[];
 const frontend=createServer(async(req,res)=>{

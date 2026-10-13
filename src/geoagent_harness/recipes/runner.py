@@ -66,7 +66,7 @@ _EXPECTED_VERIFIERS = {
 }
 
 
-from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS
+from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS, is_table_write, is_extension
 from geoagent_harness.tabular.service import validate_output as validate_tabular_output, TabularError
 _EXPECTED_VERIFIERS.update({id: 'geoagent_harness.tabular.service:validate_output' for id in TABULAR_WRITE_IDS})
 
@@ -263,7 +263,7 @@ def run_approved_recipe(
                 step_id=step_id,
                 registry=registry,
                 settings=settings,
-                **({"completed_results": {item.step_id: item for item in step_results}} if step.skill_id in TABULAR_WRITE_IDS else {}),
+                **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) else {}),
             )
         except RecipeDispatchError as exc:
             if progress_callback is not None:
@@ -290,11 +290,7 @@ def run_approved_recipe(
                 progress_callback(step_id, step.skill_id, "completed")
             continue
 
-        expected_verifier = (
-            _EXPECTED_VERIFIERS.get(
-                step.skill_id
-            )
-        )
+        expected_verifier = "geoagent_harness.tabular.service:validate_output" if is_extension(step.skill_id) else _EXPECTED_VERIFIERS.get(step.skill_id)
 
         if expected_verifier is None:
             raise RecipeRunError(
@@ -309,7 +305,7 @@ def run_approved_recipe(
             )
 
         try:
-            if step.skill_id in TABULAR_WRITE_IDS:
+            if is_table_write(step.skill_id):
                 validation = validate_tabular_output(execution.result, settings)
             elif step.skill_id == "convert_vector":
                 validation = (

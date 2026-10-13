@@ -273,11 +273,11 @@ def build_recipe_run_evidence(
 
         skill_versions[skill.id] = skill.version
 
-        from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, WRITE_IDS
-        if step.skill_id in TABLE_ARGUMENTS:
+        from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, WRITE_IDS, is_extension, is_table_write
+        if step.skill_id in TABLE_ARGUMENTS or is_extension(step.skill_id):
             value=step.execution.result
             inputs=[]
-            sources=value.get('sources',[]) if step.skill_id in WRITE_IDS else [{'path':value['source'],'area':'input','sha256':value['source_sha256']}]
+            sources=value.get('sources',[]) if is_table_write(step.skill_id) else [{'path':value['source'],'area':'input','sha256':value['source_sha256']}]
             for source_record in sources:
                 if source_record['area']=='input':
                     source=_artifact_reference(path_value=source_record['path'], root=input_root, role=ArtifactRole.INPUT, artifact_id=_input_artifact_id(source_record['path']))
@@ -287,7 +287,7 @@ def build_recipe_run_evidence(
                     if source is None:raise RecipeEvidenceError('CSV intermediate has no verified producer artifact')
                 if source.sha256!=source_record['sha256']:raise RecipeEvidenceError('CSV source digest changed before evidence persistence')
                 inputs.append(source)
-            if step.skill_id in WRITE_IDS:
+            if is_table_write(step.skill_id):
                 if sanitized_result.final_status=='validated_success' and (not step.validation_result or not step.validation_result.get('passed')):raise RecipeEvidenceError('Table write lacks passing validation')
                 output=_artifact_reference(path_value=value['output']['path'],root=output_root,role=ArtifactRole.OUTPUT,artifact_id=step.execution.output_ids[0],producer_step_id=step.step_id)
                 if output.sha256!=value['output']['sha256']:raise RecipeEvidenceError('CSV output digest changed before evidence persistence')

@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "id": "ext_order_identity",
+  "name": "Extract order identifiers",
+  "version": "0.1.0",
+  "adapter": "csv_column_projection",
+  "columns": ["order_id", "region"],
+  "tests": [{"csv": "order_id,region,amount\n001,north,10\n002,south,20\n", "expected_csv": "order_id,region\n001,north\n002,south\n"}]
+}

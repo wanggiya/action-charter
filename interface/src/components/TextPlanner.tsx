@@ -28,13 +28,14 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     void loadPlannerSkills().then((value) => { if (active) setCatalog(value); }).catch(() => { if (active) setCatalogError("Skill catalog unavailable; automatic planning remains available."); });
     return () => { active = false; };
   }, []);
+  useEffect(()=>{let active=true;const refresh=()=>{void loadPlannerSkills().then(value=>{if(active)setCatalog(value);}).catch(()=>setCatalogError("Registry refresh unavailable"));void plannerConversation("read",id).then(value=>{if(active&&!currentRef.current.editsPending&&!currentRef.current.busy)setConversation(value);}).catch(()=>{});};window.addEventListener("actioncharter:operations-changed",refresh);return()=>{active=false;window.removeEventListener("actioncharter:operations-changed",refresh);};},[id]);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [pendingMessage, setPendingMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const currentRef = useRef({ plan, editsPending, id });
-  currentRef.current = { plan, editsPending, id };
+  const currentRef = useRef({ plan, editsPending, id, busy });
+  currentRef.current = { plan, editsPending, id, busy };
   const callbacks = useRef({ onPlan, onSaved, onRestore });
   callbacks.current = { onPlan, onSaved, onRestore };
   useEffect(() => {
