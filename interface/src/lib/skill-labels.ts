@@ -13,3 +13,7 @@ const names: Record<string, string> = {
 export function skillLabel(id: string): string {
   return names[id] ?? id.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 }
+
+export function registerSkillNames(skills: {id:string;name?:string}[]) {
+  for (const skill of skills) if (skill.name) names[skill.id]=skill.name;
+}

@@ -22,6 +22,14 @@ for name in ['sample_orders.csv','sample_regions.csv','sample_points.geojson']:
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
 class FixtureModel:
     def complete(self,request):
+        if 'ext_order_identity' in request.messages[1].content:
+            from geoagent_harness.operations.packages import installed_packages,package_sha
+            package=installed_packages(root)['ext_order_identity']
+            adapted={'summary':'Installed adapter browser fixture','steps':[
+                {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
+                {'step_id':'step_2','skill':'ext_order_identity','purpose':'Extract fixed order identifiers','arguments':{'path':'data/input/sample_orders.csv','target_path':'data/output/interface_identity.csv','package_sha256':package_sha(package)},'requires_approval':True,'validation_required':True},
+                {'step_id':'step_3','skill':'export_csv','purpose':'Export validated adapter result','arguments':{'source_step':'step_2','target_path':'data/output/interface_identity_final.csv'},'requires_approval':True,'validation_required':True}]}
+            return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review the installed adapter; nothing authorized or executed.','plan':adapted}))
         return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review regional totals; no operation has run.', 'plan':plan}))
 conversation.SharedModelClient=lambda settings:FixtureModel()
 os.chdir(root)

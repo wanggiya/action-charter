@@ -1,3 +1,4 @@
+import { registerSkillNames } from "./skill-labels";
 import { z } from "zod";
 import { browserRecipeProposalSchema, recipeTemplateCatalogSchema, type BrowserRecipeProposal, type RecipeTemplate } from "./recipe-templates";
 
@@ -349,7 +350,7 @@ export const plannerResultSchema = z.object({
   agent_id: z.literal("planner"),
   model: z.string().min(1).max(200),
   original_request: z.string().min(1).max(8000),
-  allowed_skill_ids: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).min(1).max(20),
+  allowed_skill_ids: z.array(z.string().regex(/^[a-z][a-z0-9_]*$/)).min(1).max(64),
   context_references: z.array(z.string().min(1).max(500)).max(100),
   plan: z.object({
     schema_version: z.literal("1.0"),
@@ -462,6 +463,9 @@ const plannerSkillCatalogSchema = z.object({
     access: z.string().nullable(),
     approval_required: z.boolean(),
     validation_required: z.boolean(),
+    name: z.string().max(100).optional(), workflow_supported:z.boolean().optional(),
+    default_arguments:z.record(z.unknown()).optional(), package_sha256:z.string().nullable().optional(),
+    parameters_schema:z.record(z.unknown()).optional(), outputs:z.array(z.object({contract:z.string(),parameter:z.string().nullable()})).optional(),
   })).min(1).max(200),
   skill_count: z.number().int().positive().max(200),
   catalog_validated: z.literal(true),
@@ -975,7 +979,9 @@ export async function loadPlannerSkills(): Promise<PlannerSkillCatalog> {
   });
   const payload = await boundedJson(response);
   if (!response.ok) throw new Error("planner skill catalog is unavailable");
-  return plannerSkillCatalogSchema.parse(payload);
+  const catalog=plannerSkillCatalogSchema.parse(payload);
+  registerSkillNames(catalog.skills);
+  return catalog;
 }
 
 export async function loadSavedPlans(): Promise<SavedPlanInventory> {
@@ -1145,7 +1151,7 @@ const workflowReviewSchema = z.object({
   schema_version: z.literal("1.0"), plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   recipe_filename: z.string(), recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   review_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  steps: z.array(z.object({ step_id: z.string(), skill: z.string(), purpose: z.string(), depends_on: z.array(z.string()).max(20).optional(), arguments: z.record(z.string(), z.unknown()), requires_approval: z.boolean(), validation_required: z.boolean(), execution_mode: z.enum(["execute", "reuse_completed"]).optional() })).max(20),
+  steps: z.array(z.object({ step_id: z.string(), skill: z.string(), purpose: z.string(), depends_on: z.array(z.string()).max(20).optional(), arguments: z.record(z.string(), z.unknown()), requires_approval: z.boolean(), validation_required: z.boolean(), adapter_configuration:z.record(z.unknown()).optional(), execution_mode: z.enum(["execute", "reuse_completed"]).optional() })).max(20),
   approval_required_step_ids: z.array(z.string()).max(20), write_step_ids: z.array(z.string()).max(20),
   execution_available: z.boolean(), execution_performed: z.literal(false),
 });

@@ -1,0 +1,109 @@
+#!/usr/bin/env node
+// Actual shared backend and temporary CSV files; deterministic model proposal only.
+import {createServer} from 'node:http';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,dirname,extname,isAbsolute} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const root=await mkdtemp(resolve(tmpdir(),'actioncharter-cp25-'));
+const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??resolve(repo,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(repo,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+const {chromium}=await import(isAbsolute(provider)?pathToFileURL(provider).href:provider);
+let apiPort,child,browser; const calls=[],errors=[],cases=[];
+const frontend=createServer(async(req,res)=>{
+ try {
+  if(req.url.startsWith('/api/')) {
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   calls.push({method:req.method,path:req.url});
+   const response=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});
+   res.writeHead(response.status,{'Content-Type':'application/json'});res.end(await response.text());return;
+  }
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  const file=pathname.startsWith('/assets/')?resolve(repo,'interface/dist','.'+pathname):resolve(repo,'interface/dist/index.html');
+  const content=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(content);
+ }catch(error){res.writeHead(500);res.end(String(error));}
+});
+await new Promise(done=>frontend.listen(0,'127.0.0.1',done));
+const origin=`http://127.0.0.1:${frontend.address().port}`;
+try{
+ child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'true',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
+ let stderr='';child.stderr.on('data',data=>stderr+=data);
+ apiPort=await new Promise((done,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error(`API startup timeout: ${stderr}`)),20000);child.stdout.on('data',data=>{output+=data;if(output.includes('\n')){clearTimeout(timer);done(JSON.parse(output.split('\n')[0]).port);}});child.on('exit',code=>{clearTimeout(timer);reject(new Error(`API exited ${code}: ${stderr}`));});});
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1600,height:1000}});page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+ await page.goto(origin);
+ await page.getByRole('button',{name:'Settings',exact:true}).click();
+ await page.getByRole('heading',{name:'Operations & libraries'}).waitFor();
+ await page.getByLabel('Library scan scope').selectOption('pydantic');
+ await page.getByRole('button',{name:'Scan installed libraries',exact:true}).click();
+ await page.locator('.operations-library-panel').getByText(/candidates ·/).first().waitFor({timeout:30000});
+ await page.getByRole('textbox',{name:'Search operations and library functions'}).fill('BaseModel');
+ await page.waitForTimeout(500);
+ assert((await page.locator('.operations-library-panel').textContent()).includes('Candidate only'));
+ assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
+ const privateSwitch=page.getByRole('switch',{name:'Include private declarations'});
+ assert.equal(await privateSwitch.getAttribute('aria-checked'),'false');
+ await privateSwitch.click();assert.equal(await privateSwitch.getAttribute('aria-checked'),'true');
+ await privateSwitch.click();
+ await page.getByRole('button',{name:'Close settings'}).click();
+ await page.getByRole('button',{name:'Settings',exact:true}).click();
+ await page.locator('.operations-library-panel>details').filter({has:page.locator('summary').filter({hasText:'Saved scanned libraries'})}).first().locator(':scope>summary').click();
+ const savedScan=page.locator('.operations-library-panel details').filter({has:page.locator('summary').filter({hasText:/^Scan [a-f0-9]/})}).last();
+ await savedScan.locator(':scope>summary').click();
+ await savedScan.getByText(/pydantic · .* discovered declarations/).click();
+ await savedScan.getByText('Saved inventory · Candidate only',{exact:true}).waitFor();
+ await page.getByRole('textbox',{name:'Search operations and library functions'}).fill('BaseModel');
+ await savedScan.locator('summary').filter({hasText:/BaseModel/}).first().waitFor();
+ cases.push('Actual installed-library static scan/search reports inert declarations without CSV writes');
+ await page.getByLabel('Operation package JSON').setInputFiles(resolve(repo,'examples/checkpoint25/order_identity.operation.json'));
+ await page.getByRole('button',{name:'Test package',exact:true}).click();
+ await page.getByText('Temporary fixture tests passed; nothing installed or authorized',{exact:true}).waitFor();
+ assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
+ await page.getByRole('button',{name:'Install tested package',exact:true}).click();
+ await page.getByText('Package installed. No workflow approved or executed. Find its operation in Planner skills or Add.',{exact:true}).waitFor();
+ assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
+ assert.equal((await readdir(resolve(root,'operation-packages'))).length,1);
+ cases.push('JSON package fixture testing and explicit installation remain separate from workflow authority');
+ await page.getByRole('button',{name:'Close settings'}).click();
+ await page.getByRole('textbox',{name:'Message Planner'}).fill('Inspect sample_orders.csv, use ext_order_identity and export its validated CSV output.');
+ await page.locator('.planner-composer button[type=submit]').click();
+ await page.locator('[data-operation-node="planned_step_3"]').waitFor({timeout:20000});
+ await page.getByRole('button',{name:'Add',exact:true}).click();
+ const picker=page.getByRole('dialog',{name:'Add operation'});
+ await picker.getByRole('textbox',{name:'Search operations'}).fill('identifiers');
+ await picker.getByRole('button',{name:'Extract order identifiers',exact:true}).waitFor();
+ await picker.getByRole('button',{name:'Close add operation panel'}).click();
+ cases.push('Planner and searchable Add discover the installed typed operation');
+ await page.getByRole('button',{name:'Authorize',exact:true}).first().click();
+ await page.locator('.workflow-review-panel').waitFor();
+ await page.locator('.workflow-review-panel').getByText('package sha256',{exact:true}).waitFor();
+ await page.locator('.workflow-authorization-form textarea').fill('Only this temporary, digest-bound adapter workflow.');
+ await page.locator('.workflow-authorization-form button[type=submit]').click();
+ await page.locator('.authorization-duration').waitFor();
+ assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
+ await page.locator('.workflow-review-panel .execute-button').click();
+ await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor({timeout:30000});
+ await page.locator('.workflow-outcome-panel .outcome-step>summary').last().click();
+ assert.equal((await readdir(resolve(root,'data/output'))).length,2);
+ assert((await readFile(resolve(root,'data/output/interface_identity_final.csv'),'utf8')).startsWith('order_id,region\n001,north\n'));
+ assert.equal(await page.locator('.table-result-preview').last().locator('tbody tr').count(),5);
+ assert((await page.locator('.workflow-outcome-panel').textContent()).includes('Success · output validated'));
+ cases.push('Exact authorization then real adapter execution/export produces validated CSV and bounded result preview');
+ await page.getByRole('button',{name:'Close outcome'}).click();
+ await page.reload();
+ await page.locator('[data-operation-node="planned_step_3"]').waitFor();
+ await page.getByRole('button',{name:'Execution History',exact:true}).click();
+ await page.getByRole('button',{name:'Reopen run graph',exact:true}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Reopen run graph',exact:true}).count(),1);
+ assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/execute').length,1);
+ cases.push('Saved adapter plan and durable attempt recover without model call or reexecution');
+ assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,live_service_calls:0,page_errors:errors},null,2));
+}catch(error){console.error(error);console.error(JSON.stringify({cases,errors,calls},null,2));throw error;}
+finally{if(browser)await browser.close();child?.kill();await new Promise(done=>frontend.close(done));await rm(root,{recursive:true,force:true});}

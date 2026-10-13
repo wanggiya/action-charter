@@ -63,7 +63,7 @@ REQUIRED_SKILL_ARGUMENTS = {
     },
 }
 
-from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS
+from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS, is_table_write, is_extension
 WRITE_SKILLS.update(TABULAR_WRITE_IDS)
 REQUIRED_SKILL_ARGUMENTS.update({id: {'target_path'} for id in TABULAR_WRITE_IDS})
 REQUIRED_SKILL_ARGUMENTS['inspect_csv'] = {'path'}
@@ -130,7 +130,7 @@ def validate_plan_policy(
 
     for step in plan.steps:
         path_arguments = step.arguments
-        if step.skill in TABULAR_WRITE_IDS:
+        if is_table_write(step.skill):
             # Typed table sources allow null for the unused path/reference arm.
             path_arguments = {key: value for key, value in step.arguments.items()
                               if not (key in {'path', 'right_path'} and value is None)}
@@ -196,7 +196,7 @@ def validate_plan_policy(
                 )
 
         if (
-            step.skill in WRITE_SKILLS
+            (step.skill in WRITE_SKILLS or is_extension(step.skill))
             and not step.requires_approval
         ):
             raise PlannerPolicyError(

@@ -96,7 +96,7 @@ _EXPECTED_ENTRYPOINTS = {
 }
 
 
-from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS, WRITE_IDS as TABULAR_WRITE_IDS
+from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS, WRITE_IDS as TABULAR_WRITE_IDS, is_extension
 from geoagent_harness.tabular.service import run_operation as run_tabular, inspect_csv, TabularError
 _EXPECTED_ENTRYPOINTS.update({id: 'geoagent_harness.tabular.service:' + ('inspect_csv' if id == 'inspect_csv' else 'run_operation') for id in TABULAR_ARGUMENTS})
 
@@ -142,9 +142,8 @@ def _validate_registered_skill(
             f"skill {skill_id!r} is not implemented"
         )
 
-    expected_entrypoint = (
-        _EXPECTED_ENTRYPOINTS.get(skill_id)
-    )
+    from geoagent_harness.operations.packages import ADAPTER_ENTRYPOINT
+    expected_entrypoint = ADAPTER_ENTRYPOINT if is_extension(skill_id) else _EXPECTED_ENTRYPOINTS.get(skill_id)
 
     if expected_entrypoint is None:
         raise RecipeDispatchError(
@@ -227,7 +226,12 @@ def dispatch_recipe_step(
         )
 
     try:
-        if step.skill_id in TABULAR_ARGUMENTS:
+        if is_extension(step.skill_id):
+            from geoagent_harness.operations.packages import execute_projection
+            value = execute_projection(step.skill_id, step.arguments, settings, completed_results)
+            status = 'completed_pending_validation'
+            validation_performed = False
+        elif step.skill_id in TABULAR_ARGUMENTS:
             typed = TABULAR_ARGUMENTS[step.skill_id].model_validate(step.arguments)
             if step.skill_id == 'inspect_csv':
                 value = inspect_csv(**typed.model_dump(), settings=settings)

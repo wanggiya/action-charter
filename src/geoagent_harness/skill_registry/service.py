@@ -94,4 +94,12 @@ def load_skill_registry(
             "trusted skill registry could not be read"
         ) from exc
 
-    return parse_skill_registry(text)
+    registry = parse_skill_registry(text)
+    from geoagent_harness.operations.packages import package_skills, PackageError
+    try:
+        extra = package_skills(project_root)
+        if extra:
+            registry = SkillRegistry.model_validate({**registry.model_dump(mode="json"), "skills": [*registry.skills, *extra]})
+    except (PackageError, ValueError) as error:
+        raise SkillRegistryError("Installed operation packages failed validation") from error
+    return registry

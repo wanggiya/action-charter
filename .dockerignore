@@ -18,3 +18,9 @@ secrets
 *.pem
 *.key
 
+
+library-discovery
+operation-packages
+
+interface/.playwright-browsers
+interface/.browser-system-libs

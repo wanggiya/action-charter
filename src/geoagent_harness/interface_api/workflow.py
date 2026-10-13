@@ -24,19 +24,8 @@ from geoagent_harness.skill_registry import load_skill_registry
 
 from .snakemake_workflow import ExportArguments, VerifyArguments, has_export
 
-ARGUMENTS = {
-    'inspect_vector': schemas.InspectVectorRecipeArguments,
-    'inspect_raster': schemas.InspectRasterRecipeArguments,
-    'convert_vector': schemas.ConvertVectorRecipeArguments,
-    'convert_raster': schemas.ConvertRasterRecipeArguments,
-    'load_vector_to_postgis': schemas.LoadVectorToPostGISRecipeArguments,
-    'validate_postgis_layer': schemas.ValidatePostGISLayerRecipeArguments,
-    'generate_report': schemas.GenerateReportRecipeArguments,
-    'export_snakemake_workflow': ExportArguments,
-    'verify_snakemake_export': VerifyArguments,
-}
-from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS
-ARGUMENTS.update(TABULAR_ARGUMENTS)
+from geoagent_harness.operations.registry import argument_models, builtin_argument_models
+ARGUMENTS = builtin_argument_models()
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
@@ -72,14 +61,19 @@ def _check(result, root):
         return validate_export_plan(result, root)
     registry = load_skill_registry(root)
     validate_plan_policy(result.plan, available_skills={s.id for s in registry.implemented_skills()})
+    models = argument_models(root)
     for step in result.plan.steps:
-        if step.skill not in ARGUMENTS:
+        if step.skill not in models:
             raise InterfaceApiError('This operation is not supported by current workflow execution: ' + step.skill)
         try:
             _validate_registered_skill(skill_id=step.skill, registry=registry)
         except RecipeDispatchError as error:
             raise InterfaceApiError('Registered operation does not match the trusted dispatcher') from error
-        ARGUMENTS[step.skill].model_validate(step.arguments)
+        typed = models[step.skill].model_validate(step.arguments)
+        if step.skill.startswith('ext_'):
+            from geoagent_harness.operations.packages import installed_packages, package_sha
+            if typed.package_sha256 != package_sha(installed_packages(root)[step.skill]):
+                raise InterfaceApiError('Installed package digest does not match this proposal')
         for input_key in ('path', 'right_path'):
             if step.arguments.get(input_key) is None:
                 continue
@@ -133,6 +127,12 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
     steps = [{**step, "depends_on": recipe_steps[step["step_id"]].depends_on, 'requires_approval': step['step_id'] in required,
               'validation_required': step['validation_required'] or registry.get_skill(step['skill']).validation_required}
              for step in (plan_steps[step_id] for step_id in policy.topological_step_ids)]
+    from geoagent_harness.operations.packages import installed_packages
+    packages = installed_packages(root)
+    for step in steps:
+        package = packages.get(step['skill'])
+        if package:
+            step['adapter_configuration'] = {'adapter':package.adapter,'columns':package.columns,'candidate_function':package.candidate_function,'runtime':package.runtime}
     basis = dict(schema_version='1.0', plan_filename=request.plan_filename, plan_sha256=request.confirmed_plan_sha256,
                  recipe_filename=path.name, recipe_sha256=recipe_sha256(recipe), steps=steps,
                  approval_required_step_ids=required, write_step_ids=policy.write_step_ids,

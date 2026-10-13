@@ -965,3 +965,36 @@
 .app-shell .graph-source-picker { gap:6px; font-size:13px; }
 .app-shell .graph-source-disclosure>button { font-size:14px; line-height:1.4; min-height:38px; max-width:340px; padding:8px 12px; }
 .app-shell .graph-source-options :is(summary,button) { font-size:14px; line-height:1.5; }
+
+.operations-library-panel { border-top:1px solid #405366; margin-top:20px; padding-top:12px; }
+.operations-library-panel details { margin:8px 0; padding:8px; border:1px solid #354a5c; border-radius:5px; }
+.operations-library-panel summary { cursor:pointer; overflow-wrap:anywhere; }
+.operations-library-panel pre { max-height:240px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+
+/* Library controls share the existing Settings surfaces and sliding switch. */
+.operations-library-panel { color:var(--foreground); border-color:var(--line); }
+.operations-library-panel > label { display:grid; gap:8px; margin:12px 0; }
+.operations-library-panel :is(input:not([type="file"]),select) { width:100%; min-width:0; padding:9px 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--surface); color:var(--foreground); font:inherit; }
+.operations-library-panel details { border-color:var(--line-strong); background:color-mix(in srgb,var(--cyan) 4%,transparent); border-radius:8px; padding:10px 12px; }
+.operations-library-panel summary { line-height:1.5; }
+.operations-library-panel pre { padding:10px; border-radius:6px; background:var(--background); color:var(--foreground); }
+.operations-library-panel h4 { margin:20px 0 10px; color:var(--foreground); }
+.operations-library-panel .library-private-control { margin:12px 0; flex-wrap:wrap; }
+.operations-library-panel > button { margin:6px 8px 6px 0; }
+.operations-library-panel input[type="file"] { max-width:100%; color:var(--foreground); }
+
+.operation-flow { margin:12px 0; }
+.operation-flow-order { font-size:12px; color:var(--muted); }
+.operation-flow-chain { display:grid; grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr) 20px minmax(0,1fr); align-items:center; gap:6px; }
+.operation-flow-card { min-width:0; align-self:stretch; display:flex; flex-direction:column; gap:6px; padding:9px; border:1px solid color-mix(in srgb,var(--cyan) 45%,var(--line)); border-radius:8px; background:color-mix(in srgb,var(--cyan) 6%,transparent); overflow-wrap:anywhere; font-size:12px; }
+.operation-flow-card small { color:var(--cyan); }
+.operation-flow-arrow { color:var(--cyan); }
+@media(max-width:600px){ .operation-flow-chain { grid-template-columns:minmax(0,1fr); } .operation-flow-arrow { transform:rotate(90deg); justify-self:center; } }
+
+.operation-flow-card { --flow-accent:var(--cyan); --flow-fill:var(--cyan-fill); border-color:var(--flow-accent); }
+.operation-flow-card:first-child { --flow-accent:#60a5fa; --flow-fill:var(--button-fill); }
+.operation-flow-card:last-child { --flow-accent:#4ade80; --flow-fill:var(--success-fill); }
+.operation-flow-card small { color:var(--flow-accent); }
+.app-shell[data-button-style="filled"] .operation-flow-card { background:var(--flow-fill); border-color:var(--flow-fill); color:var(--button-text); }
+.app-shell[data-button-style="filled"] .operation-flow-card :is(small,strong,span) { color:var(--button-text)!important; }
+.app-shell[data-button-style="outline"] .operation-flow-card { background:linear-gradient(to bottom,color-mix(in srgb,var(--flow-accent) 10%,transparent),transparent 40%,transparent 60%,color-mix(in srgb,var(--flow-accent) 10%,transparent)); }

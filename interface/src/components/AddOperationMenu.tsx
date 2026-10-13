@@ -9,7 +9,7 @@ type Props = { x: number; y: number; skills: Skill[]; onAdd: (skill: Skill) => v
 export function AddOperationMenu({ x, y, skills, onAdd, onClose }: Props) {
   // Keep keystrokes local so searching does not render the whole graph.
   const [search, setSearch] = useState("");
-  const options = useMemo(() => skills.filter((skill) => supported.has(skill.id) && `${skillLabel(skill.id)} ${skill.id}`.toLowerCase().includes(search.trim().toLowerCase().replace(/snake[\s-]+make/g, "snakemake"))), [skills, search]);
+  const options = useMemo(() => skills.filter((skill) => (skill.workflow_supported ?? supported.has(skill.id)) && `${skillLabel(skill.id)} ${skill.id}`.toLowerCase().includes(search.trim().toLowerCase().replace(/snake[\s-]+make/g, "snakemake"))), [skills, search]);
   const featured = options.filter((skill) => skill.id.includes("snakemake"));
   const other = options.filter((skill) => !skill.id.includes("snakemake"));
   return <section className="block-add-menu operation-picker" style={{ left: x, top: y }} role="dialog" aria-labelledby="operation-picker-title" onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }}>

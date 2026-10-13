@@ -8,7 +8,10 @@ import assert from 'node:assert/strict';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(process.env.ACTIONCHARTER_BROWSER_RESULTS ?? '/tmp/actioncharter-ui-review/results');
-const provider = process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE ?? 'playwright';
+const provider = process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE ?? resolve(root,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(root,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(root,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 const { chromium } = await import(isAbsolute(provider) ? pathToFileURL(provider).href : provider);
 const ids = ['inspect_vector','inspect_raster','convert_vector','convert_raster','load_vector_to_postgis','validate_postgis_layer','generate_report','export_snakemake_workflow','verify_snakemake_export'];
 const catalog = { schema_version:'1.0', skills:ids.map(id=>({id,kind:'inspection',access:['convert_vector','convert_raster','load_vector_to_postgis','generate_report','export_snakemake_workflow'].includes(id)?'artifact_write':'read_only',approval_required:['convert_vector','convert_raster','load_vector_to_postgis','generate_report','export_snakemake_workflow'].includes(id),validation_required:['convert_vector','convert_raster','load_vector_to_postgis','export_snakemake_workflow'].includes(id)})),skill_count:ids.length,catalog_validated:true,execution_performed:false };

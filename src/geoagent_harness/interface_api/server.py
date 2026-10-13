@@ -546,7 +546,7 @@ class InterfacePlanRequest(BaseModel):
 
     action: Literal["plan_task"]
     request: str = Field(min_length=1, max_length=8000)
-    allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
+    allowed_skill_ids: list[str] = Field(min_length=1, max_length=64)
     input_paths: list[str] = Field(default_factory=list, max_length=20)
 
     @field_validator("allowed_skill_ids")
@@ -586,7 +586,7 @@ class InterfaceReviewedPlanSaveRequest(BaseModel):
     task_id: str | None = Field(default=None, pattern=r"^task-[a-z0-9][a-z0-9_-]{0,63}$")
     action: Literal["save_reviewed_plan"]
     confirmed_plan_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
-    allowed_skill_ids: list[str] = Field(min_length=1, max_length=20)
+    allowed_skill_ids: list[str] = Field(min_length=1, max_length=64)
     planner_result: PlannerResult
 
     @field_validator("allowed_skill_ids")
@@ -1907,16 +1907,9 @@ def save_interface_plan_recipe(
 def interface_planner_skill_catalog(project_root: Path) -> dict[str, Any]:
     """Return safe implemented skills for explicit planner selection."""
 
-    registry = load_skill_registry(_trusted_root(project_root))
-    skills = []
-    for skill in registry.implemented_skills():
-        skills.append({
-            "id": skill.id,
-            "kind": skill.kind.value if skill.kind else None,
-            "access": skill.access.value if skill.access else None,
-            "approval_required": bool(skill.approval_required),
-            "validation_required": bool(skill.validation_required),
-        })
+    from geoagent_harness.operations.registry import operation_catalog
+    contracts = operation_catalog(_trusted_root(project_root))['operations']
+    skills = [{key:operation[key] for key in ['id','name','workflow_supported','default_arguments','package_sha256','parameters_schema','outputs','kind','approval_required','validation_required']} | {'access':operation['effects']['access']} for operation in contracts]
     return {
         "schema_version": "1.0",
         "skills": skills,
@@ -2674,11 +2667,11 @@ def execute_interface_recipe(
     record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
                               attempt_sha256=progress_key, state="running")
 
-    from geoagent_harness.tabular.schemas import WRITE_IDS as TABLE_WRITE_IDS
+    from geoagent_harness.tabular.schemas import is_table_write
     from geoagent_harness.tabular.service import read_bytes as read_table_bytes, TabularError
     table_targets = {
         step.step_id: step.arguments["target_path"]
-        for step in envelope.steps if step.skill_id in TABLE_WRITE_IDS
+        for step in envelope.steps if is_table_write(step.skill_id)
     }
     existing_table_targets = set()
     for target in table_targets.values():
@@ -3014,6 +3007,20 @@ def _handler(
                         {"error": "Critic evidence inventory is unavailable"},
                     )
                 return
+            if self.path.startswith('/api/v1/operations/'):
+                from urllib.parse import urlparse,parse_qs
+                from geoagent_harness.operations.api import operation_catalog,library_inventory,read_scan,candidate_page
+                from geoagent_harness.operations.storage import saved_scans
+                url=urlparse(self.path);params=parse_qs(url.query)
+                try:
+                    if url.path=='/api/v1/operations/catalog':payload=operation_catalog(project_root,params.get('q',[''])[0])
+                    elif url.path=='/api/v1/operations/libraries':payload=library_inventory()
+                    elif url.path=='/api/v1/operations/scans':payload=saved_scans(project_root)
+                    elif url.path=='/api/v1/operations/candidates':payload=candidate_page(read_scan(project_root,params.get('scan',[''])[0]),params.get('q',[''])[0],params.get('distribution',[''])[0],params.get('kind',[''])[0],int(params.get('offset',['0'])[0]),int(params.get('limit',['50'])[0]))
+                    else:self._send(HTTPStatus.NOT_FOUND,{'error':'Operation metadata endpoint not available'});return
+                except (ValueError,OSError,RuntimeError):
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY,{'error':'Operation metadata is unavailable or request bounds/identity are invalid'});return
+                self._send(HTTPStatus.OK,payload);return
             if self.path == "/api/v1/planner-skills":
                 try:
                     self._send(
@@ -3081,6 +3088,9 @@ def _handler(
                 "/api/v1/workflow/authorize",
                 "/api/v1/workflow/execute",
                 "/api/v1/planner/conversation",
+                "/api/v1/operations/scan",
+                "/api/v1/operations/test-package",
+                "/api/v1/operations/install-package",
                 "/api/v1/plans/create",
                 "/api/v1/plans/save-generated",
                 "/api/v1/plans/save-reviewed",
@@ -3246,6 +3256,14 @@ def _handler(
                     if workflow_request.action != expected_action:
                         raise InterfaceApiError("workflow action does not match endpoint")
                     response = {"prepare_workflow": prepare_workflow, "authorize_workflow": authorize_workflow, "execute_workflow": execute_workflow}[expected_action](workflow_request, project_root=project_root)
+                elif self.path.startswith('/api/v1/operations/'):
+                    from geoagent_harness.operations.api import ScanRequest,PackageRequest,scan,package_action
+                    if self.path=='/api/v1/operations/scan':response=scan(ScanRequest.model_validate(payload),project_root)
+                    else:
+                        operation_request=PackageRequest.model_validate(payload)
+                        expected='test_operation_package' if self.path.endswith('/test-package') else 'install_operation_package'
+                        if operation_request.action!=expected:raise InterfaceApiError('Package action does not match the endpoint')
+                        response=package_action(operation_request,project_root)
                 elif self.path == "/api/v1/planner/conversation":
                     from .conversation import TurnRequest, conversation_turn
                     response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
@@ -3518,7 +3536,12 @@ def _handler(
                     {"error": "planner could not produce a validated plan"},
                 )
                 return
-            except (SkillRegistryError, OSError, ValueError):
+            except (SkillRegistryError, OSError, ValueError) as exc:
+                if self.path.startswith('/api/v1/operations/'):
+                    from geoagent_harness.operations.packages import PackageError
+                    message = str(exc)[:600] if isinstance(exc, PackageError) else 'Operation package or discovery request failed its typed bounds, source/fixture checks or safe storage requirements'
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {'error':message,'approval_performed':False,'execution_performed':False})
+                    return
                 self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "trusted compilation service is unavailable"})
                 return
             self._send(HTTPStatus.OK, response)

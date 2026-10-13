@@ -1,3 +1,20 @@
+# Checkpoint 25 — persisted library browsing and dataflow clarity
+
+- Reopens verified saved scan inventories in expandable scan/library/function lists with bounded lazy pagination.
+- Connects information-card inputs, operations and planned/recorded results with themed arrows and declared step dependencies.
+- Indexes examples by function; preserves historical checkpoint paths.
+- Documents existing conversation history, summary options and proposed output visualization/demo acceptance for checkpoints 26–27; no new agent-history implementation.
+
+# Checkpoint 25 — shared contracts and automatic library discovery
+
+- Matches library discovery controls to Settings styling and reuses the readable sliding ON/OFF switch; clarifies persistent installation versus candidate scanning.
+
+- Catalogs existing operation contracts and installed adapters consistently across backend, CLI, Planner and Add.
+- Statically discovers installed Python declarations/signatures/docs without importing candidate modules; records bounded, hash-verified snapshots and incomplete coverage.
+- Adds a tested data-only CSV projection package with explicit installation, exact package binding, separate workflow approval and verified lineage.
+- Adds Operations & libraries in Settings and a complete temporary-backend browser journey.
+- Pins Playwright and isolates browser/audio test downloads from normal/shared browser caches.
+
 # CI frontend dependency coverage
 
 - Installs pinned pnpm/locked frontend dependencies and supported Node before the offline suite; frontend typecheck/build also runs in CI.

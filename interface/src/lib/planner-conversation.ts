@@ -4,11 +4,11 @@ import { plannerResultSchema, type InterfacePlannerResult } from "./interface-ap
 const conversationSchema = z.object({
   conversation_id: z.string().regex(/^[a-f0-9]{32}$/),
   revision: z.number().int().nonnegative(),
-  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000), selected_skill_ids: z.array(z.string()).max(20).nullable().optional(), plan_skill_ids: z.array(z.string()).max(20).nullable().optional() })).max(100),
+  messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000), selected_skill_ids: z.array(z.string()).max(64).nullable().optional(), plan_skill_ids: z.array(z.string()).max(64).nullable().optional() })).max(100),
   planner_result: plannerResultSchema.nullable(),
-  selected_skill_ids: z.array(z.string()).max(20).default([]),
-  allowed_skill_ids: z.array(z.string()).max(20).optional(),
-  supported_skill_ids: z.array(z.string()).max(20),
+  selected_skill_ids: z.array(z.string()).max(64).default([]),
+  allowed_skill_ids: z.array(z.string()).max(64).optional(),
+  supported_skill_ids: z.array(z.string()).max(64),
   context_usage: z.object({history_enabled:z.boolean(),included_messages:z.number(),omitted_messages:z.number(),excerpts_truncated:z.boolean(),prompt_bytes:z.number(),prompt_limit_bytes:z.number()}).nullable().optional(),
   proposal_changed: z.boolean(),
   approval_performed: z.literal(false), execution_performed: z.literal(false),
@@ -32,7 +32,7 @@ export async function plannerConversation(action: "read" | "turn", id: string, r
   return conversationSchema.parse(payload);
 }
 
-const inventorySchema = z.object({ conversations: z.array(z.object({ conversation_id: z.string().regex(/^[a-f0-9]{32}$/), revision: z.number().int().nonnegative(), summary: z.string().max(120) })).max(20), approval_performed: z.literal(false), execution_performed: z.literal(false) });
+const inventorySchema = z.object({ conversations: z.array(z.object({ conversation_id: z.string().regex(/^[a-f0-9]{32}$/), revision: z.number().int().nonnegative(), summary: z.string().max(120) })).max(64), approval_performed: z.literal(false), execution_performed: z.literal(false) });
 export async function loadPlannerConversations() {
   const response = await fetch("/api/v1/planner/conversation", { method: "POST", cache: "no-store", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list", conversation_id: "0".repeat(32) }) });
   if (!response.ok) throw new Error("Conversation history unavailable");

@@ -173,9 +173,16 @@ def _load_skills(
     content: str,
     request_tokens: set[str],
     allowed_skill_ids: Collection[str] | None = None,
+    project_root: Path | None = None,
 ) -> list[SkillContext]:
     try:
         registry = parse_skill_registry(content)
+        if project_root is not None:
+            from geoagent_harness.operations.packages import package_skills
+            from geoagent_harness.skill_registry.schemas import SkillRegistry
+            extra = package_skills(project_root)
+            if extra:
+                registry = SkillRegistry.model_validate({**registry.model_dump(mode="json"), "skills": [*registry.skills, *extra]})
     except SkillRegistryError as exc:
         raise ContextPackError(
             "trusted skill registry is invalid"
@@ -326,6 +333,7 @@ def build_context_pack(
             contents["context/SKILLS_INDEX.yaml"],
             request_tokens,
             allowed_skill_ids,
+            project_root,
         ),
         decisions=_load_decisions(
             contents["context/DECISIONS.jsonl"],

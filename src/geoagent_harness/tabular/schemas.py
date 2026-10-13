@@ -93,3 +93,11 @@ ARGUMENTS = {
 }
 LABELS = {'inspect_csv':'Inspect CSV table','select_csv_columns':'Select table columns','filter_csv_rows':'Filter table rows','handle_csv_missing':'Handle missing table values','join_csv':'Join CSV tables','aggregate_csv':'Group and aggregate table','export_csv':'Export CSV results','vector_attributes_to_csv':'Extract vector attributes as CSV'}
 WRITE_IDS = set(ARGUMENTS) - {'inspect_csv'}
+
+
+def is_extension(id):
+    import re
+    return bool(re.fullmatch(r'ext_[a-z][a-z0-9_]{0,60}',id))
+
+def is_table_write(id):
+    return id in WRITE_IDS or is_extension(id)

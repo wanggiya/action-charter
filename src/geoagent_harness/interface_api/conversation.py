@@ -23,6 +23,8 @@ from geoagent_harness.planner.prompt import build_planner_request
 from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan
 from geoagent_harness.planner.policy import normalize_plan_input_filenames, PlannerPolicyError
 from .workflow import _check, ARGUMENTS
+from geoagent_harness.operations.registry import argument_models
+from geoagent_harness.operations.packages import installed_packages, package_sha, ProjectionArguments
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
@@ -59,7 +61,7 @@ class TurnRequest(BaseModel):
     use_history: bool = True
     current_plan: PlannerResult | None = None
     current_plan_filename: str | None = Field(default=None, pattern=r"^planner-plan\.[a-f0-9]{64}\.json$")
-    allowed_skill_ids: list[str] = Field(default_factory=list, max_length=20)
+    allowed_skill_ids: list[str] = Field(default_factory=list, max_length=64)
 
 
 class Reply(BaseModel):
@@ -74,8 +76,8 @@ class Entry(BaseModel):
     model_config = ConfigDict(extra='forbid')
     role: Literal['user', 'assistant']
     content: str = Field(min_length=1, max_length=8000)
-    selected_skill_ids: list[str] | None = Field(default=None, max_length=20)
-    plan_skill_ids: list[str] | None = Field(default=None, max_length=20)
+    selected_skill_ids: list[str] | None = Field(default=None, max_length=64)
+    plan_skill_ids: list[str] | None = Field(default=None, max_length=64)
 
 
 class Conversation(BaseModel):
@@ -85,11 +87,11 @@ class Conversation(BaseModel):
     context_usage: dict | None = None
     messages: list[Entry] = Field(default_factory=list, max_length=100)
     planner_result: PlannerResult | None = None
-    selected_skill_ids: list[str] = Field(default_factory=list, max_length=20)
-    allowed_skill_ids: list[str] = Field(default_factory=lambda: list(ARGUMENTS), max_length=20)
+    selected_skill_ids: list[str] = Field(default_factory=list, max_length=64)
+    allowed_skill_ids: list[str] = Field(default_factory=lambda: list(ARGUMENTS), max_length=64)
 
 
-def _response(state: Conversation, changed: bool):
+def _response(state: Conversation, changed: bool, models=None):
     payload = state.model_dump(mode='json')
     if state.planner_result is not None:
         payload['planner_result'] = {
@@ -99,7 +101,7 @@ def _response(state: Conversation, changed: bool):
             'plan_sha256': plan_sha256(state.planner_result.plan),
             'plan_saved': False, 'approval_performed': False, 'execution_performed': False,
         }
-    return {**payload, 'supported_skill_ids': list(ARGUMENTS), 'proposal_changed': changed, 'approval_performed': False, 'execution_performed': False}
+    return {**payload, 'supported_skill_ids': list(models or ARGUMENTS), 'proposal_changed': changed, 'approval_performed': False, 'execution_performed': False}
 
 
 def _path(root: Path, identity: str) -> Path:
@@ -146,6 +148,7 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
     from .server import InterfaceApiError
     root = project_root.resolve(strict=True)
     path = _path(root, request.conversation_id)
+    models = argument_models(root)
     with _LOCK:
         if request.action == 'list':
             candidates = sorted(path.parent.glob('*.json'), key=lambda item: item.lstat().st_mtime, reverse=True)[:20]
@@ -163,7 +166,7 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             return {'conversations': sessions, 'approval_performed': False, 'execution_performed': False}
         state = _read(path, request.conversation_id)
         if request.action == 'read':
-            return _response(state, False)
+            return _response(state, False, models)
         if request.conversation_id in _ACTIVE or request.expected_revision != state.revision:
             raise InterfaceApiError('Conversation digest no longer matches; reload before sending')
         if not request.message.strip():
@@ -177,9 +180,9 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
         if base is not None:
             _check(base, root)
         selected = list(dict.fromkeys(request.allowed_skill_ids))
-        if not set(selected).issubset(ARGUMENTS):
+        if not set(selected).issubset(models):
             raise InterfaceApiError('Conversation contains an unsupported planning capability')
-        available = list(dict.fromkeys(selected + ([step.skill for step in base.plan.steps] if base else []))) if selected else list(ARGUMENTS)
+        available = list(dict.fromkeys(selected + ([step.skill for step in base.plan.steps] if base else []))) if selected else list(models)
         if 'load_vector_to_postgis' in available:
             available = list(dict.fromkeys(available + ['inspect_vector', 'validate_postgis_layer']))
         if 'export_snakemake_workflow' in available:
@@ -194,12 +197,16 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
         system.pop('tabular_argument_schemas', None)
         system['required_json_schema'] = Reply.model_json_schema()
         system['required_json_schema']['$defs']['PlanStep']['properties']['skill']['enum'] = available
-        system['operation_argument_schemas'] = {name: ARGUMENTS[name].model_json_schema() for name in available}
+        system['operation_argument_schemas'] = {name: ({'$ref':'#/installed_adapter_argument_schema'} if name.startswith('ext_') else models[name].model_json_schema()) for name in available}
+        if any(name.startswith('ext_') for name in available):
+            system['installed_adapter_argument_schema'] = ProjectionArguments.model_json_schema()
         system['tabular_dataflow_example'] = {'step_1': {'skill':'inspect_csv','arguments':{'path':'data/input/sample_orders.csv'}}, 'step_2': {'skill':'select_csv_columns','arguments':{'path':'data/input/sample_orders.csv','columns':['order_id','region','amount'],'target_path':'data/output/selected.csv'},'depends_on':['step_1']}, 'step_3': {'skill':'handle_csv_missing','arguments':{'source_step':'step_2','method':'fill','fill_values':{'region':'unknown','amount':0},'target_path':'data/output/filled.csv'},'depends_on':['step_2']}} if {'inspect_csv','select_csv_columns','handle_csv_missing'}.issubset(available) else None
         system['reply_shape_example'] = {'message': 'Which file should I inspect?', 'plan': None, 'approval_performed': False, 'execution_performed': False}
         system['conversion_clarification_example'] = {'message': 'Where should I save the GeoPackage? You can use data/output/sample_points.gpkg. No database schema is needed for this file conversion.', 'plan': None}
         system['conversion_arguments_example'] = {'path': 'data/input/sample_points.geojson', 'target_path': 'data/output/sample_points.gpkg'}
+        system['installed_adapter_bindings'] = {id: package_sha(package) for id,package in installed_packages(root).items() if id in available}
         system['mandatory_rules'] += [
+            'Installed ext_ operations are trusted CSV projections with fixed package columns. Supply the exact package_sha256 from installed_adapter_bindings and a fresh target_path; use exactly one original path or ancestor source_step. They require approval and validation and produce a CSV artifact. Do not supply columns or invent new adapter bindings.',
             'Tabular operations are explicit pandas-backed contracts. inspect_csv reads CSV/TSV and returns metadata/previews only, never a CSV artifact; NEVER use inspect_csv as source_step/right_step. The first transform must read the original data/input path, even when its completion dependency is inspect_csv; later source references name CSV-producing transforms. table transforms/export require approval and validation. Preserve identifiers as strings, treat only empty CSV cells as missing. Use path for original data/input files or source_step for an ancestor table-producing operation; join uses right_path or right_step. Omit unused source fields rather than null. Every transform needs a unique data/output/*.csv target. Do not use expressions, query(), eval, callables or library function names. CSV-producing intermediates are referred to by step ID, never arbitrary data/output input paths. vector_attributes_to_csv explicitly drops geometry after inspect_vector of the same GeoJSON and can feed tabular steps. Ask for missing columns/keys/strategies/targets rather than invent them.',
             'export_snakemake_workflow and verify_snakemake_export are terminal main-workflow operations, not replay execution. To add Snakemake to a saved workflow, preserve existing steps exactly; append export_snakemake_workflow with source_plan_filename/source_plan_sha256 from saved_source_reference, requires_approval=true and validation_required=true, depending on all preceding operations, then verify_snakemake_export with arguments={}, requires_approval=false and validation_required=true depending on export. The source workflow must complete with verified successful evidence before export can execute. Do not invent source references. Ask the operator to save/complete the original workflow if no reference exists. Original operations are reused, not rerun.',
             'Ask only for missing REQUIRED arguments for the requested operation. A local convert_vector requires path and target_path, not a database schema. For GeoJSON to GeoPackage, .gpkg on target_path defines the format. source_layer and target_layer are optional; do not require them for the single-layer sample GeoJSON. Ask only for the output filename/path if missing, and suggest data/output/sample_points.gpkg as a proposed choice, without treating it as accepted. Database target_schema/target_table belong to PostGIS operations only. Do not invent required scope.',
@@ -296,7 +303,7 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             state.planner_result = proposed or base
             _write(path, state)
         changed = proposed is not None and (base is None or plan_sha256(proposed.plan) != plan_sha256(base.plan))
-        return _response(state, changed)
+        return _response(state, changed, models)
     finally:
         with _LOCK:
             _ACTIVE.discard(request.conversation_id)

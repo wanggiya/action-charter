@@ -145,3 +145,10 @@ critic-results/
 
 # Recoverable local Planner conversations
 /planner-conversations/
+
+# Local discovery metadata and explicitly installed adapter records
+library-discovery/
+operation-packages/
+
+interface/.playwright-browsers/
+interface/.browser-system-libs/
