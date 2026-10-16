@@ -1,3 +1,8 @@
+# Agent-container CLI startup repair
+
+- Fixed eager interface-package imports that made lightweight agent CLI startup require optional GIS libraries. Existing public API exports load lazily when requested; GIS execution still requires its declared runtime dependencies.
+- Added fresh-interpreter regressions that block GIS imports and exercise the five existing agent-image contracts: CLI help, Planner/Executor/Critic manifests and recipe catalog. Full backend suite: 1,625 passed. Docker image revalidation awaits CI because no local daemon is running.
+
 # Right-side outline action material
 
 - Right-side header and authorization actions explicitly retain the shared outline edge gradient. Disabled header actions dim their text/icon and border rather than fading away the whole gradient; their disabled behavior is unchanged.

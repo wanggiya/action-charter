@@ -108,7 +108,7 @@ Governance and verification are software controls, not additional reasoning agen
 
 The reference development environment is **Ubuntu 24.04 on WSL2**. Use Linux Python and Node inside WSL; mixing Windows executables with WSL paths can break installation.
 
-Requirements: Python 3.11+, Linux Node.js 22.12+ and pnpm 10.17.1. Docker Compose is needed for container validation and containerized services. Ollama, PostGIS and GeoServer are needed only for their related actions; the launcher reports availability without starting them.
+Requirements: Python 3.11+, Linux Node.js 22.12+ and pnpm 10.17.1. Docker Compose is needed for container validation and containerized services. The lightweight agent image can show CLI help, inspect agent manifests and validate the recipe catalog without loading optional GIS libraries; GIS execution requires its GIS runtime. Ollama, PostGIS and GeoServer are needed only for their related actions; the launcher reports availability without starting them.
 
 ```bash
 git clone https://github.com/wanggiya/action-charter.git

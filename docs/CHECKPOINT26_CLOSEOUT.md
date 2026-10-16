@@ -101,7 +101,7 @@ preserved workflow rather than weakening validation to accept a proposal.
 
 ## Verification and next checkpoints
 
-Backend full suite: **1,620 passed**. Frontend typecheck/build passes (existing
+Backend full suite: **1,625 passed**. Frontend typecheck/build passes (existing
 bundle-size advisory remains). Automated browsers use isolated temporary profiles,
 fixture model replies and real shared backend CSV execution; no personal browser
 cache, external model or live GIS/database is used. Initial closeout browser acceptance: **27 groups passed** (5 conversational Planner/recipe,
@@ -118,3 +118,14 @@ Checkpoint 27 covers laptop/model evaluation, charts/maps, example/demo journeys
 and prototype installation/release preparation. Cross-chat memory stays at 30 or
 later and requires a fresh decision. No platform parity or release readiness is
 implied; no Git publication or live-service mutation is performed here.
+
+## Agent-container CI follow-up
+
+Push and PR checks exposed the same CLI startup failure: importing a conversation
+CLI adapter initialized the interface server and GIS dispatcher, requiring
+`geopandas` in the lightweight agent image. Interface public exports now load lazily;
+CLI help, three manifest inspections and recipe-template catalog retain their
+existing dependency boundary. Fresh-interpreter tests block GIS imports explicitly.
+Verified: all five GIS-blocked startup contracts, existing API compatibility tests
+and the full backend suite (**1,625 passed**). Full image verification still
+requires a running Docker daemon or the next CI run; no daemon is running locally.

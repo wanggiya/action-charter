@@ -2,9 +2,9 @@
 
 Updated: 2026-10-15
 
-CSV source correction strengthened. Graph has pointer-anchored proportional zoom, fractional drag and recipe/action outline gradients (also visible when disabled); Advanced retained. Laptop smoothness still needs observation.
+CSV source correction strengthened. Graph has pointer-anchored proportional zoom, fractional drag and recipe/action outline gradients (also visible when disabled); Advanced retained. Laptop smoothness still needs observation. Agent CLI startup now lazily loads interface exports; GIS-free subprocess contracts cover the CI import regression.
 
-Checkpoint 26: Planner owns conversational workflow/recipe composition; fixtures validate candidates, Critic reviews candidates and recorded outcomes, deterministic Execution engine retains authority checks. Durable cancellation/recovery and private-chat restoration are implemented. [Closeout, tests and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Verified: 1,620 backend tests, frontend validation and 27 browser fixture groups. Laptop-model quality remains unverified. Indexed memory/curation moves to 28–29; cross-chat stays 30+. Optional private method helper remains experimental/OFF by default.
+Checkpoint 26: Planner owns conversational workflow/recipe composition; fixtures validate candidates, Critic reviews candidates and recorded outcomes, deterministic Execution engine retains authority checks. Durable cancellation/recovery and private-chat restoration are implemented. [Closeout, tests and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Verified: 1,625 backend tests, frontend validation and 27 browser fixture groups. Laptop-model quality remains unverified. Indexed memory/curation moves to 28–29; cross-chat stays 30+. Optional private method helper remains experimental/OFF by default.
 
 ## Product boundary
 
