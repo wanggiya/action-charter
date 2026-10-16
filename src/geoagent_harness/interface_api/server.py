@@ -1542,7 +1542,13 @@ def save_interface_reviewed_plan(
             )
         except ApprovalError as exc:
             raise InterfaceApiError("existing reviewed plan artifact is invalid") from exc
-        if existing != request.planner_result:
+        # The generated proposal's wording/model are conversation-local context,
+        # not execution authority. Reuse an identical immutable workflow without
+        # copying its older request into the new conversation or modifying bytes.
+        generated_reuse = isinstance(request, InterfaceGeneratedPlanSaveRequest) and (
+            existing.plan == request.planner_result.plan and existing.agent_id == request.planner_result.agent_id
+        )
+        if existing != request.planner_result and not generated_reuse:
             raise InterfaceApiError("existing reviewed plan does not match exact result")
         return {
             "schema_version": "1.0",
@@ -1553,6 +1559,8 @@ def save_interface_reviewed_plan(
             "plan_modified": False,
             "approval_performed": False,
             "execution_performed": False,
+            **({"workflow_definition_reused": True, "result_metadata_saved": existing == request.planner_result}
+               if isinstance(request, InterfaceGeneratedPlanSaveRequest) else {}),
         }
     try:
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -2695,6 +2703,7 @@ def execute_interface_recipe(
             snapshot = json.loads(json.dumps(state))
         _persist_execution_progress(root, snapshot, progress_root=progress_root)
 
+    execution_returned = False
     try:
         result = execute_approved_recipe(
             execution_envelope=envelope.model_dump(mode="json"),
@@ -2703,7 +2712,8 @@ def execute_interface_recipe(
             settings=settings,
             progress_callback=progress_callback,
         )
-    except Exception:
+        execution_returned = True
+    except Exception as execution_error:
         partial_outputs = []
         for step_id, target in table_targets.items():
             if target in existing_table_targets:
@@ -2717,7 +2727,12 @@ def execute_interface_recipe(
                                     "status": "present_after_failure"})
         with _EXECUTION_LOCK:
             state = _EXECUTION_PROGRESS[progress_key]
-            state["status"] = "failed"
+            from geoagent_harness.recipes.control import ExecutionCancelled
+            cancelled = isinstance(execution_error, ExecutionCancelled)
+            state["status"] = "cancelled" if cancelled else "failed"
+            for pending in state['steps']:
+                if pending['status'] == 'queued':
+                    pending['status'] = 'skipped'
             state["finished_at"] = datetime.now(timezone.utc).isoformat()
             state["failed_step_id"] = state["failed_step_id"] or next(
                 (item["step_id"] for item in state["steps"] if item["status"] == "running"),
@@ -2734,12 +2749,13 @@ def execute_interface_recipe(
             failed_snapshot = json.loads(json.dumps(state))
         _persist_execution_progress(root, failed_snapshot, progress_root=progress_root)
         record_task_attempt_state(root=root / "task-history", task_id=request.task_id,
-                                  attempt_sha256=progress_key, state="failed")
+                                  attempt_sha256=progress_key, state="cancelled" if cancelled else "failed")
         raise
     finally:
-        with _EXECUTION_LOCK:
-            _ACTIVE_EXECUTIONS.discard(execution_key)
-            _ACTIVE_PROGRESS.discard(progress_key)
+        if not execution_returned:
+            with _EXECUTION_LOCK:
+                _ACTIVE_EXECUTIONS.discard(execution_key)
+                _ACTIVE_PROGRESS.discard(progress_key)
     with _EXECUTION_LOCK:
         state = _EXECUTION_PROGRESS[progress_key]
         state["status"] = result.execution_record.final_status
@@ -2749,7 +2765,12 @@ def execute_interface_recipe(
         state["run_result_sha256"] = result.execution_record.run_result_sha256
         state["evidence_sha256"] = result.execution_record.evidence_sha256
         final_snapshot = json.loads(json.dumps(state))
-    _persist_execution_progress(root, final_snapshot, progress_root=progress_root)
+    try:
+        _persist_execution_progress(root, final_snapshot, progress_root=progress_root)
+    finally:
+        with _EXECUTION_LOCK:
+            _ACTIVE_EXECUTIONS.discard(execution_key)
+            _ACTIVE_PROGRESS.discard(progress_key)
     record = result.execution_record
     return {
         "schema_version": "1.0",
@@ -3087,7 +3108,10 @@ def _handler(
                 "/api/v1/workflow/prepare",
                 "/api/v1/workflow/authorize",
                 "/api/v1/workflow/execute",
+                "/api/v1/workflow/runs",
+                "/api/v1/reusable-recipes",
                 "/api/v1/planner/conversation",
+                "/api/v1/method-memory",
                 "/api/v1/operations/scan",
                 "/api/v1/operations/test-package",
                 "/api/v1/operations/install-package",
@@ -3249,6 +3273,12 @@ def _handler(
                 elif self.path == "/api/v1/plans/validate-edit":
                     from .workflow import EditRequest, validate_edit
                     response = validate_edit(EditRequest.model_validate(payload), project_root=project_root)
+                elif self.path == '/api/v1/workflow/runs':
+                    from .workflow_runs import RunRequest, run_action
+                    response = run_action(RunRequest.model_validate(payload), project_root=project_root)
+                elif self.path == '/api/v1/reusable-recipes':
+                    from geoagent_harness.recipe_catalog.composition import RecipeRequest, recipe_action
+                    response = recipe_action(RecipeRequest.model_validate(payload), project_root=project_root)
                 elif self.path in {"/api/v1/workflow/prepare", "/api/v1/workflow/authorize", "/api/v1/workflow/execute"}:
                     from .workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
                     workflow_request = WorkflowRequest.model_validate(payload)
@@ -3264,6 +3294,9 @@ def _handler(
                         expected='test_operation_package' if self.path.endswith('/test-package') else 'install_operation_package'
                         if operation_request.action!=expected:raise InterfaceApiError('Package action does not match the endpoint')
                         response=package_action(operation_request,project_root)
+                elif self.path == "/api/v1/method-memory":
+                    from .method_memory import MethodRequest, method_action
+                    response = method_action(MethodRequest.model_validate(payload), project_root=project_root)
                 elif self.path == "/api/v1/planner/conversation":
                     from .conversation import TurnRequest, conversation_turn
                     response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
@@ -3275,9 +3308,7 @@ def _handler(
                 elif self.path == "/api/v1/plans/save-generated":
                     generated = InterfaceGeneratedPlanSaveRequest.model_validate(payload)
                     response = save_interface_reviewed_plan(
-                        InterfaceReviewedPlanSaveRequest.model_validate({
-                            **generated.model_dump(mode="json"), "action": "save_reviewed_plan",
-                        }), project_root=project_root,
+                        generated, project_root=project_root,
                     )
                     response["human_review_performed"] = False
                     response["storage_kind"] = "generated_proposal"
@@ -3411,7 +3442,7 @@ def _handler(
                             artifact_path="approvals/" + execution_request.approval_filename,
                         ))
             except (json.JSONDecodeError, ValidationError):
-                self._send(HTTPStatus.BAD_REQUEST, {"error": "request payload is invalid"})
+                self._send(HTTPStatus.BAD_REQUEST, {"error": "request payload is invalid", **({'approval_performed':False,'execution_performed':False} if self.path=='/api/v1/method-memory' else {})})
                 return
             except RecipeCompilationError:
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": "recipe proposal could not be compiled"})
@@ -3421,7 +3452,7 @@ def _handler(
                     "digest no longer matches" in str(exc)
                     or "already exists" in str(exc)
                 ) else HTTPStatus.BAD_REQUEST
-                self._send(status, {"error": str(exc)})
+                self._send(status, {"error": str(exc), **({"approval_performed":False,"execution_performed":False} if self.path=="/api/v1/method-memory" else {})})
                 return
             except TaskHistoryError as exc:
                 self._send(HTTPStatus.CONFLICT, {"error": str(exc)})
@@ -3512,7 +3543,7 @@ def _handler(
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": message})
                 return
             except (ContextPackError, ModelClientError, ModelSettingsError) as exc:
-                if self.path == "/api/v1/planner/conversation":
+                if self.path in {"/api/v1/planner/conversation", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
                     if isinstance(exc, ModelClientError):
                         message, code = str(exc), exc.code
                         guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; no retry or execution happened. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
@@ -3537,6 +3568,14 @@ def _handler(
                 )
                 return
             except (SkillRegistryError, OSError, ValueError) as exc:
+                if self.path in {'/api/v1/reusable-recipes', '/api/v1/workflow/runs'}:
+                    from geoagent_harness.recipe_catalog.composition import RecipePreparationError
+                    message = str(exc) if isinstance(exc,RecipePreparationError) else 'Request failed recipe contracts, isolated fixture checks or safe run storage requirements. The saved workflow is preserved; inspect its parameters and retry.'
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {'error':message, 'approval_performed':False,'execution_performed':False})
+                    return
+                if self.path == '/api/v1/method-memory':
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {'error':'Method proposal failed its schema or safe storage checks. Edit the proposal or select fewer sources; nothing saved or executed.', 'approval_performed':False, 'execution_performed':False})
+                    return
                 if self.path.startswith('/api/v1/operations/'):
                     from geoagent_harness.operations.packages import PackageError
                     message = str(exc)[:600] if isinstance(exc, PackageError) else 'Operation package or discovery request failed its typed bounds, source/fixture checks or safe storage requirements'

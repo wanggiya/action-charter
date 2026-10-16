@@ -84,6 +84,7 @@ def _resolve_artifact(
         if supplied.is_absolute()
         else [
             Path.cwd() / supplied,
+            *([trusted_root.parent.parent / supplied] if trusted_root.parent.name == 'data' and trusted_root.name in {'input','output'} else []),
             trusted_root / supplied,
         ]
     )
@@ -182,6 +183,9 @@ def _display_path(
             working_directory
         ).as_posix()
     except ValueError:
+        resolved_root = trusted_root.resolve()
+        if resolved_root.parent.name == 'data' and resolved_root.name in {'input','output'}:
+            return path.relative_to(resolved_root.parent.parent).as_posix()
         return path.relative_to(
             trusted_root.resolve()
         ).as_posix()

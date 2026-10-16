@@ -14,6 +14,8 @@ The current interface proves governed execution, but exposes too much internal b
 
 ## Immediate implementation order
 
+Documentation-only memory extension: checkpoint 26's recovery foundations precede task separation, source-linked indexed project memory, curator/correction lifecycle, reusable methods and operational acceptance. The [recorded architecture](../docs/PROJECT_MEMORY_ARCHITECTURE.md) includes UI/backend/CLI changes and lightweight laptop constraints. The operator subsequently authorized 26.1: explicit task-scoped planning can span chats. Indexed core memory, curator corrections and method templates remain planned.
+
 1. Finish Checkpoint 21's task-link contract and fail clearly if the history service is unavailable. Verify the task-history endpoint and current source before running the Planner.
 2. Store exact, independently checked artifact references; recover a task after browser and API restarts. A hash chain checks event changes but is not itself proof of a plan or execution claim.
 3. Test the context and intent agent boundary using real planning failures, including an Ollama proposal that invents an unselected skill. Offer correction/replanning without relaxing deterministic policy.
@@ -22,3 +24,9 @@ The current interface proves governed execution, but exposes too much internal b
 Do not add tool families merely to make the interface look more capable. The first product test is whether a user can express a data goal, understand and correct the agent's proposal, execute with bounded authority, and trust the result faster than manual coordination.
 
 Checkpoint 25 follow-up adds persistent scan browsing and input/operation/result arrows. Checkpoint 26 will also review correlated agent history and source-linked summaries; checkpoint 27 will add bounded output maps/charts and public-fixture demo preparation. These future features are proposals, not current capabilities.
+
+Current operator revision: one conversation is one task with private memory; topics can change within it. Separate task selection and shared cross-chat memory are disabled. Next memory work stays within that conversation; sharing remains discussion only. See docs/CHECKPOINT26_CONVERSATIONS.md.
+
+2026-10-14: clarify Saved chat history, Include recent chat messages and completed-request context receipts within one conversation. Cross-chat memory is deferred until checkpoint 30 or later; 28 operational/resource work and 29 single-chat retention/privacy are proposed intervening scopes. Sharing requires a fresh operator decision. See docs/DEFERRED_CROSS_CHAT_MEMORY.md.
+
+2026-10-14: Optional current-chat method-memory prototype is an on-demand logical agent in the existing backend. OFF default, selected sources, reviewed/unvalidated methods and explicit Planner advice only. See docs/METHOD_MEMORY_PROTOTYPE.md. Complex multi-chat/graph/background memory remains deferred; checkpoint 26 orchestration/recovery is not declared complete.

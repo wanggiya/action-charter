@@ -22,7 +22,7 @@ class AgentPermissions(BaseModel):
 class AgentManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    id: Literal["planner", "executor", "critic", "builder"]
+    id: Literal["planner", "executor", "critic", "builder", "method_memory"]
     model_ref: str
     purpose: str
     permissions: AgentPermissions
@@ -39,6 +39,7 @@ def load_agent_manifest(
         "executor",
         "critic",
         "builder",
+        "method_memory",
     }:
         raise ValueError(f"unknown agent role: {role}")
 
@@ -54,7 +55,7 @@ def load_agent_manifest(
             f"does not match role {role!r}"
         )
 
-    if role == "builder":
+    if role in {"builder", "method_memory"}:
         permissions = manifest.permissions
 
         if (
@@ -65,12 +66,12 @@ def load_agent_manifest(
             or permissions.database_write
         ):
             raise ValueError(
-                "builder manifest cannot grant execution authority"
+                f"{role} manifest cannot grant execution authority"
             )
 
         if permissions.model_extra:
             raise ValueError(
-                "builder manifest cannot declare additional permissions"
+                f"{role} manifest cannot declare additional permissions"
             )
 
     return manifest

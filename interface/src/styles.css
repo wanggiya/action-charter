@@ -746,7 +746,8 @@
 .app-shell[data-button-style="outline"] :is(.graph-source-picker select, .safe-mode) { --outline-edge-accent:var(--material-accent); }
 .app-shell[data-button-style="outline"] :is(.canvas-tools, .edge-legend, .block-add-menu) { --outline-edge-accent:#60a5fa; }
 .app-shell[data-button-style="outline"] :is(button:not(.flow-node, .template-card, .evidence-file, .review-step-link, .rail-item, .timeline-event):not(.saved-plan-list > button), .appearance-sample, .flow-node, .inspector .detail-section, .inspector .inspector-head, .status-card, .type-chip, .inspector-note, .task-context-pane, .workspace-right-panel article, .workspace-right-panel li, .graph-source-picker select, .safe-mode, .canvas-tools, .edge-legend, .block-add-menu) {
- background:linear-gradient(180deg, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 18%, transparent) 0%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 5%, transparent) 12%, transparent 28%, transparent 72%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 5%, transparent) 88%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 18%, transparent) 100%)!important;
+ --outline-edge-gradient:linear-gradient(180deg, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 18%, transparent) 0%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 5%, transparent) 12%, transparent 28%, transparent 72%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 5%, transparent) 88%, color-mix(in srgb, var(--outline-edge-accent, #60a5fa) 18%, transparent) 100%);
+ background:var(--outline-edge-gradient)!important;
 }
 
 /* Keep status, track and labels aligned without crowded full-stage cards. */
@@ -998,3 +999,91 @@
 .app-shell[data-button-style="filled"] .operation-flow-card { background:var(--flow-fill); border-color:var(--flow-fill); color:var(--button-text); }
 .app-shell[data-button-style="filled"] .operation-flow-card :is(small,strong,span) { color:var(--button-text)!important; }
 .app-shell[data-button-style="outline"] .operation-flow-card { background:linear-gradient(to bottom,color-mix(in srgb,var(--flow-accent) 10%,transparent),transparent 40%,transparent 60%,color-mix(in srgb,var(--flow-accent) 10%,transparent)); }
+
+.planner-task-controls { padding:10px 0; border-bottom:1px solid var(--line); display:grid; gap:8px; }
+.planner-task-controls label { display:grid; gap:6px; font-size:13px; }
+.planner-task-controls>div { display:flex; align-items:center; gap:8px; }
+.planner-task-controls :is(input,select) { min-width:0; width:100%; color:var(--foreground); background:var(--surface); border:1px solid var(--line-strong); border-radius:6px; padding:8px; font:inherit; }
+.planner-task-controls input { flex:1; }
+.planner-task-controls button { flex-shrink:0; }
+.planner-task-controls small { color:var(--muted); line-height:1.5; }
+
+.planner-task-history { margin:8px 0; padding:8px 10px; border:1px solid var(--line-strong); border-radius:8px; }
+.planner-task-history summary { cursor:pointer; font-size:13px; }
+.planner-task-history p { overflow-wrap:anywhere; white-space:pre-wrap; font-size:13px; line-height:1.5; }
+
+.planner-context-disclosure { margin:8px 0; padding:8px 10px; border:1px solid var(--line-strong); border-radius:8px; }
+.planner-context-disclosure summary { cursor:pointer; font-size:13px; color:var(--cyan); }
+.planner-context-disclosure h3 { margin:12px 0 6px; font-size:12px; color:var(--foreground); }
+.planner-context-disclosure :is(p,small,dt,dd) { font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.planner-context-disclosure dl { margin:6px 0; }
+.planner-context-disclosure dl>div { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.8fr); gap:8px; padding:5px 0; }
+.planner-context-disclosure dt { color:var(--muted); }
+.planner-context-disclosure dd { margin:0; min-width:0; max-width:none; text-align:left; text-transform:none; color:var(--foreground); }
+.planner-task-history[open],.planner-context-disclosure[open] { max-height:240px; overflow:auto; }
+
+/* Chat disclosure headers override the workbench's generic summary spacing. */
+.intent-workbench :is(.planner-task-history,.planner-context-disclosure)>summary { margin:0; padding:0; line-height:1.5; color:var(--cyan); }
+.planner-session-picker { height:36px; padding:6px 9px; font-size:13px; }
+.planner-history-bubbles { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.planner-history-bubbles .planner-message { margin:0; max-width:92%; padding:8px 10px; border:1px solid var(--line-strong); }
+.planner-history-bubbles .role-user { align-self:flex-end; background:color-mix(in srgb,var(--cyan) 12%,transparent); }
+.planner-history-bubbles .role-assistant { align-self:flex-start; background:color-mix(in srgb,var(--cyan) 4%,transparent); }
+.planner-history-bubbles .planner-message p { margin:4px 0 0; }
+
+.planner-chat-context { flex-shrink:0; margin:8px 0; border:1px solid var(--line-strong); border-radius:8px; }
+.intent-workbench .planner-chat-context>summary { margin:0; padding:8px 10px; color:var(--cyan); font-size:13px; cursor:pointer; }
+.planner-chat-context-body { max-height:30vh; padding:0 10px 8px; overflow:auto; overscroll-behavior:contain; }
+.planner-chat-context-body .planner-task-history,.planner-chat-context-body .planner-context-disclosure { border:0; padding:6px 0; margin:0; }
+.composer-resize-handle { height:12px; flex-shrink:0; cursor:ns-resize; touch-action:none; display:grid; place-items:center; }
+.composer-resize-handle::after { content:""; width:44px; height:3px; border-radius:3px; background:var(--line-strong); }
+.composer-resize-handle:hover::after,.composer-resize-handle:focus-visible::after { background:var(--cyan); }
+.app-shell .planner-dialogue .planning-writing-surface textarea { min-height:72px; max-height:320px; resize:none; flex:none; }
+
+.method-memory-settings { padding:12px 0; border-bottom:1px solid var(--line-strong); }
+.intent-workbench .method-memory-panel>summary { margin:0; padding:8px 0; color:var(--cyan); font-size:13px; }
+.method-memory-panel { border-top:1px solid var(--line-strong); }
+.method-memory-panel fieldset { display:grid; gap:8px; min-width:0; }
+.method-source-options { display:grid; gap:5px; max-height:180px; overflow:auto; }
+.intent-workbench .method-source-options button { display:flex; flex-direction:column; align-items:flex-start; text-align:left; padding:8px; background:transparent; border-color:var(--line-strong); }
+.method-source-options button[aria-pressed=true] { border-color:var(--cyan); }
+.method-source-options span { display:block; white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; font-weight:400; }
+.method-editor label { text-transform:capitalize; }
+.intent-workbench .method-editor textarea { min-height:64px; max-height:200px; resize:vertical; font:13px/1.5 Arial,sans-serif; }
+.method-editor input { min-width:0; }
+.method-operation { padding:6px; border-left:2px solid var(--cyan); }
+.method-actions { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+.saved-methods details { padding:8px 0; border-top:1px solid var(--line-strong); }
+.saved-methods summary { overflow-wrap:anywhere; }
+.reusable-recipes-workspace { width:min(840px,94vw); max-height:90vh; overflow:auto; }
+.reusable-recipe-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin:12px 0; }
+.reusable-recipe-list button { display:flex; flex-direction:column; align-items:flex-start; gap:6px; text-align:left; }
+.reusable-recipes-workspace label,.workflow-runs-panel label { display:grid; gap:6px; margin:10px 0; }
+.reusable-recipes-workspace input,.reusable-recipes-workspace textarea,.workflow-runs-panel select { width:100%; min-width:0; box-sizing:border-box; color:var(--foreground); background:var(--panel); border:1px solid var(--line-strong); padding:8px; border-radius:6px; }
+.recipe-operation-chain { color:var(--cyan); overflow-wrap:anywhere; }
+.run-step-list { padding-left:20px; }
+.run-step-list li { padding:10px 0; border-bottom:1px solid var(--line-strong); }
+.workflow-runs-panel pre,.reusable-recipes-workspace pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:300px; overflow:auto; }
+
+/* One camera animation owns scale and bounds; CSS transitions must not lag it. */
+.app-shell .canvas,.app-shell .canvas-sizer { transition:none; }
+.app-shell .canvas-window.is-zooming .canvas { will-change:transform; }
+.app-shell .canvas-window:is(.is-zooming,:has(.node-drag-active)) .connections path { filter:none; }
+.app-shell .canvas.node-drag-active .flow-node { backdrop-filter:none; }
+/* These controls use the same material as the rest of the toolbar. */
+.app-shell[data-button-style="outline"] .reusable-recipes-workspace :is(.template-workspace-head,.detail-section,summary) {
+ --outline-edge-accent:#22d3ee;
+ background:linear-gradient(180deg,#22d3ee2e,transparent 28%,transparent 72%,#22d3ee2e);
+}
+
+/* Right-side actions retain the shared edge material even while unavailable. */
+.app-shell[data-button-style="outline"] :is(.top-actions,.workflow-decision-actions,.workflow-authorization-form) button {
+ background-color:transparent!important;
+ background-image:var(--outline-edge-gradient)!important;
+}
+.app-shell[data-button-style="outline"] .top-actions>button:disabled {
+ opacity:1;
+ color:color-mix(in srgb,var(--control-accent) 48%,#8a949f)!important;
+ border-color:color-mix(in srgb,var(--control-accent) 45%,transparent)!important;
+}
+.app-shell[data-button-style="outline"] .top-actions>button:disabled svg { opacity:.5; }

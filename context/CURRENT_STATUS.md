@@ -1,6 +1,10 @@
 # Current implementation status
 
-Updated: 2026-10-13
+Updated: 2026-10-15
+
+CSV source correction strengthened. Graph has pointer-anchored proportional zoom, fractional drag and recipe/action outline gradients (also visible when disabled); Advanced retained. Laptop smoothness still needs observation.
+
+Checkpoint 26: Planner owns conversational workflow/recipe composition; fixtures validate candidates, Critic reviews candidates and recorded outcomes, deterministic Execution engine retains authority checks. Durable cancellation/recovery and private-chat restoration are implemented. [Closeout, tests and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Verified: 1,620 backend tests, frontend validation and 27 browser fixture groups. Laptop-model quality remains unverified. Indexed memory/curation moves to 28–29; cross-chat stays 30+. Optional private method helper remains experimental/OFF by default.
 
 ## Product boundary
 
@@ -16,11 +20,15 @@ A small tested JSON package installs ext_order_identity through a fixed pandas C
 
 Operator follow-up: Settings lists persisted verified scan inventories with expandable library/function groups; review, selected-operation and outcome cards show dataflow arrows. Examples have a function-based index while historical paths remain intact. Agent history/summaries and outcome maps/charts are roadmap proposals only, not implemented.
 
-See [checkpoint 25 guide](../docs/CHECKPOINT25.md) for contracts, bounds, package authoring, CLI parity and operator acceptance. Next: checkpoint 26 scheduling/cancellation/durable recovery, then 27 evaluated laptop/PC prototype preparation. No Git/publication or live-data action is implied.
+See [checkpoint 25 guide](../docs/CHECKPOINT25.md) for contracts, bounds, package authoring, CLI parity and operator acceptance. Checkpoint 26 now includes the recipe/recovery slice below; checkpoint 27 retains laptop/PC prototype preparation. No Git/publication or live-data action is implied.
 
 ## Planner and execution
 
+Checkpoint 26.1 revision: each conversation is one automatic task with private transcript/plan memory. Domain changes retain the same chat context; new chats start separately. Task creation/selection and cross-chat linking are removed. Local SQLite saves conversation/memory atomically; legacy JSON and former shared-task records remain preserved. Verified: 1,530 tests, frontend validation, four private-chat and six CSV browser groups. No extra model/dependency/background agent is added. Indexed core facts, summaries, corrections, methods and remaining orchestration are unfinished. See [current acceptance](../docs/CHECKPOINT26_CONVERSATIONS.md).
+
 Planner agent is the primary entry beside the editable workflow graph. Optional skills constrain additions; automatic selection includes registered supported operations, retaining mandatory load dependencies. Typed plans normalize bare filenames under data/input and reject unsafe scope. JSON/schema/policy failures receive one bounded correction with the rejected candidate and safe specific findings. A closed legacy plan-only response is also validated through the same policy. Requests, titles and context remain descriptive, never execution authority.
+
+Chat controls now say Saved chat history and Chat memory; OFF preserves the workflow/transcript. Context sent to Planner separates next-request settings from actual completed-request inclusion counts. Cross-chat memory is deferred to checkpoint 30 or later, with no sharing work in 26–29; see docs/DEFERRED_CROSS_CHAT_MEMORY.md.
 
 Full conversation transcripts persist; recent excerpts cap at 6 KB and full prompts at 64 KB. Previous-message inclusion is optional; current typed workflow remains explicit. Model errors distinguish timeout, HTTP rejection/configuration and validation failure. Optional MODEL_REASONING_EFFORT supports compatible Ollama thinking control, without establishing live-model response time or quality. Startup loads source lists and restores remembered existing saved scope, protecting open plans/edits and making no model call, new save, approval or execution.
 
@@ -42,11 +50,11 @@ Main-workflow Snakemake export/static verification binds an original saved workf
 
 ## Verification and remaining work
 
-Current validation: 1,513 tests and frontend typecheck/build pass. Current automated regression covers compatibility, actual temporary spatial/CSV/installed-adapter workflows, exact/expired/mismatched authority, metadata bounds/links/digests, fixture package installation, origin guards and shared CLI/HTTP contracts. Production-browser checkpoint 25 acceptance passes five groups against the actual temporary API/backend with deterministic model completion only; scans actual installed libraries, installs the data-only package, separately authorizes/executes its CSV workflow, and recovers history without rerun. It does not validate live-model quality or live databases. Checkpoint 24 browser checks remain available; newer interface details require operator acceptance on their machine.
+Current validation: 1,600 tests, frontend typecheck/build and 22 production-browser fixture groups passed. Coverage includes recipe composition/registration, actual temporary spatial→CSV execution, cancellation, restart, recovery and existing chat/CSV journeys. No real-model quality or live database acceptance is established.
 
 Playwright is pinned as a frontend development dependency. Browser engines and optional minimal-Linux audio runtime are stored in Git/Docker-ignored project-local test directories, separate from normal browser profiles and shared Playwright caches; test profiles/data are temporary. Runtime use does not require these browser test tools. See the checkpoint 25 guide for repeatable setup.
 
-Generalized memory, full legacy Intent integration, cancellation/restart-safe retry/resume, parallel scheduling, broad runtime-library activation, clean laptop/PC installation/packaging and release evaluation remain incomplete. Never automatically repeat writes or reuse expired/mismatched decisions. Prepare release materials only; no parity claim or release publication is authorized.
+Checkpoint 26 now adds JSON recipe composition, optional Builder→fixture tests→Critic preparation, durable runs, cooperative cancellation, bounded intermediate previews and recovery proposals. Remaining reads can resume; writes use fresh targets and fresh authorization. No automatic write reuse/retry. [Delivery and acceptance](../docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md). Transactional/write-intermediate resume, parallel scheduling, broader memory and laptop/PC release evaluation remain incomplete.
 
 ## Record navigation
 

@@ -19,7 +19,7 @@ const frontend=createServer(async(req,res)=>{
  try {
   if(req.url.startsWith('/api/')) {
    const chunks=[];for await(const chunk of req)chunks.push(chunk);
-   calls.push({method:req.method,path:req.url});
+   calls.push({method:req.method,path:req.url,action:req.method==='POST'?JSON.parse(Buffer.concat(chunks).toString()).action:undefined});
    const response=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});
    res.writeHead(response.status,{'Content-Type':'application/json'});res.end(await response.text());return;
   }
@@ -60,6 +60,11 @@ try{
  await page.getByRole('button',{name:'Validate and save edits',exact:true}).click();
  await page.getByRole('button',{name:'Validate and save edits',exact:true}).waitFor({state:'hidden'});
  assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
+ await page.waitForFunction(async()=>{
+  const id=localStorage.getItem('actioncharter:planner-conversation:v1');
+  const response=await fetch('/api/v1/planner/conversation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read',conversation_id:id})});
+  const state=await response.json();return JSON.stringify(state.planner_result?.plan.steps[1].arguments.columns)==='["region","amount","order_id"]';
+ });
  cases.push('Graph JSON editing blocks malformed drafts and saves corrected typed columns through backend validation');
  await page.getByRole('button',{name:'Authorize',exact:true}).first().click();
  await page.locator('.workflow-review-panel').waitFor();
@@ -85,7 +90,7 @@ try{
  await page.getByRole('button',{name:'Execution History',exact:true}).click();
  await page.getByRole('button',{name:'Reopen run graph',exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Reopen run graph',exact:true}).count(),1);
- assert.equal(calls.filter(c=>c.path==='/api/v1/workflow/execute').length,1);cases.push('History and reload preserve plan and durable attempt without reexecution');
+ assert.equal(calls.filter(c=>c.path==='/api/v1/workflow/runs'&&c.action==='start').length,1);cases.push('History and reload preserve plan and durable attempt without reexecution');
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,live_service_calls:0,page_errors:errors},null,2));
 }catch(error){console.error(error);console.error(JSON.stringify({cases,errors,calls},null,2));throw error;}

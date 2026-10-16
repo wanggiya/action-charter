@@ -1,0 +1,20 @@
+import { z } from "zod";
+import { workflowPost, type WorkflowReview, type WorkflowAuthorization, type InterfacePlannerResult } from "./interface-api";
+
+const parameter = z.object({type:z.enum(["string","array","object","integer","number","boolean","csv_source"]),description:z.string().max(300)});
+export const reusableSchema=z.object({id:z.string(),version:z.string(),name:z.string(),description:z.string(),parameters:z.record(parameter),steps:z.array(z.object({step_id:z.string(),skill:z.string()})),output_contract:z.string()}).passthrough();
+export type ReusableRecipe=z.infer<typeof reusableSchema>;
+export const criticReviewSchema=z.object({status:z.string(),finding:z.string().optional(),assessment:z.object({deterministic_status:z.string(),conclusion:z.string(),summary:z.string(),findings:z.array(z.string()),limitations:z.array(z.string()),reusable_method:z.object({title:z.string(),purpose:z.string(),operations:z.array(z.string()),limitations:z.array(z.string())}).nullable().optional()}).optional()});
+export const recipeCatalogSchema=z.object({recipes:z.array(z.object({definition:reusableSchema,recipe_sha256:z.string(),origin:z.string()})).max(53),unavailable:z.array(z.object({id:z.string(),name:z.string(),finding:z.string()})).default([])});
+export const runSchema=z.object({run_id:z.string().regex(/^[a-f0-9]{32}$/),plan_sha256:z.string(),plan_filename:z.string(),conversation_id:z.string().nullable().optional(),status:z.string(),started_at:z.string(),finished_at:z.string().nullable(),cancel_requested:z.boolean(),critic_review:criticReviewSchema.optional(),failed_step_id:z.string().nullable(),finding:z.string().nullable(),recovery_guidance:z.string(),execution_performed:z.boolean(),result:z.unknown(),partial_outputs:z.array(z.object({step_id:z.string(),path:z.string(),sha256:z.string().nullable(),bytes:z.number(),status:z.string()})).default([]),steps:z.array(z.object({step_id:z.string(),skill_id:z.string(),status:z.string(),depends_on:z.array(z.string()),arguments:z.record(z.unknown()),outcome:z.unknown(),validation_outcome:z.unknown()})).max(20)});
+export type WorkflowRun=z.infer<typeof runSchema>;
+export const runActive=(run:WorkflowRun|null)=>Boolean(run && ["queued","running","cancelling"].includes(run.status));
+export const plannerBase=(result:InterfacePlannerResult)=>{const {agent_id,model,original_request,context_references,plan,warnings}=result;return {agent_id,model,original_request,context_references,plan,warnings};};
+export async function recipes(body:unknown){return workflowPost("/api/v1/reusable-recipes",body);}
+export async function runs(body:unknown){return workflowPost("/api/v1/workflow/runs",body);}
+export async function startWorkflowRun(review:WorkflowReview,authorization:WorkflowAuthorization|null){
+  let conversation_id:string|undefined;try{const id=localStorage.getItem("actioncharter:planner-conversation:v1");if(id&&/^[a-f0-9]{32}$/.test(id))conversation_id=id;}catch{/* Linking is optional. */}
+  return runSchema.parse(await runs({action:"start",conversation_id,review_outcome:true,workflow:{action:"execute_workflow",plan_filename:review.plan_filename,confirmed_plan_sha256:review.plan_sha256,confirmed_review_sha256:review.review_sha256,confirm_execution:true,...(authorization?{plan_approval_filename:authorization.plan_approval_filename,recipe_approval_filename:authorization.recipe_approval_filename}:{})}}));
+}
+
+export function runInCurrentChat(run:WorkflowRun|null){try{return Boolean(run?.conversation_id&&run.conversation_id===localStorage.getItem("actioncharter:planner-conversation:v1"));}catch{return false;}}

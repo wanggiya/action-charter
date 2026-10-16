@@ -249,7 +249,7 @@ def dispatch_recipe_step(
             )
 
             value = inspect_vector(
-                path=Path(arguments.path),
+                path=Path(arguments.path) if Path(arguments.path).is_absolute() else settings.project_root / arguments.path,
                 input_root=settings.input_root,
             )
 
@@ -292,9 +292,7 @@ def dispatch_recipe_step(
 
             value = inspect_raster(
                 InspectRasterArguments(
-                    path=Path(
-                        arguments.path
-                    ),
+                    path=Path(arguments.path) if Path(arguments.path).is_absolute() else settings.project_root / arguments.path,
                     input_root=(
                         settings.input_root
                     ),

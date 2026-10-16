@@ -12,7 +12,19 @@ class InspectCSV(Strict):
     delimiter: Literal[',', '\t'] = ','
     preview_rows: int = Field(default=5, ge=0, le=20)
 
+def _source_schema(schema):
+    """Expose the same exclusive source choice enforced at runtime to models."""
+    pairs=[('path','source_step')]
+    if 'right_path' in schema.get('properties',{}):
+        pairs.append(('right_path','right_step'))
+    schema.setdefault('allOf',[]).extend({'oneOf':[
+        {'required':[left],'properties':{left:{'type':'string'},right:{'type':'null'}}},
+        {'required':[right],'properties':{right:{'type':'string'},left:{'type':'null'}}},
+    ]} for left,right in pairs)
+
+
 class Source(Strict):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, json_schema_extra=_source_schema)
     path: str | None = Field(default=None, min_length=1, max_length=960)
     source_step: str | None = Field(default=None, pattern=r'^step_[1-9][0-9]*$')
     delimiter: Literal[',', '\t'] = ','
