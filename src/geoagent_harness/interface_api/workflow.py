@@ -257,6 +257,9 @@ def _execute_inspections(review, root):
     record = dict(schema_version='1.0', run_id=uuid.uuid4().hex, plan_sha256=review['plan_sha256'],
                   plan_filename=review['plan_filename'], started_at=datetime.now(timezone.utc).isoformat(),
                   finished_at=None, status='running', step_results=[], approval_recorded=bool(review['approval_required_step_ids']), execution_performed=False)
+    from geoagent_harness.recipes.control import observer
+    if observer.get() is not None:
+        record['workflow_run_id'] = observer.get().identity
     path = destination / (record['run_id'] + '.json')
     def persist():
         # Replace only our new UUID-owned record; never follow an existing symlink.
@@ -270,6 +273,9 @@ def _execute_inspections(review, root):
     persist()
     try:
         for step in review['steps']:
+            from geoagent_harness.recipes.control import checkpoint, progress
+            checkpoint()
+            progress(step['step_id'], step['skill'], 'running')
             relative = check_task_input(project_root=root, input_path=step['arguments']['path'])
             record['execution_performed'] = True
             if step['skill'] == 'inspect_csv':
@@ -284,8 +290,13 @@ def _execute_inspections(review, root):
             record['step_results'].append(dict(step_id=step['step_id'], skill_id=step['skill'],
                 status='inspected', validation_performed=False, outcome=_bounded_outcome(result if isinstance(result, dict) else result.model_dump(mode='json')), validation_outcome=None))
             persist()
+            progress(step['step_id'], step['skill'], 'completed', record['step_results'][-1]['outcome'])
         record['status'] = 'completed'
     except Exception as error:
+        from geoagent_harness.recipes.control import ExecutionCancelled
+        if isinstance(error, ExecutionCancelled):
+            record['status'] = 'cancelled'
+            raise
         record['status'] = 'failed'
         record['finding'] = 'Inspection failed; check the input path and dataset. No data was changed.'
         raise InterfaceApiError(record['finding']) from error
@@ -305,6 +316,12 @@ def inspection_inventory(*, project_root):
         if not path.is_symlink() and path.is_file() and path.stat().st_size <= 500_000:
             value = json.loads(path.read_text())
             if isinstance(value.get('run_id'), str) and value['run_id'] + '.json' == path.name:
+                if value.get('status') == 'running' and value.get('workflow_run_id'):
+                    from .workflow_runs import RunRequest, run_action
+                    run = run_action(RunRequest(action='read',run_id=value['workflow_run_id']),project_root=project_root)
+                    if run['status'] in {'interrupted','cancelled','failed'}:
+                        value['status'] = run['status']
+                        value['finished_at'] = run['finished_at']
                 records.append(value)
     return {'records': sorted(records, key=lambda r: r['started_at'], reverse=True), 'execution_performed': False}
 

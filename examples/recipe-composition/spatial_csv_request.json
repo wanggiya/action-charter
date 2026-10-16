@@ -1,0 +1,33 @@
+{
+  "action": "compose",
+  "uses": [
+    {
+      "recipe_id": "recipe_vector_attributes",
+      "recipe_sha256": "a4971c486d531b11afbba9f9881ba67dc6b372595fff5019ddd5ca0a3ecb770e",
+      "alias": "attributes",
+      "parameters": {
+        "path": "data/input/sample_points.geojson",
+        "target_path": "data/output/recipe_attributes.csv"
+      }
+    },
+    {
+      "recipe_id": "recipe_clean_csv",
+      "recipe_sha256": "d8d54820a2c21f7d64b1c6a029eea6556fd4b856bf5d3b52a2088d1dc11e0077",
+      "alias": "cleaned",
+      "parameters": {
+        "source": {
+          "recipe_output": "attributes"
+        },
+        "columns": [
+          "id",
+          "name"
+        ],
+        "fill_values": {
+          "name": "Unknown"
+        },
+        "selected_path": "data/output/recipe_selected.csv",
+        "target_path": "data/output/recipe_cleaned.csv"
+      }
+    }
+  ]
+}

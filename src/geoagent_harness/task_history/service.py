@@ -323,7 +323,7 @@ def record_task_attempt_state(*, root: Path, task_id: str | None, attempt_sha256
     """Record an attempt-state note, never a success claim or mutable-file digest."""
     if task_id is None:
         return True
-    if state not in {"running", "failed", "interrupted"} or not DIGEST.fullmatch(attempt_sha256):
+    if state not in {"running", "failed", "interrupted", "cancelled"} or not DIGEST.fullmatch(attempt_sha256):
         return False
     details = f"Attempt {attempt_sha256}; state {state}. Inspect durable progress and outputs. No retry or approval is granted."
     try:

@@ -236,8 +236,12 @@ def run_approved_recipe(
     for step_id in (
         envelope.topological_step_ids
     ):
+        from .control import checkpoint, progress
+        checkpoint()
         step = steps_by_id[step_id]
         skill = skills_by_step[step_id]
+
+        progress(step_id, step.skill_id, "running")
 
         if progress_callback is not None:
             progress_callback(step_id, step.skill_id, "running")
@@ -258,6 +262,9 @@ def run_approved_recipe(
             )
 
         try:
+            if skill.approval_required:
+                # A long earlier step must not let expired authority start a write.
+                build_recipe_execution_envelope(recipe=recipe, approval=approval, registry=registry)
             execution = dispatch_recipe_step(
                 envelope=envelope,
                 step_id=step_id,
@@ -265,7 +272,7 @@ def run_approved_recipe(
                 settings=settings,
                 **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) else {}),
             )
-        except RecipeDispatchError as exc:
+        except (RecipeDispatchError, RecipeExecutionPolicyError) as exc:
             if progress_callback is not None:
                 progress_callback(step_id, step.skill_id, "failed")
             raise RecipeRunError(
@@ -286,6 +293,7 @@ def run_approved_recipe(
                 )
             )
             completed.add(step_id)
+            progress(step_id, step.skill_id, "completed", execution.result)
             if progress_callback is not None:
                 progress_callback(step_id, step.skill_id, "completed")
             continue
@@ -389,6 +397,8 @@ def run_approved_recipe(
             if progress_callback is not None:
                 progress_callback(step_id, step.skill_id, "validation_failed")
 
+            progress(step_id, step.skill_id, "validation_failed", execution.result, validation_payload)
+
             return RecipeRunResult(
                 recipe_id=recipe.recipe_id,
                 recipe_sha256=(
@@ -425,6 +435,7 @@ def run_approved_recipe(
         )
         if progress_callback is not None:
             progress_callback(step_id, step.skill_id, "validated_success")
+        progress(step_id, step.skill_id, "validated_success", execution.result, validation_payload)
 
     expected_validations = {
         step_id

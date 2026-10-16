@@ -20,7 +20,10 @@ secrets
 
 
 library-discovery
+planner-workspace
 operation-packages
 
 interface/.playwright-browsers
 interface/.browser-system-libs
+
+reusable-recipes

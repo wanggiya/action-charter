@@ -1,3 +1,83 @@
+# Agent-container CLI startup repair
+
+- Fixed eager interface-package imports that made lightweight agent CLI startup require optional GIS libraries. Existing public API exports load lazily when requested; GIS execution still requires its declared runtime dependencies.
+- Added fresh-interpreter regressions that block GIS imports and exercise the five existing agent-image contracts: CLI help, Planner/Executor/Critic manifests and recipe catalog. Full backend suite: 1,625 passed. Docker image revalidation awaits CI because no local daemon is running.
+
+# Right-side outline action material
+
+- Right-side header and authorization actions explicitly retain the shared outline edge gradient. Disabled header actions dim their text/icon and border rather than fading away the whole gradient; their disabled behavior is unchanged.
+- Browser acceptance checks every header action plus the enabled Execute control after authorization. Solid-fill styling is unchanged.
+
+# Workflow camera and recipe material follow-up
+
+- Replaced fixed wheel jumps and competing CSS transitions with proportional frame-based zoom anchored at the pointer (within scroll bounds); buttons use the same camera animation, with reduced-motion support.
+- Camera previews avoid rendering the full interface per frame; node dragging uses the displayed scale, retains fractional positions and reduces costly visual effects during interaction. Starting a pan or node drag stops zoom motion.
+- Reusable recipe headings/disclosures use the outline edge-gradient material. Advanced controls remain available.
+- Verified 1,620 backend tests, frontend typecheck/build and all six expanded Planner browser groups. Camera checks exercise wheel/trackpad-sized deltas, anchoring, drag persistence, recipe styling and unchanged plan identity; no camera interaction authorizes or executes a workflow.
+
+# CSV Planner source-contract follow-up
+
+- Exposed mutually exclusive file/ancestor sources in tabular argument JSON schemas, including both join inputs. Backend rejection of ambiguous sources remains unchanged.
+- Conflicting-source correction now names the consumer step, explains metadata versus CSV-producing ancestors and tells Planner to omit the unused field, without raw Pydantic input dumps.
+- Added regressions for correction through the actual conversation service and source-choice schemas. Verified 1,620 backend tests and frontend typecheck/build; model quality still requires laptop acceptance.
+
+# Checkpoint 26 — Planner recipes and Critic outcome closeout
+
+- Planner owns conversational composition and bounded recipe authoring; legacy Builder imports remain compatible. Normal users need no JSON or manual intermediate output paths. Explicit paths and semantic parameters remain reviewed inputs.
+- Recipe candidates use isolated fixture tests and separate Critic review before optional registration. Current-chat candidates restore without regeneration.
+- Requested outcome assessment runs in the backend after durable execution, caches bounded Critic findings and cannot override deterministic status. Failures preserve execution evidence; explicit assessment retry never repeats operations.
+- Preserved cancellation, conservative recovery, private-chat ownership and exact write authorization. Added natural-language browser acceptance and backend regressions; see docs/CHECKPOINT26_CLOSEOUT.md for verified scope and deferred work.
+
+# Checkpoint 26 — reusable recipe composition and durable runs
+
+- Added versioned JSON recipe definitions with typed bindings, exact hashes, CSV output contracts, deterministic expansion and shared operation validation. Three builtins and explicit registration reuse the existing recipe executor; historical recipe formats remain compatible.
+- Planner can select bounded discovered recipes. The interface supports recipe composition and chat binding. On-demand Builder proposals run synthetic fixture tests before a separate Critic review; one explicit registration retests the exact candidate and grants no execution authority.
+- Main-workflow execution now has durable background runs, cooperative cancellation after active verification, per-step previews, restart interruption detection and safe recovery proposals. Read-only recovery excludes completed steps; write recovery uses fresh targets and fresh authorization, without automatic write reuse/retry.
+- Added shared API/CLI adapters and isolated backend/browser acceptance. Fixed spatial inspection/evidence paths outside the shell working directory, rechecked authorization before later writes, and preserved existing synchronous endpoints. Snakemake export remains synchronous.
+- Verified 1,600 tests, frontend typecheck/build and 22 production-browser fixture groups; local-model quality and live-service acceptance remain unverified.
+- See docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md for acceptance and unfinished checkpoint work. No live-service or Git/publication action performed.
+
+# Chat history clarity and deferred cross-chat memory
+
+- Planner schema-repair permission deferrals now receive one bounded correction instead of being saved as successful empty proposals. Repeated deferrals fail visibly and preserve the previous workflow; genuine missing-input questions remain supported.
+
+- Added an OFF-by-default Automatic method notes helper: independent typed Planner boundary, one serial request after changed validated workflows/graph bindings, private exact-scope cache and unvalidated-note receipts. Failures preserve plans; OFF/source changes invalidate results. Settings opt-in and shared API/CLI inspection require no manual method-management steps. Evidence learning and cross-chat sharing remain deferred.
+
+- Documentation only: recorded a proposed independent method-memory helper, stable Planner contract, agent/service responsibilities, laptop resource/evaluation gates and deferred integration. No runtime or UI behavior changed; automatic notes and cross-chat sharing remain deferred.
+
+- Persist Chat memory across chats and refreshes using one browser preference, migrating the initially open chat’s old setting once. Settings’ Include private declarations switch also survives reopening and refresh. Chat contents remain isolated.
+
+- Simplified chat memory to one per-chat ON/OFF switch. Chat selection restores its own latest validated workflow directly, recreating a missing proposal artifact without model regeneration. Removed method generation/review/selection controls from normal UI; experimental API/CLI is retained, and automatic notes remain deferred.
+
+- Added an OFF-by-default method-memory agent prototype: explicit current-chat source selection, one-shot generation, editable proposals, versioned reviewed/unvalidated saves, deletion and deliberate Planner inclusion. Shared backend API/CLI checks enforce feature gates and private ownership. Local-model quality remains operator acceptance; cross-chat/background features remain deferred.
+
+- Chat presentation: compact disclosure headings, role-labelled saved-history bubbles, grouped collapsible context controls and a draggable message-area separator. Removed the repeated title below the chat selector.
+
+- Renames controls to Saved chat history and Include recent chat messages, explaining that OFF retains the workflow and transcript.
+- Adds Context sent to Planner with distinct next-request settings and actual completed-request inclusion counts; opening-message/workflow fields remain compatible with older records.
+- Defers cross-chat memory until checkpoint 30 or later, with proposed intervening operational and single-chat privacy scopes; no sharing feature, agent or dependency is added.
+
+# Checkpoint 26.1 revision — one conversation, one task
+
+- Removes separate task controls and cross-chat linking; each conversation automatically owns private transcript/plan memory.
+- Retains context when changing between spatial and CSV work; new chats start independently.
+- Saves private memory/conversation state atomically and preserves legacy JSON/former shared-task records without importing their live foreign context.
+- Remembers validated graph edits within their owning conversation; identical generated workflows reuse immutable definitions while preserving private request histories and strict reviewed-plan storage.
+- Cross-conversation sharing remains discussion only; semantic summaries, indexed core facts and curator corrections are not implemented.
+
+# Checkpoint 26.1 — task-scoped planning conversations
+
+- Adds explicit tasks within one chat and cross-chat continuation, with source-linked bounded history and task-specific dataset context.
+- Commits task/conversation updates atomically in local SQLite; preserves legacy JSON and rejects stale revisions/unsafe storage.
+- Adds Planner task controls, explicit validated workflow binding and CLI/API parity. Switching clears workspace authority; no extra model/dependency/background agent is added.
+- Indexed core memory, curator corrections, templates and remaining checkpoint 26 orchestration are not implemented.
+
+# Planned project memory — documentation only
+
+- Records task separation across chats, source-linked versioned memory, curator proposals for corrections/freshness, optional historical retrieval and reusable methods.
+- Defines frontend/backend/API/CLI changes and dependency-ordered checkpoint 26 slices with measurable acceptance.
+- Defers implementation for laptop capacity; documents lightweight local indexing and on-demand curation. No runtime capability, dependency or agent is added.
+
 # Checkpoint 25 — persisted library browsing and dataflow clarity
 
 - Reopens verified saved scan inventories in expandable scan/library/function lists with bounded lazy pagination.

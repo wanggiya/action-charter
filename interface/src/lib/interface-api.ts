@@ -292,7 +292,7 @@ export type SnakemakeExportResult = z.infer<typeof snakemakeExportResultSchema>;
 const partialTableOutputsSchema = z.array(z.object({step_id:z.string().max(120),path:z.string().max(960),sha256:z.string().regex(/^[a-f0-9]{64}$/),status:z.literal("present_after_failure")})).max(20).default([]);
 const executionProgressSchema = z.object({
   schema_version: z.literal("1.0"),
-  status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
+  status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted", "cancelled"]),
   execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   recipe_id: z.string().min(1).max(120).nullable().optional(),
   recipe_filename: z.string().max(240).nullable().optional(),
@@ -307,7 +307,7 @@ const executionProgressSchema = z.object({
     step_id: z.string().min(1).max(120),
     skill_id: z.string().min(1).max(120),
     depends_on: z.array(z.string().min(1).max(120)).max(100).default([]),
-    status: z.enum(["queued", "running", "completed", "validated_success", "validation_failed", "failed", "interrupted"]),
+    status: z.enum(["queued", "running", "completed", "validated_success", "validation_failed", "failed", "interrupted", "cancelled", "skipped"]),
   })).min(1).max(100),
   execution_performed: z.boolean(),
 });
@@ -318,7 +318,7 @@ const executionInventorySchema = z.object({
   schema_version: z.literal("1.0"),
   attempts: z.array(z.object({
     execution_preview_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-    status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted"]),
+    status: z.enum(["running", "validated_success", "validation_failed", "failed", "interrupted", "cancelled"]),
     recipe_id: z.string().min(1).max(120).nullable(),
     recipe_filename: z.string().max(240).nullable(),
     recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
@@ -1159,12 +1159,12 @@ export type WorkflowReview = z.infer<typeof workflowReviewSchema>;
 const inspectionRunSchema = z.object({
   workflow_kind: z.literal("snakemake_export").optional(),
   schema_version: z.literal("1.0"), run_id: z.string().regex(/^[a-f0-9]{32}$/), plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  started_at: z.string(), finished_at: z.string().nullable(), status: z.enum(["running", "completed", "failed"]),
+  started_at: z.string(), finished_at: z.string().nullable(), status: z.enum(["running", "completed", "failed", "cancelled", "interrupted"]),
   step_results: z.array(z.object({ step_id: z.string(), skill_id: z.string(), status: z.string(), validation_performed: z.boolean(), outcome: z.unknown(), validation_outcome: z.unknown() })).max(20),
   approval_recorded: z.boolean(), execution_performed: z.boolean(), finding: z.string().optional(),
 });
 export type InspectionRun = z.infer<typeof inspectionRunSchema>;
-async function workflowPost(path: string, body: unknown) {
+export async function workflowPost(path: string, body: unknown) {
   const response = await fetch(path, { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const payload = await boundedJson(response);
   if (!response.ok) {
@@ -1191,6 +1191,10 @@ export async function authorizeCurrentWorkflow(review: WorkflowReview, approver:
 }
 export async function executeCurrentWorkflow(review: WorkflowReview, authorization: WorkflowAuthorization | null): Promise<InspectionRun | RecipeExecutionResult> {
   const payload = await workflowPost("/api/v1/workflow/execute", { action: "execute_workflow", plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, confirm_execution: true, ...(authorization ? { plan_approval_filename: authorization.plan_approval_filename, recipe_approval_filename: authorization.recipe_approval_filename } : {}) });
+  const inspection = inspectionRunSchema.safeParse(payload);
+  return inspection.success ? inspection.data : recipeExecutionSchema.parse(payload);
+}
+export function parseWorkflowExecution(payload: unknown): InspectionRun | RecipeExecutionResult {
   const inspection = inspectionRunSchema.safeParse(payload);
   return inspection.success ? inspection.data : recipeExecutionSchema.parse(payload);
 }

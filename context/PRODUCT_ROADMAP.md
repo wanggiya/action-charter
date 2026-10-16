@@ -1,10 +1,23 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-10-13
+Updated: 2026-10-15
+
+Planner reliability follow-up: schema-repair permission deferrals now use one correction attempt and preserve saved workflows on failure. This is a narrow regression guard, not checkpoint completion.
 
 ## Immediate priority
 
 Checkpoint 23 is merged: conversational planning, governed graph edits, exact authorization/execution, host startup and completed-workflow Snakemake export/static verification are implemented. Checkpoint 24 now implements bounded tabular workflows; see [delivery and acceptance](../docs/CHECKPOINT24.md). Checkpoint 25 now delivers shared contracts, static installed-library discovery and one tested installed adapter; see [delivery/acceptance](../docs/CHECKPOINT25.md). Next is Checkpoint 26 below. Historical checkpoint proposals remain preserved; the former 26 evaluation/release scope is moved to 27 so execution/recovery is completed first. No release publication is authorized.
+
+## Checkpoint 26 operational delivery order
+
+| Slice | Dependency and acceptance | Current boundary |
+| --- | --- | --- |
+| **26.6 — durable cancellation** | Existing typed runner: persist queued/running/final steps; cancel during active validation, skip later dispatch, reopen orphaned runs as interrupted without replay. | Implemented cooperative boundary cancellation and project lease; no forceful transaction/thread cancellation. |
+| **26.7 — reusable recipe middle layer** | 25 contracts and existing recipes: compose spatial→CSV recipes, reject metadata-as-table and stale hashes; Planner-authored fixtures run privately, Critic reviews, one registration persists. | Implemented bounded JSON composition, three builtins and optional Planner authoring and Critic review. No arbitrary library execution, nested recipes or automatic registration. |
+| **26.8 — recovery and intermediate inspection** | 26.6/26.7: inspect step previews/partial targets; resume remaining reads or prepare fresh write targets, requiring fresh authority. | Implemented conservative recovery proposals and bounded previews. Verified write-intermediate reuse and transactional resume remain open. |
+| **26.9 — operational acceptance** | Complete API/CLI/browser journeys including failure, cancellation, refresh/restart, registration and recovery; report laptop model limitations. | 1,618 backend tests and 27 browser fixture groups pass; local-model evaluation moves to 27, broader recovery remains deferred. |
+
+[Current closeout, acceptance and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Checkpoint 26 closes the bounded sequential orchestration, private-chat context and reusable-recipe delivery. Earlier 26.2–26.5 indexed memory/curation proposals remain preserved as design history and move to checkpoints 28–29 after laptop evaluation; they are not completed features. Verified write-intermediate reuse and transactional resume are later operation-specific work, not prerequisites for the delivered conservative recovery. Checkpoint 27 is next: laptop evaluation, outcome visualization and prototype/release preparation. Cross-chat memory remains checkpoint 30 or later with a fresh decision.
 
 ## Dependency-ordered checkpoints 24–27
 
@@ -17,7 +30,19 @@ Checkpoint 23 is merged: conversational planning, governed graph edits, exact au
 
 Order: **24 → 25 → 26 → 27**. Finish each checkpoint's functionality and relevant automated/interface acceptance before starting the next. Missing browser/live-service acceptance is reported explicitly, never substituted with model text. Only temporary fixtures are used by automation; live services require separate explicit permission.
 
+## Cross-chat memory deferred: checkpoint 30 or later
+
+The operator deferred cross-chat memory for several checkpoints. Checkpoints 26–29 keep conversation history/context separate; do not add cross-chat retrieval, shared summaries or sharing controls. Proposed later order: **28 operational pilots/resource measurements → 29 single-conversation retention/privacy → 30 or later explicit sharing decision gate**, after existing 26–27 work. [Dependencies and measurable acceptance](../docs/DEFERRED_CROSS_CHAT_MEMORY.md). Considering implementation at that gate requires a fresh operator decision; no shared-memory work is authorized now.
+
 ## Product direction
+
+### Independent helper — first experimental integration
+
+The [helper design/current slice](../docs/METHOD_MEMORY_HELPER_DESIGN.md) includes an OFF-by-default Settings opt-in, one serial request after changed validated workflow/bindings, private exact-scope cache and typed unvalidated Planner advice. No extra model/container or manual method-management UI is added. Opening a chat makes no model call. Fixtures do not establish local-model quality or complete checkpoint 26. Evidence extraction, corrections/revocation, semantic applicability and global scheduling remain future gates; shared services enforce authority. Cross-chat sharing retains its checkpoint-30-or-later gate. Original history remains below.
+
+### Historical memory proposal — deferred beyond checkpoint 27
+
+After scheduling/recovery foundations, deliver **26.1 one conversation/one task → 26.2 private indexed conversation memory → 26.3 curator/corrections → 26.4 methods/optional history → 26.5 operational acceptance**. [Architecture and measurable acceptance](../docs/PROJECT_MEMORY_ARCHITECTURE.md) define each slice. The operator authorized incremental work: 26.1 now follows one conversation = one task with private memory and local SQLite; indexed memory and curator/method slices remain planned. Prioritize local indexes and on-demand bounded curation. The optional [method-memory agent prototype](../docs/METHOD_MEMORY_PROTOTYPE.md) is an on-demand logical role in the existing API/model runtime, OFF by default. Its experimental backend supports selected-source procedure proposals, reviewed/unvalidated private method versions and explicit Planner inclusion; these manual controls are removed from normal UI in favor of one Chat memory switch and automatic latest-workflow restoration. The workflow-only helper now has a separate opt-in; evidence learning, indexed memory, automatic corrections and checkpoint 26 completion remain unfinished. No background agent or extra model is added. Preserve checkpoint 27 visualization/demo/release preparation and historical checkpoint records.
 
 ActionCharter is a local-first, approval-gated execution and release system for AI agents using professional tools. A local model may interpret a request and propose a constrained workflow, but deterministic policy, typed schemas, human approval, trusted adapters, independent validation, evidence, and reproducible replay determine what becomes authoritative. GIS is the first complete reference domain, not the architectural limit.
 
@@ -1081,3 +1106,7 @@ Bounded vector/raster metadata handoff implemented with shared scope checks and 
 26: scheduling/cancellation/recovery first; then correlated agent history and summaries. [Existing behavior and options](../docs/AGENT_HISTORY_DIRECTION.md) are documented; no new agent-history implementation is included in 25.
 
 27: bounded output visualization (tables/charts/vector maps, with raster support clearly scoped), then public-data demo and laptop/PC installation/evaluation/release materials. [Acceptance and demo direction](../docs/OUTPUT_VISUALIZATION_DIRECTION.md). No publication is authorized.
+
+Checkpoint 26.1 delivery/acceptance: [private conversation memory](../docs/CHECKPOINT26_CONVERSATIONS.md). It uses existing durable state without claiming completion of cancellation, retry/resume or the whole checkpoint.
+
+Operator revision: [current conversation model](../docs/CHECKPOINT26_CONVERSATIONS.md) supersedes separate task controls and cross-chat continuation. Each chat retains its own context across topic changes. Cross-conversation memory is deferred for discussion, not implementation; 26.2–26.4 should first work within one conversation.

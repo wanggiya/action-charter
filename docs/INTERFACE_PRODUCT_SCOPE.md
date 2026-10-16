@@ -82,3 +82,8 @@ Outline uses a subtle top/bottom tint fading to a clear center and opaque conten
 ## Main-workflow Snakemake blocks
 
 Export to Snakemake and Verify Snakemake package are available in Add and conversational Planner. They reference an immutable original saved plan and independently verified successful governed recipe evidence. Retained operations are displayed as reused; Execute exports and statically verifies the exact package without rerunning source operations or starting Snakemake. A fresh explicit plan approval grants only the current export path; historical source recipe authority is not renewed. Fresh sources must complete successfully before export review. Advanced export remains available for older workflows, but is not required for this block path.
+
+
+## Checkpoint 26 reusable recipes and durable runs
+
+Reusable recipes are available in the normal interface and Planner discovery. Typed JSON instances expand into the existing editable operation graph and pass shared backend checks. Planner owns normal chat composition and recipe preparation; optional Prepare runs sequential Planner → isolated fixtures → Critic, followed by one explicit registration; reuse requires no repeated registration or agent preparation. Main-workflow Execute creates durable run records, with cooperative Cancel after active verification, bounded intermediate disclosures and recovery proposals. Read-only recovery excludes completed steps; write recovery uses fresh targets and fresh authorization. No automatic write reuse, transactional resume, nested canvas groups or advanced indexed-memory completion is implied. Current checkpoint acceptance is documented in [closeout](CHECKPOINT26_CLOSEOUT.md). [Implementation and acceptance](CHECKPOINT26_RECIPES_AND_RECOVERY.md).

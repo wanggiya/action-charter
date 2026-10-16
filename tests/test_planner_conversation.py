@@ -60,6 +60,58 @@ def test_clarify_then_propose_and_recover_without_model_or_execution(project):
     assert not (project / 'approvals').exists()
     assert not (project / 'inspection-runs').exists()
 
+
+def test_planner_can_select_a_recipe_without_inventing_its_operations(project):
+    from geoagent_harness.recipe_catalog.composition import catalog,recipe_digest
+    recipe=catalog(project)['recipe_inspect_csv']
+    client=Client({'message':'Inspect the CSV with a registered recipe.','plan':None,'recipe_uses':[{
+        'recipe_id':recipe.id,'recipe_sha256':recipe_digest(recipe),'alias':'orders','parameters':{'path':'sample_orders.csv'}}]})
+    result=turn(project,client,'Inspect sample_orders.csv with the CSV inspection recipe.')
+    assert result['proposal_changed']
+    assert result['planner_result']['plan']['steps'][0]['skill']=='inspect_csv'
+    assert result['planner_result']['plan']['steps'][0]['arguments']['path']=='data/input/sample_orders.csv'
+    assert not result['execution_performed']
+    assert json.loads(client.requests[0].messages[0].content)['reusable_recipes']
+
+
+def test_natural_recipe_use_allocates_targets_without_manual_binding(project):
+    from geoagent_harness.recipe_catalog.composition import catalog,recipe_digest
+    recipe=catalog(project)['recipe_clean_csv']
+    client=Client({'message':'Ready','recipe_uses':[{'recipe_id':recipe.id,'recipe_sha256':recipe_digest(recipe),'alias':'clean',
+        'parameters':{'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}}}]})
+    result=turn(project,client,'Clean sample_orders.csv. Keep region and amount; fill missing region with Unknown.')
+    targets=[s['arguments']['target_path'] for s in result['planner_result']['plan']['steps']]
+    assert len(set(targets))==2 and all(p.startswith('data/output/result_') for p in targets)
+    assert not result['approval_performed'] and not result['execution_performed']
+    assert not (project/'data/output').exists()
+
+
+def test_chat_recipe_authoring_persists_candidate_without_replacing_workflow(project):
+    from geoagent_harness.recipe_catalog.composition import catalog,compose,RecipeUse,recipe_digest
+    recipe=catalog(project)['recipe_clean_csv']
+    base,_=compose([RecipeUse(recipe_id=recipe.id,recipe_sha256=recipe_digest(recipe),alias='clean',parameters={
+        'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}})],project)
+    first=turn(project,Client({'message':'Ready','plan':base.plan.model_dump(mode='json')}))
+    original=first['planner_result']['plan_sha256']
+    main=Client({'message':'Prepare recipe','workflow_action':'prepare_recipe'})
+    author=Client(recipe.model_dump(mode='json'))
+    critic=Client({'conclusion':'supported','findings':[],'limitations':['A synthetic fixture is limited evidence.']})
+    result=conversation_turn(TurnRequest(action='turn',conversation_id=ID,expected_revision=1,message='Make this workflow reusable.'),
+        project_root=project,model_client=main,recipe_client=author,critic_client=critic)
+    assert not result['proposal_changed'] and result['planner_result']['plan_sha256']==original
+    assert result['recipe_candidate']['source_plan_sha256']==original
+    assert result['recipe_candidate']['critic']['conclusion']=='supported'
+    assert read(project)['recipe_candidate']==result['recipe_candidate']
+    assert not (project/'reusable-recipes').exists() and not (project/'data/output').exists()
+    assert len(main.requests)==len(author.requests)==len(critic.requests)==1
+
+
+def test_chat_never_confuses_a_plan_with_an_execution_outcome(project):
+    first=turn(project,Client({'message':'Ready','plan':plan()}))
+    result=turn(project,Client({'message':'Review','workflow_action':'review_outcome'}),'How did this run finish?',revision=1)
+    assert 'No execution is recorded' in result['messages'][-1]['content']
+    assert result['planner_result']==first['planner_result']
+
 def test_explanation_retains_exact_current_plan_and_extra_gate(project):
     first = turn(project, Client({'message': 'Ready', 'plan': plan(gate=True)}))
     base = as_base(first['planner_result'])
@@ -83,6 +135,26 @@ def test_invalid_response_can_correct_into_clarification(project):
     reply = turn(project, client)
     assert len(client.requests) == 2
     assert not reply['proposal_changed'] and reply['planner_result'] is None
+
+SCHEMA_DEFERRAL = {'message': 'The proposal contains invalid schema structure. I will correct the plan to adhere to required_json_schema and operation_argument_schemas. Please confirm if you would like me to proceed.', 'plan': None}
+
+def test_schema_repair_deferral_is_corrected_without_operator_confirmation(project):
+    client = Client(SCHEMA_DEFERRAL, {'message': 'Ready', 'plan': plan()})
+    reply = turn(project, client)
+    assert len(client.requests) == 2
+    assert reply['proposal_changed'] and reply['planner_result']
+    assert not reply['approval_performed'] and not reply['execution_performed']
+    assert 'permission' in json.loads(client.requests[1].messages[-1].content)['task']
+
+def test_repeated_schema_deferral_fails_without_replacing_saved_workflow(project):
+    first = turn(project, Client({'message': 'Ready', 'plan': plan()}))
+    client = Client(SCHEMA_DEFERRAL, SCHEMA_DEFERRAL)
+    with pytest.raises(PlannerAgentError, match='deterministic policy'):
+        turn(project, client, revision=1)
+    assert len(client.requests) == 2
+    saved = read(project)
+    assert saved['revision'] == first['revision']
+    assert saved['planner_result'] == first['planner_result']
 
 def test_stale_revision_blocks_before_model(project):
     turn(project, Client({'message': 'Which file?', 'plan': None}))
@@ -194,7 +266,8 @@ def test_conversation_redacts_common_credentials_before_model_and_storage(projec
     client = Client({'message': 'Do not share password=another-secret.', 'plan': None})
     reply = turn(project, client, 'Inspect points. password=private-value postgresql://operator:secret-value@localhost/db')
     prompt = client.requests[0].messages[1].content
-    record = (project / 'planner-conversations' / (ID + '.json')).read_text()
+    from geoagent_harness.interface_api.planning_tasks import conversation_record, task_record
+    record = json.dumps({'conversation': conversation_record(project, ID), 'memory': task_record(project, ID)})
     for secret in ('private-value', 'secret-value', 'another-secret'):
         assert secret not in prompt and secret not in record
     assert '[REDACTED]' in reply['messages'][0]['content']
@@ -386,3 +459,27 @@ def test_step_numbering_finding_reaches_correction_and_preserves_references(proj
         turn(project,broken,revision=1)
     assert caught.value.findings[0]==finding
     assert read(project)['revision']==1
+
+
+def test_conflicting_csv_sources_receive_actionable_correction(project):
+    workflow={'summary':'Select CSV columns','steps':[
+        {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
+        {'step_id':'step_2','skill':'select_csv_columns','purpose':'Select','arguments':{'path':'data/input/sample_orders.csv','source_step':'step_1','columns':['region','amount'],'target_path':'data/output/selected.csv'},'requires_approval':True,'validation_required':True}
+    ]}
+    fixed=json.loads(json.dumps(workflow))
+    fixed['steps'][1]['arguments'].pop('source_step')
+    client=Client({'message':'Proposed','plan':workflow},{'message':'Corrected','plan':fixed})
+    result=turn(project,client,'Inspect then select region and amount')
+    finding=json.loads(client.requests[1].messages[-1].content)['deterministic_findings'][0]
+    assert 'step_2' in finding and 'never both' in finding and 'Omit the unused field' in finding
+    assert 'input_value' not in finding and 'pydantic.dev' not in finding
+    assert result['planner_result']['plan']['steps'][1]['arguments']['path']=='data/input/sample_orders.csv'
+    assert not result['execution_performed'] and not result['approval_performed']
+
+
+def test_csv_source_schema_exposes_exclusive_choices():
+    from geoagent_harness.tabular.schemas import SelectColumns,JoinTables
+    select=SelectColumns.model_json_schema()
+    assert select['allOf'][0]['oneOf'][0]['required']==['path']
+    join=JoinTables.model_json_schema()
+    assert join['allOf'][1]['oneOf'][1]['required']==['right_step']

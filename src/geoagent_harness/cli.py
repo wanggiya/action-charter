@@ -7739,6 +7739,13 @@ from geoagent_harness.tabular.cli import register as register_tabular_cli
 register_tabular_cli(app)
 from geoagent_harness.operations.cli import register as register_operations_cli
 register_operations_cli(app)
+from geoagent_harness.interface_api.planning_tasks_cli import register as register_planning_tasks_cli
+register_planning_tasks_cli(app)
 
 if __name__ == "__main__":
     app()
+
+from geoagent_harness.interface_api.method_memory_cli import register as register_method_memory_cli
+register_method_memory_cli(app)
+from geoagent_harness.interface_api.workflow_tools_cli import register as register_workflow_tools_cli
+register_workflow_tools_cli(app)
