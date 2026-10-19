@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "status": "planned",
+  "summary": "Derived numeric amount",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "skill": "calculate_csv_columns",
+      "purpose": "Double the original amount",
+      "arguments": {
+        "path": "sample_orders.csv",
+        "target_path": "data/output/calculated.csv",
+        "missing_policy": "propagate",
+        "calculations": [
+          {
+            "output_column": "doubled",
+            "expression": {
+              "kind": "binary",
+              "operator": "multiply",
+              "left": {
+                "kind": "column",
+                "name": "amount"
+              },
+              "right": {
+                "kind": "number",
+                "value": 2
+              }
+            }
+          }
+        ]
+      },
+      "requires_approval": true,
+      "expected_artifacts": [],
+      "validation_required": true
+    }
+  ],
+  "assumptions": [],
+  "risks": [],
+  "execution_performed": false,
+  "validation_performed": false
+}

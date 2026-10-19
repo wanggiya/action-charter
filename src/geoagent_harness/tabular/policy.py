@@ -47,3 +47,51 @@ def validate_steps(steps, dependencies):
             if not any(skill(known[p])=='inspect_vector' and known[p].arguments.get('path')==args.path for p in ancestors(step.step_id)):
                 raise TabularError('Vector attributes export must follow inspection of the same source')
     if len(targets)!=len(set(targets)):raise TabularError('Each write operation must declare a distinct output path')
+
+
+def preflight_calculations(steps, root):
+    """Bounded read-only checks for known sources; intermediates recheck at runtime."""
+    from .service import read_bytes, read_frame
+    from .calculations import calculate, column_names
+    known = {step.step_id: step for step in steps}
+    cached = {}
+
+    def columns(step_id, visiting=None):
+        if step_id in cached:
+            return cached[step_id]
+        visiting = set() if visiting is None else visiting
+        if step_id in visiting:
+            return None  # Existing dependency policy rejects cycles.
+        visiting = visiting | {step_id}
+        step = known[step_id]
+        args = step.arguments
+        if args.get('path') and step.skill in ARGUMENTS and step.skill != 'vector_attributes_to_csv':
+            names = list(read_frame(read_bytes(root, args['path']), args.get('delimiter', ',')).columns)
+        elif args.get('source_step') in known:
+            names = columns(args['source_step'], visiting)
+        else:
+            names = None
+        if step.skill == 'select_csv_columns': names = args['columns']
+        elif step.skill == 'aggregate_csv': names = [*args['by'], *(item['output_column'] for item in args['aggregations'])]
+        elif step.skill == 'join_csv': names = None  # Rechecked against actual joined output.
+        elif step.skill == 'calculate_csv_columns' and names is not None:
+            names = [*names, *(item['output_column'] for item in args['calculations'])]
+        cached[step_id] = names
+        return names
+
+    for step in steps:
+        if step.skill != 'calculate_csv_columns':
+            continue
+        args = ARGUMENTS[step.skill].model_validate(step.arguments)
+        if args.path:
+            frame = read_frame(read_bytes(root, args.path), args.delimiter)
+            from .calculations import numeric_inputs
+            numeric_inputs(frame, args)  # Validate all referenced source values/types.
+            calculate(frame.head(100), args)  # No publication; bounded candidate check.
+        else:
+            names = columns(args.source_step)
+            if names is not None:
+                outputs = {item.output_column for item in args.calculations}
+                references = set().union(*(column_names(item.expression) for item in args.calculations))
+                if references - set(names) or outputs & set(names) or len(names) + len(outputs) > 100:
+                    raise TabularError('Calculation references unknown source columns or collides with the source schema')

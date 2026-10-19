@@ -3508,7 +3508,23 @@ def _handler(
                 return
             except PlannerAgentError as exc:
                 message = str(exc)
-                if "invalid JSON" in message:
+                if getattr(exc, "reason", None) == "unverified_reuse_claim":
+                    error = "planner claimed unverified recipe reuse"
+                    code = "planner_reuse_unverified"
+                    finding = "; ".join(exc.findings)
+                elif getattr(exc, "reason", None) == "request_coverage_incomplete":
+                    error = "planner omitted a requested operation"
+                    code = "planner_scope_incomplete"
+                    finding = "; ".join(exc.findings)
+                elif getattr(exc, "reason", None) == "schema_repair_deferred":
+                    error = "planner did not return the requested workflow"
+                    code = "planner_repair_deferred"
+                    finding = "; ".join(exc.findings) or "The model repeated a schema-repair promise after one correction."
+                elif getattr(exc, "reason", None) == "output_truncated":
+                    error = "planner response hit the model output limit"
+                    code = "planner_output_truncated"
+                    finding = "; ".join(exc.findings)
+                elif "invalid JSON" in message:
                     error = "planner model returned invalid JSON"
                     code = "planner_invalid_json"
                     finding = "The model response was not one complete JSON object."
@@ -3531,7 +3547,8 @@ def _handler(
                     "retryable": True,
                     "schema_findings": exc.findings,
                     "correction_attempted": exc.correction_attempted,
-                    "retry_guidance": ("The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
+                    "planner_diagnostics": getattr(exc, "planner_diagnostics", None),
+                    "retry_guidance": ("The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted the calculation after one correction. Your saved workflow is preserved. Retry the same calculation request with automatic skill selection or calculate_csv_columns enabled; do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,
@@ -3546,15 +3563,15 @@ def _handler(
                 if self.path in {"/api/v1/planner/conversation", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
                     if isinstance(exc, ModelClientError):
                         message, code = str(exc), exc.code
-                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; no retry or execution happened. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
-                                    if code == "model_timeout" else "Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.")
+                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
+                                    if code == "model_timeout" else "The configured endpoint rejected JSON-schema output. Check its structured-output support. For a compatible endpoint that only supports JSON mode, explicitly set MODEL_RESPONSE_FORMAT=json_object in the launcher environment and restart. No automatic fallback or retry occurred." if code == "model_response_format_rejected" else "Planner reached its call or configured time limit. Review request diagnostics; reduce the scope or adjust trusted launcher settings. Nothing executed." if code == "planner_budget_exhausted" else "Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.")
                     elif isinstance(exc, ModelSettingsError):
                         message, code = "Planner model configuration is invalid or missing", "model_configuration_failed"
                         guidance = "Check MODEL_NAME and MODEL_BASE_URL in the launcher environment, then restart the launcher."
                     else:
                         message, code = "Planner context could not be prepared", "planner_context_failed"
                         guidance = "Check trusted context files and the current workflow. Disable previous messages or reduce selected skills if the prompt exceeds its budget."
-                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": message, "code": code, "retry_guidance": guidance, "approval_performed": False, "execution_performed": False})
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {"error": message, "code": code, "planner_diagnostics": getattr(exc,"planner_diagnostics",None), "retry_guidance": guidance, "approval_performed": False, "execution_performed": False})
                     return
                 if self.path == "/api/v1/critic-evidence/run":
                     self._send(

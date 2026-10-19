@@ -73,7 +73,7 @@ def _digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
-def assess_run(root,identity,*,model_client=None,retry=False):
+def assess_run(root,identity,*,model_client=None,retry=False,effort_budget=None):
     from .workflow_runs import _directory,_read,_write,_LOCK,TERMINAL,_now
     from .server import InterfaceApiError
     directory=_directory(root)
@@ -105,6 +105,9 @@ def assess_run(root,identity,*,model_client=None,retry=False):
         if client is None:
             settings=load_model_settings()
             client=SharedModelClient(replace(settings,timeout_seconds=min(settings.timeout_seconds,15),max_tokens=min(settings.max_tokens,1024)))
+        if effort_budget is not None:
+            from .conversation import _check_prompt
+            client = effort_budget.client(client, _check_prompt)
         request=ModelRequest(json_mode=True,messages=[
             ChatMessage(role='system',content=json.dumps({'agent':manifest.model_dump(mode='json'),'task':'Assess recorded execution and identify a reusable method, if justified.',
                 'rules':['Copy deterministic_status exactly. For a stopped/failed run use needs_attention and no reusable_method.',
@@ -153,11 +156,11 @@ def latest_conversation_run(root,conversation_id,base):
     return None
 
 
-def review_conversation_run(root,conversation_id,base,*,model_client=None):
+def review_conversation_run(root,conversation_id,base,*,model_client=None,effort_budget=None):
     record=latest_conversation_run(root,conversation_id,base)
     if record is None:
         return 'No execution is recorded for this chat’s current workflow. A saved plan is not a completed run. Use Execute when ready.'
-    record=assess_run(root,record['run_id'],model_client=model_client,retry=True)
+    record=assess_run(root,record['run_id'],model_client=model_client,retry=True,effort_budget=effort_budget)
     review=record.get('critic_review') or {}
     prefix='Recorded run status: '+record['status']+'. '
     return prefix+(review['assessment']['summary'] if review.get('status')=='complete' else review.get('finding','Critic assessment is in progress.'))

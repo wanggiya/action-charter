@@ -42,10 +42,11 @@ class PlannerAgentError(RuntimeError):
     """Raised when the planner cannot produce a validated non-executing proposal."""
 
     def __init__(self, message: str, *, findings: list[str] | None = None,
-                 correction_attempted: bool = False):
+                 correction_attempted: bool = False, reason: str | None = None):
         super().__init__(message)
         self.findings = (findings or [])[:6]
         self.correction_attempted = correction_attempted
+        self.reason = reason
 
 
 def _schema_findings(error: ValidationError) -> list[str]:
@@ -57,7 +58,7 @@ def _schema_findings(error: ValidationError) -> list[str]:
                    'depends_on', 'skill_id', 'tool', 'name', 'id', 'message',
                    'path', 'right_path', 'source_step', 'right_step', 'target_path',
                    'columns', 'predicates', 'column', 'operator', 'value', 'value_type',
-                   'fill_values', 'method', 'keys', 'aggregations', 'by', 'function', 'output_column'}
+                   'fill_values', 'method', 'keys', 'aggregations', 'by', 'function', 'output_column', 'calculations', 'expression', 'kind', 'left', 'right', 'condition', 'then', 'otherwise', 'missing_policy'}
     descriptions = {'missing': 'required field is missing', 'extra_forbidden': 'unexpected field is not allowed',
                     'list_type': 'must be a list', 'dict_type': 'must be an object',
                     'string_type': 'must be a string', 'bool_type': 'must be a boolean',
@@ -69,8 +70,15 @@ def _schema_findings(error: ValidationError) -> list[str]:
     findings = []
     for item in error.errors(include_input=False, include_context=False, include_url=False)[:6]:
         path = '.'.join(str(part) if isinstance(part, int) or part in safe_fields else '[unexpected field]'
-                        for part in item['loc']) or 'plan'
+                        for part in item['loc']) or 'response'
         description = descriptions.get(item['type'], 'does not match the required schema type')
+        if item['type'] == 'json_invalid':
+            path = 'response'
+            description = 'must be one complete valid JSON object without Markdown, surrounding prose or an unfinished value'
+        elif item['type'] == 'model_type' and item['loc'] == ('plan',):
+            description = 'must be an object with summary and steps, or JSON null; never a quoted JSON string or list'
+        elif item['type'] == 'model_type':
+            description = 'must be an object'
         # Match trusted validator messages exactly; never echo arbitrary model values.
         if item['type'] == 'value_error' and item['msg'] == 'Value error, step IDs must be sequential starting at step_1':
             description = 'step IDs must be sequential in array order: step_1, step_2, step_3, and so on, with no duplicates or gaps. When renumbering, repair depends_on, source_step and right_step to preserve the same producer identities.'

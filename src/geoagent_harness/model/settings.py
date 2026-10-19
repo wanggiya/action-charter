@@ -21,6 +21,7 @@ class ModelSettings:
     timeout_seconds: float
     max_tokens: int
     reasoning_effort: str | None = None
+    response_format: str = "json_schema"
 
 
 def load_model_settings(
@@ -81,10 +82,14 @@ def load_model_settings(
     reasoning = values.get("MODEL_REASONING_EFFORT", "").strip() or None
     if reasoning not in {None, "none", "low", "medium", "high"}:
         raise ModelSettingsError("MODEL_REASONING_EFFORT must be none, low, medium or high")
+    response_format = values.get("MODEL_RESPONSE_FORMAT", "json_schema").strip()
+    if response_format not in {"json_schema", "json_object"}:
+        raise ModelSettingsError("MODEL_RESPONSE_FORMAT must be json_schema or json_object")
     return ModelSettings(
         base_url=base_url,
         model=model,
         timeout_seconds=timeout_seconds,
         max_tokens=max_tokens,
         reasoning_effort=reasoning,
+        response_format=response_format,
     )

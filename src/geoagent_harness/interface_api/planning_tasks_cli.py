@@ -8,11 +8,13 @@ def register(app):
     def emit(action, conversation_id, root, **fields):
         from .conversation import TurnRequest, conversation_turn
         from .server import InterfaceApiError
+        from geoagent_harness.planner.agent import PlannerAgentError
+        from geoagent_harness.context_pack.builder import ContextPackError
         from geoagent_harness.model import ModelClientError, ModelSettingsError
         try:
             request = TurnRequest(action=action, conversation_id=conversation_id, **fields)
             typer.echo(json.dumps(conversation_turn(request, project_root=root), indent=2))
-        except (ValueError, OSError, InterfaceApiError, ModelClientError, ModelSettingsError) as error:
+        except (ValueError, OSError, InterfaceApiError, ModelClientError, ModelSettingsError, PlannerAgentError, ContextPackError) as error:
             from geoagent_harness.context_pack.redaction import redact_text
             typer.echo('Error: ' + redact_text(str(error))[:1000], err=True)
             raise typer.Exit(2)

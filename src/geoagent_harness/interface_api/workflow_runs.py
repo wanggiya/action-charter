@@ -26,7 +26,7 @@ TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'validation_faile
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess']
+    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain']
     run_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     workflow: WorkflowRequest | None = None
     conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
@@ -120,6 +120,11 @@ def _read(directory, identity):
         if age>30:
             record['critic_review']={'status':'unavailable','finding':'Queued Critic assessment was interrupted or could not start. Results are preserved; nothing was retried.'}
             _write(directory,record)
+    if record.get('successful_recipe', {}).get('status') == 'pending' and record['status'] in TERMINAL and record.get('finished_at'):
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(record['finished_at'])).total_seconds()
+        if age > 30:
+            record['successful_recipe'] = {'status': 'unavailable', 'finding': 'Indexing was interrupted. Retry indexing only; no operation was restarted.'}
+            _write(directory, record)
     return record
 
 
@@ -229,11 +234,29 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False):
     finally:
         observer.reset(token)
         os.close(fd)
+    # Retention is metadata-only and fail-soft after the execution is durable.
+    # It is independent of the browser and precedes optional model assessment.
+    with _LOCK:
+        _retain_record(root, directory, _read(directory, identity))
     if review_outcome:
         from .run_assessment import assess_run
         # Execution is already final/durable and its lease released. Assessment
         # cannot hold up a later operation, grant authority or restart a worker.
         assess_run(root,identity)
+
+
+def _retain_record(root, directory, record):
+    from geoagent_harness.recipe_catalog.successful import retain
+    try:
+        receipt = retain(root, record)
+    except Exception:
+        receipt = {'status': 'unavailable', 'finding': 'Successful-workflow indexing was unavailable. Execution results are preserved; retry indexing only, never execution.'}
+    record['successful_recipe'] = receipt
+    try:
+        _write(directory, record)
+    except (OSError, ValueError):
+        pass  # Even receipt persistence cannot change completed processing.
+    return record
 
 
 def _recovery(root, record):
@@ -289,6 +312,8 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
                 record['cancel_requested'] = True
                 record['status'] = 'cancelling'
                 _write(directory, record)
+            if request.action == 'retain':
+                return _retain_record(root, directory, record)
             if request.action == 'recover':
                 if record['status'] not in TERMINAL - {'completed'}:
                     raise InterfaceApiError('Recovery is available only after a stopped or failed run')
@@ -322,6 +347,12 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
                 'steps':[{'step_id':s['step_id'],'skill_id':s['skill'],'status':'queued','arguments':s['arguments'],
                           'depends_on':s.get('depends_on',[]),'outcome':None,'validation_outcome':None} for s in review['steps']]}
             # Only a matching own-chat snapshot can become automatic planning context.
+            from geoagent_harness.recipe_catalog.successful import capture_basis
+            try:
+                record['retention_basis'] = capture_basis(root, review['steps'])
+            except Exception:
+                record['retention_basis'] = None
+            record['successful_recipe'] = {'status': 'pending'}
             record['conversation_id']=None
             if request.conversation_id:
                 from .planning_tasks import conversation_record

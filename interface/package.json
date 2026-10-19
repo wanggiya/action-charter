@@ -22,7 +22,9 @@
     "browser:test:25": "node ../scripts/checkpoint25_browser_check.mjs",
     "browser:test:26-tasks": "node ../scripts/checkpoint26_task_browser_check.mjs",
     "browser:test:26-recipes": "node ../scripts/checkpoint26_recipe_runs_browser_check.mjs",
-    "browser:test:26-planner": "node ../scripts/checkpoint26_planner_browser_check.mjs"
+    "browser:test:26-planner": "node ../scripts/checkpoint26_planner_browser_check.mjs",
+    "browser:test:27-calculations": "node ../scripts/checkpoint27_calculation_browser_check.mjs",
+    "browser:test:27-retention": "node ../scripts/checkpoint27_retention_browser_check.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.544.0",

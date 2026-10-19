@@ -27,3 +27,6 @@ interface/.playwright-browsers
 interface/.browser-system-libs
 
 reusable-recipes
+
+# Private durable runs and successful-workflow index
+workflow-state

@@ -85,8 +85,11 @@ class RecipeUse(Closed):
 
 
 class RecipeRequest(Closed):
-    action: Literal['list', 'compose', 'test', 'register', 'prepare']
+    action: Literal['list', 'compose', 'test', 'register', 'prepare', 'search', 'inspect']
     query: str = Field(default='', max_length=200)
+    conversation_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+    recipe_id: str | None = Field(default=None, pattern=r'^recipe_[a-z][a-z0-9_]{0,55}$')
+    method_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
     uses: list[RecipeUse] = Field(default_factory=list, max_length=10)
     base: PlannerResult | None = None
     definition: ReusableRecipe | None = None
@@ -247,7 +250,7 @@ def test_recipe(recipe, root):
     from geoagent_harness.recipes import create_recipe_approval, run_approved_recipe
     from geoagent_harness.recipes.policy import validate_recipe_policy
     from geoagent_harness.skill_registry import load_skill_registry
-    allowed={'inspect_csv','inspect_vector','vector_attributes_to_csv','select_csv_columns','filter_csv_rows','handle_csv_missing','join_csv','aggregate_csv','export_csv'}
+    allowed={'inspect_csv','inspect_vector','vector_attributes_to_csv','select_csv_columns','filter_csv_rows','handle_csv_missing','join_csv','aggregate_csv','calculate_csv_columns','export_csv'}
     if not recipe.tests or any(s.skill not in allowed for s in recipe.steps):
         raise ValueError('Registration requires fixtures and supported isolated CSV/GeoJSON operations; database, shell and arbitrary code tests are unavailable')
     reports=[]
@@ -294,11 +297,23 @@ def recipe_action(request, *, project_root):
     from geoagent_harness.interface_api.workflow import EditRequest,validate_edit
     from geoagent_harness.interface_api.server import _trusted_root
     root=_trusted_root(project_root)
+    if request.action in {'search','inspect'}:
+        from .discovery import DiscoveryRequest,discover
+        from geoagent_harness.operations.registry import argument_models
+        return discover(DiscoveryRequest(action=request.action,query=request.query,recipe_id=request.recipe_id,method_id=request.method_id),
+                        root=root,conversation_id=request.conversation_id,available=list(argument_models(root)),use_history=bool(request.conversation_id))
     if request.action=='list':
         query=request.query.casefold()
         unavailable=[]
         available=catalog(root,unavailable)
-        return {'recipes':[{'definition':r.model_dump(mode='json',exclude={'tests'}),'recipe_sha256':recipe_digest(r),'origin':'builtin' if r.id in {b.id for b in _builtins()} else 'registered'} for r in available.values() if query in (r.id+' '+r.name+' '+r.description).casefold()], 'unavailable':unavailable, 'execution_performed':False}
+        from .successful import inventory
+        successful_finding = None
+        try:
+            successful = inventory(root, conversation_id=request.conversation_id, query=request.query)
+        except Exception:
+            successful = []
+            successful_finding = 'Successful-workflow index is unavailable. Existing templates and execution records are preserved.'
+        return {'recipes':[{'definition':r.model_dump(mode='json',exclude={'tests'}),'recipe_sha256':recipe_digest(r),'origin':'builtin' if r.id in {b.id for b in _builtins()} else 'registered'} for r in available.values() if query in (r.id+' '+r.name+' '+r.description).casefold()], 'unavailable':unavailable, 'successful_records':successful, 'successful_records_finding':successful_finding, 'execution_performed':False}
     if request.action=='compose':
         result,receipts=compose(request.uses,root,request.base)
         return {**validate_edit(EditRequest(action='validate_plan_edit',planner_result=result),project_root=root),'recipe_groups':receipts}

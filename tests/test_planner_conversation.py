@@ -104,6 +104,7 @@ def test_chat_recipe_authoring_persists_candidate_without_replacing_workflow(pro
     assert read(project)['recipe_candidate']==result['recipe_candidate']
     assert not (project/'reusable-recipes').exists() and not (project/'data/output').exists()
     assert len(main.requests)==len(author.requests)==len(critic.requests)==1
+    assert result['context_usage']['effort_budget']['model_calls']==3
 
 
 def test_chat_never_confuses_a_plan_with_an_execution_outcome(project):
@@ -149,8 +150,10 @@ def test_schema_repair_deferral_is_corrected_without_operator_confirmation(proje
 def test_repeated_schema_deferral_fails_without_replacing_saved_workflow(project):
     first = turn(project, Client({'message': 'Ready', 'plan': plan()}))
     client = Client(SCHEMA_DEFERRAL, SCHEMA_DEFERRAL)
-    with pytest.raises(PlannerAgentError, match='deterministic policy'):
+    with pytest.raises(PlannerAgentError, match='deferred schema repair') as caught:
         turn(project, client, revision=1)
+    assert caught.value.reason == 'schema_repair_deferred'
+    assert caught.value.planner_diagnostics['effort_budget']['model_calls'] == 2
     assert len(client.requests) == 2
     saved = read(project)
     assert saved['revision'] == first['revision']
