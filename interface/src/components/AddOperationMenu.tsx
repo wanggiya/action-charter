@@ -4,7 +4,7 @@ import type { PlannerSkillCatalog } from "../lib/interface-api";
 import { skillLabel } from "../lib/skill-labels";
 
 type Skill = PlannerSkillCatalog["skills"][number];
-const supported = new Set(["inspect_vector", "inspect_raster", "convert_vector", "convert_raster", "load_vector_to_postgis", "validate_postgis_layer", "generate_report", "export_snakemake_workflow", "verify_snakemake_export","inspect_csv","select_csv_columns","filter_csv_rows","handle_csv_missing","join_csv","aggregate_csv","export_csv","vector_attributes_to_csv"]);
+const supported = new Set(["inspect_vector", "inspect_raster", "convert_vector", "convert_raster", "load_vector_to_postgis", "validate_postgis_layer", "generate_report", "export_snakemake_workflow", "verify_snakemake_export","inspect_csv","select_csv_columns","filter_csv_rows","handle_csv_missing","join_csv","aggregate_csv","calculate_csv_columns","export_csv","vector_attributes_to_csv"]);
 type Props = { x: number; y: number; skills: Skill[]; onAdd: (skill: Skill) => void; onClose: () => void };
 export function AddOperationMenu({ x, y, skills, onAdd, onClose }: Props) {
   // Keep keystrokes local so searching does not render the whole graph.

@@ -1087,3 +1087,44 @@
  border-color:color-mix(in srgb,var(--control-accent) 45%,transparent)!important;
 }
 .app-shell[data-button-style="outline"] .top-actions>button:disabled svg { opacity:.5; }
+.successful-recipes summary,.successful-method summary { overflow-wrap:anywhere; line-height:1.5; }
+.successful-method-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.successful-method li { overflow-wrap:anywhere; line-height:1.6; }
+.recipe-browser-tabs { display:flex; gap:8px; margin:14px 0; }
+.recipe-summary-list { display:grid; gap:7px; margin:12px 0; }
+.recipe-summary-list .recipe-summary-row { display:flex; flex-direction:column; align-items:flex-start; gap:4px; width:100%; padding:12px 14px; text-align:left; white-space:normal; }
+.recipe-summary-row strong { font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.recipe-summary-row small { font-size:11px; opacity:.75; }
+.recipe-keyword-view { display:flex; flex-wrap:wrap; align-content:flex-start; gap:9px; padding:12px 0; min-height:120px; }
+.recipe-active-filter { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:12px; }
+.recipe-retention-hint { display:block; line-height:1.6; margin:12px 0; }
+.planner-saved-method-choice { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; color:#a5e9f3; font-size:11px; }
+.planner-saved-method-choice button { display:grid; place-items:center; padding:4px; }
+
+/* Bounded calculations reuse inspector colors and compact form spacing. */
+.operation-parameter-field { display: grid; gap: .4rem; min-width: 0; margin-block: .6rem; }
+.calculation-editor, .calculation-editor section { display: grid; gap: .6rem; min-width: 0; }
+.calculation-expression { border: 1px solid var(--border-color, #285064); border-radius: .45rem; margin: .3rem 0; padding: .55rem; min-width: 0; }
+.calculation-expression legend { font-size: .75rem; opacity: .8; }
+.calculation-expression > div { margin-top: .4rem; }
+.calculation-formula, .calculation-summary p { overflow-wrap: anywhere; line-height: 1.5; }
+
+/* Keep workflow content ahead of optional audit detail in the inspector. */
+.inspector .inspector-operations ol { display:grid; gap:6px; list-style:none; margin:0; padding:0; max-height:240px; overflow:auto; }
+.inspector .inspector-operations li { min-width:0; }
+.inspector .inspector-operations button { display:grid; grid-template-columns:auto minmax(0,1fr); gap:4px 10px; width:100%; padding:9px 10px; border:1px solid var(--line-strong); border-radius:6px; text-align:left; color:inherit; background:var(--surface); cursor:pointer; }
+.inspector .inspector-operations button[aria-pressed="true"] { outline:2px solid var(--node-accent, var(--cyan)); outline-offset:-2px; }
+.inspector .inspector-operations button small { font-size:11px; }
+.inspector .inspector-operations button strong { font-size:12px; overflow-wrap:anywhere; }
+.inspector .operation-formula { grid-column:1 / -1; font:12px/1.5 ui-monospace,monospace; overflow-wrap:anywhere; }
+.inspector .missing-calculation { margin-top:10px; font-size:12px; line-height:1.5; }
+.inspector .inspector-disclosure>summary, .inspector .inspector-raw-arguments>summary { cursor:pointer; font-size:12px; font-weight:600; line-height:1.5; }
+.inspector .inspector-disclosure[open]>summary { margin-bottom:12px; }
+.inspector .inspector-disclosure h3 { margin:14px 0 6px; }
+.inspector .inspector-raw-arguments { margin:10px 0; }
+.inspector .inspector-performer { font-size:11px; }
+.app-shell .inspector .task-context-pane { margin:10px 0; padding:10px 12px; border-color:var(--line-strong); background:var(--surface); }
+.inspector .task-context-pane>summary { font-size:12px; gap:8px; }
+.inspector .task-context-pane[open]>.task-history-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.inspector .task-history-actions button { min-width:0; font-size:11px; padding:7px; }
+.inspector .task-context-pane[open]>.task-context-content { height:auto; max-height:280px; }

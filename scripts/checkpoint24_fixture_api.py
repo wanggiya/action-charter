@@ -12,6 +12,11 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
 parser.add_argument('--planning-task-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
+parser.add_argument('--calculation-fixture',action='store_true')
+parser.add_argument('--calculation-deferral-fixture',action='store_true')
+parser.add_argument('--calculation-invalid-json-fixture',action='store_true')
+parser.add_argument('--calculation-omission-fixture',action='store_true')
+parser.add_argument('--calculation-reuse-claim-fixture',action='store_true')
 args=parser.parse_args()
 root=Path(args.root).resolve()
 repo=Path(__file__).resolve().parents[1]
@@ -22,6 +27,19 @@ for name in ['sample_orders.csv','sample_regions.csv','sample_points.geojson']:
     (root/'data/input'/name).write_bytes((repo/'data/input'/name).read_bytes())
 (root/'data/output').mkdir(exist_ok=True)
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
+if args.calculation_omission_fixture:
+    # A temporary historical record reproduces the real inspection-only bug.
+    # Never read, migrate or rewrite the operator's actual conversation database.
+    historical_request='Inspect sample_orders.csv. Create a new numeric column doubled equal to amount multiplied by 2. Preserve all original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.'
+    historical_plan={'summary':historical_request,'steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect metadata and preview','arguments':{'path':'data/input/sample_orders.csv'}}]}
+    historical_result={'model':'historical fixture','original_request':historical_request,'context_references':[],'plan':historical_plan}
+    historical_id='c'*32
+    historical_state=conversation.Conversation(conversation_id=historical_id,revision=1,
+        planner_result=historical_result,messages=[
+            {'role':'user','content':historical_request},
+            {'role':'assistant','content':'The calculation workflow is planned.','plan_skill_ids':['inspect_csv']},
+        ])
+    conversation._write(conversation._path(root,historical_id),historical_state)
 class FixtureModel:
     def complete(self,request):
         role=json.loads(request.messages[0].content).get('agent',{}).get('id')
@@ -42,11 +60,70 @@ class FixtureModel:
             else:
                 value={'conclusion':'supported','findings':[],'limitations':['Synthetic fixtures cover a small scope only.']}
             return ModelResult(model='temporary recipe role fixture',content=json.dumps(value))
+        if args.calculation_fixture:
+            proposed={'summary':'Calculate doubled amount','steps':[
+                {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
+                {'step_id':'step_2','skill':'calculate_csv_columns','purpose':'Double amount and propagate missing values','arguments':{'path':'data/input/sample_orders.csv','missing_policy':'propagate','calculations':[{'output_column':'doubled','expression':{'kind':'binary','operator':'multiply','left':{'kind':'column','name':'amount'},'right':{'kind':'number','value':2}}}],'assumptions':['amount uses the original source units']},'depends_on':['step_1'],'requires_approval':True,'validation_required':True}]}
+            if args.calculation_deferral_fixture or args.calculation_invalid_json_fixture or args.calculation_omission_fixture:
+                system=json.loads(request.messages[0].content)
+                assert 'calculate_csv_columns' in system['operation_argument_schemas']
+                assert system['reply_shape_example']['plan'] is not None
+                assert request.response_schema and request.response_schema['type']=='object'
+                if len(request.messages)==2:
+                    if args.calculation_reuse_claim_fixture:
+                        branches=request.response_schema.get('anyOf',[request.response_schema])
+                        assert all('reused_recipe_ids' not in branch['properties'] for branch in branches)
+                        return ModelResult(model='temporary calculation fixture',content=json.dumps({'message':'Calculation ready','plan':proposed,'reused_recipe_ids':['recipe_inspect_csv']}))
+                    if args.calculation_omission_fixture:
+                        return ModelResult(model='temporary calculation fixture',content=json.dumps({'message':'The calculation workflow is planned.','plan':historical_plan}))
+                    if args.calculation_invalid_json_fixture:
+                        return ModelResult(model='temporary calculation fixture',content='{"message":"Ready","plan":',finish_reason='stop',response_format='json_schema')
+                    return ModelResult(model='temporary calculation fixture',content=json.dumps({
+                        'message':'The proposal contains invalid schema structure. I will correct the plan using required_json_schema. Please confirm if you would like me to proceed.', 'plan':None}))
+                correction=json.loads(request.messages[-1].content)
+                assert correction['failure_kind']==('reuse_claim' if args.calculation_reuse_claim_fixture else 'request_coverage' if args.calculation_omission_fixture else 'JSON' if args.calculation_invalid_json_fixture else 'repair_deferral')
+                assert correction['valid_reply_structure_example']['plan']
+            return ModelResult(model='temporary calculation fixture',content=json.dumps({'message':'Review the typed formula; no calculation has run.','plan':proposed}))
         if args.recipe_runs_fixture:
             payload=json.loads(request.messages[1].content)
             latest=payload.get('latest_message','').casefold()
-            if 'reusable' in latest:
+            if 'find a suitable method automatically' in latest:
+                observations=[]
+                for message in request.messages[2:]:
+                    if message.role=='user':
+                        try:observations.append(json.loads(message.content).get('recipe_discovery_result'))
+                        except ValueError:pass
+                observations=[value for value in observations if value]
+                if not observations:
+                    return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Searching methods','recipe_discovery':{'action':'search','query':'csv cleaning'}}))
+                inspected=next((item.get('own_chat_example') for item in observations if item.get('own_chat_example')),None)
+                if inspected is None:
+                    matches=observations[-1].get('matches',[])
+                    method=next((item for item in matches if 'method_id' in item),None)
+                    return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Inspecting method','recipe_discovery':{'action':'inspect',**({'method_id':method['method_id']} if method else {'recipe_id':'recipe_clean_csv'})}}))
+                requirements={item['skill']:item for item in json.loads(request.messages[0].content)['selected_skill_requirements']}
+                steps=[]
+                for step in inspected['historical_operations']:
+                    arguments=dict(step['arguments'])
+                    if 'path' in arguments:arguments['path']='data/input/next_orders.csv'
+                    gate=requirements[step['skill']]
+                    steps.append({'step_id':step['step_id'],'skill':step['skill'],'purpose':'Adapt discovered method','arguments':arguments,'depends_on':step['depends_on'],
+                                  'requires_approval':gate['requires_approval'],'validation_required':gate['validation_required']})
+                return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Prepared CSV cleaning from the discovered method.','reused_recipe_ids':[inspected['method_id']],
+                    'plan':{'summary':'Clean the new CSV using a discovered method','steps':steps}}))
+            if 'reusable' in latest and 'make' in latest:
                 return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Prepare a reusable recipe.','workflow_action':'prepare_recipe'}))
+            if payload.get('successful_method_examples') and (payload.get('selected_successful_method_id') or 'saved successful method' in latest or 'repeat cleaning' in latest):
+                example=payload['successful_method_examples'][0]
+                requirements={item['skill']:item for item in json.loads(request.messages[0].content)['selected_skill_requirements']}
+                steps=[]
+                for step in example['historical_operations']:
+                    arguments=dict(step['arguments'])
+                    if 'next_orders.csv' in latest and 'path' in arguments:arguments['path']='data/input/next_orders.csv'
+                    gate=requirements[step['skill']]
+                    steps.append({'step_id':step['step_id'],'skill':step['skill'],'purpose':'Adapt saved method','arguments':arguments,'depends_on':step['depends_on'],
+                                  'requires_approval':gate['requires_approval'],'validation_required':gate['validation_required']})
+                return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Adapted saved successful method '+example['method_id'],'plan':{'summary':'Adapt successful method to current CSV','steps':steps,'assumptions':['Uses method '+example['method_id']]}}))
             if 'group' in latest and payload.get('current_plan'):
                 proposed=payload['current_plan']
                 previous=proposed['steps'][-1]['step_id']

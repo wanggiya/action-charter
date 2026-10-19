@@ -100,7 +100,8 @@ try{
  const dialog=page.getByRole('dialog',{name:'Reusable recipes'});
  await dialog.getByRole('button',{name:/^Select columns and fill missing cells/}).click();
  assert.equal(await dialog.getByLabel(/^columns/).isVisible(),false);
- await dialog.getByRole('button',{name:'Plan with this recipe',exact:true}).click();
+ await dialog.getByText('More actions',{exact:true}).click();
+ await dialog.getByRole('button',{name:'Discuss this template',exact:true}).click();
  await page.getByRole('textbox',{name:'Message Planner'}).waitFor();
  assert((await page.getByRole('textbox',{name:'Message Planner'}).inputValue()).includes('Select columns and fill missing cells'));
  cases.push('Recipe catalog routes into Planner; JSON bindings stay in a collapsed advanced inspector');

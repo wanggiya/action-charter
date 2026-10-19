@@ -1,4 +1,4 @@
-"""Pandas table operations with bounded reads, no expressions and create-only outputs."""
+"""Pandas table operations with bounded reads, bounded typed calculations and create-only outputs."""
 from __future__ import annotations
 from contextlib import ExitStack
 import csv
@@ -173,6 +173,9 @@ def _transform(skill,args,left,right=None):
         for column in outputs:
             _numeric(grouped[column])
         return _guard(grouped)
+    if skill=='calculate_csv_columns':
+        from .calculations import calculate
+        return calculate(left, args)
     if skill=='export_csv':return left.copy()
     raise TabularError('Operation is outside the tabular allowlist')
 
@@ -233,11 +236,24 @@ def run_operation(skill,arguments,settings,completed_results=None):
     data=_csv_bytes(frame)
     # Validate the serialized contract before publication, including cell bounds.
     published_frame=read_frame(data)
+    calculation = {}
+    if skill == 'calculate_csv_columns':
+        from .calculations import verify_calculation
+        original = read_frame(read_bytes(root, sources[0]['path'], sources[0]['area']), ',' if args.source_step else args.delimiter)
+        if not verify_calculation(original, published_frame, args):
+            raise TabularError('Independent calculation verification failed before publication')
+        calculation = {'calculation_arguments': args.model_dump(mode='json', exclude_none=True)}
     path=_publish(root,args.target_path,data)
-    return {'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
+    return {**calculation,'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
 
 def validate_output(result,settings):
     root=Path(settings.project_root).resolve()
     data=read_bytes(root,result['output']['path'],'output');frame=read_frame(data)
     checks={'output_sha256':hashlib.sha256(data).hexdigest()==result['output']['sha256'],'row_count':len(frame)==result['row_count'],'columns':list(frame.columns)==result['columns'],'source_identity':all(hashlib.sha256(read_bytes(root,s['path'],s['area'])).hexdigest()==s['sha256'] for s in result['sources'])}
+    if result.get('operation') == 'calculate_csv_columns':
+        from .calculations import verify_calculation
+        args = ARGUMENTS['calculate_csv_columns'].model_validate(result['calculation_arguments'])
+        source = result['sources'][0]
+        original = read_frame(read_bytes(root, source['path'], source['area']), ',' if args.source_step else args.delimiter)
+        checks['calculation_values'] = verify_calculation(original, frame, args)
     return {'passed':all(checks.values()),'checks':checks,'target':result['output']['path'],'row_count':len(frame),'columns':list(frame.columns),'workflow_executed':True}

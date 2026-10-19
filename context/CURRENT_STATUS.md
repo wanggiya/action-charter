@@ -1,10 +1,10 @@
 # Current implementation status
 
-Updated: 2026-10-15
+Updated: 2026-10-18
 
-CSV source correction strengthened. Graph has pointer-anchored proportional zoom, fractional drag and recipe/action outline gradients (also visible when disabled); Advanced retained. Laptop smoothness still needs observation. Agent CLI startup now lazily loads interface exports; GIS-free subprocess contracts cover the CI import regression.
+Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) preserves history. Calculation/reuse guards are delivered; result-panel usability is pending. [Next gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md) cover agent evidence, capability acquisition, learning and private domain knowledge. No RL/model training or cross-chat sharing is implemented.
 
-Checkpoint 26: Planner owns conversational workflow/recipe composition; fixtures validate candidates, Critic reviews candidates and recorded outcomes, deterministic Execution engine retains authority checks. Durable cancellation/recovery and private-chat restoration are implemented. [Closeout, tests and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Verified: 1,625 backend tests, frontend validation and 27 browser fixture groups. Laptop-model quality remains unverified. Indexed memory/curation moves to 28–29; cross-chat stays 30+. Optional private method helper remains experimental/OFF by default.
+**27.1/27.2 delivered:** successful-run retention and bounded Planner discovery/adaptation; own-chat examples, sanitized catalog structures, reference-only Recipe list/Keywords and Advanced manual composition. [Acceptance](../docs/CHECKPOINT27_DISCOVERY.md). Added calculate_csv_columns: typed expressions, formula controls, independent checks and shared budgets. Planner uses schema decoding/backend checks; [response diagnostics](../docs/PLANNER_STRUCTURED_OUTPUT.md) distinguish syntax/truncation. [Behavior/tests](../docs/BOUNDED_CALCULATIONS.md). Broader model acceptance remains open. [Remaining 27](../docs/CHECKPOINT27_PLAN.md): Critic enrichment, charts/maps, evaluation and demo/package preparation. Cross-chat memory remains 30+.
 
 ## Product boundary
 
@@ -12,7 +12,7 @@ ActionCharter is a local single-operator alpha for governed spatial and tabular 
 
 ## Checkpoint 25 — contracts, discovery and installed adapters
 
-The shared catalog describes the 24 existing implemented operations and installed adapters: stable IDs/readable names, typed parameters/results, input/output contracts, completion dependencies, runtime requirements, effects, gates and preview/validation contracts. Existing skill bytes, workflow formats and historical digests remain compatible. Planner/graph support the 17 existing main operations plus installed CSV adapters; other catalog entries retain their existing service/CLI paths. Settings Operations & libraries and CLI use the same services. Operation names and capability metadata refresh after installation.
+The shared catalog describes the 25 implemented builtin operations and installed adapters: stable IDs/readable names, typed parameters/results, input/output contracts, completion dependencies, runtime requirements, effects, gates and preview/validation contracts. Existing skill bytes, workflow formats and historical digests remain compatible. Planner/graph support 18 main operations plus installed CSV adapters; other catalog entries retain their existing service/CLI paths. Settings Operations & libraries and CLI use the same services. Operation names and capability metadata refresh after installation.
 
 Discovery automatically inventories installed Python distributions and statically parses declared .py/.pyi files for functions, classes, methods and properties. It does not import/evaluate candidate modules, decorators, defaults or annotations. Private declarations are optional, controlled by the existing sliding ON/OFF switch. Settings uses shared surface colors; scan inventories and installed adapter records persist in the same project across restarts, without reinstalling or granting execution authority. Native symbols, dynamic/inherited/reexported functions, missing editable manifests and scan limits are reported as incomplete; this is not proof of every runtime library export. Scans cap source bytes/files/time/candidates and preview text; immutable project-local snapshots support paginated search. Candidates are non-executable and never become dispatcher entries from a model name or scan result.
 
@@ -50,7 +50,7 @@ Main-workflow Snakemake export/static verification binds an original saved workf
 
 ## Verification and remaining work
 
-Current validation: 1,600 tests, frontend typecheck/build and 22 production-browser fixture groups passed. Coverage includes recipe composition/registration, actual temporary spatial→CSV execution, cancellation, restart, recovery and existing chat/CSV journeys. No real-model quality or live database acceptance is established.
+Current validation: 1,744 backend tests, frontend typecheck/build and 17 browser fixture cases passed: calculation repair/edit/execute/restore, retention/discovery and CSV workflows. Tests use temporary data and fixture model replies. One local planning smoke also passed; broader live-model/service acceptance remains open.
 
 Playwright is pinned as a frontend development dependency. Browser engines and optional minimal-Linux audio runtime are stored in Git/Docker-ignored project-local test directories, separate from normal browser profiles and shared Playwright caches; test profiles/data are temporary. Runtime use does not require these browser test tools. See the checkpoint 25 guide for repeatable setup.
 

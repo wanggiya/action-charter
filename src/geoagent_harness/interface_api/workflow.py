@@ -83,6 +83,9 @@ def _check(result, root):
                 raise InterfaceApiError('Input must be an available regular file under data/input') from error
         if 'target_path' in step.arguments and not step.arguments['target_path'].startswith('data/output/'):
             raise InterfaceApiError('Output paths must remain under data/output')
+    if any(step.skill == 'calculate_csv_columns' for step in result.plan.steps):
+        from geoagent_harness.tabular.policy import preflight_calculations
+        preflight_calculations(result.plan.steps, root)
     recipe = planner_recipe_definition(result, plan_sha256(result.plan))
     policy = validate_recipe_policy(recipe, registry=registry)
     return registry, recipe, policy

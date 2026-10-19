@@ -62,3 +62,21 @@ def bind_recipe_parameters(recipe,supplied):
         if name not in values:
             values[name]=fresh_csv_path()
     return values
+
+
+def bind_required_gates(plan, registry):
+    """Raise required proposal gates from trusted contracts; never authorize work."""
+    from geoagent_harness.planner.policy import WRITE_SKILLS
+    known = {skill.id: skill for skill in registry.implemented_skills()}
+    changed = []
+    for step in plan.steps:
+        skill = known.get(step.skill)
+        if skill is None:
+            continue  # The normal allowlist check rejects unknown operations.
+        approval = skill.approval_required or skill.access.value != 'read_only' or step.skill in WRITE_SKILLS
+        validation = skill.validation_required or is_table_write(step.skill) or step.skill in {'verify_snakemake_export', 'validate_postgis_layer'}
+        if (approval and not step.requires_approval) or (validation and not step.validation_required):
+            changed.append(step.step_id)
+        step.requires_approval = bool(step.requires_approval or approval)
+        step.validation_required = bool(step.validation_required or validation)
+    return changed

@@ -1,3 +1,79 @@
+# Record post-calculation delivery gates
+
+- Document remaining checkpoint 27 result usability and agent/evidence evaluation, followed by proposed bounded capability acquisition, optional learning-policy experiments and private domain knowledge/corrections. Preserve checkpoint history and the 30+ cross-chat decision gate.
+- Distinguish implemented services from future capabilities; no new agent runtime, generated-code executor, RL policy, model training or sharing is enabled by this documentation.
+
+# Ground Planner reuse claims in available provenance
+
+- Constrain generated reused_recipe_ids to supplied successful examples or successfully inspected sources; omit the optional field when no source is eligible. Refresh prompt/decoder constraints after each discovery exchange and before correction.
+- Keep backend provenance/relevance checks and one correction; repeated unsupported claims report planner_reuse_unverified with useful model guidance and preserve plan/transcript. Ordinary planning requires no manual recipe selection.
+- Preserve focused calculation hints across correction and report actual per-call prompt/schema sizes. Add discovery, history-preservation, relevance, HTTP and browser failure regressions; no extra model call or execution authority.
+- Verified 1,769 backend tests, frontend validation and 13 isolated browser cases. One actual qwen3:4b-instruct planning check passed in one call (52.08 seconds) with no authorization/execution.
+
+# Calculation request coverage after historical-record inspection
+
+- Confirmed that a saved plan claimed doubled-column creation but actually contained only inspect_csv; the frontend did not lose a stored formula. Historical records remain unchanged.
+- Check explicit calculated-column request coverage before accepting new conversational proposals. A missing operation uses the existing single correction attempt; repeated omission reports planner_scope_incomplete and preserves the saved workflow/transcript without execution.
+- Clarified that Planner may propose approval-required operations without receiving execution permission; shortened simple calculation instructions without changing manifest permissions or the operation allowlist.
+- Calculation-focused decoding binds inspection/calculation/export arguments to skill IDs, namespaces expression definitions and uses closed alternatives for exclusive CSV sources; full backend checks and the complete allowlist remain.
+- Simple single-column requests can constrain the requested operation skeleton; the model still supplies all semantic arguments. General workflows retain flexible steps. One actual qwen3:4b-instruct check restored the temporary historical failure and produced the correct two-step plan/formula in one call (34.44 seconds), without authorization or execution.
+- Added an isolated historical-restoration browser regression followed by actual corrected calculation, exact authorization, output verification and refresh. Verified 1,764 backend tests, frontend validation and six isolated calculation browser cases. This is a narrow coverage guard, not general semantic correctness.
+
+# Inspector operation and audit clarity
+
+- List actual current-plan operations with formulas and selectable graph links; flag an explicit calculation request whose saved plan lacks the calculation operation.
+- Show readable formulas in calculation nodes and authorization review. Collapse raw arguments, group authority/observed facts and keep one performer line; move compact task history below operation content.
+- Presentation only: missing operations are never fabricated and approval/execution rules remain unchanged.
+- Verified 1,744 backend tests, frontend typecheck/build and 11 isolated calculation/CSV browser cases with real temporary-file execution and fixture model replies.
+
+# Planner decoder schema and response diagnostics
+
+- Conversational Planner now sends its structural Reply schema to the model endpoint. Decoder patterns/bounds are omitted for local grammar compatibility; full backend validation remains unchanged.
+- Added explicit MODEL_RESPONSE_FORMAT compatibility mode, no silent fallback/retry, safe response-shape/finish/size diagnostics and separate output-token truncation handling.
+- Required conversational proposal gates now bind upward from trusted registry contracts without recording authorization; repeated calculation schema unions are shared to reduce prompt overhead.
+- Corrected misleading root JSON findings labelled as a plan-field type error. Truncated discovery replies cannot dispatch tools; existing workflows remain preserved.
+- Verified 1,744 backend tests, frontend validation and 17 browser fixture cases. One real qwen3:4b-instruct planning check passed in one call with the exact request; no authorization/execution. See docs/PLANNER_STRUCTURED_OUTPUT.md for evidence and limits.
+
+# Calculation planning repair follow-up
+
+- Fixed schema focusing for “multiplied,” “divided” and new numeric columns; simple calculation requests receive relevant contracts without changing the full operation allowlist.
+- Added a complete non-executing calculation reply example and grounded single correction, without automatic fallback plans or extra retries.
+- Repeated schema-repair promises now report planner_repair_deferred, preserved schema findings and safe effort diagnostics instead of asking users for technical approval rules. Existing plans and authority boundaries remain intact.
+- Verified 1,726 backend tests, frontend validation and 11 targeted browser fixture cases. Exact-wording, repair/preservation and HTTP regressions cover a deferral before successful planning. Live-model reliability remains unverified.
+
+# Bounded calculations and cumulative Planner effort
+
+- Added calculate_csv_columns through the shared table registry/runner, Planner, graph formula editor and CLI: numeric arithmetic/comparisons/conditionals, explicit missing behavior, fresh-output approval and independent row checks.
+- Enforced definition size/complexity and shared four-model/two-discovery attempt budgets; optional launcher deadline and actual token-usage receipts. Explicit conversational recipe/assessment calls share the budget; the opt-in post-turn helper remains separately accounted.
+- Verified 1,711 backend tests, frontend typecheck/build and 23 browser fixture cases; added a typed calculation example. No arbitrary Python generation, new agent/MCP server, RL or live-data changes. See docs/BOUNDED_CALCULATIONS.md.
+
+# Planner-owned recipe discovery and reference browser
+
+- Added bounded read-only search/inspect capabilities to the existing Planner through typed JSON exchanges and shared API/CLI services. Two discovery exchanges plus final generation/one correction cap Planner inference at four calls per turn; direct planning requires no extra discovery calls.
+- Sanitized catalog structures omit registered private literals/descriptions/fixtures. Only parameterized/schema-enum definitions can compose automatically; other structures need current bindings in a normal validated plan. Own-chat evidence/history scope and final contract checks remain enforced.
+- Recipe browsing is optional reference. Secondary discussion shortcuts sit under More actions; manual composition stays in Advanced and is labelled Validate composition and open draft. Replies/receipts identify reported reuse without granting authority or claiming new-data success.
+- Added discovery/fallback/privacy/budget/timeout/contract-change and API/CLI tests, plus ordinary-chat browser discovery and fresh-authority execution. Verified 1,663 backend tests, frontend typecheck/build and 35 browser fixture cases. Local-model quality and remaining checkpoint 27 features are still unverified/pending. See docs/CHECKPOINT27_DISCOVERY.md.
+
+# Checkpoint 27.2 — focused recipe browsing and Planner reuse
+
+- Reusable recipes now switches between Recipe list and Keywords, showing one body at a time. Keywords open a filtered summary list; source evidence and Advanced authoring remain in details rather than the browsing list.
+- Planner retrieves up to three current, evidence-matching own-chat methods (8 KB cap) and proposes ordinary validated adaptations. History OFF disables automatic retrieval; explicit own-chat selection remains possible. Old output/credential/authority bindings are excluded from examples, and changes during generation invalidate them. Interface and existing CLI share the same service.
+- Reduced unnecessary prompt overhead with focused domain schemas, preserved allowlists/constraints, removed redundant rules/schema display titles and kept safe CSV output allocation explicit. Added safe stage/bytes/timing/schema-count diagnostics on model failures and successful receipts. Timeout configuration is unchanged; local-model latency still needs evaluation.
+- Verified 1,653 backend tests, frontend typecheck/build and 35 browser fixture groups covering exclusive views, keyword filters, own-chat adaptation, different CSV inputs, fresh authority, timeout preservation and existing CSV/private-chat/recovery behavior. Remaining checkpoint 27 features stay documented as pending; no Git/publication or live-service change performed.
+
+# Checkpoint 27.1 — automatic successful-workflow retention
+
+- New durable executions capture operation contracts before dispatch and automatically retain eligible successful method metadata, tags and source evidence. No model call, authoring request or registration is required.
+- Added transactional bounded indexing, semantic grouping with distinct run evidence, current-contract diagnostics, own-chat discovery and fail-soft indexing-only retry. No credentials, raw bindings, transcripts or reusable authority are copied into the index. Optional Critic failure cannot block saving.
+- Reusable recipes shows automatic successful records alongside existing generalized templates, with operation order and recorded-outcome inspection. Existing Advanced controls remain. Shared API/CLI services preserve parity; runtime index is excluded from Docker build contexts.
+- Verified 1,646 backend tests, frontend typecheck/build and 17 browser fixture groups (5 retention plus 12 existing Planner/recovery groups). Planner retrieval/adaptation and later checkpoint 27 work remain planned; old runs without snapshots, synchronous legacy execution and Snakemake export are not auto-indexed. See docs/CHECKPOINT27_RETENTION.md.
+
+# Checkpoint 27 planning record — documentation only
+
+- Recorded dependency-ordered automatic successful-workflow retention, Planner adaptation, optional Critic enrichment, artifact visualization, actual laptop evaluation and prototype/demo preparation, with measurable acceptance.
+- Assigned human/Planner/Critic/backend responsibilities; preserved minimal routine human interaction, exact authority, optional Advanced generalization and deferred cross-chat memory.
+- Linked the plan from README, current status and roadmap. No runtime, UI, dependency, Git or publication behavior changed.
+
 # Agent-container CLI startup repair
 
 - Fixed eager interface-package imports that made lightweight agent CLI startup require optional GIS libraries. Existing public API exports load lazily when requested; GIS execution still requires its declared runtime dependencies.

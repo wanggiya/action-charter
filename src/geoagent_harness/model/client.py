@@ -125,14 +125,22 @@ class SharedModelClient:
         if self._settings.reasoning_effort is not None:
             payload["reasoning_effort"] = self._settings.reasoning_effort
 
-        if request.json_mode:
+        response_format = "text"
+        if request.response_schema is not None and self._settings.response_format == "json_schema":
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "actioncharter_reply", "schema": request.response_schema},
+            }
+            response_format = "json_schema"
+        elif request.json_mode or request.response_schema is not None:
             payload["response_format"] = {
                 "type": "json_object",
             }
+            response_format = "json_object"
 
         try:
             with httpx.Client(
-                timeout=self._settings.timeout_seconds,
+                timeout=min(self._settings.timeout_seconds, request.timeout_seconds) if request.timeout_seconds is not None else self._settings.timeout_seconds,
                 transport=self._transport,
             ) as client:
                 response = client.post(
@@ -146,6 +154,10 @@ class SharedModelClient:
         except httpx.TimeoutException as exc:
             raise ModelClientError.timeout() from exc
         except httpx.HTTPStatusError as exc:
+            if response_format == "json_schema" and exc.response.status_code in {400, 422}:
+                detail = exc.response.text[:4096].casefold()
+                if "response_format" in detail or "json_schema" in detail or "failed to parse grammar" in detail or ("schema" in detail and any(word in detail for word in ("unsupported", "invalid", "not support"))):
+                    raise ModelClientError("Model endpoint rejected schema-constrained output", code="model_response_format_rejected", category=FailureCategory.CONFIGURATION, retry=RetryDisposition.NEVER) from exc
             raise ModelClientError.http_status(
                 exc.response.status_code
             ) from exc
@@ -174,6 +186,7 @@ class SharedModelClient:
                     )
                 ),
                 content=content.strip(),
+                response_format=response_format,
                 finish_reason=choice.get(
                     "finish_reason"
                 ),

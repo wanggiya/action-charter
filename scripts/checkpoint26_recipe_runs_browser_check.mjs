@@ -50,7 +50,7 @@ try{
  await dialog.getByLabel(/^fill values/).fill('{"region":"Unknown"}');
  await dialog.getByLabel(/^selected path/).fill('data/output/browser_selected.csv');
  await dialog.getByLabel(/^target path/).fill('data/output/browser_cleaned.csv');
- await dialog.getByRole('button',{name:'Use recipe · create workflow',exact:true}).click();
+ await dialog.getByRole('button',{name:'Validate composition and open draft',exact:true}).click();
  await dialog.waitFor({state:'hidden'});
  await page.locator('[data-operation-node="planned_step_2"]').waitFor();
  await page.waitForFunction(async()=>{
@@ -62,6 +62,7 @@ try{
  cases.push('Recipe expands into a validated graph and binds the empty current chat without a model or execution');
  await page.getByRole('button',{name:'Reusable recipes',exact:true}).click();
  dialog=page.getByRole('dialog',{name:'Reusable recipes'});
+ await dialog.getByText('Advanced recipe authoring',{exact:true}).click();
  await dialog.getByText('Create a reusable recipe from this workflow',{exact:true}).click();
  await dialog.getByRole('button',{name:'Prepare recipe',exact:true}).click();
  await dialog.getByText('Critic: supported',{exact:true}).waitFor({timeout:25000});
@@ -122,7 +123,7 @@ try{
  await dialog.getByLabel(/^fill values/).fill('{"name":"Unknown"}');
  await dialog.getByLabel(/^selected path/).fill('data/output/chain_selected.csv');
  await dialog.getByLabel(/^target path/).fill('data/output/chain_cleaned.csv');
- await dialog.getByRole('button',{name:'Use recipe · create workflow',exact:true}).click();
+ await dialog.getByRole('button',{name:'Validate composition and open draft',exact:true}).click();
  await dialog.waitFor({state:'hidden'});
  await page.locator('[data-operation-node="planned_step_4"]').waitFor();
  await page.waitForFunction(async()=>{

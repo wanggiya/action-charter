@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Literal, Annotated
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
+from .calculations import DerivedColumn, bounded_definition, expression_type
+
 Scalar = Annotated[str, Field(max_length=4096)] | int | float | bool
 class Strict(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
@@ -91,6 +93,27 @@ class Aggregate(Source):
     by: list[str] = Field(min_length=1,max_length=20)
     aggregations: list[Aggregation] = Field(min_length=1,max_length=100)
 
+class CalculateColumns(Source):
+    schema_version: Literal['1.0'] = '1.0'
+    missing_policy: Literal['error', 'propagate']
+    calculations: list[DerivedColumn] = Field(min_length=1, max_length=5)
+    assumptions: list[Annotated[str, Field(min_length=1, max_length=200)]] = Field(default_factory=list, max_length=5)
+
+    @model_validator(mode='before')
+    @classmethod
+    def bounded(cls, value):
+        return bounded_definition(value)
+
+    @model_validator(mode='after')
+    def numeric_outputs(self):
+        names = [item.output_column for item in self.calculations]
+        if len(names) != len(set(names)):
+            raise ValueError('Calculation output columns must be unique')
+        for item in self.calculations:
+            if expression_type(item.expression) != 'number':
+                raise ValueError('Calculation outputs must be numeric; use conditionals for classifications')
+        return self
+
 class ExportCSV(Source):
     pass
 
@@ -101,9 +124,9 @@ class VectorAttributes(Strict):
 ARGUMENTS = {
     'inspect_csv': InspectCSV, 'select_csv_columns': SelectColumns, 'filter_csv_rows': FilterRows,
     'handle_csv_missing': HandleMissing, 'join_csv': JoinTables, 'aggregate_csv': Aggregate,
-    'export_csv': ExportCSV, 'vector_attributes_to_csv': VectorAttributes,
+    'calculate_csv_columns': CalculateColumns, 'export_csv': ExportCSV, 'vector_attributes_to_csv': VectorAttributes,
 }
-LABELS = {'inspect_csv':'Inspect CSV table','select_csv_columns':'Select table columns','filter_csv_rows':'Filter table rows','handle_csv_missing':'Handle missing table values','join_csv':'Join CSV tables','aggregate_csv':'Group and aggregate table','export_csv':'Export CSV results','vector_attributes_to_csv':'Extract vector attributes as CSV'}
+LABELS = {'calculate_csv_columns':'Calculate table columns','inspect_csv':'Inspect CSV table','select_csv_columns':'Select table columns','filter_csv_rows':'Filter table rows','handle_csv_missing':'Handle missing table values','join_csv':'Join CSV tables','aggregate_csv':'Group and aggregate table','export_csv':'Export CSV results','vector_attributes_to_csv':'Extract vector attributes as CSV'}
 WRITE_IDS = set(ARGUMENTS) - {'inspect_csv'}
 
 

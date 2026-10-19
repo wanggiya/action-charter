@@ -109,8 +109,9 @@ def stored(root,result):
 
 
 def test_installation_is_separate_from_exact_workflow_authority_and_lineage(project):
+    before = {skill.id for skill in load_skill_registry(project).implemented_skills()}
     digest=install(project)
-    assert len(load_skill_registry(project).implemented_skills())==25
+    assert {skill.id for skill in load_skill_registry(project).implemented_skills()} == before | {'ext_order_identity'}
     catalog=operation_catalog(project)
     extension=next(op for op in catalog['operations'] if op['id']=='ext_order_identity')
     assert extension['default_arguments']['package_sha256']==digest

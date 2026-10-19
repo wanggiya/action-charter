@@ -212,3 +212,13 @@ skills:
   validation_required: true
   entrypoint: geoagent_harness.tabular.service:run_operation
   verifier: geoagent_harness.tabular.service:validate_output
+
+- id: calculate_csv_columns
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output
