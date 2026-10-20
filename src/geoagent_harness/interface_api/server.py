@@ -80,6 +80,9 @@ from geoagent_harness.mcp_server.approved_recipe import (
     run_approved_recipe as execute_approved_recipe,
 )
 from geoagent_harness.mcp_server.settings import load_settings
+from geoagent_harness.write_policy import (effective as effective_write_settings, snapshot as write_policy_snapshot,
+    session as write_policy_session, update as update_write_policy, PolicyUpdate, WritePolicyError)
+
 from geoagent_harness.recipes import (
     RecipeApprovalError,
     RecipeEvidenceStorageError,
@@ -2562,7 +2565,7 @@ def prepare_interface_execution_preview(
         "evidence_destinations": ["recipe-runs/", "recipe-evidence/"],
         "approval_reverified": True,
         "secrets_redacted": True,
-        "execution_available": load_settings().enable_write_tools,
+        "execution_available": effective_write_settings(load_settings(), root).enable_write_tools,
         "execution_performed": False,
     }
     canonical = json.dumps(preview, sort_keys=True, separators=(",", ":"))
@@ -2613,7 +2616,7 @@ def execute_interface_recipe(
         approval=approval,
         registry=registry,
     )
-    configured = load_settings()
+    configured = effective_write_settings(load_settings(), root)
 
     def project_path(path: Path) -> Path:
         return path if path.is_absolute() else root / path
@@ -2883,17 +2886,24 @@ def _handler(
             if self._reject_origin():
                 return
             if self.path == "/api/v1/health":
-                execution_enabled = load_settings().enable_write_tools
+                from .conversation import PLANNER_CONTRACT_REVISION
+                execution_enabled = effective_write_settings(load_settings(), project_root).enable_write_tools
                 self._send(HTTPStatus.OK, {
                     "schema_version": "1.0",
                     "status": "ready",
                     "bound_to_loopback": True,
-                    "planner_contract_revision": "schema-correction-v52",
+                    "planner_contract_revision": PLANNER_CONTRACT_REVISION,
                     "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
                     "execution_mode": "exact_approved_recipe" if execution_enabled else "disabled",
                 })
+                return
+            if self.path == '/api/v1/write-policy':
+                try:
+                    self._send(HTTPStatus.OK, write_policy_snapshot(project_root) or {'active': False, 'enabled': False, 'locked': True, 'execution_performed': False})
+                except (WritePolicyError, OSError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Write policy unavailable; no permission granted', 'execution_performed': False})
                 return
             if self.path == "/api/v1/model-status":
                 from geoagent_harness.model.diagnostics import inspect_model_configuration
@@ -3089,6 +3099,7 @@ def _handler(
             if self._reject_origin():
                 return
             if self.path not in {
+                "/api/v1/write-policy",
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/tasks/events",
                 "/api/v1/context/retrieve",
@@ -3146,7 +3157,9 @@ def _handler(
                 return
             try:
                 payload = json.loads(self.rfile.read(length))
-                if self.path == "/api/v1/context/retrieve":
+                if self.path == '/api/v1/write-policy':
+                    response = update_write_policy(project_root, PolicyUpdate.model_validate(payload))
+                elif self.path == "/api/v1/context/retrieve":
                     from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
                     context_request = InterfaceContextRetrievalRequest.model_validate(payload)
                     try:
@@ -3584,6 +3597,9 @@ def _handler(
                     {"error": "planner could not produce a validated plan"},
                 )
                 return
+            except WritePolicyError as exc:
+                self._send(HTTPStatus.CONFLICT, {'error': str(exc), 'code': 'write_policy_blocked', 'execution_performed': False})
+                return
             except (SkillRegistryError, OSError, ValueError) as exc:
                 if self.path in {'/api/v1/reusable-recipes', '/api/v1/workflow/runs'}:
                     from geoagent_harness.recipe_catalog.composition import RecipePreparationError
@@ -3619,8 +3635,11 @@ def serve_interface_api(
     if port < 1 or port > 65_535:
         raise InterfaceApiError("interface API port is invalid")
     root = _trusted_root(project_root)
-    server = server_factory((host, port), _handler(root))
-    try:
-        server.serve_forever()
-    finally:
-        server.server_close()
+    from geoagent_harness.mcp_server.settings import parse_flag
+    with write_policy_session(root, enabled=load_settings().enable_write_tools,
+            locked=parse_flag(os.environ.get('ACTIONCHARTER_READ_ONLY_LOCK'))):
+        server = server_factory((host, port), _handler(root))
+        try:
+            server.serve_forever()
+        finally:
+            server.server_close()

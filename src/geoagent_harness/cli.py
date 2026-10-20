@@ -7742,10 +7742,30 @@ register_operations_cli(app)
 from geoagent_harness.interface_api.planning_tasks_cli import register as register_planning_tasks_cli
 register_planning_tasks_cli(app)
 
-if __name__ == "__main__":
-    app()
-
 from geoagent_harness.interface_api.method_memory_cli import register as register_method_memory_cli
 register_method_memory_cli(app)
 from geoagent_harness.interface_api.workflow_tools_cli import register as register_workflow_tools_cli
 register_workflow_tools_cli(app)
+
+
+@app.command('write-policy')
+def write_policy_command(
+    project_root: Annotated[Path, typer.Option('--project-root')] = Path('.'),
+    enabled: Annotated[bool | None, typer.Option('--enabled/--disabled')] = None,
+) -> None:
+    """Read/change the running API's availability; never authorize or execute."""
+    from geoagent_harness.write_policy import snapshot, update, PolicyUpdate
+    try:
+        state=snapshot(project_root)
+        if state is None:
+            raise ValueError('No running API session for this project. Start the launcher first. Standalone commands retain explicit startup permissions.')
+        if enabled is not None:
+            state=update(project_root,PolicyUpdate(enabled=enabled,session_id=state['session_id'],revision=state['revision']))
+        typer.echo(json.dumps(state,indent=2))
+    except (ValueError,OSError) as exc:
+        typer.echo(f'Error: {exc}',err=True)
+        raise typer.Exit(code=2) from exc
+
+
+if __name__ == "__main__":
+    app()

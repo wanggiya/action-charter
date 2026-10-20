@@ -24,6 +24,9 @@ class RollbackTransaction(Protocol):
 def _profile(value):
     return {"columns":[x.model_dump(mode="json") for x in value.columns],"primary_key":value.primary_key.columns if value.primary_key else None,"unique_keys":sorted(x.columns for x in value.unique_keys),"row_count":value.row_count,"geometry_columns":[x.model_dump(mode="json") for x in value.geometry_columns]}
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def execute_postgis_rollback(*,rollback_plan_file:Path,rollback_plan_root:Path,
     approval_file:Path,approval_root:Path,settings:MCPSettings,
     confirm_rollback_plan_sha256:str,confirm_approval_sha256:str,

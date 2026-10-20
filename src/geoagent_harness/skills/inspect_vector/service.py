@@ -83,6 +83,7 @@ def inspect_vector(path: Path, input_root: Path = Path("data/input")) -> Inspect
         raise InspectVectorError(f"could not inspect dataset: {exc}") from exc
 
     layers: list[VectorLayerInfo] = []
+    spatial_preview = None
     for layer_name, _declared_geometry in layer_rows:
         try:
             frame = gpd.read_file(resolved, layer=str(layer_name), engine="pyogrio")
@@ -95,6 +96,9 @@ def inspect_vector(path: Path, input_root: Path = Path("data/input")) -> Inspect
             FieldInfo(name=name, type=str(dtype))
             for name, dtype in frame.drop(columns=frame.geometry.name).dtypes.items()
         ]
+        if spatial_preview is None:
+            from .preview import geometry_preview
+            spatial_preview = geometry_preview(frame, layer_name)
         layers.append(
             VectorLayerInfo(
                 name=str(layer_name),
@@ -123,4 +127,5 @@ def inspect_vector(path: Path, input_root: Path = Path("data/input")) -> Inspect
         source=source,
         driver=str(dataset_info.get("driver") or "Unknown"),
         layers=layers,
+        spatial_preview=spatial_preview,
     )

@@ -107,7 +107,8 @@ def test_intent_http_exposes_schema_fields_and_no_authority(tmp_path, monkeypatc
         connection.request('GET', '/api/v1/health')
         health_response = connection.getresponse()
         health = json.loads(health_response.read())
-        assert health['planner_contract_revision'] == 'schema-correction-v52'
+        from geoagent_harness.interface_api.conversation import PLANNER_CONTRACT_REVISION
+        assert health['planner_contract_revision'] == PLANNER_CONTRACT_REVISION == 'csv-revision-v3'
         assert health['planner_correction_limit'] == 1
         connection.request('POST', '/api/v1/intent/plan', body=json.dumps({
             'action':'plan_reviewed_intent', 'review_filename':'intent-review.'+'a'*64+'.json',

@@ -26,6 +26,7 @@ from geoagent_harness.redaction import (
 )
 from geoagent_harness.skill_registry import (
     SkillRegistry,
+    SkillAccess,
     SkillStatus,
 )
 from geoagent_harness.skills.convert_vector.service import (
@@ -184,7 +185,7 @@ def _structured_result(
     return redacted
 
 
-def dispatch_recipe_step(
+def _dispatch_recipe_step(
     *,
     envelope: RecipeExecutionEnvelope,
     step_id: str,
@@ -419,3 +420,13 @@ def dispatch_recipe_step(
             validation_performed
         ),
     )
+
+
+def dispatch_recipe_step(*, envelope, step_id, registry, settings, completed_results=None):
+    from contextlib import nullcontext
+    from geoagent_harness.write_policy import operation
+    step = _step_from_envelope(envelope, step_id)
+    skill = _validate_registered_skill(skill_id=step.skill_id, registry=registry)
+    with (nullcontext(settings) if skill.access == SkillAccess.READ_ONLY else operation(settings)) as active:
+        return _dispatch_recipe_step(envelope=envelope, step_id=step_id, registry=registry,
+            settings=active, completed_results=completed_results)

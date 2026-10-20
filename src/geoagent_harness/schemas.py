@@ -1,6 +1,6 @@
 """Shared typed schemas for the harness."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 
 class FieldInfo(BaseModel):
@@ -36,4 +36,12 @@ class InspectVectorResult(BaseModel):
     source: str
     driver: str
     layers: list[VectorLayerInfo] = Field(min_length=1)
+    spatial_preview: dict | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_preview(self, handler):
+        payload = handler(self)
+        if self.spatial_preview is None:
+            payload.pop('spatial_preview', None)
+        return payload
 

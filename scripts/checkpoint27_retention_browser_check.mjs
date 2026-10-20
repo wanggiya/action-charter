@@ -59,7 +59,8 @@ try{
  const before=await readFile(resolve(root,'model-calls.jsonl'),'utf8');
  await authorize();
  await page.locator('.workflow-review-panel .execute-button').click();
- await page.locator('.workflow-outcome-panel .outcome-step').nth(1).waitFor();
+ await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
+ await page.locator('.results-workspace').getByRole('tab',{name:'Checks',exact:true}).click();
  await page.locator('.workflow-outcome-panel .critic-outcome').getByText('Recorded operations completed and their reported validation is available.',{exact:true}).waitFor();
  await page.getByRole('button',{name:'Reusable recipes',exact:true}).click();
  await dialog.getByRole('button',{name:/^Select columns and handle missing values/}).waitFor();
@@ -113,7 +114,7 @@ try{
  assert.equal(calls.filter(call=>call.action==='start').length,starts);
  await authorize();
  await page.locator('.workflow-review-panel .execute-button').click();
- await page.locator('.workflow-outcome-panel .outcome-step').nth(1).waitFor();
+ await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
  assert.equal((await readdir(resolve(root,'data/output'))).length,originalOutputs.length+2);
  cases.push('Planner searches and inspects methods from ordinary chat, adapts a new CSV with fresh targets and requires fresh authorization without manual recipe selection');
  await page.getByRole('button',{name:'Planner agent',exact:true}).click();

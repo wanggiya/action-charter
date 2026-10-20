@@ -98,6 +98,9 @@ def _cleanup_temporary(
             pass
 
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def convert_vector(
     *,
     path: Path,

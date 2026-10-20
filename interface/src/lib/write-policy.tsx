@@ -1,0 +1,25 @@
+import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
+import {z} from 'zod';
+const schema=z.object({active:z.boolean(),enabled:z.boolean(),locked:z.boolean(),session_id:z.string().optional(),revision:z.number().int().optional()});
+export type WritePolicy=z.infer<typeof schema>;
+type State={policy:WritePolicy|null;busy:boolean;error:string;refresh:()=>Promise<void>;toggle:()=>Promise<void>};
+const Context=createContext<State>({policy:null,busy:false,error:'',refresh:async()=>{},toggle:async()=>{}});
+export const useWritePolicy=()=>useContext(Context);
+export function WritePolicyProvider({children}:{children:ReactNode}){
+ const [policy,setPolicy]=useState<WritePolicy|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const active=useRef(true),serial=useRef(0);
+ const read=async()=>{const response=await fetch('/api/v1/write-policy',{cache:'no-store',credentials:'same-origin'});if(!response.ok)throw new Error('Write controls unavailable. Restart the updated API once.');return schema.parse(await response.json());};
+ const refresh=async()=>{const request=++serial.current;try{const value=await read();if(active.current&&request===serial.current){setPolicy(value);setError('');}}catch(e){if(active.current&&request===serial.current){setPolicy(null);setError(e instanceof Error?e.message:'Write status unavailable');}}};
+ useEffect(()=>{active.current=true;void refresh();const focus=()=>void refresh();window.addEventListener('focus',focus);const timer=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh();},3000);return()=>{active.current=false;serial.current++;window.clearInterval(timer);window.removeEventListener('focus',focus);};},[]);
+ const toggle=async()=>{if(!policy?.active||busy||policy.locked)return;setBusy(true);setError('');++serial.current;try{
+   const response=await fetch('/api/v1/write-policy',{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!policy.enabled,session_id:policy.session_id,revision:policy.revision})});
+   const value=await response.json();if(!response.ok)throw new Error(typeof value.error==='string'?value.error:'Write availability update failed');
+   if(active.current){++serial.current;setPolicy(schema.parse(value));}
+ }catch(e){await refresh();if(active.current)setError(e instanceof Error?e.message:'Write availability update failed');}finally{if(active.current)setBusy(false);}};
+ return <Context.Provider value={{policy,busy,error,refresh,toggle}}>{children}</Context.Provider>;
+}
+export function WritePolicySettings(){const {policy,busy,error,refresh,toggle}=useWritePolicy();return <section className="write-policy-settings"><h3>Write operations</h3><div className="planner-history-control"><span id="write-policy-label">Allow write operations</span><button className="planner-history-switch" role="switch" type="button" aria-labelledby="write-policy-label" aria-checked={policy?.enabled??false} disabled={!policy?.active||policy.locked||busy} onClick={()=>void toggle()}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div><p>{policy?.locked?'Administratively locked read-only. Change the launch restriction to allow writes.':'Applies to this running API session. Enabling allows write requests; review, Authorize and Execute remain separate.'}</p><small>Changing availability invalidates pending write authorization. OFF blocks later write steps; an active operation finishes at its supported boundary. Existing files are not overwritten.</small>{error&&<p role="alert">{error}</p>}<button className="context-intent-toggle" type="button" disabled={busy} onClick={()=>void refresh()}>Refresh write status</button></section>;}
+export function WritePolicyStatus(){
+ const {policy,busy,error,toggle}=useWritePolicy();
+ return <div className="write-policy-toolbar"><div className="planner-history-control"><span id="toolbar-write-label">⚠ Allow writes</span><button className="planner-history-switch" role="switch" type="button" aria-labelledby="toolbar-write-label" aria-checked={policy?.enabled??false} aria-describedby="toolbar-write-state" disabled={!policy?.active||policy.locked||busy} title="Session availability only. Exact authorization and Execute are still required; changing this invalidates pending write authorization." onClick={()=>void toggle()}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div><small id="toolbar-write-state" role="status">Writes: {policy?.active?(policy.enabled?'ON':policy.locked?'LOCKED':'OFF'):'unavailable'}</small>{error&&<small role="alert">{error}</small>}</div>;
+}

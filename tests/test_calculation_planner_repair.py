@@ -13,12 +13,80 @@ from geoagent_harness.operations.registry import argument_models
 from geoagent_harness.planner.prompt_scope import schema_scope
 
 PROMPT = 'Inspect sample_orders.csv. Create a new numeric column doubled equal to amount multiplied by 2. Preserve all original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.'
+FOLLOWUP = 'Keep the CSV inspection. Add a calculation creating doubled = amount * 2 for every row. Save the result to a fresh CSV under data/output. Do not use PostgreSQL or PostGIS.'
 
 
-def ready(multiplier=2):
+def ready(multiplier=2,inspect=True):
     plan=proposal().plan.model_dump(mode='json')
     plan['steps'][0]['arguments']['calculations'][0]['expression']['right']['value']=multiplier
+    if inspect:
+        calculation=plan['steps'][0]
+        calculation.update(step_id='step_2',depends_on=['step_1'])
+        plan['steps'].insert(0,{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect original source','arguments':{'path':calculation['arguments']['path']},'requires_approval':False,'validation_required':False,'expected_artifacts':[]})
     return {'message':'Calculation ready for review. Nothing executed.', 'plan':plan}
+
+
+@pytest.mark.parametrize('message', [FOLLOWUP, FOLLOWUP.replace('CSV inspection', 'inspection')])
+@pytest.mark.parametrize('broad_selection', [False, True])
+def test_keep_inspection_calculation_followup_has_focused_typed_decoder(project, message, broad_selection):
+    initial = ready()
+    initial['plan']['steps'] = initial['plan']['steps'][:1]
+    saved = turn(project, Client(initial), 'Inspect sample_orders.csv. No writes.')
+    client = Client(ready())
+    result = conversation_turn(TurnRequest(action='turn', conversation_id=ID, expected_revision=1, message=message,
+        allowed_skill_ids=list(argument_models(project)) if broad_selection else []), project_root=project, model_client=client)
+    system = json.loads(client.requests[0].messages[0].content)
+    assert set(system['operation_argument_schemas']) == {'inspect_csv', 'calculate_csv_columns'}
+    assert set(system['available_skills']) == set(argument_models(project))
+    assert system['requested_step_sequence'] == ['inspect_csv', 'calculate_csv_columns']
+    assert system['requested_operation_coverage']['operation'] == 'calculate_csv_columns'
+    steps = result['planner_result']['plan']['steps']
+    assert steps[0]['arguments'] == saved['planner_result']['plan']['steps'][0]['arguments']
+    assert steps[1]['depends_on'] == ['step_1']
+    assert steps[1]['arguments']['path'] == steps[0]['arguments']['path']
+    assert steps[1]['arguments']['calculations'][0]['expression']['right']['value'] == 2
+    assert steps[1]['requires_approval'] and steps[1]['validation_required']
+    assert result['context_usage']['model_request']['prompt_bytes'] < 28000
+    assert result['context_usage']['model_request']['planner_contract'] == 'csv-revision-v3'
+    assert not result['execution_performed'] and not result['approval_performed']
+    assert not (project/'data/output').exists()
+
+
+def test_failed_keep_inspection_followup_preserves_saved_inspection(project):
+    initial = ready()
+    initial['plan']['steps'] = initial['plan']['steps'][:1]
+    saved = turn(project, Client(initial), 'Inspect sample_orders.csv. No writes.')
+    invalid = {'message': 'Ready', 'plan': None, 'undeclared_fixture_field': True}
+    client = Client(invalid, invalid)
+    with pytest.raises(PlannerAgentError):
+        turn(project, client, FOLLOWUP, revision=1)
+    assert len(client.requests) == 2
+    assert read(project)['planner_result'] == saved['planner_result']
+    assert read(project)['revision'] == 1
+    assert not (project/'data/output').exists()
+
+
+@pytest.mark.parametrize('change', ['source', 'preview', 'dependency'])
+def test_keep_inspection_followup_repairs_source_or_settings_drift(project, change):
+    initial = ready()
+    initial['plan']['steps'] = initial['plan']['steps'][:1]
+    turn(project, Client(initial), 'Inspect sample_orders.csv. No writes.')
+    wrong = ready()
+    if change == 'source':
+        wrong['plan']['steps'][0]['arguments']['path'] = 'data/input/example.csv'
+    elif change == 'preview':
+        wrong['plan']['steps'][0]['arguments']['preview_rows'] = 20
+    else:
+        wrong['plan']['steps'][1].pop('depends_on')
+    client = Client(wrong, ready())
+    result = turn(project, client, FOLLOWUP, revision=1)
+    assert len(client.requests) == 2
+    decoder = client.requests[0].response_schema
+    args = decoder['$defs']['WorkflowPlan']['properties']['steps']['prefixItems'][0]['properties']['arguments']
+    assert args['additionalProperties'] is False
+    assert args['properties']['path']['const'] == 'data/input/sample_orders.csv'
+    assert result['planner_result']['plan']['steps'][0]['arguments'] == {'path': 'data/input/sample_orders.csv'}
+    assert not result['execution_performed']
 
 
 def test_exact_acceptance_wording_gets_positive_complete_calculation_example(project):
@@ -80,7 +148,7 @@ def test_schema_promise_receives_one_grounded_correction_not_a_canned_workflow(p
     assert correction['valid_reply_structure_example']['plan']
     assert correction['example_scope']
     assert 'Please confirm' not in client.requests[1].messages[-2].content
-    assert result['planner_result']['plan']['steps'][0]['arguments']['calculations'][0]['expression']['right']['value']==7
+    assert result['planner_result']['plan']['steps'][-1]['arguments']['calculations'][0]['expression']['right']['value']==7
     assert result['context_usage']['effort_budget']['model_calls']==2
     assert not result['execution_performed']
 
@@ -100,7 +168,7 @@ def test_repeated_deferral_has_specific_failure_and_preserves_last_workflow(proj
 
 
 def test_original_schema_finding_survives_following_deferral(project):
-    bad=ready();bad['plan']['steps'][0]['arguments'].pop('missing_policy')
+    bad=ready();bad['plan']['steps'][-1]['arguments'].pop('missing_policy')
     with pytest.raises(PlannerAgentError) as caught:
         turn(project,Client(bad,SCHEMA_DEFERRAL),PROMPT)
     assert caught.value.reason=='schema_repair_deferred'
@@ -115,8 +183,8 @@ def test_genuine_missing_column_question_remains_valid(project):
 
 
 def test_selected_calculation_example_does_not_invent_inspection_permission(project):
-    client=Client(ready())
-    result=conversation_turn(TurnRequest(action='turn',conversation_id=ID,message=PROMPT,
+    client=Client(ready(inspect=False))
+    result=conversation_turn(TurnRequest(action='turn',conversation_id=ID,message='Create a numeric column doubled equal to amount multiplied by 2 in sample_orders.csv, preserving missing values.',
         allowed_skill_ids=['calculate_csv_columns']),project_root=project,model_client=client)
     system=json.loads(client.requests[0].messages[0].content)
     assert [s['skill'] for s in system['reply_shape_example']['plan']['steps']]==['calculate_csv_columns']
@@ -194,6 +262,7 @@ def test_repeated_operation_omission_preserves_workflow_and_transcript(project):
     'Add calculate_csv_columns: doubled = amount multiplied by 2.',
     'Inspect x.csv then multiply amount by 2. Do not execute.',
     'Create a derived column total. Do not execute yet.',
+    'Inspect orders.csv, then calculate doubled = amount * 2.',
 ])
 def test_explicit_calculation_coverage_requests(message):
     from geoagent_harness.planner.request_coverage import requests_calculated_columns

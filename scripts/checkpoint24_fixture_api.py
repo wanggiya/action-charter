@@ -13,6 +13,10 @@ parser.add_argument('--root',required=True)
 parser.add_argument('--planning-task-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
 parser.add_argument('--calculation-fixture',action='store_true')
+parser.add_argument('--write-policy-fixture',action='store_true')
+parser.add_argument('--critic-graph-fixture',action='store_true')
+parser.add_argument('--report-authorization-fixture',action='store_true')
+parser.add_argument('--visualization-fixture',action='store_true')
 parser.add_argument('--calculation-deferral-fixture',action='store_true')
 parser.add_argument('--calculation-invalid-json-fixture',action='store_true')
 parser.add_argument('--calculation-omission-fixture',action='store_true')
@@ -46,6 +50,14 @@ class FixtureModel:
         with (root/'model-calls.jsonl').open('a') as handle:
             handle.write(json.dumps({'role':role or json.loads(request.messages[0].content).get('agent_id')})+'\n')
         if role=='critic' and json.loads(request.messages[0].content).get('required_json_schema',{}).get('title')=='OutcomeAssessment':
+            if args.critic_graph_fixture:
+                import time
+                (root/'critic-entered').write_text('fixture only')
+                deadline=time.monotonic()+25
+                while (root/'hold-critic').exists():
+                    if time.monotonic()>deadline:raise TimeoutError('Fixture review hold expired')
+                    time.sleep(.02)
+                if (root/'fail-critic').exists():raise TimeoutError('Fixture Critic unavailable')
             source=json.loads(request.messages[1].content)
             return ModelResult(model='temporary Critic fixture',content=json.dumps({'deterministic_status':source['deterministic_status'],
                 'conclusion':'supported' if source['deterministic_status']=='completed' else 'needs_attention',
@@ -64,6 +76,18 @@ class FixtureModel:
             proposed={'summary':'Calculate doubled amount','steps':[
                 {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
                 {'step_id':'step_2','skill':'calculate_csv_columns','purpose':'Double amount and propagate missing values','arguments':{'path':'data/input/sample_orders.csv','missing_policy':'propagate','calculations':[{'output_column':'doubled','expression':{'kind':'binary','operator':'multiply','left':{'kind':'column','name':'amount'},'right':{'kind':'number','value':2}}}],'assumptions':['amount uses the original source units']},'depends_on':['step_1'],'requires_approval':True,'validation_required':True}]}
+            if args.visualization_fixture and (root/'vector-visualization').exists():
+                proposed={'summary':'Inspect vector fixture', 'steps':[
+                    {'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect vector metadata',
+                     'arguments':{'path':'data/input/sample_points.geojson'},'requires_approval':False,'validation_required':False}]}
+            if args.report_authorization_fixture:
+                proposed={'summary':'Inspect CSV and assess an existing fixture table; record evidence', 'steps':[
+                    {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV metadata','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
+                    {'step_id':'step_2','skill':'validate_postgis_layer','purpose':'Assess existing fixture table','arguments':{'target_schema':'public','target_table':'fixture_points'},'requires_approval':True,'validation_required':True},
+                    {'step_id':'step_3','skill':'generate_report','purpose':'Record evidence report','arguments':{'task_id':'fixture-report'},'requires_approval':True,'validation_required':False},
+                ]}
+            if args.write_policy_fixture:
+                proposed['steps'].append({'step_id':'step_3','skill':'export_csv','purpose':'Export calculated table','arguments':{'source_step':'step_2'},'depends_on':['step_2'],'requires_approval':True,'validation_required':True})
             if args.calculation_deferral_fixture or args.calculation_invalid_json_fixture or args.calculation_omission_fixture:
                 system=json.loads(request.messages[0].content)
                 assert 'calculate_csv_columns' in system['operation_argument_schemas']
@@ -172,7 +196,7 @@ method_memory.SharedModelClient=lambda settings:FixtureModel()
 method_helper.SharedModelClient=lambda settings:FixtureModel()
 from geoagent_harness.interface_api import run_assessment
 run_assessment.SharedModelClient=lambda settings:FixtureModel()
-if args.recipe_runs_fixture:
+if args.recipe_runs_fixture or args.write_policy_fixture:
     from geoagent_harness.planner import recipe_authoring
     from geoagent_harness.recipes import runner
     recipe_authoring.SharedModelClient=lambda settings:FixtureModel()
@@ -188,6 +212,9 @@ if args.recipe_runs_fixture:
         return original_verify(*arguments,**keywords)
     runner.validate_tabular_output=bounded_fixture_verify
 os.chdir(root)
+from geoagent_harness.write_policy import session
+policy_session=session(root,enabled=os.environ.get('ENABLE_WRITE_TOOLS')=='true')
+policy_session.__enter__()
 http=ThreadingHTTPServer(('127.0.0.1',0),server._handler(root))
 print(json.dumps({'port':http.server_port,'root':str(root)}),flush=True)
 http.serve_forever()

@@ -208,6 +208,9 @@ def inspect_csv(path,settings,delimiter=',',preview_rows=5):
     data=read_bytes(root,path);frame=read_frame(data,args.delimiter)
     return {'operation':'inspect_csv','data_contract':'table/csv-v1','source':path,'source_sha256':hashlib.sha256(data).hexdigest(),**_preview(frame,args.preview_rows),'effects':'read_only','execution_performed':True,'validation_performed':False,'warnings':['Values are read as strings; empty fields are missing, literal NA/NULL strings are preserved.']}
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def run_operation(skill,arguments,settings,completed_results=None):
     if skill not in WRITE_IDS:raise TabularError('Unsupported tabular write operation')
     if not settings.enable_write_tools:raise TabularError('Write tools are disabled')
@@ -244,7 +247,7 @@ def run_operation(skill,arguments,settings,completed_results=None):
             raise TabularError('Independent calculation verification failed before publication')
         calculation = {'calculation_arguments': args.model_dump(mode='json', exclude_none=True)}
     path=_publish(root,args.target_path,data)
-    return {**calculation,'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
+    return {**calculation,'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame,10),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
 
 def validate_output(result,settings):
     root=Path(settings.project_root).resolve()

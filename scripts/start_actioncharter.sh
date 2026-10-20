@@ -21,7 +21,8 @@ Start the ActionCharter interface API and frontend on loopback.
 
 Options:
   --check                 Run startup checks without starting either service.
-  --enable-write-tools    Enable bounded, approval-gated recipe execution.
+  --enable-write-tools    Start with writes ON (also changeable in Settings).
+  --read-only-lock        Prevent enabling writes for this API session.
   --api-port PORT         Interface API port (default: 8765).
   --frontend-port PORT    Frontend port (default: 5173).
   -h, --help              Show this help.
@@ -49,6 +50,7 @@ while (($#)); do
   case "$1" in
     --check) check_only=true; shift ;;
     --enable-write-tools) write_tools=true; shift ;;
+    --read-only-lock) export ACTIONCHARTER_READ_ONLY_LOCK=true; shift ;;
     --api-port)
       (($# >= 2)) || die "--api-port requires a value"
       api_port="$2"; shift 2 ;;

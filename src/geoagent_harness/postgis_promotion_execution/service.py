@@ -116,6 +116,9 @@ class PsycopgPromotionTransaction:
     def close(self) -> None: self.connection.close()
 
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def execute_postgis_promotion(
     *, plan_file: Path, plan_root: Path, approval_file: Path,
     approval_root: Path, settings: MCPSettings,

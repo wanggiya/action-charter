@@ -125,11 +125,14 @@ def prepare_export_workflow(request, *, project_root):
         plan_sha256=request.confirmed_plan_sha256, recipe_filename=state['recipe_filename'], recipe_sha256=digest,
         steps=steps, approval_required_step_ids=[s.step_id for s in result.plan.steps if s.skill == EXPORT],
         write_step_ids=[s.step_id for s in result.plan.steps if s.skill == EXPORT],
-        execution_available=api.load_settings().enable_write_tools, execution_performed=False,
+        execution_available=api.effective_write_settings(api.load_settings(), root).enable_write_tools, execution_performed=False,
         source_attempt_sha256=attempt['execution_preview_sha256'], source_run_result_sha256=state['run_result_sha256'],
         source_evidence_sha256=state['evidence_sha256'], export_plan=export_plan.model_dump(mode='json'),
         export_path=f'snakemake-exports/{recipe.recipe_id}.{digest}.snakemake',
         source_approval_sha256=hashlib.sha256((root / 'approvals' / state['approval_filename']).read_bytes()).hexdigest())
+    state = api.write_policy_snapshot(root)
+    if state:
+        basis['write_policy'] = {key:state[key] for key in ('session_id','revision','enabled')}
     canonical = json.dumps(basis, sort_keys=True, separators=(',', ':'))
     return {**basis, 'review_sha256': hashlib.sha256(canonical.encode()).hexdigest()}
 
@@ -140,7 +143,7 @@ def authorize_export_workflow(request, *, project_root):
     if review['review_sha256'] != request.confirmed_review_sha256:
         raise api.InterfaceApiError('Snakemake authorization review digest no longer matches')
     if not review['execution_available']:
-        raise api.InterfaceApiError('Write tools are disabled; restart with --enable-write-tools')
+        raise api.InterfaceApiError('Write operations are OFF. Enable them in Settings and authorize again.')
     if not request.approve_required_steps or not request.approver.strip() or not request.reason.strip():
         raise api.InterfaceApiError('Explicit approval, approver and reason are required')
     prepared = api.prepare_interface_plan_approval(api.InterfacePlanApprovalPreparationRequest(action='prepare_plan_approval', plan_filename=request.plan_filename, confirmed_plan_sha256=request.confirmed_plan_sha256), project_root=project_root)
@@ -183,6 +186,9 @@ def execute_export_workflow(request, *, project_root):
     verified = api.verify_interface_plan_approval(api.InterfacePlanApprovalVerificationRequest(action='verify_plan_approval', plan_filename=request.plan_filename, confirmed_plan_sha256=request.confirmed_plan_sha256, confirmed_approval_request_sha256=prepared['approval_request_sha256'], approval_filename=request.plan_approval_filename), project_root=root)
     if not verified['approved']:
         raise api.InterfaceApiError('Snakemake authorization expired or blocked; record a new explicit decision')
+    from geoagent_harness.approvals import load_approval
+    from geoagent_harness.write_policy import check
+    check(root, load_approval(path=root / 'approvals' / request.plan_approval_filename, approval_root=root / 'approvals'))
     binding = root / 'approvals' / ('snakemake-review.' + request.plan_approval_filename)
     if binding.is_symlink() or not binding.is_file() or binding.stat().st_size > 4000:
         raise api.InterfaceApiError('Snakemake approval review binding is missing or unsafe')
@@ -221,7 +227,11 @@ def execute_export_workflow(request, *, project_root):
             if step['skill'] == EXPORT:
                 existing = path.exists()
                 if not existing:
-                    generate_snakemake_recipe_export(plan, export_root=root / 'snakemake-exports')
+                    from geoagent_harness.approvals import load_approval
+                    from geoagent_harness.write_policy import authority, operation
+                    approval = load_approval(path=root / 'approvals' / request.plan_approval_filename, approval_root=root / 'approvals')
+                    with authority(root, approval), operation(api.effective_write_settings(api.load_settings(), root)):
+                        generate_snakemake_recipe_export(plan, export_root=root / 'snakemake-exports')
                 record['execution_performed'] = True
                 outcome = {'export_path': review['export_path'], 'export_created': not existing, 'recipe_sha256': plan.recipe_sha256, 'workflow_executed': False}
                 record['step_results'].append(dict(step_id=step['step_id'], skill_id=EXPORT, status='exported' if not existing else 'existing_export', validation_performed=False, outcome=outcome, validation_outcome=None))

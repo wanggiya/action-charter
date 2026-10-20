@@ -22,10 +22,14 @@ assert.deepEqual(drag.canonicalDragPosition(origin,{x:20,y:40},.5,true),{x:140,y
 const vertical = drag.canonicalDragPosition(origin,{x:25,y:72},1,false);
 assert.deepEqual(vertical,{x:200,y:220});
 assert.deepEqual(drag.displayDragPosition(origin,{x:120,y:35},vertical,false),{x:145,y:107});
-assert.deepEqual(drag.canonicalDragPosition(origin,{x:-9999,y:9999},1,true),{x:0,y:4000});
+assert.deepEqual(drag.canonicalDragPosition(origin,{x:-9999,y:9999},1,true),{x:0,y:10199});
+assert.deepEqual(drag.canonicalDragPosition(origin,{x:99999,y:99999},1,true),{x:16000,y:16000});
 const horizontal = drag.bezierGeometry({x:10,y:20},{x:110,y:60},true);
 assert.equal(horizontal.path,'M 10 20 C 60 20, 60 60, 110 60');
 assert.equal(horizontal.labelX,60);
+const returned=drag.bezierGeometry({x:200,y:30},{x:100,y:90},true);
+assert(returned.path.includes(' L '));
+assert(returned.labelY>90);
 assert.equal(drag.bezierGeometry({x:10,y:20},{x:110,y:60},false).path,'M 10 20 C 10 40, 110 40, 110 60');
 const attributes = (initial) => ({values:{...initial},getAttribute(key){return this.values[key]??null},setAttribute(key,value){this.values[key]=value}});
 const path=attributes({d:'original path'}),label=attributes({x:'1',y:'2'});

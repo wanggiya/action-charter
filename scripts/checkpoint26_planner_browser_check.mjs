@@ -125,6 +125,7 @@ try{
  assert((await page.locator('.workflow-review-panel .execute-button').evaluate(el=>getComputedStyle(el).backgroundImage)).includes('linear-gradient'));
  await page.locator('.workflow-review-panel .execute-button').click();
  await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
+ await page.locator('.results-workspace').getByRole('tab',{name:'Checks',exact:true}).click();
  await page.locator('.workflow-outcome-panel .critic-outcome').getByText('Recorded operations completed and their reported validation is available.',{exact:true}).waitFor();
  assert.equal((await readdir(resolve(root,'data/output'))).length,2);
  const cleaned=await readFile(resolve(root,originalTargets[1]),'utf8');
@@ -141,7 +142,8 @@ try{
  assert.equal(await page.getByRole('region',{name:'Reusable recipe candidate'}).count(),0);
  await authorize();
  await page.locator('.workflow-review-panel .execute-button').click();
- await page.locator('.workflow-outcome-panel .outcome-step').nth(2).waitFor();
+ await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
+ await page.getByLabel('Operation result',{exact:true}).selectOption('step_3');
  const csv=await readFile(resolve(root,revisedTargets[2]),'utf8');
  const rows=csv.trim().split('\n').slice(1).map(line=>{const [region,total]=line.split(',');return [region,Number(total)];});
  assert.deepEqual(Object.fromEntries(rows),{Unknown:30,north:35,south:40});

@@ -56,6 +56,9 @@ def retrieve(root, conversation_id, message, available, *, use_history=True, sel
             snippet={'method_id':record['method_id'],'name':record['name'],'tags':record['tags'],'source_run_id':source['run_id'],
                      'source_plan_sha256':source['plan_sha256'],'evidence_sha256':source['evidence_sha256'],'historical_operations':steps,
                      'limitations':'Own-chat recorded success only. Recheck inputs/columns/contracts. Supply fresh output bindings. No authority or general applicability.'}
+            annotation=record.get('critic_annotation')
+            if annotation and annotation.get('run_id')==source['run_id'] and annotation.get('evidence_sha256')==source['evidence_sha256']:
+                snippet['advisory_method_note']=redact_value({key:annotation[key] for key in ('title','purpose','limitations','model','evidence_kind','execution_authority_granted')})
             if len(json.dumps(snippets+[snippet]).encode())>8000:continue
             snippets.append(snippet)
         except (ValueError,OSError,KeyError,TypeError,InterfaceApiError):

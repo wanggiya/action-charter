@@ -24,14 +24,24 @@ _LOCK = RLock()
 TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'validation_failed'}
 
 
+class ChartAnalysis(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    group_by: str = Field(min_length=1, max_length=120)
+    value: str | None = Field(default=None, min_length=1, max_length=120)
+    aggregation: Literal['count', 'sum', 'mean', 'min', 'max']
+
+
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain']
+    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview']
     run_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     workflow: WorkflowRequest | None = None
     conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
+    analysis: ChartAnalysis | None = None
     review_outcome: bool = False
     retry_assessment: bool = False
+    step_id: str | None = Field(default=None, pattern=r'^step_[1-9][0-9]*$')
+    confirmed_plan_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
 
 
 def _now():
@@ -182,7 +192,12 @@ class _Observer:
                         step['finished_at'] = _now()
                     if outcome is not None:
                         bounded = _bounded_outcome(outcome)
-                        step['outcome'] = bounded if len(json.dumps(bounded).encode())<=6000 else {'preview_omitted':True,'reason':'Intermediate result exceeds the 6 KB preview budget; inspect durable evidence'}
+                        limit = 6000
+                        if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
+                            from geoagent_harness.skills.inspect_vector.preview import fit_recorded_geometry
+                            bounded = fit_recorded_geometry(bounded)
+                            limit = 12000
+                        step['outcome'] = bounded if len(json.dumps(bounded).encode())<=limit else {'preview_omitted':True,'reason':'Intermediate result exceeds the recorded preview budget; inspect durable evidence'}
                     if validation is not None:
                         bounded = _bounded_outcome(validation)
                         step['validation_outcome'] = bounded if len(json.dumps(bounded).encode())<=3000 else {
@@ -300,6 +315,17 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
     if request.action=='assess':
         from .run_assessment import assess_run
         return assess_run(root,request.run_id,retry=request.retry_assessment)
+    if request.action == 'preview':
+        # Capture scope under the run lock; CSV I/O must not hold up progress,
+        # cooperative cancellation or another read of the execution record.
+        with _LOCK:
+            record = _read(directory, request.run_id)
+        from .result_preview import preview_result
+        from geoagent_harness.tabular.service import TabularError
+        try:
+            return preview_result(root, record, request)
+        except TabularError as error:
+            raise InterfaceApiError(str(error)) from error
     with _LOCK:
         if request.action == 'list':
             records = [_read(directory, p.stem) for p in sorted(directory.glob('*.json'),key=lambda p:p.stat().st_mtime,reverse=True)[:50]]

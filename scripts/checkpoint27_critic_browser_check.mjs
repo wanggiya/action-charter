@@ -1,0 +1,155 @@
+#!/usr/bin/env node
+// Actual shared backend and temporary CSV files; deterministic model proposal only.
+import {createServer} from 'node:http';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,dirname,extname,isAbsolute} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const root=await mkdtemp(resolve(tmpdir(),'actioncharter-critic-'));
+const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??resolve(repo,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(repo,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+const {chromium}=await import(isAbsolute(provider)?pathToFileURL(provider).href:provider);
+let apiPort,child,browser; const calls=[],errors=[],cases=[];
+const frontend=createServer(async(req,res)=>{
+ try {
+  if(req.url.startsWith('/api/')) {
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   calls.push({method:req.method,path:req.url,action:req.method==='POST'?JSON.parse(Buffer.concat(chunks).toString()).action:undefined});
+   const response=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});
+   res.writeHead(response.status,{'Content-Type':'application/json'});res.end(await response.text());return;
+  }
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  const file=pathname.startsWith('/assets/')?resolve(repo,'interface/dist','.'+pathname):resolve(repo,'interface/dist/index.html');
+  const content=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(content);
+ }catch(error){res.writeHead(500);res.end(String(error));}
+});
+await new Promise(done=>frontend.listen(0,'127.0.0.1',done));
+const origin=`http://127.0.0.1:${frontend.address().port}`;
+try{
+ child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root,'--calculation-fixture','--critic-graph-fixture'],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'true',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
+ let stderr='';child.stderr.on('data',data=>stderr+=data);
+ apiPort=await new Promise((done,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error(`API startup timeout: ${stderr}`)),20000);child.stdout.on('data',data=>{output+=data;if(output.includes('\n')){clearTimeout(timer);done(JSON.parse(output.split('\n')[0]).port);}});child.on('exit',code=>{clearTimeout(timer);reject(new Error(`API exited ${code}: ${stderr}`));});});
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1600,height:1000}});page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+ const critic=page.locator('[data-critic-node="true"]');
+ const information=page.locator('.inspector .critic-outcome');
+ const generate=async()=>{
+   await page.getByRole('textbox',{name:'Message Planner'}).fill('Inspect sample_orders.csv. Calculate doubled as amount multiplied by 2, preserve original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.');
+   await page.locator('.planner-composer button[type=submit]').click();
+   await page.locator('[data-operation-node="planned_step_2"]').waitFor({timeout:20000});
+ };
+ const execute=async()=>{
+   await page.getByRole('button',{name:'Authorize',exact:true}).first().click();
+   await page.locator('.workflow-authorization-form textarea').fill('Only fresh temporary CSV fixture outputs.');
+   await page.locator('.workflow-authorization-form button[type=submit]').click();
+   await page.locator('.authorization-duration').waitFor();
+   await page.locator('.workflow-review-panel .execute-button').click();
+   await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor({timeout:30000});
+   await page.getByRole('button',{name:'Close outcome',exact:true}).click();
+ };
+ await page.goto(origin);
+ await generate();
+ assert.equal(await critic.count(),0);
+ cases.push('A proposal without a recorded assessment has no invented Critic node');
+ const firstChat=await page.evaluate(()=>localStorage.getItem('actioncharter:planner-conversation:v1'));
+ await writeFile(resolve(root,'hold-critic'),'fixture only');
+ await execute();
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewing');
+ assert.equal(await critic.count(),1);
+ const outcome=page.locator('.flow-node').filter({has:page.locator('.node-main strong').filter({hasText:'Workflow outcome'})});
+ assert((await outcome.getAttribute('class')).includes('status-complete'));
+ assert.equal(await page.locator('[data-edge-from="planned_outcome"][data-edge-to="planned_critic"]').count(),1);
+ assert.equal(await page.locator('.critic-advisory-edge').count(),1);
+ await critic.click();
+ await information.getByText('Reviewing',{exact:true}).waitFor();
+ assert((await information.textContent()).includes('Recorded execution: completed'));
+ const firstRun=(await information.locator('.critic-run-identity code').textContent()).trim();
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewing');
+ await critic.click();
+ assert((await information.textContent()).includes(firstRun));
+ await rm(resolve(root,'hold-critic'));
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewed');
+ await information.getByText('Reviewed',{exact:true}).waitFor();
+ await information.getByText('Limitations · 1',{exact:true}).click();
+ assert((await information.textContent()).includes('Fixture observations do not prove suitability'));
+ await information.getByText('Assessment provenance',{exact:true}).click();
+ assert((await information.textContent()).includes('temporary Critic fixture'));
+ cases.push('Completed execution remains completed during review; refresh reconnects read-only polling and shows the matching assessment/provenance');
+ assert.equal(await critic.locator('[data-port-node]').count(),0);
+ assert.equal(await page.getByRole('region',{name:'Workflow operations'}).getByRole('button').count(),2);
+ const stored=await page.evaluate(async id=>(await fetch('/api/v1/workflow/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read',run_id:id})})).json(),firstRun);
+ assert.equal(stored.steps.length,2);
+ assert.deepEqual(stored.steps.map(step=>step.skill_id),['inspect_csv','calculate_csv_columns']);
+ assert(!stored.steps.some(step=>step.skill_id==='critic'));
+ cases.push('Advisory branch has no editable ports and never becomes an operation in the persisted executable workflow');
+ let projectedState='deferred';
+ const historicalState=async route=>{
+   const request=route.request().postDataJSON();
+   if(request.action!=='read'||request.run_id!==firstRun){await route.continue();return;}
+   const response=await route.fetch();const data=await response.json();
+   data.critic_review={status:projectedState,finding:'Historical assessment fixture'};
+   await route.fulfill({response,json:data});
+ };
+ await page.route('**/api/v1/workflow/runs',historicalState);
+ await page.getByRole('button',{name:'Refresh recorded results',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Deferred');
+ projectedState='not_requested';
+ await page.getByRole('button',{name:'Refresh recorded results',exact:true}).click();
+ await critic.waitFor({state:'detached'});
+ await page.unroute('**/api/v1/workflow/runs',historicalState);
+ await page.getByRole('region',{name:'Workflow operations'}).getByRole('button',{name:/Calculate table columns/}).click();
+ await page.getByRole('button',{name:'Refresh recorded results',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewed');
+ await critic.click();
+ cases.push('Historical deferred assessment is advisory; an explicitly not-requested assessment creates no node (read-response fixtures only)');
+ await page.getByRole('button',{name:'Execution History',exact:true}).click();
+ await page.getByRole('button',{name:'Workflow runs · cancellation and recovery',exact:true}).click();
+ const runPanel=page.locator('.workflow-runs-panel');
+ await page.waitForFunction(()=>document.querySelector('.workflow-runs-panel select')?.options.length===2);
+ await runPanel.locator('select').selectOption(firstRun);
+ await runPanel.getByRole('button',{name:'View Critic review in graph',exact:true}).click();
+ assert((await information.textContent()).includes(firstRun));
+ const before=await readFile(resolve(root,'model-calls.jsonl'),'utf8');
+ await page.getByRole('button',{name:'Refresh recorded results',exact:true}).click();
+ await information.getByText('Reviewed',{exact:true}).waitFor();
+ assert.equal(await readFile(resolve(root,'model-calls.jsonl'),'utf8'),before);
+ cases.push('History selection restores the exact Critic run; opening and refreshing do not request another model call or execution');
+ await page.getByRole('button',{name:'Planner agent',exact:true}).click();
+ await page.getByRole('button',{name:'New chat',exact:true}).click();
+ assert.equal(await critic.count(),0);
+ await writeFile(resolve(root,'fail-critic'),'fixture only');
+ await generate();await execute();
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Unavailable');
+ await critic.click();
+ await information.getByText('Unavailable',{exact:true}).waitFor();
+ assert((await information.textContent()).includes('Recorded execution: completed'));
+ assert((await outcome.getAttribute('class')).includes('status-complete'));
+ const secondRun=(await information.locator('.critic-run-identity code').textContent()).trim();
+ assert.notEqual(firstRun,secondRun);
+ assert.equal((await readdir(resolve(root,'data/output'))).length,2);
+ cases.push('Critic failure shows advisory Unavailable while validated execution/output remain successful');
+ await page.getByRole('button',{name:'Planner agent',exact:true}).click();
+ await page.getByRole('combobox',{name:'Saved planning conversation',exact:true}).selectOption(firstChat);
+ await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewed');
+ await critic.click();
+ assert((await information.textContent()).includes(firstRun));
+ assert(!(await information.textContent()).includes(secondRun));
+ await page.getByRole('region',{name:'Workflow operations'}).getByRole('button',{name:/Calculate table columns/}).click();
+ await page.getByRole('button',{name:'Block tools',exact:true}).click();
+ await page.getByRole('button',{name:'Parameters',exact:true}).click();
+ await page.getByRole('group',{name:'Calculated columns',exact:true}).getByRole('spinbutton',{name:'Calculation number'}).fill('3');
+ assert.equal(await critic.count(),0);
+ cases.push('Chat changes bind the original review correctly; unvalidated edits cannot inherit its Critic branch');
+ assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/runs'&&call.action==='start').length,2);
+ assert.equal((await readFile(resolve(root,'model-calls.jsonl'),'utf8')).trim().split('\n').map(line=>JSON.parse(line)).filter(call=>call.role==='critic').length,2);
+ assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,live_service_calls:0,page_errors:errors},null,2));
+}catch(error){console.error(error);console.error(JSON.stringify({cases,errors,calls},null,2));throw error;}
+finally{if(browser)await browser.close();child?.kill();await new Promise(done=>frontend.close(done));await rm(root,{recursive:true,force:true});}

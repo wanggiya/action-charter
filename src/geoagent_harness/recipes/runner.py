@@ -5,6 +5,8 @@ from pathlib import Path
 
 from typing import Any, Callable
 
+from geoagent_harness.write_policy import WritePolicyError
+
 from geoagent_harness.mcp_server.settings import (
     MCPSettings,
 )
@@ -175,7 +177,7 @@ def _validate_postgis_load_step(*, arguments: dict[str, Any], settings: MCPSetti
         settings=settings,
     )
 
-def run_approved_recipe(
+def _run_approved_recipe(
     *,
     recipe: WorkflowRecipe,
     approval: RecipeApprovalRecord,
@@ -262,7 +264,7 @@ def run_approved_recipe(
             )
 
         try:
-            if skill.approval_required:
+            if step_id in envelope.approved_step_ids:
                 # A long earlier step must not let expired authority start a write.
                 build_recipe_execution_envelope(recipe=recipe, approval=approval, registry=registry)
             execution = dispatch_recipe_step(
@@ -272,7 +274,7 @@ def run_approved_recipe(
                 settings=settings,
                 **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) else {}),
             )
-        except (RecipeDispatchError, RecipeExecutionPolicyError) as exc:
+        except (RecipeDispatchError, RecipeExecutionPolicyError, WritePolicyError) as exc:
             if progress_callback is not None:
                 progress_callback(step_id, step.skill_id, "failed")
             raise RecipeRunError(
@@ -462,3 +464,12 @@ def run_approved_recipe(
             expected_validations
         ),
     )
+
+
+def run_approved_recipe(*, recipe, approval, registry, settings, progress_callback=None):
+    from geoagent_harness.write_policy import authority, effective
+    from contextlib import nullcontext
+    writes=any(registry.get_skill(step.skill_id).access!=SkillAccess.READ_ONLY for step in recipe.steps)
+    with (authority(settings.project_root, approval) if writes else nullcontext()):
+        return _run_approved_recipe(recipe=recipe, approval=approval, registry=registry,
+            settings=effective(settings), progress_callback=progress_callback)

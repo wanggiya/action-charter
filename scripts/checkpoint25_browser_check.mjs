@@ -89,11 +89,13 @@ try{
  assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
  await page.locator('.workflow-review-panel .execute-button').click();
  await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor({timeout:30000});
- await page.locator('.workflow-outcome-panel .outcome-step>summary').last().click();
+ await page.locator('.results-workspace').getByRole('tab',{name:'Table',exact:true}).click();
  assert.equal((await readdir(resolve(root,'data/output'))).length,2);
  assert((await readFile(resolve(root,'data/output/interface_identity_final.csv'),'utf8')).startsWith('order_id,region\n001,north\n'));
- assert.equal(await page.locator('.table-result-preview').last().locator('tbody tr').count(),5);
- assert((await page.locator('.workflow-outcome-panel').textContent()).includes('Success · output validated'));
+ assert.equal(await page.locator('.result-table-scroll').last().locator('tbody tr').count(),6);
+ assert((await page.locator('.result-table-scroll').last().textContent()).includes('006'));
+ await page.locator('.results-workspace').getByRole('tab',{name:'Checks',exact:true}).click();
+ assert((await page.locator('.results-workspace').textContent()).includes('Validation passed'));
  cases.push('Exact authorization then real adapter execution/export produces validated CSV and bounded result preview');
  await page.getByRole('button',{name:'Close outcome'}).click();
  await page.reload();

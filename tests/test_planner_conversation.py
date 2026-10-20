@@ -91,7 +91,7 @@ def test_chat_recipe_authoring_persists_candidate_without_replacing_workflow(pro
     recipe=catalog(project)['recipe_clean_csv']
     base,_=compose([RecipeUse(recipe_id=recipe.id,recipe_sha256=recipe_digest(recipe),alias='clean',parameters={
         'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}})],project)
-    first=turn(project,Client({'message':'Ready','plan':base.plan.model_dump(mode='json')}))
+    first=turn(project,Client({'message':'Ready','plan':base.plan.model_dump(mode='json')}),'Select region and amount from sample_orders.csv; fill missing regions with Unknown.')
     original=first['planner_result']['plan_sha256']
     main=Client({'message':'Prepare recipe','workflow_action':'prepare_recipe'})
     author=Client(recipe.model_dump(mode='json'))

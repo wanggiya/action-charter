@@ -16,6 +16,25 @@ from geoagent_harness.planner.agent import PlannerAgentError, _schema_findings
 from geoagent_harness.planner.decoder_schema import decoder_schema
 
 
+@pytest.mark.parametrize('exclusion', ['No PostgreSQL or PostGIS operations.', 'Without PostGIS operations.'])
+def test_csv_schema_focus_ignores_explicit_spatial_exclusions(exclusion):
+    from geoagent_harness.planner.prompt_scope import schema_scope
+    allowed = ['inspect_csv', 'aggregate_csv', 'inspect_vector', 'validate_postgis_layer']
+    message = 'Inspect visualization_regions.csv. ' + exclusion
+    assert schema_scope(message, allowed) == allowed[:2]
+    # Positive spatial intent and explicit selections still retain their scope.
+    assert schema_scope(message + ' Also inspect vector boundaries.geojson.', allowed) == allowed
+    assert schema_scope(message, allowed, selected=True) == allowed
+
+
+def test_extra_field_repair_is_actionable_without_echoing_unknown_names():
+    with pytest.raises(ValidationError) as error:
+        Reply.model_validate({'message': 'Proposal', 'plan': None, 'private_unknown_name': 1})
+    findings = _schema_findings(error.value)
+    assert 'remove properties not declared' in findings[0]
+    assert 'private_unknown_name' not in findings[0]
+
+
 def test_schema_is_sent_to_provider_and_old_json_mode_remains_supported():
     seen=[]
     def reply(request):
@@ -197,12 +216,12 @@ def test_http_json_and_length_failures_report_specific_safe_diagnostics(project,
 
 def test_registry_binds_required_gates_without_granting_authority(project):
     proposed=ready()
-    step=proposed['plan']['steps'][0]
+    step=next(step for step in proposed['plan']['steps'] if step['skill']=='calculate_csv_columns')
     step['requires_approval']=False;step['validation_required']=False
     result=turn(project,Client(proposed),PROMPT)
-    canonical=result['planner_result']['plan']['steps'][0]
+    canonical=next(step for step in result['planner_result']['plan']['steps'] if step['skill']=='calculate_csv_columns')
     assert canonical['requires_approval'] and canonical['validation_required']
-    assert result['context_usage']['required_gate_bindings']==['step_1']
+    assert result['context_usage']['required_gate_bindings']==[canonical['step_id']]
     assert not result['approval_performed'] and not result['execution_performed']
     assert not (project/'approvals').exists() and not (project/'data/output').exists()
 
