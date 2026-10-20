@@ -15,7 +15,7 @@ def simple_calculation_sequence(message: str) -> bool:
     text = message.casefold()
     return (
         len(re.findall(r'\b(?:add|create|compute|calculate|derive)\b', text)) == 1
-        and bool(re.search(r'\b(?:numeric|computed|calculated|derived)\s+column\b', text))
+        and bool(re.search(r'\b(?:numeric|computed|calculated|derived)\s+column\b|\bcalculate\s+[a-z_]\w*\s*=\s*[^;\n]+[+*/-]|\bcalculation\s+(?:creating|producing)\s+[a-z_]\w*\s*=\s*[^;\n.]+[+*/-]', text))
         and not re.search(r'\b(?:numeric|computed|calculated|derived)\s+columns\b', text)
         and not re.search(r"\b(?:do not|don't|never|skip|without)\s+inspect\b", text)
     )
@@ -32,7 +32,8 @@ def requests_calculated_columns(message: str) -> bool:
         ):
             continue
         if re.search(
-            r'\bcalculate_csv_columns\b|'
+            r'\bcalculate_csv_columns\b|\bcalculate\s+[a-z_]\w*\s*=\s*[^;\n]+[+*/-]|'
+            r'\b(?:add|create)\b.{0,40}\bcalculation\s+(?:creating|producing)\s+[a-z_]\w*\s*=\s*[^;\n.]+[+*/-]|'
             r'\b(?:add|create|compute|calculate|derive)\b.{0,120}?'
             r'\b(?:numeric|computed|calculated|derived)\s+columns?\b|'
             r'\b(?:multiply|multiplied|divide|divided)\b.{0,80}?\bby\s+-?\d',
@@ -44,7 +45,17 @@ def requests_calculated_columns(message: str) -> bool:
 
 def validate_calculation_coverage(plan, message: str) -> None:
     """Reject omissions before storage; do not invent formulas or modify plans."""
-    if plan is None or any(step.skill == 'calculate_csv_columns' for step in plan.steps):
+    if plan is None:
+        return
+    # A narrow positive command check, not arbitrary prose interpretation. It
+    # never inserts a step or treats an inspection request as write authority.
+    for clause in re.split(r'[.!?](?:\s+|$)|[;\n]', message.casefold()):
+        match = re.search(r'^\s*inspect\s+.{0,160}?\.(csv|tsv|geojson|gpkg|shp|tif|tiff)\b', clause)
+        if match:
+            skill = 'inspect_csv' if match[1] in {'csv','tsv'} else 'inspect_raster' if match[1] in {'tif','tiff'} else 'inspect_vector'
+            if not any(step.skill == skill for step in plan.steps):
+                raise RequestedOperationOmission('The explicit inspection request is missing from plan.steps. Include '+skill+' for the supplied source before the requested transforms, with the declared completion dependencies. Do not claim inspection was performed. If unavailable, explain that limitation without a partial workflow.')
+    if any(step.skill == 'calculate_csv_columns' for step in plan.steps):
         return
     if requests_calculated_columns(message):
         raise RequestedOperationOmission(

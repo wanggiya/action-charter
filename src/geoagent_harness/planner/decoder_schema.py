@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 
-def decoder_schema(schema, operation_schemas=None, *, step_sequence=None):
+def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspection_source=None, inspection_arguments=None):
     # Older local grammar compilers reject some regexes/bounds in full Pydantic
     # schemas. Keep structure, enums/consts and closed objects; validate patterns,
     # limits and cross-field policy independently after generation. This is not
@@ -85,6 +85,23 @@ def decoder_schema(schema, operation_schemas=None, *, step_sequence=None):
             'type': 'array', 'prefixItems': [deepcopy(by_skill[skill]) for skill in step_sequence],
             'minItems': len(step_sequence), 'maxItems': len(step_sequence),
         }
+        if inspection_source is not None and step_sequence == ['inspect_csv', 'calculate_csv_columns']:
+            # "Keep the inspection" binds its existing source, not the generic
+            # example filename. Inspection is not a table-producing source_step.
+            for branch in result['$defs']['WorkflowPlan']['properties']['steps']['prefixItems']:
+                arguments = branch['properties']['arguments']
+                if branch['properties']['skill'].get('const') == 'inspect_csv' and inspection_arguments is not None:
+                    branch['properties']['arguments'] = {
+                        'type': 'object', 'properties': {key: {'const': value} for key, value in inspection_arguments.items()},
+                        'required': list(inspection_arguments), 'additionalProperties': False,
+                    }
+                    continue
+                if 'anyOf' in arguments:
+                    arguments = next(item for item in arguments['anyOf'] if 'path' in item['properties'])
+                    branch['properties']['arguments'] = arguments
+                arguments['properties']['path'] = {'type': 'string', 'const': inspection_source}
+                branch['properties']['depends_on'] = {'type': 'array', 'items': {'type': 'string', 'const': 'step_1'}, 'minItems': 1, 'maxItems': 1}
+                branch['required'] = list(dict.fromkeys([*branch['required'], 'depends_on']))
     # A full proposal cannot simultaneously request a separate workflow action
     # or recipe/discovery exchange. These are already rejected by the service;
     # express the same distinction to the grammar instead of spending repair on

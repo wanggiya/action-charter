@@ -59,7 +59,7 @@ def _schema_findings(error: ValidationError) -> list[str]:
                    'path', 'right_path', 'source_step', 'right_step', 'target_path',
                    'columns', 'predicates', 'column', 'operator', 'value', 'value_type',
                    'fill_values', 'method', 'keys', 'aggregations', 'by', 'function', 'output_column', 'calculations', 'expression', 'kind', 'left', 'right', 'condition', 'then', 'otherwise', 'missing_policy'}
-    descriptions = {'missing': 'required field is missing', 'extra_forbidden': 'unexpected field is not allowed',
+    descriptions = {'missing': 'required field is missing', 'extra_forbidden': 'unexpected field is not allowed; remove properties not declared for this object in required_json_schema or operation_argument_schemas, preserving all required fields',
                     'list_type': 'must be a list', 'dict_type': 'must be an object',
                     'string_type': 'must be a string', 'bool_type': 'must be a boolean',
                     'literal_error': 'must match the declared schema value',

@@ -1,6 +1,7 @@
 """Plain deterministic functions exposed through the MCP boundary."""
 
 from pathlib import Path
+from geoagent_harness.write_policy import effective
 
 from geoagent_harness.mcp_server.schemas import (
     AssessSpatialDataContractToolResult,
@@ -78,7 +79,7 @@ def plan_geoserver_publication(
     settings: MCPSettings | None = None,
 ) -> GeoServerPublicationPlanResult:
     """Create a read-only digest-bound plan for one existing layer."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     return execute_geoserver_publication_planning(
         request=GeoServerPublicationPlanRequest(
             plan_id=plan_id,
@@ -94,7 +95,7 @@ def inspect_geoserver_layer(
     settings: MCPSettings | None = None,
 ) -> GeoServerInspectionResult:
     """Inspect one exact GeoServer publication through the GET-only boundary."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     return execute_geoserver_inspection(
         request=GeoServerInspectionRequest(workspace=workspace, datastore=datastore, layer=layer),
         settings=active,
@@ -112,7 +113,7 @@ def plan_postgis_promotion(
     settings: MCPSettings | None = None,
 ) -> PostGISPromotionPlanResult:
     """Plan an exact digest-bound promotion without mutation."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     return execute_promotion_planning(
         request=PostGISPromotionPlanRequest(
             plan_id=plan_id,
@@ -159,7 +160,7 @@ def compare_postgis_tables(
     settings: MCPSettings | None = None,
 ) -> PostGISComparisonResult:
     """Compare two exact PostGIS relations through inspection."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     return execute_postgis_comparison(
         request=PostGISComparisonRequest(
             reference=PostGISInspectionRequest(
@@ -181,7 +182,7 @@ def inspect_postgis_table(
     settings: MCPSettings | None = None,
 ) -> PostGISInspectionResult:
     """Inspect one exact PostGIS table through the read-only boundary."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     return execute_postgis_inspection(
         request=PostGISInspectionRequest(
             target_schema=target_schema,
@@ -195,7 +196,7 @@ def health_check(
     settings: MCPSettings | None = None,
 ) -> HealthCheckResult:
     """Return only non-secret status and policy information."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
 
     return HealthCheckResult(
         write_tools_enabled=active.enable_write_tools,
@@ -210,7 +211,7 @@ def inspect_vector_dataset(
     settings: MCPSettings | None = None,
 ) -> InspectVectorToolResult:
     """Inspect a vector file inside the approved input root."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
 
     result = inspect_vector(
         Path(path),
@@ -228,7 +229,7 @@ def assess_spatial_data_contract(
 ) -> AssessSpatialDataContractToolResult:
     """Assess one approved vector dataset against one contract."""
 
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
     contract = load_spatial_data_contract(
         Path(contract_file),
         contract_root=active.contract_root,
@@ -250,7 +251,7 @@ def plan_load_vector_to_postgis(
     settings: MCPSettings | None = None,
 ) -> LoadVectorPlan:
     """Validate and describe a load without executing it."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
 
     validate_identifier(
         target_schema,
@@ -308,7 +309,7 @@ def load_vector_to_postgis(
     settings: MCPSettings | None = None,
 ) -> LoadVectorResult:
     """Run the controlled loader when writes are enabled."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
 
     return execute_vector_load(
         path=Path(path),
@@ -328,7 +329,7 @@ def validate_postgis_layer(
     settings: MCPSettings | None = None,
 ) -> PostGISValidationResult:
     """Run deterministic read-only PostGIS validation."""
-    active = settings or load_settings()
+    active = effective(settings or load_settings())
 
     return execute_validation(
         target_schema=target_schema,

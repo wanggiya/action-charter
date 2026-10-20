@@ -88,7 +88,7 @@ def test_disabled_writes_do_not_record_approval(project):
     request = stored_request(project, result(write=True))
     review = prepare_workflow(request, project_root=project)
     assert not review['execution_available']
-    with pytest.raises(api.InterfaceApiError, match='Write tools'):
+    with pytest.raises(api.InterfaceApiError, match='Write operations are OFF'):
         execute_workflow(execute_request(request, review, approve_required_steps=True, approver='tester', reason='Exact conversion reviewed'), project_root=project)
     assert not (project / 'approvals').exists()
 

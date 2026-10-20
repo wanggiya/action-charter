@@ -76,8 +76,8 @@ try{
  await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor({timeout:30000});
  assert.equal((await readdir(resolve(root,'data/output'))).length,6);
  assert.equal(await readFile(resolve(root,'data/output/final.csv'),'utf8'),'region_name,total,orders\nNorth region,30,2\nSouth region,40,1\nUnknown region,30,1\n');
- await page.locator(".workflow-outcome-panel .outcome-step > summary").last().click();
- const table=page.locator('.table-result-preview').last();
+ await page.locator(".results-workspace").getByRole("tab",{name:"Table",exact:true}).click();
+ const table=page.locator('.result-table-scroll').last();
  assert((await table.textContent()).includes('North region'));assert.equal(await table.locator('tbody tr').count(),3);
  cases.push('Execute runs real pandas pipeline; independent checks, exact final bytes and bounded preview pass');
  await page.getByRole('button',{name:'Close outcome'}).click();

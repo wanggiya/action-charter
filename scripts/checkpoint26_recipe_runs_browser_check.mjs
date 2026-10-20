@@ -89,7 +89,7 @@ try{
  await page.locator('.workflow-runs-panel').getByRole('heading',{name:'cancelled',exact:true}).waitFor();
  assert.deepEqual(await readdir(resolve(root,'data/output')),['browser_selected.csv']);
  await page.locator('.run-step-list > li').first().locator('summary').first().click();
- await page.getByText('Validation',{exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Validation passed',exact:true}).waitFor();
  cases.push('One Cancel click lets active validation finish, skips the next write and retains the first output');
  await page.getByRole('button',{name:'Prepare recovery with fresh targets',exact:true}).click();
  await page.getByText(/New recovery workflow prepared with fresh targets/).waitFor();
@@ -105,7 +105,7 @@ try{
  await page.getByRole('button',{name:'Workflow runs · cancellation and recovery',exact:true}).click();
  await page.locator('.workflow-runs-panel').waitFor();
  await page.waitForFunction(()=>document.querySelector('.workflow-runs-panel select')?.options.length===3);
- assert.equal(await page.locator('.workflow-runs-panel select option').count(),3);
+ assert.equal(await page.getByRole('combobox',{name:'Workflow run',exact:true}).locator('option').count(),3);
  cases.push('Recovery saves a new full workflow with fresh targets, requires fresh authorization and preserves old output/history');
 
  await page.getByRole('button',{name:'Close workflow runs',exact:true}).click();

@@ -129,6 +129,9 @@ class HttpGeoServerPublicationClient(HttpGeoServerInspectionReader):
             {"featureType": {"enabled": enabled, "advertised": advertised}},
         )
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def execute_geoserver_publication(*, plan_result: GeoServerPublicationPlanResult,
     approval: GeoServerPublicationApproval, settings: MCPSettings,
     confirm_plan_sha256: str, confirm_approval_sha256: str,

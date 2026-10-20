@@ -51,7 +51,7 @@ try {
     else if(url.pathname==='/api/v1/plans/save-generated') {current={...current,...body.planner_result,plan_sha256:body.confirmed_plan_sha256};payload={schema_version:'1.0',status:'stored',plan_filename:`planner-plan.${current.plan_sha256}.json`,plan_sha256:current.plan_sha256,plan_saved:true,plan_modified:false,approval_performed:false,execution_performed:false};}
     else if(url.pathname==='/api/v1/plans/validate-edit') {current={...current,...body.planner_result,plan_sha256:'b'.repeat(64)};payload=current;}
     else if(url.pathname==='/api/v1/plans') payload={schema_version:'1.0',status:'inspected',plans:[],plan_count:0,files_modified:false,execution_performed:false};
-    else if(url.pathname==='/api/v1/workflow/prepare') payload={schema_version:'1.0',plan_filename:`planner-plan.${current.plan_sha256}.json`,plan_sha256:current.plan_sha256,recipe_filename:`fixture.${digest}.json`,recipe_sha256:digest,review_sha256:'a'.repeat(64),steps:current.plan.steps,approval_required_step_ids:current.plan.steps.filter(s=>s.requires_approval).map(s=>s.step_id),write_step_ids:current.plan.steps.filter(s=>s.requires_approval).map(s=>s.step_id),execution_available:true,execution_performed:false};
+    else if(url.pathname==='/api/v1/workflow/prepare') payload={schema_version:'1.0',workflow_kind:'snakemake_export',plan_filename:`planner-plan.${current.plan_sha256}.json`,plan_sha256:current.plan_sha256,recipe_filename:`fixture.${digest}.json`,recipe_sha256:digest,review_sha256:'a'.repeat(64),steps:current.plan.steps,approval_required_step_ids:current.plan.steps.filter(s=>s.requires_approval).map(s=>s.step_id),write_step_ids:current.plan.steps.filter(s=>s.requires_approval).map(s=>s.step_id),execution_available:true,execution_performed:false};
     else if(url.pathname==='/api/v1/workflow/authorize') payload={schema_version:'1.0',review_sha256:'a'.repeat(64),plan_approval_filename:'approval-20261007t000000z-1234abcd.json',recipe_approval_filename:null,approval_recorded:true,execution_performed:false};
     else if(url.pathname==='/api/v1/workflow/execute') {completed={schema_version:'1.0',workflow_kind:'snakemake_export',run_id:'d'.repeat(32),plan_filename:`planner-plan.${current.plan_sha256}.json`,plan_sha256:current.plan_sha256,started_at:'2026-10-07T00:00:00Z',finished_at:'2026-10-07T00:00:01Z',status:'completed',approval_recorded:true,execution_performed:true,step_results:current.plan.steps.map(s=>({step_id:s.step_id,skill_id:s.skill,status:'reused_completed',validation_performed:true,outcome:{source_attempt:'c'.repeat(64),reused:true,source_attempt_content:'Recorded source fixture content'},validation_outcome:{passed:true}}))};payload=completed;}
     else if(url.pathname==='/api/v1/inspection-runs') payload={records:completed?[completed]:[],execution_performed:false};
@@ -59,8 +59,9 @@ try {
     else {status=404;payload={error:'Not provided by isolated browser fixture'};}
     return route.fulfill({status,contentType:'application/json',body:JSON.stringify(payload)});
   });
+  const startupProjection=page.waitForResponse(response=>response.url().endsWith('/runtime/workflow.json'));
   await page.goto(origin);
-  await page.getByRole('button',{name:'Open conversation plan',exact:true}).click();
+  await startupProjection;
   await page.locator('[data-operation-node="planned_step_1"]').waitFor();
   await page.getByRole('button',{name:'Add',exact:true}).click();
   const picker=page.getByRole('dialog',{name:'Add operation'});
@@ -143,10 +144,11 @@ try {
   await page.locator('.workflow-authorization-form button[type=submit]').click();
   await page.locator('.authorization-duration').waitFor();
   assert(await page.locator('.authorization-duration').evaluate(el=>getComputedStyle(el).fontWeight)>=700);
+  await page.locator('.workflow-decision-actions').scrollIntoViewIfNeeded();
   await page.screenshot({path:resolve(output,'authorization.png')});
   const actions=await page.locator('.workflow-decision-actions>button').evaluateAll(els=>els.map(el=>({top:el.getBoundingClientRect().top,type:el.getAttribute('type')})));
   assert.equal(actions.length,2); assert(Math.abs(actions[0].top-actions[1].top)<1);
-  assert(await page.locator('.workflow-decision-actions').evaluate(el=>{const row=el.getBoundingClientRect(),panel=el.closest('.workspace-right-panel').getBoundingClientRect();return row.top>=panel.top && row.bottom<=panel.bottom;}),'Authorization must not scroll away from the action row'); assert.deepEqual(actions.map(a=>a.type),['submit','button']);
+  assert(await page.locator('.workflow-decision-actions').evaluate(el=>{const row=el.getBoundingClientRect(),panel=el.closest('.workspace-right-panel').getBoundingClientRect();return row.top>=panel.top && row.bottom<=panel.bottom;}),'Authorization action row remains accessible in the review panel'); assert.deepEqual(actions.map(a=>a.type),['submit','button']);
   cases.push('Authorization: mixed paired alignment reaches card edges; duration emphasized; actions on one row');
   for (const text of ['black','white']) {
     await page.getByRole('button',{name:'Settings',exact:true}).click();
@@ -162,7 +164,13 @@ try {
   cases.push('Outline and both solid text materials preserve mixed review alignment');
   await page.locator('.workflow-review-panel .execute-button').click();
   await page.locator('.workflow-outcome-panel .outcome-step').first().waitFor();
-  const right=await page.locator('.workflow-outcome-panel dd').evaluateAll(els=>els.every(el=>getComputedStyle(el).textAlign==='right'));
+  await page.locator('.results-workspace').getByRole('tab',{name:'Checks',exact:true}).click();
+  await page.getByRole('heading',{name:'Validation passed',exact:true}).waitFor();
+  await page.locator('.results-workspace').getByRole('tab',{name:'Overview',exact:true}).click();
+  await page.getByText('Recorded metadata',{exact:true}).click();
+  assert((await page.locator('.result-active-operation pre').allTextContents()).some(text=>text.includes('Recorded source fixture content')));
+  await page.getByText('Source and run identity',{exact:true}).click();
+  const right=await page.locator('.results-provenance dd').evaluateAll(els=>els.length>0&&els.every(el=>getComputedStyle(el).textAlign==='right'));
   assert(right);
   await page.screenshot({path:resolve(output,'outcome.png')});
   cases.push('Outcome: source attempt and reused information values align right');
@@ -173,7 +181,6 @@ try {
   await page.screenshot({path:resolve(output,'narrow-review.png')});
   cases.push('Narrow viewport: review remains accessible');
   await page.reload();
-  await page.getByRole('button',{name:'Open conversation plan',exact:true}).click();
   await page.locator('[data-operation-node="planned_step_4"]').waitFor();
   await page.getByRole('button',{name:'Execution History',exact:true}).click();
   await page.getByRole('button',{name:'View outcome',exact:true}).click();

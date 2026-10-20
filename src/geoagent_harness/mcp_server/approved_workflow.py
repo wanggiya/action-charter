@@ -140,7 +140,8 @@ def run_approved_vector_postgis_workflow(
 ) -> WorkflowRunResult:
     """Verify approval server-side, then run the fixed workflow."""
 
-    active = settings or load_settings()
+    from geoagent_harness.write_policy import effective
+    active = effective(settings or load_settings())
 
     if not active.enable_write_tools:
         raise LoadVectorError(
@@ -156,23 +157,26 @@ def run_approved_vector_postgis_workflow(
 
     arguments = verified.tool_arguments
 
-    return run_vector_postgis_workflow(
-        path=Path(arguments.path),
-        source_layer=arguments.source_layer,
-        target_schema=arguments.target_schema,
-        target_table=arguments.target_table,
-        original_request=arguments.original_request,
-        task_id=arguments.task_id,
-        context_references=(
-            arguments.context_references
-        ),
-        human_corrections=(
-            arguments.human_corrections
-        ),
-        settings=active,
-        plan_sha256=verified.plan_sha256,
-        approval_id=verified.approval_id,
-        approved_step_ids=(
-            verified.approved_step_ids
-        ),
-    )
+    from geoagent_harness.write_policy import authority
+    approval = load_approval(path=active.approval_root / approval_filename, approval_root=active.approval_root)
+    with authority(active.project_root, approval):
+        return run_vector_postgis_workflow(
+            path=Path(arguments.path),
+            source_layer=arguments.source_layer,
+            target_schema=arguments.target_schema,
+            target_table=arguments.target_table,
+            original_request=arguments.original_request,
+            task_id=arguments.task_id,
+            context_references=(
+                arguments.context_references
+            ),
+            human_corrections=(
+                arguments.human_corrections
+            ),
+            settings=active,
+            plan_sha256=verified.plan_sha256,
+            approval_id=verified.approval_id,
+            approved_step_ids=(
+                verified.approved_step_ids
+            ),
+        )

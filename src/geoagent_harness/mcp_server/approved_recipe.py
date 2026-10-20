@@ -163,7 +163,8 @@ def run_approved_recipe(
 ) -> PersistedRecipeExecutionResult:
     """Verify exact artifacts, then execute the recipe."""
 
-    active = settings or load_settings()
+    from geoagent_harness.write_policy import effective
+    active = effective(settings or load_settings())
 
     if not active.enable_write_tools:
         raise ApprovedRecipeError(

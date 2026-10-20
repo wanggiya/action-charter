@@ -150,3 +150,17 @@ def operation_catalog(root, query=''):
           'package_sha256':package_sha(package) if package else None,'default_arguments':defaults,'origin':'installed_adapter' if package else 'builtin'})
     query=query.strip().lower()
     return {'schema_version':'1.0','operations':[item for item in result if query in (item['id']+' '+item['name']).lower()],'operation_count':len(result),'approval_performed':False,'execution_performed':False}
+
+
+def planning_dependencies(selected, root=Path('.')):
+    """Include declared prerequisite/verification operations, never new authority."""
+    models = argument_models(root)
+    dependencies = {operation['id']: operation['dependencies'] for operation in operation_catalog(root)['operations']}
+    result = list(dict.fromkeys(selected))
+    for operation in result:
+        for required in dependencies.get(operation, []):
+            if required not in models:
+                raise ValueError('Required planning operation dependency is unavailable: ' + required)
+            if required not in result:
+                result.append(required)
+    return result

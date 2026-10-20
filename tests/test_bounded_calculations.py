@@ -30,7 +30,8 @@ def test_calculation_full_workflow_and_independent_checks(project):
     assert result['status']=='validated_success'
     outcome=result['step_results'][0]['outcome']
     assert outcome['columns']==['order_id','region','amount','customer_id','unused','doubled']
-    assert outcome['preview'][0]['doubled']=='20.0'
+    assert [row['doubled'] for row in outcome['preview']]==['20.0','40.0',None,'80.0','10.0','60.0']
+    assert outcome['preview_truncated'] is False
     assert outcome['missing_counts']['doubled']==1
     assert result['step_results'][0]['validation_outcome']['checks']['calculation_values']
     assert outcome['calculation_arguments']['missing_policy']=='propagate'

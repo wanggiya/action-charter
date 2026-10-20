@@ -14,6 +14,7 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+    model_serializer,
 )
 
 _RECIPE_APPROVAL_ID = re.compile(
@@ -485,6 +486,16 @@ class RecipeStep(BaseModel):
     output_ids: list[str] = Field(
         default_factory=list
     )
+
+    # This can add a conservative gate; trusted registry gates still apply.
+    additional_approval_required: bool = False
+
+    @model_serializer(mode="wrap")
+    def serialize_optional_approval(self, handler):
+        payload = handler(self)
+        if not self.additional_approval_required:
+            payload.pop("additional_approval_required", None)
+        return payload
 
     @field_validator("depends_on")
     @classmethod

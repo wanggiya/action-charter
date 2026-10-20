@@ -13,13 +13,20 @@ def compact_schema(schema):
 def schema_scope(message, available, existing=(), *, selected=False):
     text=message.casefold()
     csv=bool(re.search(r'\.csv\b|\.tsv\b|\bcsv\b|\bpandas\b|\btabular\b',text))
-    spatial=bool(re.search(r'geojson|geopackage|postgis|geoserver|raster|vector|\.tif\b|\.gpkg\b',text))
+    # Negative scope statements are not requests for spatial capabilities.
+    # Only remove explicit lists of excluded operation families, not whole
+    # sentences that might also request a spatial operation.
+    spatial_text=re.sub(r"\b(?:no|without|do not use|don't use)\s+(?:(?:postgresql|postgres|postgis|geoserver|spatial|vector|raster|database)(?:\s+operations?)?\b(?:\s*(?:,|or|and)\s*|\s*)?)+", '', text)
+    spatial=bool(re.search(r'geojson|geopackage|postgis|geoserver|raster|vector|\.tif\b|\.gpkg\b',spatial_text))
     calculation = bool(re.search(r'calculat|derived|formula|multipl|divid|discount|revenue|unit conversion|conditional|(?:new|numeric|computed)\s+column|\b(?:double|triple)\w*\b', text))
+    # Follow-ups often say "keep the inspection" instead of repeating a
+    # filename/domain. Use the validated current plan for descriptive scope.
+    csv = csv or (calculation and 'inspect_csv' in existing)
     detailed = list(available) if selected or calculation or 'calculate_csv_columns' in existing else [skill for skill in available if skill != 'calculate_csv_columns']
-    if selected or not csv or spatial:return detailed
+    if (selected and not calculation) or not csv or spatial:return detailed
     from geoagent_harness.tabular.schemas import ARGUMENTS
     focus=set(ARGUMENTS)|set(existing)|{skill for skill in available if skill.startswith('ext_')}
-    if calculation and not selected:
+    if calculation:
         # Keep the full operation allowlist. Focus only descriptive schemas; a
         # valid proposal may still use another registered operation and a repair
         # receives its full schema if needed.

@@ -128,6 +128,9 @@ def _write_text(
     )
 
 
+from geoagent_harness.write_policy import root_guarded
+
+@root_guarded('export_root')
 def generate_snakemake_recipe_export(
     plan: SnakemakeRecipeExportPlan,
     *,

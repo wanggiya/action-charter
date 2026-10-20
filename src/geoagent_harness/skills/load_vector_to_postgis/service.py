@@ -153,6 +153,9 @@ def _choose_layer(
     return layer_names[0]
 
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def load_vector_to_postgis(
     *,
     path: Path,

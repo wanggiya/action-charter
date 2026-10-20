@@ -391,6 +391,9 @@ def _cleanup_temporary(path: Path) -> None:
         pass
 
 
+from geoagent_harness.write_policy import guarded
+
+@guarded
 def convert_raster(
     *,
     path: Path,

@@ -24,7 +24,13 @@
     "browser:test:26-recipes": "node ../scripts/checkpoint26_recipe_runs_browser_check.mjs",
     "browser:test:26-planner": "node ../scripts/checkpoint26_planner_browser_check.mjs",
     "browser:test:27-calculations": "node ../scripts/checkpoint27_calculation_browser_check.mjs",
-    "browser:test:27-retention": "node ../scripts/checkpoint27_retention_browser_check.mjs"
+    "browser:test:27-critic": "node ../scripts/checkpoint27_critic_browser_check.mjs",
+    "browser:test:27-writes": "node ../scripts/checkpoint27_write_policy_browser_check.mjs",
+    "browser:test:27-retention": "node ../scripts/checkpoint27_retention_browser_check.mjs",
+    "browser:test:27-hook-refresh": "node ../scripts/checkpoint27_hook_refresh_browser_check.mjs",
+    "browser:test:27-report-authorization": "node ../scripts/checkpoint27_report_authorization_browser_check.mjs",
+    "browser:test:27-visualization": "node ../scripts/checkpoint27_visualization_browser_check.mjs",
+    "browser:test:27-results": "node ../scripts/checkpoint27_results_workspace_browser_check.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.544.0",

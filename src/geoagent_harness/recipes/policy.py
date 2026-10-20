@@ -130,7 +130,7 @@ def validate_recipe_policy(
                 "incomplete trusted metadata"
             )
 
-        if skill.approval_required:
+        if skill.approval_required or step.additional_approval_required:
             approval_required.append(
                 step.step_id
             )

@@ -108,7 +108,7 @@ def assess_run(root,identity,*,model_client=None,retry=False,effort_budget=None)
         if effort_budget is not None:
             from .conversation import _check_prompt
             client = effort_budget.client(client, _check_prompt)
-        request=ModelRequest(json_mode=True,messages=[
+        request=ModelRequest(json_mode=True,response_schema=OutcomeAssessment.model_json_schema(),timeout_seconds=15,messages=[
             ChatMessage(role='system',content=json.dumps({'agent':manifest.model_dump(mode='json'),'task':'Assess recorded execution and identify a reusable method, if justified.',
                 'rules':['Copy deterministic_status exactly. For a stopped/failed run use needs_attention and no reusable_method.',
                          'Ground statements in the recorded observations. Never invent execution, independent checks, approvals, tests or current target state.',
@@ -140,6 +140,22 @@ def assess_run(root,identity,*,model_client=None,retry=False,effort_budget=None)
                 _write(directory,latest)
         finally:
             os.close(fd)
+    # Metadata enrichment reuses this assessment. It cannot change baseline
+    # retention, deterministic status or execution, including on storage failure.
+    try:
+        from geoagent_harness.recipe_catalog.successful import annotate
+        annotation_status = annotate(root, latest)
+    except Exception:
+        annotation_status = 'unavailable'
+    try:
+        with _LOCK:
+            current = _read(directory, identity)
+            if current.get('critic_review', {}).get('source_sha256') == digest:
+                current['critic_review']['annotation_status'] = annotation_status
+                _write(directory, current)
+                latest = current
+    except (OSError, ValueError):
+        latest['critic_review']['annotation_status'] = 'unavailable'
     return latest
 
 

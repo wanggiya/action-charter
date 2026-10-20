@@ -1,6 +1,6 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-10-18
+Updated: 2026-10-20
 
 Planner reliability follow-up: schema-repair permission deferrals now use one correction attempt and preserve saved workflows on failure. Calculation follow-up recognizes multiplied/divided/new-column wording, supplies complete non-executing examples and distinguishes repeated repair deferrals from missing user scope. The correction budget and backend checks are unchanged. Conversational Planner now requests a portable decoder schema and distinguishes malformed JSON from reported output truncation; required proposal gates bind upward from registry contracts and backend policy remains authoritative. One local CSV planning smoke passed; broader evaluation remains open. [Protocol and diagnostics](../docs/PLANNER_STRUCTURED_OUTPUT.md). A historical plan claimed calculated columns but contained only inspect_csv. New explicit calculated-column requests check operation presence before storage, use focused instructions/typed source decoding and a narrow single-column skeleton and receive one correction on omission; old records remain unchanged. Reuse provenance now constrains generated IDs to supplied/inspected sources and refreshes after discovery; unverified claims still reject. These are narrow regression guards, not checkpoint completion.
 
@@ -8,24 +8,48 @@ Inspector follow-up: actual operation list and formula visibility, collapsed raw
 
 ## Post-calculation delivery clarification
 
-[Ordered plan and acceptance gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md): 27.4a recorded-result usability; 27.3/27.5 agent evidence feedback and evaluation; proposed 28.1 bounded capability acquisition then 28.2 optional learning-policy evaluation; 29 private domain knowledge/corrections; existing 30+ cross-chat decision gate. These future capabilities are not implemented by this plan. Preserve the existing operational/privacy checkpoint scope and finish each acceptance gate before starting its dependent work.
+[Ordered plan and acceptance gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md): 27.4a recorded-result usability; 27.3/27.5 agent evidence feedback and evaluation; proposed 28.1 bounded capability acquisition then 28.2 optional learning-policy evaluation; 29 private domain knowledge/corrections; existing 30+ cross-chat decision gate. 27.4a is now implemented for recorded operation cards, bounded tables and readable checks with chat/plan/run binding; [acceptance and limits](../docs/CHECKPOINT27_RECORDED_RESULTS.md). [27.4b visualizations](../docs/CHECKPOINT27_VISUALIZATION.md) deliver bounded bars/scatter and offline WGS84 point snapshots. Broader geometry/layer support and subsequent capabilities remain open. Preserve the existing operational/privacy checkpoint scope and finish each acceptance gate before starting its dependent work.
+
+## Runtime writes and pre-demo gate — planned
+
+[Design](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md) and [27.7 delivery](../docs/CHECKPOINT27_RUNTIME_WRITES.md): next finish 27.3 evidence feedback, remaining 27.4 visualization and synthetic 27.5 evaluation. Then implement/validate 28.1 capabilities, 28.2 learning/RL and 29 advanced private memory before demo/real-data acceptance; 27.6 packaging follows.
+Preserve historical numbering. 27.7 runtime write controls are delivered for the main workflow/recipe paths;
+Settings availability must remain separate from exact authorization/execution,
+with session/revision enforcement and explicit administrative restrictions.
+Overwrite is a separate follow-up; use fresh outputs for initial data testing.
+Capability lists must distinguish executable operations from scanned functions.
+Operator revision (2026-10-19): generated capabilities (28.1), the learning/RL pilot (28.2) and advanced private memory (29) must be implemented and validated before demo or real-data testing. Runtime learning may remain opt-in; a design-only feature or unevaluated claim does not satisfy the gate. Cross-chat sharing remains 30+. Packaging follows the revised demo acceptance.
+
+## Optional capability acquisition — decision recorded 2026-10-19
+
+[28.1 design and measurable acceptance](../docs/OPTIONAL_CAPABILITY_ACQUISITION_PLAN.md):
+OFF by default, explicit task opt-in, existing operations/recipes first. Size alone
+never triggers generation. Prepare/test a restricted candidate only for a real gap,
+with hard attempt/call/runtime/resource bounds. Reuse accepted installed versions;
+installation, write availability, exact authorization and execution stay separate.
+Evaluate saved effort against a fixed baseline, including failures. This feature
+is not implemented; its runtime optionality does not remove the pre-demo pilot gate.
 
 ## Immediate priority
 
 Checkpoints 23–25 established the conversational interface, bounded tabular operations and governed extension contracts. Checkpoint 26 delivered bounded sequential execution, private-chat restoration, recipe composition and conservative recovery; see [closeout and limits](../docs/CHECKPOINT26_CLOSEOUT.md). The next implementation scope is **checkpoint 27**, below. Historical checkpoint proposals remain preserved. No release publication is authorized.
 
-## Checkpoint 27 — delivery in progress
+## Checkpoint 27 — technical acceptance; operator validation next
+
+[Technical acceptance report](../docs/CHECKPOINT27_EVALUATION.md): 1,825 backend tests, 54 browser cases and six correct final-profile local-model executions. Earlier failures remain recorded; optional Critic timed out in the final profile. This is not a general reliability or release-readiness claim. 27.6 remains deferred until after the agreed pre-demo gates and selected-data acceptance.
 
 [Detailed plan, human/agent/service responsibilities and measurable acceptance](../docs/CHECKPOINT27_PLAN.md).
 
 1. **27.1 Automatic successful-workflow records — delivered:** new durable runs save/index/deduplicate eligible successes without a model call or registration ceremony. Own-chat discovery, separate source evidence and fail-soft indexing preserve privacy/authority. [Delivery and acceptance](../docs/CHECKPOINT27_RETENTION.md).
 2. **27.2 Planner discovery/adaptation — delivered:** the existing Planner has bounded read-only catalog search/inspect and own-chat examples; ordinary chat handles reuse, with reference-only Recipe list/Keywords and manual composition in Advanced. Sanitized shared structures exclude private fixed literals. Fresh authority remains required. [Acceptance and limits](../docs/CHECKPOINT27_DISCOVERY.md).
-3. **27.3 Optional Critic enrichment:** applicability/descriptions from bounded evidence; failure must not block baseline saving/reuse. Generalization remains optional Advanced work.
-4. **27.4 Outcome visualization:** bounded artifact-linked CSV tables/charts and supported geospatial previews; distinguish data from model commentary.
+3. **27.3 Optional Critic enrichment — delivered:** [Advisory graph visibility](../docs/CHECKPOINT27_CRITIC_GRAPH.md) is delivered; [Evidence-bound advisory method notes](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) now reuse existing assessments; immutable baseline identity/tags and own-chat visibility remain intact. Failure does not block baseline saving/reuse. Generalization remains optional Advanced work.
+4. **27.4 Outcome visualization:** [27.4c Results workspace](../docs/CHECKPOINT27_RESULTS_WORKSPACE.md) adds single-view tabs, resizing/expansion, linked selections and explicit verified CSV reads. recorded tables plus [27.4b bars/scatter and WGS84 point snapshots](../docs/CHECKPOINT27_VISUALIZATION.md) are delivered. [27.4d analysis/layout](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds ten chart views, verified full-CSV grouping, first-layer WGS84 lines/polygons/attributes and persistent collision-aware placement. Bounds and run identity remain explicit; broader rendering is 28.3 and evaluation remains separate.
 5. **27.5 Laptop/model evaluation:** spatial, tabular and combined journeys, including retention/reuse, measured failures, time, interventions and correctness.
 6. **27.6 Prototype/demo preparation:** existing launcher, installation/platform checks, function-based examples and public-data demo/release materials. Implement a versioned installable package after data/demo acceptance, with clean-install/restart and user-data preservation checks; package format is undecided. No publication.
 
-27.2 depends on 27.1; 27.3 enriches but does not gate either. Finish evaluation before claiming prototype readiness. Normal human work is intent/clarification, review, exact authorization and result judgment; agents interpret, while services persist/index/validate/execute. 27.1/27.2 are implemented for new durable runs and own-chat reuse; optional Critic enrichment and visualization are next. Legacy runs without contract snapshots are not backfilled. No new agent hierarchy or cross-chat memory is implied.
+7. **27.7 Runtime write availability — implemented slice:** backend-enforced Settings switch, session/revision-bound authorization, direct-entry-point/CLI enforcement and disable/restart behavior. [Design and measurable gates](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md). [Evidence-only authorization fix](../docs/CHECKPOINT27_AUTHORIZATION_FIX.md) preserves conservative plan gates in recipes. Overwrite remains a separate follow-up.
+
+27.2 depends on 27.1; 27.3 enriches but does not gate either. Finish evaluation before claiming prototype readiness. Normal human work is intent/clarification, review, exact authorization and result judgment; agents interpret, while services persist/index/validate/execute. 27.1–27.4 and the 27.7 toolbar follow-up have bounded implementations; actual-model evidence and the operator acceptance gate remain separate. Legacy runs without contract snapshots are not backfilled. No new agent hierarchy or cross-chat memory is implied.
 
 ## Bounded-calculation extension — implemented slice
 
@@ -58,6 +82,21 @@ completion requirement or bypass the checkpoint-30 cross-chat decision gate.
 | **27 — reliable reuse and evaluated laptop/PC prototype preparation** | 24–26 acceptance | First automatically retain/index validated successful workflows without model calls, use Planner for checked adaptation and optional Critic enrichment; then preserve the previous 26 benchmark direction: compare correctness, interventions, elapsed time and recovery against manual/general-agent work. Prepare one-command setup, explicit dependency guidance, spatial/tabular/combined examples, full manual acceptance and bounded portable packaging/release materials. Add contract-bound outcome charts/maps, a functional example index and public-fixture LinkedIn demo materials before release preparation. | Successful fixture runs become durable discoverable records without manual authoring; failures never become successes, reuse is validated and writes need fresh authority. Clean-environment installation/startup checks pass on documented supported platforms. All three examples produce expected evidence. Benchmark results and capability/limitation tables are reproducible, packaging contains no secrets/runtime/private datasets, and release materials are prepared without publishing. No KNIME/Ansible parity claim is made. |
 
 Order: **24 → 25 → 26 → 27**. Finish each checkpoint's functionality and relevant automated/interface acceptance before starting the next. Missing browser/live-service acceptance is reported explicitly, never substituted with model text. Only temporary fixtures are used by automation; live services require separate explicit permission.
+
+## 28.3 — Visualization expansion before representative demo acceptance
+
+After 28.1 capability and 28.2 learning pilots, extend the current analysis foundation
+using established rendering libraries where breadth/performance justify them:
+grouped/stacked charts, bubbles/heatmaps, temporal axes, multiple map layers,
+declared-CRS transformation, styling/legends, optional basemaps and linked filters.
+Then add saved dashboards/export and appropriate raster/large-data support.
+Acceptance uses fixed fixtures, correct totals/geometry, explicit scope and measured
+laptop resource limits. Select the supported subset needed for the chosen demo;
+no Tableau/Google parity or arbitrary-format claim is implied. See the
+[ordered visualization expansion](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md).
+Advanced private domain memory remains 29, cross-chat remains 30+, demo/real-data
+acceptance follows the agreed gates, and 27.6 installable-package work follows that
+acceptance. Nothing is published by this roadmap.
 
 ## Cross-chat memory deferred: checkpoint 30 or later
 

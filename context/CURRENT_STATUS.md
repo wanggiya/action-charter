@@ -1,10 +1,10 @@
 # Current implementation status
 
-Updated: 2026-10-18
+Updated: 2026-10-20
 
-Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) preserves history. Calculation/reuse guards are delivered; result-panel usability is pending. [Next gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md) cover agent evidence, capability acquisition, learning and private domain knowledge. No RL/model training or cross-chat sharing is implemented.
+Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) preserves history. 27.1/27.2 retention/discovery, bounded calculations and recorded Results are delivered. [27.3/27.4d](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds evidence-bound advisory recipe notes, ten chart views, verified CSV grouping, bounded WGS84 boundaries/attributes and persistent collision-aware graph layout. The warning Allow writes toolbar switch shares Settings' session policy; overwrite remains deferred. [Acceptance](../docs/CHECKPOINT27_EVALUATION.md): 1,825 tests and six correct local-model trials; optional Critic timed out. Operator requires implemented/validated 28.1 optional capabilities, 28.2 learning/RL and 29 private memory before demo/real-data testing; these remain unfinished. 28.3 expands visualization; packaging follows demo acceptance. Cross-chat sharing stays 30+.
 
-**27.1/27.2 delivered:** successful-run retention and bounded Planner discovery/adaptation; own-chat examples, sanitized catalog structures, reference-only Recipe list/Keywords and Advanced manual composition. [Acceptance](../docs/CHECKPOINT27_DISCOVERY.md). Added calculate_csv_columns: typed expressions, formula controls, independent checks and shared budgets. Planner uses schema decoding/backend checks; [response diagnostics](../docs/PLANNER_STRUCTURED_OUTPUT.md) distinguish syntax/truncation. [Behavior/tests](../docs/BOUNDED_CALCULATIONS.md). Broader model acceptance remains open. [Remaining 27](../docs/CHECKPOINT27_PLAN.md): Critic enrichment, charts/maps, evaluation and demo/package preparation. Cross-chat memory remains 30+.
+Planner follow-up: existing CSV inspection scopes calculation revisions; calculation-creating assignments and negative PostGIS mentions are recognized. Preflight; chart details; block opens/X closes.
 
 ## Product boundary
 
@@ -18,7 +18,7 @@ Discovery automatically inventories installed Python distributions and staticall
 
 A small tested JSON package installs ext_order_identity through a fixed pandas CSV projection adapter. Tests use temporary fixtures; installation repeats tests, creates a digest-verified metadata record, and neither installs dependencies nor approves/runs a workflow. Proposals and runtime bind the exact installed package hash; writes use the same exact authorization, create-only outputs, independent verification and lineage as builtins. Arbitrary code/entrypoints, unknown adapters, invalid signatures/contracts, changed records, conflicts and unsafe links reject. The existing Builder candidate/test/promotion lifecycle remains separate. General Python-code adapter loading, marketplaces, package upgrades/uninstallation and native-symbol enumeration remain outside this delivery.
 
-Operator follow-up: Settings lists persisted verified scan inventories with expandable library/function groups; review, selected-operation and outcome cards show dataflow arrows. Examples have a function-based index while historical paths remain intact. Agent history/summaries and outcome maps/charts are roadmap proposals only, not implemented.
+Operator follow-up: Settings lists persisted verified scan inventories with expandable library/function groups; review, selected-operation and outcome cards show dataflow arrows. Examples have a function-based index while historical paths remain intact. Later checkpoint 26/27 sections supersede the original agent-history and outcome-preview proposals.
 
 See [checkpoint 25 guide](../docs/CHECKPOINT25.md) for contracts, bounds, package authoring, CLI parity and operator acceptance. Checkpoint 26 now includes the recipe/recovery slice below; checkpoint 27 retains laptop/PC prototype preparation. No Git/publication or live-data action is implied.
 
@@ -50,7 +50,7 @@ Main-workflow Snakemake export/static verification binds an original saved workf
 
 ## Verification and remaining work
 
-Current validation: 1,744 backend tests, frontend typecheck/build and 17 browser fixture cases passed: calculation repair/edit/execute/restore, retention/discovery and CSV workflows. Tests use temporary data and fixture model replies. One local planning smoke also passed; broader live-model/service acceptance remains open.
+Current validation: 1,804 backend tests and frontend typecheck/build passed. Results, CSV, calculation, retention, visualization, Planner and adapter browser fixtures exercise recorded-data scope, resizing and verified reads. Model replies are fixtures, not live-model/service acceptance. Details/counts remain in delivery guides.
 
 Playwright is pinned as a frontend development dependency. Browser engines and optional minimal-Linux audio runtime are stored in Git/Docker-ignored project-local test directories, separate from normal browser profiles and shared Playwright caches; test profiles/data are temporary. Runtime use does not require these browser test tools. See the checkpoint 25 guide for repeatable setup.
 

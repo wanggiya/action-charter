@@ -19,12 +19,14 @@ import inspect
 import sys
 from pathlib import Path
 import geoagent_harness.interface_api.server as server
+import geoagent_harness.interface_api.conversation as conversation
 
 host, port, root = sys.argv[1], int(sys.argv[2]), Path(sys.argv[3])
 handler_source = inspect.getsource(server._handler)
 route = "/api/v1/plans/save-reviewed-recipe"
 print(f"Interface API source: {server.__file__}", flush=True)
-print("Planner contract revision: schema-correction-v52", flush=True)
+print(f"Planner contract revision: {conversation.PLANNER_CONTRACT_REVISION}", flush=True)
+print(f"Planner conversation source: {conversation.__file__}", flush=True)
 print(f"Planner recipe-save route occurrences: {handler_source.count(route)}", flush=True)
 print(f"Listening on http://{host}:{port}", flush=True)
 try:

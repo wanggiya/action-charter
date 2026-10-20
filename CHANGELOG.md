@@ -1,3 +1,92 @@
+Chart interaction: add consistent click/keyboard details across all ten chart types, including verified aggregate slices and histogram/box/summary statistics. Outside click, blank-chart click or Escape dismisses details; changing data/axes clears them. Existing table-row linking stays independent.
+
+Runtime/UI follow-up: report the actual Planner contract in API health/startup and check it before a conversational model request. An incompatible runtime is blocked before model invocation. Remove the extra Information button; select a block to reopen the Inspector and X to close it.
+
+Planner/UI follow-up: focus CSV calculation contracts for broad explicit skill selections; mark runtime diagnostics csv-revision-v3 and identify missing markers as legacy API. Add an Information-panel X, width recovery and reopening from its button or node selection.
+
+Planner revision follow-up: recognize “Add a calculation creating doubled = amount * 2” and “Do not use PostgreSQL or PostGIS”; use the validated existing CSV inspection to scope filename-free calculation follow-ups. Preserve bounded correction, typed argument checks and separate authorization.
+
+Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no longer expand descriptive spatial schemas solely because of those negative mentions. Unexpected-field correction now instructs removal of undeclared properties without exposing unknown field names. Explicit skill selections and backend validation remain unchanged.
+
+# Checkpoint 27.3 / 27.4d — analysis and stable graph layout (2026-10-20)
+
+- Preserve chat graph positions across restoration; reserve free space for new operations, outcomes and Critic nodes in both orientations. Add return-lane connections and distinct recorded/advisory evidence styling.
+- Put the warning Allow writes switch beside Authorize/Execute, sharing Settings' backend session policy and stale-authority invalidation.
+- Add horizontal bar, column, line, area, pie, donut, scatter, histogram, box and summary views, scoped presentation settings and explicit verified full-CSV count/sum/mean/min/max grouping through shared API/CLI services.
+- Capture bounded WGS84 lines, multipart geometry, polygon holes and literal attributes alongside compatible point snapshots; link map/table/attribute selection without current-file or tile reads.
+- Fix selected prerequisite closure, explicit source-path grounding, omitted-inspection/arithmetic coverage and occupied-CSV proposal correction; narrow spatial sequences use typed argument decoding.
+- Index existing Critic method suggestions separately from immutable successful-method metadata, with provenance, own-chat visibility and fail-soft status. Request structured assessments with a 15-second request bound.
+- Verified 1,825 backend tests and final-profile six correct actual-model workflows with changed reuse fixtures. Optional Critic timed out in all six; earlier failures and limitations are preserved in the technical acceptance report.
+- Add an isolated actual-model evaluation driver and extend chart/map/layout/write-policy regression journeys. Broader BI/GIS rendering is planned as 28.3; capability/learning/private-memory pre-demo gates remain unchanged.
+
+# Checkpoint 27.4c — Results workspace and verified CSV inspection
+
+- Refine result views into connected page tabs with a shared content surface, clear page headings and keyboard tab navigation; preserve operation selection and view state.
+- Replace nested Outcome cards with operation-selected Overview/Table/Map/Chart/Checks views; add View output, a visible divider, expansion and full-width narrow-screen access while preserving the graph.
+- Add loaded-row search/sort, column visibility, 25-row paging and linked table/chart/point selection. Maps gain pan, zoom, Fit extent and selected-point coordinates; unsupported views explain their limits.
+- Add explicit hash-verified bounded CSV artifact reads using the same API/CLI service. Preserve recorded delimiters, reject changed/missing/unsafe artifacts and mismatched scope, and ignore delayed responses after context changes. Reads do not hold the execution-progress lock.
+- Keep saved snapshots as default. No implicit model/operation/database/tile request or permission change occurs during visualization; larger reads require the explicit Load verified CSV action. Full-file analytics, broader geometry, export and remaining checkpoint gates stay open.
+- Verified 1,804 backend tests, frontend typecheck/build and 63 synthetic browser cases, including 10 Results cases and existing CSV/adapter/Planner/retention/calculation/visualization journeys. No live-service acceptance or publication is claimed.
+
+# Checkpoint 27.4b — recorded charts and point maps
+
+- Add collapsible per-row bar/scatter charts from saved table previews, bounded to 20 rows/32 columns with explicit omissions, sample scope and numeric display limits.
+- Capture first-layer WGS84 Point snapshots during shared vector inspection, capped at 32 examined features. Show offline longitude/latitude maps, CRS, skipped/truncated counts and a geometry snapshot digest; unsupported and legacy data remain explicit.
+- Bind visualizations to existing recorded operation/chat/plan/run scope. Opening views makes no model, workflow, file, database or tile request; drafts inherit no results. CLI receives the same vector snapshot contract.
+- Keep polygons/lines, multipoints, projected/reprojected or multilayer maps, arbitrary raster/database views and full-file chart aggregation outside this slice. Existing pre-demo capability/learning/memory gates are unchanged.
+- Verified frontend typecheck/build, 1,792 backend tests, eight visualization and 12 recorded-calculation browser cases using temporary fixtures. Narrow-panel screenshots were inspected; model responses are fixtures, not live-model acceptance.
+
+# Optional capability acquisition — design clarification only
+
+- Record checkpoint 28.1 as OFF by default, explicitly enabled per task and triggered by a demonstrated capability gap after existing operation/recipe lookup, not workflow size alone.
+- Define bounded candidate/test responsibilities, persistent reuse of accepted versions, separate installation/write/execution authority and measurable effort/correctness evaluation. No acquisition feature is implemented by this update.
+- Preserve pre-demo acquisition/learning/private-memory gates and checkpoint history; record pending graph placement/connections and prominent warning-icon write controls as checkpoint 27 work.
+
+# Fix evidence-only recipe authorization
+
+- Preserve conservative plan gates when compilation otherwise produces an evidence-only recipe with no trusted approval-required operation. This fixes `recipe has no approval-required steps` during Authorize.
+- Add optional recipe-step `additional_approval_required`: it can strengthen registry requirements, never lower them. Omit false defaults from canonical serialization; ordinary writer recipes retain existing identities. Corrected evidence-only recipes get new scope/digests and require fresh authority; historical records are preserved.
+- Recheck every approved step's authority before dispatch. Keep Authorize free of execution and retain session/revision/expiry checks.
+- Verified 1,787 backend tests, frontend typecheck/build and browser reproduction of the failing authorization shape, using temporary fixtures and mocked PostGIS validation. No live database/service operations.
+
+# Fix development hook-order failure during authorization
+
+- Reproduce the exact App hook-order mismatch when a plain TypeScript hook gains an effect during Vite hot reload.
+- Reload safely for source `use-*.ts` changes; restore saved chat/workflow state without automatic authorization or execution. Unsaved UI edits may reset during development updates.
+- Add an isolated Vite/browser regression covering initial authorization and post-update restoration/authorization, with no execution or React console errors.
+- Verified: 1,784 backend tests, frontend typecheck/build, both development hook-refresh cases and seven Critic browser cases passed.
+
+# Advisory Critic graph visibility — checkpoint 27 slice
+
+- Show requested recorded assessments as a secondary dashed Critic branch, separate from execution status, validation and executable operations.
+- Add compact findings/limitations and exact-run provenance; restore pending reviews with scoped read-only polling and link matching history records to the graph.
+- Preserve successful outputs when Critic is unavailable; draft edits and unrelated chats cannot inherit a recorded assessment.
+- Isolate backend test policy storage from a running operator session; bind plan approval authority to the project owning approval storage.
+- Broader authorization interaction, enrichment/evaluation, generated capabilities, learning/RL and advanced memory remain unfinished.
+- Verified 1,784 backend tests, frontend typecheck/build, seven Critic, 12 calculation/results and five runtime-write browser cases with temporary fixtures. Live-model quality/latency remains unverified.
+
+# Runtime write controls — checkpoint 27.7 implemented slice
+
+- Settings now changes write availability in the running API, with confirmed status, stale-update rejection, optional read-only lock and CLI control. No routine restart is needed; model configuration still requires one.
+- Bind new managed approvals to session/revision through separate durable receipts. Recheck write dispatch, reject cached/direct bypasses and stale authority, preserve active-operation verification/partial evidence and readable old records. No overwrite operation is added.
+- Main workflow/recipe and approved MCP paths integrate the policy. Specialized legacy GeoServer/promotion/rollback writes remain fail-closed in managed sessions pending their own binding support; standalone legacy explicit startup mode remains separate.
+- Operator revised the demo gate: generated capabilities (28.1), learning/RL (28.2) and advanced private memory (29) must be implemented and validated before demo or real-data testing. These are unfinished; current evaluation uses synthetic fixtures. No Git/publication/live-service action.
+- Verified 1,783 backend tests, frontend typecheck/build and 23 temporary-fixture browser cases; no live-model/database/service acceptance is implied.
+- See docs/CHECKPOINT27_RUNTIME_WRITES.md for implementation boundaries and manual acceptance.
+
+# Record runtime write controls and checkpoint 27 demo gate
+
+- Document planned 27.7 runtime availability, shared session/revision enforcement, Settings status/switch, authorization invalidation, operation boundaries, CLI/migration requirements and measurable temporary-fixture acceptance.
+- Preserve checkpoint numbering; deliver 27.7 before remaining evidence, visualization, evaluation and demo preparation. Separate overwrite from enabling writes. Keep RL/code acquisition/advanced memory outside demo prerequisites and packaging implementation after data/demo acceptance.
+- Documentation only: no permission switch, authorization change, new operation, runtime agent or live-data action is implemented here. See docs/RUNTIME_WRITE_CONTROL_DESIGN.md.
+
+# Recorded operation results — checkpoint 27.4a
+
+- Show selected-operation formula, input/output paths, bounded table rows and readable independent checks; use shared cards in Outcome and durable history. Keep raw/audit details collapsed.
+- Restore evidence by both chat ID and exact plan digest; explicit history selection binds the run, pending edits remove old evidence, and stale reads cannot replace a newer scope/selection. Guard delayed startup graph loads against replacing a restored chat; bind Critic commentary to the selected run.
+- Report write-tools availability with the existing launcher flag. New CSV transforms retain up to 10 preview rows within the unchanged byte/cell limits; historical previews are preserved. No model call or execution is needed to inspect results.
+- Verified 1,769 backend tests, frontend typecheck/build, 12 calculation browser cases and six recipe/cancel/recovery/restart cases with temporary files and fixture models, plus nine intercepted-API UI cases. Maps/charts, agent evidence evaluation, capability acquisition and optional learning remain future work. See docs/CHECKPOINT27_RECORDED_RESULTS.md.
+
 # Record post-calculation delivery gates
 
 - Document remaining checkpoint 27 result usability and agent/evidence evaluation, followed by proposed bounded capability acquisition, optional learning-policy experiments and private domain knowledge/corrections. Preserve checkpoint history and the 30+ cross-chat decision gate.

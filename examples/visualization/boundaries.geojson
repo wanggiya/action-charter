@@ -1,0 +1,9 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {"type":"Feature","properties":{"region":"North","amount":30},"geometry":{"type":"Polygon","coordinates":[[[-72,41],[-70,41],[-70,43],[-72,43],[-72,41]],[[-71.6,41.5],[-71.2,41.5],[-71.2,41.9],[-71.6,41.9],[-71.6,41.5]]]}},
+    {"type":"Feature","properties":{"region":"South","amount":20},"geometry":{"type":"Polygon","coordinates":[[[-72,39],[-70,39],[-70,40.5],[-72,40.5],[-72,39]]]}},
+    {"type":"Feature","properties":{"region":"Road","amount":0},"geometry":{"type":"LineString","coordinates":[[-73,40],[-69,42]]}},
+    {"type":"Feature","properties":{"region":"Station","amount":5},"geometry":{"type":"Point","coordinates":[-71,42.3]}}
+  ]
+}

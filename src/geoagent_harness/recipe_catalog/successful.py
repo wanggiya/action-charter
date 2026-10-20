@@ -86,6 +86,7 @@ def _connection(root):
     try:
         db.execute('CREATE TABLE IF NOT EXISTS successes (run_id TEXT PRIMARY KEY, method_id TEXT NOT NULL, conversation_id TEXT, payload TEXT NOT NULL)')
         db.execute('CREATE INDEX IF NOT EXISTS successes_scope ON successes(conversation_id, method_id)')
+        db.execute('CREATE TABLE IF NOT EXISTS annotations (run_id TEXT PRIMARY KEY REFERENCES successes(run_id), payload TEXT NOT NULL)')
         db.commit()
         return db
     except Exception:
@@ -141,6 +142,7 @@ def inventory(root, *, conversation_id=None, query=''):
     db = _connection(root)
     try:
         rows = db.execute('SELECT payload FROM successes WHERE conversation_id IS ? ORDER BY run_id LIMIT ?', (conversation_id, MAX_RECORDS + 1)).fetchall()
+        annotations = dict(db.execute('SELECT a.run_id, a.payload FROM annotations a JOIN successes s ON s.run_id=a.run_id WHERE s.conversation_id IS ?', (conversation_id,)).fetchall())
     finally:
         db.close()
     if len(rows) > MAX_RECORDS:
@@ -156,5 +158,47 @@ def inventory(root, *, conversation_id=None, query=''):
             continue
         group = groups.setdefault(entry['method_id'], {k: entry[k] for k in ('method_id', 'name', 'tags', 'operations', 'evidence_kind', 'execution_authority_granted')})
         group.setdefault('sources', []).append({k: entry[k] for k in ('run_id', 'plan_sha256', 'evidence_sha256', 'finished_at')})
+        annotation = json.loads(annotations[entry['run_id']]) if entry['run_id'] in annotations else None
+        if annotation and annotation.get('evidence_sha256') == entry['evidence_sha256'] and (not group.get('critic_annotation') or entry['finished_at'] > group['critic_annotation']['finished_at']):
+            group['critic_annotation'] = {**annotation, 'finished_at': entry['finished_at']}
         group['contract_status'] = 'current' if all(current.get(o['skill_id'], {}).get('contract_sha256') == o['contract_sha256'] for o in entry['operations']) else 'changed_or_unavailable'
     return sorted(groups.values(), key=lambda g: max(s['finished_at'] for s in g['sources']), reverse=True)
+
+
+def annotate(root, record):
+    """Index an existing bounded Critic suggestion without another model call.
+
+    Baseline method identity/tags/evidence stay immutable. Failure is advisory.
+    """
+    from geoagent_harness.interface_api.run_assessment import OutcomeAssessment, evidence, _digest
+    review = record.get('critic_review') or {}
+    if record.get('status') != 'completed' or review.get('status') != 'complete' or review.get('source_sha256') != _digest(evidence(record)):
+        return 'not_eligible'
+    assessment = OutcomeAssessment.model_validate(review.get('assessment'))
+    method = assessment.reusable_method
+    if method is None or assessment.deterministic_status != 'completed':
+        return 'not_proposed'
+    observed = {s['skill_id'] for s in record['steps'] if s['status'] in {'completed', 'validated_success'}}
+    if not set(method.operations).issubset(observed):
+        return 'not_eligible'
+    db = _connection(root)
+    try:
+        with db:
+            row = db.execute('SELECT payload, conversation_id FROM successes WHERE run_id=?', (record['run_id'],)).fetchone()
+            if row is None or row[1] != record.get('conversation_id'):
+                return 'not_indexed'
+            retained = json.loads(row[0])
+            observed_evidence = {'plan_sha256': record['plan_sha256'], 'steps': [{k: s.get(k) for k in ('step_id', 'skill_id', 'status', 'outcome', 'validation_outcome')} for s in record['steps']]}
+            if retained['plan_sha256'] != record['plan_sha256'] or retained['evidence_sha256'] != digest(observed_evidence):
+                return 'not_eligible'
+            payload = {**method.model_dump(mode='json'), 'run_id': record['run_id'],
+                       'source_sha256': review['source_sha256'], 'evidence_sha256': retained['evidence_sha256'],
+                       'model': str(review.get('model', 'unknown'))[:200],
+                       'evidence_kind': 'model_annotation_not_validation', 'execution_authority_granted': False}
+            content = json.dumps(payload)
+            if len(content.encode()) > 10000:
+                raise ValueError('Critic annotation exceeds its storage budget')
+            db.execute('INSERT INTO annotations VALUES (?,?) ON CONFLICT(run_id) DO UPDATE SET payload=excluded.payload', (record['run_id'], content))
+    finally:
+        db.close()
+    return 'saved'

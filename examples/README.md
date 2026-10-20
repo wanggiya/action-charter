@@ -10,6 +10,7 @@ Choose by outcome below. Checkpoint directories remain in place for historical c
 | Add a supported operation | [Extract order identifiers adapter](checkpoint25/order_identity.operation.json) | Test temporary fixtures, explicitly install a fixed CSV projection operation; no workflow approval implied |
 | Execute an installed adapter | [Order identifiers workflow](checkpoint25/installed_adapter_plan.json) | Inspection → installed projection → export, exact package binding and separate authorization |
 | Compose reusable recipes | [Spatial attributes → CSV cleaning](recipe-composition/spatial_csv_request.json) | Exact recipe hashes, typed parameters, CSV artifact binding and deterministic four-operation expansion; no execution |
+| Explore charts and polygon boundaries | [Synthetic regions and boundaries](visualization/README.md) | Ten chart views, verified region totals, polygons with holes, lines, points and attributes |
 | Convert vector data | [Vector conversion proposal](interface-parity/checkpoint17l-vector-conversion-proposal.json) | Historical proposal-format example; inspect compatibility before using |
 
 Use the Planner to describe these outcomes or inspect the JSON as a typed reference.

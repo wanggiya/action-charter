@@ -22,6 +22,8 @@ from geoagent_harness.recipes.storage import save_recipe, load_recipe, recipe_pa
 from geoagent_harness.recipes.digest import recipe_sha256
 from geoagent_harness.skill_registry import load_skill_registry
 
+from geoagent_harness.write_policy import effective, snapshot
+
 from .snakemake_workflow import ExportArguments, VerifyArguments, has_export
 
 from geoagent_harness.operations.registry import argument_models, builtin_argument_models
@@ -139,13 +141,16 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
     basis = dict(schema_version='1.0', plan_filename=request.plan_filename, plan_sha256=request.confirmed_plan_sha256,
                  recipe_filename=path.name, recipe_sha256=recipe_sha256(recipe), steps=steps,
                  approval_required_step_ids=required, write_step_ids=policy.write_step_ids,
-                 execution_available=not policy.write_step_ids or load_settings().enable_write_tools,
+                 execution_available=not policy.write_step_ids or effective(load_settings(), root).enable_write_tools,
                  execution_performed=False)
+    if policy.write_step_ids and snapshot(root):
+        state = snapshot(root)
+        basis['write_policy'] = {key:state[key] for key in ('session_id','revision','enabled')}
     digest = hashlib.sha256(json.dumps(basis, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     return {**basis, 'review_sha256': digest}
 
 
-def authorize_workflow(request: WorkflowRequest, *, project_root: Path):
+def _authorize_workflow(request: WorkflowRequest, *, project_root: Path):
     """Record explicit exact-scope decisions without running any operation."""
     from . import server as api
     root = api._trusted_root(project_root)
@@ -160,7 +165,7 @@ def authorize_workflow(request: WorkflowRequest, *, project_root: Path):
     if not request.approve_required_steps or not request.approver.strip() or not request.reason.strip():
         raise api.InterfaceApiError('Explicit approval, approver and reason are required for this exact scope')
     if not review['execution_available']:
-        raise api.InterfaceApiError('Write tools are disabled; restart with --enable-write-tools')
+        raise api.InterfaceApiError('Write operations are OFF. Enable them in Settings, then review and authorize again.')
     prepared = api.prepare_interface_plan_approval(api.InterfacePlanApprovalPreparationRequest(
         action='prepare_plan_approval', plan_filename=request.plan_filename,
         confirmed_plan_sha256=review['plan_sha256']), project_root=root)
@@ -197,7 +202,7 @@ def execute_workflow(request: WorkflowRequest, *, project_root: Path):
     if not request.confirm_execution or request.confirmed_review_sha256 != review['review_sha256']:
         raise api.InterfaceApiError('Confirm the current exact workflow review before execution')
     if not review['execution_available']:
-        raise api.InterfaceApiError('Write tools are disabled; restart the launcher with --enable-write-tools')
+        raise api.InterfaceApiError('Write operations are OFF. Enable them in Settings, then review and authorize again.')
     plan_approval = request.plan_approval_filename
     recipe_approval = request.recipe_approval_filename
     key = review['plan_sha256']
@@ -225,6 +230,10 @@ def execute_workflow(request: WorkflowRequest, *, project_root: Path):
                 confirmed_approval_request_sha256=prepared['approval_request_sha256'], approval_filename=plan_approval), project_root=root)
             if not verified['approved']:
                 raise api.InterfaceApiError('Plan authorization expired or blocked; make a fresh explicit decision')
+            if review['write_step_ids']:
+                from geoagent_harness.approvals import load_approval
+                from geoagent_harness.write_policy import check
+                check(root, load_approval(path=root / 'approvals' / plan_approval, approval_root=root / 'approvals'))
         if review['write_step_ids']:
             if not recipe_approval:
                 raise api.InterfaceApiError('Recipe authorization is missing; use Authorize first')
@@ -355,6 +364,8 @@ def execution_failure_payload(error):
                 code, message = 'postgis_target_exists', 'The target PostGIS table already exists. Choose a fresh reviewed table; destructive replacement remains blocked.'
             elif text.startswith('PostGIS load failed;'):
                 code, message = 'postgis_load_failed', 'PostGIS connection or loading failed. Check database reachability, credentials and permissions in the launcher environment; driver details remain private.'
+        elif name == 'WritePolicyError':
+            code, message = 'write_policy_blocked', text[:500]
         elif name == 'TabularError':
             code, message = 'tabular_operation_rejected', 'Table operation rejected: ' + text[:500]
         elif name == 'RecipeEvidencePersistenceError':
@@ -368,3 +379,10 @@ def execution_failure_payload(error):
                 break
     return {'error': message, 'failure_code': code, 'failed_step_id': failed_step,
             'recovery_guidance': 'Inspect execution history and actual targets before a retry. Approval does not guarantee that database configuration or operation execution succeeds.'}
+
+
+def authorize_workflow(request: WorkflowRequest, *, project_root: Path):
+    from geoagent_harness.write_policy import issuance
+    review=prepare_workflow(request,project_root=project_root)
+    with issuance(project_root,review.get('write_policy')):
+        return _authorize_workflow(request,project_root=project_root)

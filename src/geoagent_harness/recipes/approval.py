@@ -125,6 +125,9 @@ def create_recipe_approval(
             + ", ".join(invalid)
         )
 
+    from geoagent_harness.write_policy import ticket, bind
+    policy_root = approval_root.absolute().parent
+    policy_ticket = ticket(policy_root) if decision == 'approved' else None
     record = RecipeApprovalRecord(
         approval_id=(
             approval_id
@@ -186,6 +189,7 @@ def create_recipe_approval(
             "recipe approval could not be written"
         ) from exc
 
+    bind(policy_root, record, policy_ticket)
     return record, path
 
 
