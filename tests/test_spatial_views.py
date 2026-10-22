@@ -168,6 +168,20 @@ def test_planner_map_context_includes_recorded_raster_without_reading_pixels(roo
     assert not list(root.rglob('*.tif'))
 
 
+def test_planner_map_context_accepts_metadata_only_vector_without_reading_geometry(root,monkeypatch):
+    from geoagent_harness.interface_api.result_exploration import view_context,validate_view
+    from geoagent_harness.interface_api.exploration_contracts import ResultViewSpec
+    import geoagent_harness.interface_api.run_assessment as assessment
+    record={'run_id':'f'*32,'plan_sha256':'e'*64,'steps':[{'step_id':'step_1','skill_id':'inspect_vector','status':'completed',
+        'outcome':{'layers':[{'name':'boundaries','feature_count':None,'crs':'EPSG:4326'}]}}]}
+    monkeypatch.setattr(assessment,'latest_conversation_run',lambda *args:record)
+    context=view_context(root,'c'*32,object())
+    assert context['results'][0]['layers']==['boundaries']
+    assert context['results'][0]['recorded_facts']['layer_features'][0]['feature_count'] is None
+    validate_view(ResultViewSpec(run_id='f'*32,plan_sha256='e'*64,step_id='step_1',view='Map',spatial={'mode':'vector','layer':'boundaries'}),context)
+    assert not list(root.rglob('*.gpkg'))
+
+
 
 def test_all_nodata_preview_has_no_invented_zero_range(root):
     path=root/'data/input/missing.tif'

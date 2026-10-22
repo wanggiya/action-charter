@@ -1,3 +1,7 @@
+> 2026-10-22 CSV update: [streaming discovery delivery](CHECKPOINT28_DISCOVERY_RESTRUCTURE.md)
+> supersedes the 8 MiB/10,000-row **inspection** limit for CSV only. Spatial,
+> transformation and complete-exploration limits below remain unchanged.
+
 # Inspection on send across data types
 
 Originally recorded 2026-10-21 as design only. Subsequent operator authorization
@@ -193,3 +197,20 @@ These narrow cases establish working examples, not broad model reliability,
 large-data scalability, complete checkpoint acceptance or learned domain knowledge.
 
 Same-chat follow-up: explicit filenames are now decoder-bound and independently checked before proposal storage. A stale GeoJSON path cannot be saved as the answer to a new TIFF-only inspection. Browser regression covers GeoJSON → TIFF → CSV in one chat; transcripts and prior runs remain preserved.
+
+Characteristics-first follow-up (2026-10-22): TIFF, closed GPKG and SHP submissions
+now probe driver metadata, supply scoped facts to Planner and stream package hashes
+in the existing durable run. CSV uses its streamed parser. The submission health
+revision is `spatial-discovery-v4`; the Planner source-binding revision remains
+`inspection-source-v2`. Restart the launcher and refresh after updating. Discovery
+guards are distinct from old display/processing limits, and unavailable driver
+counts are not computed or represented as zero. See the [current delivery and
+acceptance](CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) for exact scope; historical test
+counts above describe their original delivery rather than current acceptance.
+
+Final expansion: the submission revision is now `inspection-batch-v5`, superseding
+the spatial-only revision above. Exact compatible metadata requests use no model;
+ON supports up to four distinct inputs / 1 GiB aggregate through the same durable
+coordinator. OFF prepares only. [Closeout](CHECKPOINT28_CLOSEOUT.md) records grammar,
+per-reader/batch limits, CLI/MCP parity, cancellation/no-replay tests and manual
+acceptance. Legacy service-read approvals remain; this is local-file inspection.

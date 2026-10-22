@@ -1081,12 +1081,14 @@
  background-color:transparent!important;
  background-image:var(--outline-edge-gradient)!important;
 }
-.app-shell[data-button-style="outline"] .top-actions>button:disabled {
+.app-shell[data-button-style="outline"] .top-actions>button:disabled,
+.app-shell[data-button-style="outline"] .top-actions :is(.execute-button,.authorize-button):disabled {
  opacity:1;
  color:color-mix(in srgb,var(--control-accent) 48%,#8a949f)!important;
  border-color:color-mix(in srgb,var(--control-accent) 45%,transparent)!important;
 }
-.app-shell[data-button-style="outline"] .top-actions>button:disabled svg { opacity:.5; }
+.app-shell[data-button-style="outline"] .top-actions>button:disabled svg,
+.app-shell[data-button-style="outline"] .top-actions :is(.execute-button,.authorize-button):disabled svg { opacity:.5; }
 .successful-recipes summary,.successful-method summary { overflow-wrap:anywhere; line-height:1.5; }
 .successful-method-tags { display:flex; flex-wrap:wrap; gap:6px; }
 .successful-method li { overflow-wrap:anywhere; line-height:1.6; }
@@ -1331,6 +1333,16 @@
 .spatial-controls button {padding:8px 11px;border:1px solid var(--cyan);border-radius:6px;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
 .spatial-read-note {color:var(--muted);font-size:12px}
 .raster-opacity {display:flex;align-items:center;gap:12px;font-size:12px;margin:12px 0}
+.raster-opacity input[type=range] {flex:1;min-width:0;width:100%;height:28px;padding:0;margin:0;border:0;accent-color:var(--cyan);cursor:pointer;touch-action:pan-y}
+.raster-opacity input[type=range]:focus-visible {outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+.raster-opacity output {min-width:4ch;text-align:right;font-variant-numeric:tabular-nums;color:var(--foreground)}
+.raster-opacity-end {color:var(--muted);font-size:11px;flex:none}
+.raster-metadata-facts {margin:12px 0;min-width:0}
+.raster-metadata-facts>div {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.raster-metadata-facts dt {color:var(--muted);overflow-wrap:anywhere}
+.raster-metadata-facts dd {margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.raster-technical-details {margin-top:14px}.raster-technical-details details {margin:10px 0}.raster-technical-details summary {cursor:pointer;color:var(--cyan);line-height:1.5}
+.raster-technical-details pre {white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:260px;overflow:auto}
 .raster-image {display:block;width:100%;height:400px;max-height:60vh;touch-action:none;cursor:crosshair;border:1px solid var(--line);border-radius:8px;background:repeating-conic-gradient(#8c9aab22 0% 25%,transparent 0% 50%) 0 0 / 20px 20px}
 .raster-legend {display:flex;flex-wrap:wrap;gap:10px;font-size:12px;align-items:center;margin:12px 0}
 .raster-legend span {display:inline-flex;align-items:center;gap:6px}
@@ -1357,3 +1369,6 @@
 .saved-workflow-runs .execution-attempt header {display:flex;justify-content:space-between;gap:12px}
 .saved-workflow-runs .execution-attempt strong,.saved-workflow-runs p,.saved-workflow-runs code {overflow-wrap:anywhere;min-width:0}
 .saved-workflow-runs .execution-attempt>button {margin-top:12px}
+
+.discovery-status {padding:10px 12px;border-left:2px solid var(--accent,#65d1d0);background:linear-gradient(180deg,#65d1d010,transparent);margin:12px 0}
+.discovery-status p {margin:6px 0;overflow-wrap:anywhere}

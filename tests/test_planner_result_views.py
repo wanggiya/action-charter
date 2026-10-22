@@ -81,6 +81,23 @@ def test_processing_request_does_not_use_view_only_route():
     assert requests_result_view('Show the recorded result as a table.')
 
 
+@pytest.mark.parametrize('message',[
+    'Inspect sample_points.geojson. Return feature count, fields and CRS. No writes.',
+    'Replace the current workflow with this new task. Inspect sample_points.geojson. Return feature count, fields and CRS. No writes.',
+])
+def test_explicit_new_workflow_does_not_offer_recorded_view_fields(project,message):
+    original,_=seed(project)
+    from tests.test_planner_conversation import plan
+    client=Client({'message':'New inspection prepared.','plan':plan()})
+    result=turn(project,client,message,revision=1)
+    system=json.loads(client.requests[0].messages[0].content)
+    assert 'result_view_context' not in system
+    assert 'ResultViewSpec' not in client.requests[0].response_schema.get('$defs',{})
+    assert result['planner_result']['plan']['steps'][0]['skill']=='inspect_vector'
+    assert result['proposal_changed'] and result['context_usage']['result_view'] is None
+    assert not result['execution_performed']
+
+
 def test_stale_inspection_summary_is_repaired_instead_of_satisfying_chart_request(project):
     original,spec=seed(project)
     client=Client({'message':'Inspection found 6 rows.','plan':None},

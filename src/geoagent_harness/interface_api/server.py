@@ -2893,7 +2893,7 @@ def _handler(
                     "status": "ready",
                     "bound_to_loopback": True,
                     "planner_contract_revision": PLANNER_CONTRACT_REVISION,
-                    "inspection_on_send_revision": "bounded-local-v2",
+                    "inspection_on_send_revision": "inspection-batch-v5",
                     "result_exploration_revision": "typed-views-v1",
                     "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",

@@ -63,8 +63,9 @@ def _present(root, record):
                 from .server import InterfaceApiError
                 raise InterfaceApiError('Submission run provenance does not match')
     return {'submission': {key: record.get(key) for key in (
-                'submission_id', 'conversation_id', 'status', 'finding', 'run_id')},
+                'submission_id', 'conversation_id', 'status', 'finding', 'run_id', 'discovery')},
             'conversation': record.get('conversation'), 'run': run,
+            'discovery_performed':bool(record.get('discovery')),
             'approval_performed': False, 'execution_performed': bool(run and run['execution_performed'])}
 
 
@@ -101,20 +102,43 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
         refusal = None
         if request.inspect_on_send:
             try:
-                path = request_source(turn.message)
-                if path:
-                    source = bounded_read(root, action='snapshot', path=path)
+                from .inspection_planning import plan_for_request
+                exact=plan_for_request(turn.message, ['inspect_csv','inspect_vector','inspect_raster'])
+                paths=[step.arguments['path'] for step in exact.steps] if exact else []
+                if paths:
+                    from .inspection_policy import probe_action
+                    sources=[]
+                    for path in paths:
+                        sources.append(bounded_read(root,action=probe_action(path),path=path,delimiter='\t' if path.lower().endswith('.tsv') else ','))
+                        record['discovery']={'sources':[item['path'] for item in sources],'source':paths[0],
+                            'scope':'preliminary_batch_metadata' if len(paths)>1 else 'preliminary_sample' if sources[0].get('discovery_kind')=='streaming_csv_v1' else 'preliminary_driver_metadata',
+                            'column_count':sources[0].get('metadata',{}).get('column_count'),
+                            'file_bytes':sum(item['bytes'] for item in sources),'sha256_complete':all('source_sha256' in item for item in sources),
+                            'completed_sources':len(sources),'requested_sources':len(paths),'status':'ready' if len(sources)==len(paths) else 'probing'}
+                        with database(root,write=True) as connection:
+                            _put(connection,record)
+                        if record['discovery']['file_bytes']>1024**3:
+                            raise InterfaceApiError('Inspection batch exceeds 1 GiB aggregate input budget')
+                    source=sources[0] if len(sources)==1 else {'sources':sources}
+
                 else:
-                    refusal = 'Only a single explicit supported local metadata inspection can run on send. Use Execute for other proposals.'
+                    refusal = 'Only 1–4 explicit supported local metadata inspections can run on send. Use Execute for other proposals.'
             except (ValueError, OSError, InterfaceApiError):
+                if record.get('discovery'):record['discovery']['status']='incomplete'
                 refusal = 'The source could not be safely bounded or snapshotted. Review the proposal; ordinary reader limits also apply to Execute.'
-        response = conversation_turn(turn, project_root=root, model_client=model_client)
+        from .inspection_policy import planning_discovery
+        discovery_token=planning_discovery.set(source or {'routing':'explicit_submit'})
+        try:
+            response = conversation_turn(turn, project_root=root, model_client=model_client)
+        finally:
+            planning_discovery.reset(discovery_token)
         record['conversation'] = response
         record['status'] = 'proposal_only'
-        record['finding'] = refusal or 'Proposal saved. Nothing executed; use Execute when ready.'
+        record['finding'] = refusal or ('Proposal saved after preliminary metadata discovery. No workflow run executed; use Execute when ready.' if record.get('discovery') else 'Proposal saved. Nothing executed; use Execute when ready.')
         if (response.get('context_usage') or {}).get('result_view'):
             record['finding'] = 'Recorded-result view prepared. The workflow is unchanged; no workflow operation was executed.'
-        if request.inspect_on_send and response['proposal_changed'] and response['planner_result']:
+        exact_reply=(response.get('context_usage') or {}).get('model_request',{}).get('stage')=='deterministic_inspection'
+        if request.inspect_on_send and (response['proposal_changed'] or exact_reply) and response['planner_result']:
             from geoagent_harness.planner.schemas import PlannerResult
             result = PlannerResult.model_validate({key: response['planner_result'][key] for key in (
                 'agent_id', 'model', 'original_request', 'context_references', 'plan', 'warnings')})
@@ -129,9 +153,10 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
                     allowed_skill_ids=response['allowed_skill_ids'], planner_result=result), project_root=root)
                 review = prepare_workflow(WorkflowRequest(action='prepare_workflow', plan_filename=stored['plan_filename'],
                                           confirmed_plan_sha256=sha), project_root=root)
-                binding = {**source, 'plan_sha256': sha, 'revision': response['revision'],
+                sources=source.get('sources',[source])
+                binding = {'sources':[{**item,'contract_sha256':contract_digest(root,source_skill(item['path']))} for item in sources], 'plan_sha256': sha, 'revision': response['revision'],
                            'conversation_id': request.conversation_id, 'submission_id': request.submission_id,
-                           'contract_sha256': contract_digest(root, source_skill(source['path']))}
+                           }
                 record['run_id'] = uuid.uuid4().hex
                 record['status'] = 'starting'
                 record['finding'] = 'Inspection dispatch may be in progress. Check the recorded run; never resend automatically.'

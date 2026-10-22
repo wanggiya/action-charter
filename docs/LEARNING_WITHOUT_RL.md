@@ -88,3 +88,22 @@ feedback store, retrieval schema or supervised ranker.
 ## Domain knowledge and transferable methods
 
 [Recorded design](DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md) separates sourced domain knowledge, dataset definitions, habits, recipes and executable capabilities. Planner applies knowledge; Critic proposes lessons; backend services enforce provenance, applicability, correction and retrieval. Capture/reuse should make later work require less repeated input. This is proposed, not delivered learning; cross-chat use remains behind the existing later decision gate.
+
+## Checkpoint-28 evaluation decision — 2026-10-22
+
+Existing own-chat successful-method retrieval and optional check-outcome ranking
+were exercised through fixed temporary workflows. In the new two-repetition,
+six-case local-model comparison, OFF and ON each completed 10/12 attempts with
+14 calls; both failed the same vector task twice. A focused schema correction
+then passed the four vector retests (2/2 per side, one call/task). Preserve the
+original failure report and do not merge different code versions into a new
+24/24 result. [Exact metrics and limitations](CHECKPOINT28_CLOSEOUT.md).
+
+No recommendation reliability/call-count benefit is established: keep ranking
+optional/OFF. The comparison retains successful-method retrieval in both sides;
+it does not isolate all memory benefits. Negative check feedback, invalid stores,
+changed contracts, isolation and reset have deterministic acceptance tests;
+improved arbitrary failure recovery/domain recall is unproven. This is an
+evaluated experimental feature, not model training, RL or a cleared broader
+learning/demo gate. Checkpoint 29 retains private sourced knowledge/corrections;
+cross-chat 30+ and adaptive policies remain separately gated.

@@ -58,6 +58,7 @@ from geoagent_harness.geoserver_publication import (
 )
 
 TOOL_ALLOWLIST = [
+    "discover_dataset",
     "health_check",
     "inspect_vector_dataset",
     "inspect_postgis_table",
@@ -204,6 +205,15 @@ def health_check(
         input_root=active.input_root.as_posix(),
         tools=TOOL_ALLOWLIST.copy(),
     )
+
+
+def discover_dataset(path:str,delimiter:str|None=None,settings:MCPSettings|None=None)->dict:
+    """Read bounded local CSV/vector/TIFF characteristics and complete identity."""
+    from geoagent_harness.discovery.service import discover_dataset as discover
+    active=effective(settings or load_settings())
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():
+        raise ValueError('Discovery requires the project data/input root; legacy tools retain custom-root support')
+    return discover(active.project_root,path,delimiter)
 
 
 def inspect_vector_dataset(

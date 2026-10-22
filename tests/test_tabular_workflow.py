@@ -76,7 +76,7 @@ def test_inspection_execution_needs_no_fabricated_approval(project):
     assert run['step_results'][0]['outcome']['row_count']==6
     assert not (project/'approvals').exists()
 
-@pytest.mark.parametrize('content',['a,a\n1,2\n','a,b\n1,2,3\n','a\n'+('x'*5000)+'\n','a\n'+('x\n'*10001)])
+@pytest.mark.parametrize('content',['a,a\n1,2\n','a,b\n1,2,3\n','a\n'+('x'*5000)+'\n'])
 def test_bad_csv_bounds_reject_without_writes(project,content):
     (project/'data/input/bad.csv').write_text(content)
     with pytest.raises(TabularError):inspect_csv('bad.csv',load_settings())

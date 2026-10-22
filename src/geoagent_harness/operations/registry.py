@@ -33,7 +33,7 @@ class TableSource(BaseModel):
 
 class TableMetadata(BaseModel):
     model_config=ConfigDict(extra='allow')
-    row_count:int=Field(ge=0,le=10000)
+    row_count:int=Field(ge=0,le=1024**3)
     column_count:int=Field(ge=1,le=100)
     columns:list[str]=Field(min_length=1,max_length=100)
     preview:list[dict[str,str|None]]=Field(max_length=20)
@@ -42,6 +42,8 @@ class TableMetadata(BaseModel):
     preview_truncated:bool
 
 class TableArtifact(TableMetadata):
+    # Processing bounds do not grow with metadata-only inspection capability.
+    row_count:int=Field(ge=0,le=10000)
     data_contract:Literal['table/csv-v1']
     output:Artifact
     sources:list[TableSource]
@@ -87,10 +89,15 @@ def _result_schema(id):
     if id=='inspect_csv':return TableMetadata.model_json_schema()
     if id in TABLE_ARGUMENTS or id.startswith('ext_'):return TableArtifact.model_json_schema()
     from geoagent_harness.schemas import InspectVectorResult
-    if id=='inspect_vector':return InspectVectorResult.model_json_schema()
+    if id=='inspect_vector':
+        from pydantic import TypeAdapter
+        from geoagent_harness.discovery.spatial_contracts import VectorMetadata
+        return TypeAdapter(InspectVectorResult|VectorMetadata).json_schema()
     if id=='inspect_raster':
         from geoagent_harness.skill_adapters.raster_inspection import RasterInspectionResult
-        return RasterInspectionResult.model_json_schema()
+        from pydantic import TypeAdapter
+        from geoagent_harness.discovery.spatial_contracts import RasterMetadata
+        return TypeAdapter(RasterInspectionResult|RasterMetadata).json_schema()
     if id=='convert_vector':
         from geoagent_harness.skills.convert_vector.schemas import ConvertVectorResult
         return ConvertVectorResult.model_json_schema()

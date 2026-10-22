@@ -1,3 +1,29 @@
+# Checkpoint 28 — exact inspections and closeout acceptance (2026-10-22)
+
+- Add zero-model typed proposals for exact supported Inspect submissions; normal UI sends use durable receipts with Inspect on send ON or OFF. OFF prepares only; ON permits bounded read batches of 1–4 sources / 1 GiB aggregate. Preserve no replay, per-step source/contract/chat binding, cancellation and partial results. Default TSV discovery to tab.
+- Share CLI/MCP discovery through one bounded service; add CLI submit-inspection and MCP discover_dataset with fixed read-only scope. Preserve legacy inspector contracts and reject broader custom input roots in the new MCP tool. Fix relative CLI project-root resolution.
+- Exclude competing recorded-view schemas for explicit new workflow requests. Retain the unsuccessful paired trial and separate corrected vector retest; recommendations remain optional/OFF without a demonstrated benefit.
+- Keep graph dragging styling across React selection renders, while preserving frame-based motion and exact plan identity. Record complete acceptance, limitations and checkpoint-29 direction without Git/publication or live-service changes.
+
+# Checkpoint 28 — raster technical metadata and opacity feedback (2026-10-22)
+
+- Add bounded typed TIFF technical metadata and expandable Overview details: driver/storage, CRS WKT, extent/transform, per-band blocks/color/units/scale/offset, stored metadata tags and exact band-1 overview header sizes. No pixel statistics/histograms are computed; retained tags are explicitly not recomputed evidence.
+- Keep old results readable and metadata budgets explicit. Compare synthetic results against the installed gdalinfo CLI, with no new runtime dependency.
+- Add opacity endpoint labels, percentage feedback and a responsive native slider; exercise both endpoint drags, keyboard controls and zero source rereads. The original reported fault is not yet reproduced; do not claim its root cause resolved.
+
+# Checkpoint 28 — characteristics-first spatial discovery (2026-10-22)
+
+- Add metadata-only TIFF, closed GeoPackage and Shapefile discovery through the existing bounded worker, durable interface runs and `discover-dataset` CLI. Bind no-follow opened components, stream package hashes, and reject changed sources, unsupported companions and active/WAL-mode GeoPackages.
+- Show provisional versus completed evidence and scoped driver counts/CRS/fields or dimensions/bands/NoData; keep detailed characteristics in Overview and existing bounded maps/pixels separate. Preserve conversational layer selection without requiring an old geometry preview.
+- Keep GeoJSON and legacy spatial CLI/MCP inspectors on their existing bounds. Record restart/no-replay behavior, measured limits and remaining checkpoint work in the discovery guide and `context/WORK_RESUME.md`. No added agent, container or dependency.
+
+# Checkpoint 28 — characteristics-first CSV discovery (2026-10-22)
+
+- Record the baseline, revised structural/user target, agent and Docker responsibilities, staged delivery and remaining knowledge/learning gates.
+- Share no-follow source access and one streaming CSV inspector across existing service/CLI/MCP and interface inspection paths. Probe columns before planning; supply scoped characteristics without sample values.
+- Publish preliminary characteristics during a durable read, then exact parsed counts and SHA-256. Preserve cancellation, change detection, no-replay receipts and bounded previews; distinguish stat consistency from immutable snapshots.
+- Add large-CSV progress/preview UI, preserve separate transformation/exploration limits, and version inspection submission as `streaming-csv-v3`. Spatial discovery and zero-model inspection routing remain future stages.
+
 # Checkpoint 28 — saved inspection history visibility (2026-10-22)
 
 - Put saved workflow runs at the top of Execution History with input filenames, operation labels, timestamps and direct outcome access. Preserve the current workflow and existing cancellation/recovery controls; opening history performs no execution.

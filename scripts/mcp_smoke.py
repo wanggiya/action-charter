@@ -12,6 +12,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 EXPECTED_TOOLS = {
+    "discover_dataset",
     "assess_spatial_data_contract",
     "assess_postgis_change",
     "plan_postgis_promotion",

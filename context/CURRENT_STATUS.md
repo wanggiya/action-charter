@@ -4,11 +4,11 @@
 
 Updated: 2026-10-22
 
-[Inspect on send](../docs/INSPECTION_ON_SEND_EXPANSION.md): CSV/vector/raster; source binding; API `inspection-source-v2`.
+[28 accepted](../docs/CHECKPOINT28_CLOSEOUT.md): exact inspections, batches, discovery; [resume](WORK_RESUME.md); 29 next.
 
 Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) and 27 [acceptance](../docs/CHECKPOINT27_EVALUATION.md) preserve delivered reuse, results, charts/geometry, runtime writes and persistent graph layout. Acceptance limited; packaging after demo; cross-chat 30+.
 
-[28.1 bounded pilot](../docs/CHECKPOINT28_1.md): per-chat default-OFF acquisition, Planner-owned closed text definitions, resource-bounded synthetic/held-out checks, advisory Critic, explicit exact-digest install and normal authorized CSV execution. No arbitrary Python/dependency installation. Fixture/model pilot passes; broader reliability unproven. 28.2 learning/RL, 28.3 visualization expansion and 29 private domain knowledge remain unfinished pre-demo gates.
+[28.1 bounded pilot](../docs/CHECKPOINT28_1.md): per-chat default-OFF acquisition, Planner-owned closed text definitions, resource-bounded synthetic/held-out checks, advisory Critic, explicit exact-digest install and normal authorized CSV execution. No arbitrary Python/dependency installation. Fixture/model pilot passes; broader reliability unproven. Learning benefit/RL, large-data visualization and 29 private knowledge remain pre-demo limits.
 
 [28.3 spatial](../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md): spatial views, facts, named saved-run outcomes; broader gates open.
 

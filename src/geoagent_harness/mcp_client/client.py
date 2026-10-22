@@ -27,6 +27,7 @@ from geoagent_harness.mcp_client.settings import (
 READ_ONLY_TOOL_ALLOWLIST = frozenset(
     {
         "health_check",
+        "discover_dataset",
         "inspect_vector_dataset",
         "inspect_postgis_table",
         "compare_postgis_tables",

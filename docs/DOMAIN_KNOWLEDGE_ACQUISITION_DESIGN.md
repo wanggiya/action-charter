@@ -3,6 +3,31 @@
 Recorded 2026-10-21 from the operator discussion. Documentation only: no new
 memory retrieval, model training, package promotion or execution behavior is delivered.
 
+## Checkpoint 29 clarification — 2026-10-22, documentation only
+
+Begin after checkpoint-28 inspection/UI fixes, shared-service consistency,
+multi-inspection and evaluated experience-retrieval acceptance. Retain automatic
+candidate capture from discussions and verified outcomes, indexed retrieval with
+sources/scope/applicability, and versioned corrections/supersession. Distinguish
+model inference, operator-supplied definitions and independently checked facts;
+a successful execution is not proof of domain correctness.
+
+Planner consumes relevant knowledge; Critic can propose lessons from recorded
+outcomes; backend services preserve provenance, versions, isolation and retrieval
+budgets. Frontend provides compact inspectable sources/corrections without
+mandatory bookkeeping forms. No additional mandatory agent or container.
+
+Acceptance uses synthetic fixtures first: recall a relevant sourced definition
+without repeated explanation, exclude unrelated/incompatible data and other chats,
+prefer corrected knowledge over superseded claims, expose uncertainty/provenance,
+and preserve workflows when extraction/retrieval fails. Neither memory nor retrieved
+text may authorize execution. This starts within one conversation; cross-chat or
+project sharing stays checkpoint 30+ and requires a separate decision.
+
+Evaluated method reuse and private knowledge should precede broader realistic-data
+testing/demo preparation. This does not require or claim model-weight RL; portable
+knowledge packages, general code generation and new MCP creation remain later work.
+
 ## User goal
 
 Continued work on the same background data should require progressively less

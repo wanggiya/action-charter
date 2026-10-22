@@ -35,7 +35,7 @@ const frontend=createServer(async(req,res)=>{
 await new Promise(done=>frontend.listen(0,'127.0.0.1',done));
 const origin=`http://127.0.0.1:${frontend.address().port}`;
 try{
- child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root,'--planning-task-fixture'],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'false',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
+ child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root,'--planning-task-fixture','--csv-discovery-fixture'],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'false',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
  let stderr='';child.stderr.on('data',data=>stderr+=data);
  apiPort=await new Promise((done,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error(`API startup timeout: ${stderr}`)),20000);child.stdout.on('data',data=>{output+=data;if(output.includes('\n')){clearTimeout(timer);done(JSON.parse(output.split('\n')[0]).port);}});child.on('exit',code=>{clearTimeout(timer);reject(new Error(`API exited ${code}: ${stderr}`));});});
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -47,6 +47,7 @@ try{
  await page.goto(origin);
  const message='Inspect sample_orders.csv. Return row count and column names. No writes.';
  const countRuns=async()=>{try{return (await readdir(resolve(root,'workflow-state/interface-runs'))).filter(name=>name.endsWith('.json')).length;}catch{return 0;}};
+ const modelCalls=async()=>{try{return (await readFile(resolve(root,'model-calls.jsonl'),'utf8')).trim().split('\n').filter(Boolean).length;}catch{return 0;}};
  const setting=page.getByRole('switch',{name:'Inspect on send',exact:true});
  const openPlanner=async()=>{if(!await page.getByRole('textbox',{name:'Message Planner'}).isVisible())await page.getByRole('button',{name:'Planner agent',exact:true}).click();};
  const toggleMode=async(on)=>{await page.getByRole('button',{name:'Conversation settings',exact:true}).click();await setting.waitFor();if((await setting.getAttribute('aria-checked'))!==String(on))await setting.click();await page.keyboard.press('Escape');};
@@ -60,6 +61,8 @@ try{
  await send(message);
  await page.locator('[data-operation-skill="inspect_csv"]').waitFor();
  assert.equal(await countRuns(),0);
+ assert.equal(await modelCalls(),0);
+ await page.getByText('Exact inspection workflow · no model call',{exact:true}).waitFor();
  cases.push('Default OFF sends a proposal without a run');
  await toggleMode(true);
  await page.getByRole('button',{name:'New chat',exact:false}).click();
@@ -180,6 +183,78 @@ try{
  cases.push('Workflow run management is directly accessible at the top of Execution History');
 
 
+
+ await openPlanner();
+ await page.getByRole('button',{name:'New chat',exact:false}).click();
+ const beforeLarge=await countRuns();
+ await writeFile(resolve(root,'hold-discovery'),'hold only in temporary fixture');
+ await send('Inspect large_orders.csv. Return row count and column names. No writes.');
+ await page.getByText('Characteristics ready · verifying full file…',{exact:true}).waitFor({timeout:30000});
+ const liveFiles=await readdir(resolve(root,'workflow-state/interface-runs'));
+ const liveRecords=await Promise.all(liveFiles.filter(name=>name.endsWith('.json')).map(async name=>JSON.parse(await readFile(resolve(root,'workflow-state/interface-runs',name),'utf8'))));
+ const largeRun=liveRecords.find(run=>run.steps[0]?.arguments.path==='data/input/large_orders.csv');
+ assert.equal(largeRun.status,'running');assert.equal(largeRun.steps[0].outcome.row_count,null);
+ assert.equal(largeRun.steps[0].outcome.source_sha256,undefined);
+ await page.getByRole('tab',{name:'Table',exact:true}).click();
+ assert.match(await page.locator('.results-workspace').textContent(),/001/);
+ assert.equal(await page.getByRole('button',{name:'Explore complete CSV',exact:true}).count(),0);
+ await rm(resolve(root,'hold-discovery'));
+ await page.getByText('Complete CSV scan · SHA-256 recorded',{exact:true}).waitFor({timeout:30000});
+ const completedLarge=JSON.parse(await readFile(resolve(root,'workflow-state/interface-runs',largeRun.run_id+'.json'),'utf8'));
+ const {createHash}=await import('node:crypto');
+ assert.equal(completedLarge.steps[0].outcome.row_count,12000);
+ assert.equal(completedLarge.steps[0].outcome.source_sha256,createHash('sha256').update(await readFile(resolve(root,'data/input/large_orders.csv'))).digest('hex'));
+ assert.equal(await countRuns(),beforeLarge+1);
+ assert.equal(authorizationCalls(),0);assert.equal(executionCalls(),0);
+ await page.reload();
+ await page.getByRole('button',{name:'Outcome',exact:true}).click();
+ await page.getByText('Complete CSV scan · SHA-256 recorded',{exact:true}).waitFor({timeout:30000});
+ assert.equal(await countRuns(),beforeLarge+1);
+ cases.push('Large CSV shows provisional characteristics and sample before hashing, then exact counts and SHA-256; reload never repeats the run');
+
+ await openPlanner();
+ await page.getByRole('button',{name:'New chat',exact:false}).click();
+ const beforeSpatial=await countRuns();
+ await writeFile(resolve(root,'hold-discovery'),'temporary spatial progress gate');
+ await send('Inspect large_terrain.tif. Return dimensions, bands and CRS. No writes.');
+ await page.getByText('Characteristics ready · verifying full file…',{exact:true}).waitFor({timeout:30000});
+ assert.match(await page.locator('.discovery-status').textContent(),/2048 × 2048/);
+ await page.getByRole('tab',{name:'Map',exact:true}).click();
+ await page.getByText(/This source exceeds the bounded viewer/).waitFor();
+ await page.getByRole('tab',{name:'Overview',exact:true}).click();
+ await rm(resolve(root,'hold-discovery'));
+ await page.getByText('Spatial metadata · package SHA-256 recorded',{exact:true}).waitFor({timeout:30000});
+ const spatialRecords=await Promise.all((await readdir(resolve(root,'workflow-state/interface-runs'))).filter(name=>name.endsWith('.json')).map(async name=>JSON.parse(await readFile(resolve(root,'workflow-state/interface-runs',name),'utf8'))));
+ const spatialRun=spatialRecords.find(run=>run.steps[0]?.arguments.path==='data/input/large_terrain.tif');
+ assert.equal(spatialRun.status,'completed');
+ const componentHash=createHash('sha256').update(await readFile(resolve(root,'data/input/large_terrain.tif'))).digest('hex');
+ assert.equal(spatialRun.steps[0].outcome.source_manifest['data/input/large_terrain.tif'],componentHash);
+ assert.equal(spatialRun.steps[0].outcome.discovery.bytes_hashed,(await readFile(resolve(root,'data/input/large_terrain.tif'))).length);
+ await page.reload();
+ await page.getByRole('button',{name:'Outcome',exact:true}).click();
+ await page.getByText('Spatial metadata · package SHA-256 recorded',{exact:true}).waitFor({timeout:30000});
+ assert.equal(await countRuns(),beforeSpatial+1);
+ assert.equal(authorizationCalls(),0);assert.equal(executionCalls(),0);
+ cases.push('Large TIFF shows preliminary dimensions before package hashing; bounded Map limit is explicit and reload preserves results without replay');
+
+ await openPlanner();await page.getByRole('button',{name:'New chat',exact:false}).click();
+ const beforeBatch=await countRuns(),beforeBatchModels=await modelCalls();
+ await send('Inspect sample_orders.csv and sample_dem.tif. Return metadata. No writes.');
+ const batchPicker=page.locator('.results-workspace').getByRole('combobox',{name:'Operation result',exact:true});
+ await page.waitForFunction(()=>document.querySelector('select[aria-label="Operation result"]')?.options.length===2);
+ await batchPicker.selectOption('step_2');
+ await page.getByText('Spatial metadata · package SHA-256 recorded',{exact:true}).waitFor({timeout:30000});
+ await page.getByRole('tab',{name:'Overview',exact:true}).click();
+ assert.match(await page.locator('.raster-metadata').textContent(),/GTiff/);
+ await batchPicker.selectOption('step_1');
+ await page.getByText('Complete CSV scan · SHA-256 recorded',{exact:true}).waitFor();
+ assert.equal(await countRuns(),beforeBatch+1);assert.equal(await modelCalls(),beforeBatchModels);
+ assert.equal(authorizationCalls(),0);assert.equal(executionCalls(),0);
+ await page.reload();await page.getByRole('button',{name:'Outcome',exact:true}).click();
+ await batchPicker.waitFor();
+ assert.equal(await batchPicker.locator('option').count(),2);
+ assert.equal(await countRuns(),beforeBatch+1);
+ cases.push('Exact CSV/TIFF batch has two selectable recorded outcomes, zero model calls and no extra run after reload');
 
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,page_errors:errors,live_service_calls:0},null,2));
