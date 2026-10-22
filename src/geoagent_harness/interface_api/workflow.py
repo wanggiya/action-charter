@@ -132,12 +132,12 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
     steps = [{**step, "depends_on": recipe_steps[step["step_id"]].depends_on, 'requires_approval': step['step_id'] in required,
               'validation_required': step['validation_required'] or registry.get_skill(step['skill']).validation_required}
              for step in (plan_steps[step_id] for step_id in policy.topological_step_ids)]
-    from geoagent_harness.operations.packages import installed_packages
+    from geoagent_harness.operations.packages import installed_packages, configuration
     packages = installed_packages(root)
     for step in steps:
         package = packages.get(step['skill'])
         if package:
-            step['adapter_configuration'] = {'adapter':package.adapter,'columns':package.columns,'candidate_function':package.candidate_function,'runtime':package.runtime}
+            step['adapter_configuration'] = configuration(package)
     basis = dict(schema_version='1.0', plan_filename=request.plan_filename, plan_sha256=request.confirmed_plan_sha256,
                  recipe_filename=path.name, recipe_sha256=recipe_sha256(recipe), steps=steps,
                  approval_required_step_ids=required, write_step_ids=policy.write_step_ids,
@@ -290,7 +290,23 @@ def _execute_inspections(review, root):
             progress(step['step_id'], step['skill'], 'running')
             relative = check_task_input(project_root=root, input_path=step['arguments']['path'])
             record['execution_performed'] = True
-            if step['skill'] == 'inspect_csv':
+            from .inspection_policy import active_inspection
+            spatial_binding = None
+            if step['skill'] in {'inspect_vector', 'inspect_raster'} and not active_inspection.get():
+                try:
+                    from .inspection_policy import bounded_read
+                    spatial_binding = bounded_read(root, action='snapshot', path=relative, checkpoint=checkpoint)
+                except (ValueError, OSError, InterfaceApiError):
+                    pass  # Ordinary Execute retains existing inspector support.
+            from .inspection_policy import active_inspection, bounded_read, check_dispatch
+            bound = active_inspection.get()
+            if bound:
+                check_dispatch(root, review, bound)
+                result = bounded_read(root, action='inspect', path=relative,
+                    source_sha256=bound['source_sha256'],
+                    delimiter=step['arguments'].get('delimiter', ','),
+                    preview_rows=step['arguments'].get('preview_rows', 5), checkpoint=checkpoint)
+            elif step['skill'] == 'inspect_csv':
                 from geoagent_harness.tabular.service import inspect_csv
                 from .server import load_settings
                 settings = load_settings().model_copy(update={'project_root': root})
@@ -299,6 +315,13 @@ def _execute_inspections(review, root):
                 result = inspect_vector(root / relative, input_root=root / 'data/input')
             else:
                 result = inspect_raster(InspectRasterArguments(path=root / relative, input_root=root / 'data/input'))
+            if spatial_binding:
+                from .inspection_policy import bounded_read
+                after = bounded_read(root, action='snapshot', path=relative, checkpoint=checkpoint)
+                if after['source_sha256'] != spatial_binding['source_sha256']:
+                    raise InterfaceApiError('Spatial input changed during inspection')
+                result = result if isinstance(result, dict) else result.model_dump(mode='json')
+                result['spatial_source_sha256'] = after['source_sha256']
             record['step_results'].append(dict(step_id=step['step_id'], skill_id=step['skill'],
                 status='inspected', validation_performed=False, outcome=_bounded_outcome(result if isinstance(result, dict) else result.model_dump(mode='json')), validation_outcome=None))
             persist()

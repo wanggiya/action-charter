@@ -10,7 +10,9 @@ from geoagent_harness.model.schemas import ModelResult
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
+parser.add_argument('--acquisition-fixture',action='store_true')
 parser.add_argument('--planning-task-fixture',action='store_true')
+parser.add_argument('--spatial-view-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
 parser.add_argument('--calculation-fixture',action='store_true')
 parser.add_argument('--write-policy-fixture',action='store_true')
@@ -27,8 +29,19 @@ repo=Path(__file__).resolve().parents[1]
 for directory in ['context','agents']:
     copytree(repo/directory,root/directory,dirs_exist_ok=True)
 (root/'data/input').mkdir(parents=True,exist_ok=True)
-for name in ['sample_orders.csv','sample_regions.csv','sample_points.geojson']:
+for name in ['sample_orders.csv','sample_regions.csv','sample_points.geojson','sample_dem.tif']:
     (root/'data/input'/name).write_bytes((repo/'data/input'/name).read_bytes())
+if args.spatial_view_fixture:
+    import geopandas as gpd
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    gpd.GeoDataFrame({'name':['Projected point']},geometry=gpd.points_from_xy([111319.490793],[0]),crs='EPSG:3857').to_file(root/'data/input/layers.gpkg',layer='projected',driver='GPKG')
+    from shapely.geometry import Polygon,LineString
+    gpd.GeoDataFrame({'name':['Boundary <b>literal</b>']},geometry=[Polygon([(0,0),(4,0),(4,4),(0,4),(0,0)],holes=[[(1,1),(2,1),(2,2),(1,2),(1,1)]])],crs='EPSG:4326').to_file(root/'data/input/layers.gpkg',layer='boundaries',driver='GPKG')
+    gpd.GeoDataFrame({'name':['Route']},geometry=[LineString([(0,0),(4,4)])],crs='EPSG:4326').to_file(root/'data/input/layers.gpkg',layer='routes',driver='GPKG')
+    with rasterio.open(root/'data/input/image.tif','w',driver='GTiff',width=2,height=2,count=3,dtype='int16',nodata=-9999,crs='EPSG:4326',transform=from_origin(10,20,2,2)) as dataset:
+        dataset.write(np.array([[[0,10],[20,-9999]],[[100,110],[120,-9999]],[[200,210],[220,-9999]]],dtype='int16'))
 (root/'data/output').mkdir(exist_ok=True)
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
 if args.calculation_omission_fixture:
@@ -49,6 +62,22 @@ class FixtureModel:
         role=json.loads(request.messages[0].content).get('agent',{}).get('id')
         with (root/'model-calls.jsonl').open('a') as handle:
             handle.write(json.dumps({'role':role or json.loads(request.messages[0].content).get('agent_id')})+'\n')
+        context=json.loads(request.messages[0].content).get('result_view_context')
+        latest=json.loads(request.messages[1].content).get('latest_message','')
+        if context and latest in {'Show boundaries layer on the map.','Display band 2 as a color ramp.','Explain the current result.'}:
+            candidate=context['results'][0]
+            spec={'run_id':context['run_id'],'plan_sha256':context['plan_sha256'],'step_id':candidate['step_id'],'view':'Map'}
+            if latest.startswith('Explain'):
+                spec['explanation_fields']=[key for key in ('layer_count','layer_features','width','height','band_count') if key in candidate.get('recorded_facts',{})]
+            elif latest.startswith('Show boundaries'):
+                spec['spatial']={'mode':'vector','layer':'boundaries'}
+            else:spec['spatial']={'mode':'raster','bands':[2],'render':'ramp'}
+            return ModelResult(model='temporary spatial-view fixture',content=json.dumps({'message':'99999 invented result values must not become evidence.','plan':None,'result_view':spec}))
+        if context and latest=='Show total amount by region as a bar chart.':
+            candidate=next(item for item in context['results'] if 'Chart' in item['views'])
+            return ModelResult(model='temporary result-view fixture',content=json.dumps({'message':'Show recorded regional totals.','plan':None,'result_view':{
+                'run_id':context['run_id'],'plan_sha256':context['plan_sha256'],'step_id':candidate['step_id'],
+                'view':'Chart','chart':{'group_by':'region','value':'amount','aggregation':'sum'},'chart_kind':'bar'}}))
         if role=='critic' and json.loads(request.messages[0].content).get('required_json_schema',{}).get('title')=='OutcomeAssessment':
             if args.critic_graph_fixture:
                 import time
@@ -63,6 +92,21 @@ class FixtureModel:
                 'conclusion':'supported' if source['deterministic_status']=='completed' else 'needs_attention',
                 'summary':'Recorded operations completed and their reported validation is available.' if source['deterministic_status']=='completed' else 'The run stopped; inspect completed steps and partial outputs before recovery.',
                 'findings':[],'limitations':['Fixture observations do not prove suitability for other inputs.'],'reusable_method':None}))
+        if args.acquisition_fixture:
+            from geoagent_harness.operations.packages import installed_packages,package_sha
+            if role=='critic':return ModelResult(model='temporary capability Critic',content=json.dumps({'assessment':'suitable','reason':'Trim then uppercase matches the request.','limitations':['Synthetic fixtures only.']}))
+            payload=json.loads(request.messages[1].content);latest=payload.get('latest_message','').lower()
+            text=next((p for p in installed_packages(root).values() if p.text_transform is not None),None)
+            if 'uppercase' in latest or 'registered operation ext_text_' in latest:
+                if text:
+                    proposed={'summary':'Inspect and normalize region','steps':[
+                        {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'}},
+                        {'step_id':'step_2','skill':text.id,'purpose':'Normalize region','arguments':{'path':'data/input/sample_orders.csv','package_sha256':package_sha(text)},'depends_on':['step_1']}]}
+                    return ModelResult(model='temporary capability Planner',content=json.dumps({'message':'Review normalized region workflow.','plan':proposed}))
+                if json.loads(request.messages[0].content).get('capability_acquisition',{}).get('enabled'):
+                    return ModelResult(model='temporary capability Planner',content=json.dumps({'message':'Prepare a missing text adapter.','plan':None,'capability_request':{'gap_reason':'No installed string normalization operation.','definition':{'source_column':'region','output_column':'region_clean','steps':[{'kind':'strip'},{'kind':'upper'}]}}}))
+                return ModelResult(model='temporary capability Planner',content=json.dumps({'message':'String normalization is not registered. Optional capability acquisition is OFF.','plan':None}))
+            return ModelResult(model='temporary capability Planner',content=json.dumps({'message':'Inspection ready.','plan':{'summary':'Inspect CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'}}]}}))
         if args.recipe_runs_fixture and role in {'planner','critic'}:
             if role=='planner':
                 from geoagent_harness.recipe_catalog.composition import catalog
@@ -173,8 +217,19 @@ class FixtureModel:
                 'checks':['Compare expected metadata.'],'limitations':['Proposed method only; no execution evidence.']}))
         if args.planning_task_fixture:
             latest=json.loads(request.messages[1].content)['latest_message']
-            if 'Vector task inspection' in latest:
+            from geoagent_harness.planner.request_coverage import inspection_only_skill
+            from geoagent_harness.interface_api.inspection_policy import request_source
+            inspector=inspection_only_skill(latest)
+            if args.spatial_view_fixture and inspector in {'inspect_vector','inspect_raster'}:
+                proposed={'summary':'Spatial viewing fixture','steps':[{'step_id':'step_1','skill':inspector,'purpose':'Inspect spatial source','arguments':{'path':request_source(latest)},'requires_approval':False,'validation_required':False}]}
+            elif latest.startswith('Inspect sample_points.geojson'):
+                proposed={'summary':'Vector inspection fixture','steps':[{'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect vector metadata','arguments':{'path':'data/input/sample_points.geojson'},'requires_approval':False,'validation_required':False}]}
+            elif latest.startswith('Inspect sample_dem.tif'):
+                proposed={'summary':'Raster inspection fixture','steps':[{'step_id':'step_1','skill':'inspect_raster','purpose':'Inspect raster metadata','arguments':{'path':'data/input/sample_dem.tif'},'requires_approval':False,'validation_required':False}]}
+            elif 'Vector task inspection' in latest:
                 proposed={'summary':'Vector task fixture','steps':[{'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect vector','arguments':{'path':'data/input/sample_points.geojson'},'requires_approval':False,'validation_required':False}]}
+            elif 'Read-only CSV inspection' in latest or latest.strip() == 'Inspect sample_orders.csv. Return row count and column names. No writes.':
+                proposed={'summary':'Read-only CSV fixture','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV without writing','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False}]}
             elif 'CSV task inspection' in latest:
                 proposed={'summary':'CSV task fixture','steps':[
                     {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
@@ -191,6 +246,8 @@ class FixtureModel:
                 {'step_id':'step_3','skill':'export_csv','purpose':'Export validated adapter result','arguments':{'source_step':'step_2','target_path':'data/output/interface_identity_final.csv'},'requires_approval':True,'validation_required':True}]}
             return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review the installed adapter; nothing authorized or executed.','plan':adapted}))
         return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review regional totals; no operation has run.', 'plan':plan}))
+from geoagent_harness.capabilities import service as capability_service
+capability_service.SharedModelClient=lambda settings:FixtureModel()
 conversation.SharedModelClient=lambda settings:FixtureModel()
 method_memory.SharedModelClient=lambda settings:FixtureModel()
 method_helper.SharedModelClient=lambda settings:FixtureModel()

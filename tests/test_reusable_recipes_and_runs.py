@@ -179,6 +179,8 @@ def test_actual_run_has_intermediate_previews_and_durable_result(project):
     inventory=run_action(RunRequest(action='list'),project_root=project)
     assert inventory['records'][0]['result'] is None
     assert inventory['records'][0]['steps'][0]['outcome'] is None
+    assert inventory['records'][0]['source_paths']==['data/input/orders.csv']
+    assert all(step['arguments']=={} and step['validation_outcome'] is None for step in inventory['records'][0]['steps'])
 
 
 def test_progress_stays_active_until_final_state_is_durable(project,monkeypatch):
@@ -382,3 +384,13 @@ def test_cli_catalog_and_run_inventory_share_services(project):
     assert len(json.loads(result.stdout)['recipes'])==3
     result=cli.invoke(app,['workflow-runs','--project-root',str(project)])
     assert result.exit_code==0 and json.loads(result.stdout)['records']==[]
+
+
+def test_run_inventory_source_labels_are_bounded_safe_local_paths():
+    from geoagent_harness.interface_api.workflow_runs import _source_paths
+    record={'steps':[{'arguments':{'path':value,'password':'not-an-inventory-field'}} for value in [
+        'data/input/orders.csv','data/input/orders.csv','data/output/intermediate.csv',
+        '/etc/passwd','data/input/../secret','data/input//bad.csv','data/input/bad\\name.csv',
+        'data/input/bad\nname.csv','https://example.invalid/file.csv','data/input/'+('x'*960)]]}
+    assert _source_paths(record)==['data/input/orders.csv','data/output/intermediate.csv']
+    assert len(_source_paths({'steps':[{'arguments':{'path':f'data/input/{i}.csv'}} for i in range(30)]}))==20

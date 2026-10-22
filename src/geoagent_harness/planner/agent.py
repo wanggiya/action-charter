@@ -51,7 +51,8 @@ class PlannerAgentError(RuntimeError):
 
 def _schema_findings(error: ValidationError) -> list[str]:
     """Describe trusted field locations/types, never model values or context."""
-    safe_fields = {'schema_version', 'status', 'summary', 'steps', 'assumptions',
+    safe_fields = {'capability_request', 'definition', 'source_column', 'gap_reason', 'old', 'new',
+                   'schema_version', 'status', 'summary', 'steps', 'assumptions',
                    'risks', 'execution_performed', 'validation_performed',
                    'step_id', 'skill', 'purpose', 'arguments', 'requires_approval',
                    'expected_artifacts', 'validation_required', 'agent_id', 'plan',

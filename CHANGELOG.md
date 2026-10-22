@@ -1,3 +1,50 @@
+# Checkpoint 28 — saved inspection history visibility (2026-10-22)
+
+- Put saved workflow runs at the top of Execution History with input filenames, operation labels, timestamps and direct outcome access. Preserve the current workflow and existing cancellation/recovery controls; opening history performs no execution.
+
+# Checkpoint 28 — same-chat sources and conversational results
+
+- Version the source-binding Planner contract as `inspection-source-v2`; stale APIs block before submission. Identify mismatched operation/input formats, and extend actual-model acceptance through the final CSV transition.
+
+- Reject stale historical input paths before saving explicit inspection proposals; bind the latest requested source in the decoder and retain one bounded correction.
+- Add typed conversational vector layer/raster band-render settings with current-run validation and explicit bounded display reads.
+- Add backend-formatted recorded-fact explanations (model-free for exact factual questions) and display acknowledgments; preserve workflow/history and avoid inferred statistics, domain claims or authority.
+
+# Checkpoint 28.3 — vector-first spatial views
+
+- Add scoped source-verified vector layer samples, display reprojection, visibility/fit/selection and linked attributes through the existing Results tabs.
+- Add bounded raster grayscale/ramp/RGB/class rendering, NoData transparency, sampled ranges and exact source-pixel inspection through shared UI/CLI services.
+- Preserve saved evidence, source-change rejection and write authority; add worker/concurrency limits and synthetic resource measurements. Fix Planner/graph/Outcome grid overlap and account for visible docks when resizing. No new agent, dependency or live-service changes.
+
+# Checkpoint 28.2 — bounded local spatial inspection on send
+
+- Extend the remembered Inspect on send setting to single GeoJSON, GeoPackage, closed Shapefile and self-contained GeoTIFF metadata tasks using shared submission/run services.
+- Bind supported sidecars and adapter contracts; inspect private snapshots with worker resource limits. Keep mixed/write workflows, multi-step and unsupported inputs on the ordinary review/Execute path.
+- Preserve read-only result schemas, geometry snapshots, cancellation and durable no-replay receipts. No live services, dependency installation or model training.
+
+# Checkpoint 28.3 — typed recorded-result exploration
+
+- Rename the preference to Inspect on send, retain the current bounded CSV disclosure, and remove redundant saved-plan text from the chat composer footer.
+
+- Add hash-verified complete bounded CSV filters, stable sorting/paging, source column profiles and original row identities through shared interface/CLI services.
+- Connect filtered complete chart summaries and one-shot Planner result_view proposals without workflow replacement or execution. Add displayed map extent/type details.
+- Keep existing previews, write controls and ten manual chart types; broader spatial/raster, scale, grounded explanations and learning gates remain open.
+
+# Checkpoint 28.1 — optional bounded capability acquisition
+
+- Add explicit default-OFF bounded CSV inspection on send through existing execution services, exact source/revision/contract binding, durable no-replay receipts, browser recovery and shared CLI submission.
+- Document non-RL learning alternatives; no new learned policy or model training is delivered.
+- Record requested format-independent inspection-on-send expansion and unchanged 28.3 visualization order; documentation only.
+- Record deferred Codex/data-specialization comparison and DeepSeek Harness research; no benchmark, integration or runtime change.
+
+- Reject unrelated PostGIS/report/transform steps in narrowly recognized single-file metadata-only conversation requests; focus inspector decoding and preserve the bounded correction budget.
+
+- Add a per-chat default-OFF acquisition switch and Planner-owned typed CSV text candidates; existing supported operations do not trigger candidate tests.
+- Test closed definitions in a resource-bounded, scrubbed Linux worker using synthetic, held-out, negative and effect checks. No generated Python, network primitive or dependency installation is exposed.
+- Add bounded read-only Critic assessment, private hashed attempt receipts, explicit exact-digest promotion, and install-and-update planning without execution authority.
+- Register fixed text adapters through the existing package/catalog/graph/CLI/execution services; preserve legacy projection manifest hashes and independently verify produced values and source lineage.
+- Add shared CLI controls, function-based examples, browser/actual-model evaluation drivers and explicit later learning/visualization/private-memory gates. One actual-model OFF/ON/changed-input-reuse profile passed (five calls; Critic suitable); earlier failures and narrow contract-routing fixes are recorded without a general reliability or speedup claim.
+
 Chart interaction: add consistent click/keyboard details across all ten chart types, including verified aggregate slices and histogram/box/summary statistics. Outside click, blank-chart click or Escape dismisses details; changing data/axes clears them. Existing table-row linking stays independent.
 
 Runtime/UI follow-up: report the actual Planner contract in API health/startup and check it before a conversational model request. An incompatible runtime is blocked before model invocation. Remove the extra Information button; select a block to reopen the Inspector and X to close it.
@@ -1151,3 +1198,27 @@ Checkpoint 21K links task-derived completed run result/evidence references and c
 Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
 
 Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+
+## Checkpoint 28.2 — outcome recommendation pilot
+
+- Group conversation switches under a gear popover, preserving their existing preference scopes.
+- Record bounded private current-contract deterministic check metadata from durable runs; optional own-chat recommendations and recipe relevance tie-breaks share UI/CLI services.
+- Add reset, synthetic baseline evaluation and isolation/authority regression tests. No RL training, cross-chat pooling or claimed model-quality improvement.
+
+- Recommendation follow-up: show empty-evidence guidance while enabled; inspection completion alone is not a verified check, and empty runs no longer consume ranking inventory.
+
+## Checkpoint 28.2 — execution paths and paired acceptance
+
+- Run normal read-only inspection from one header Execute click; hide unnecessary Authorize while retaining strict backend review. Writes still need enabled availability and exact authorization before Execute.
+- Add policy/contract/ranking rationale receipts and typed stored-observation checks.
+- Add a disposable six-case paired Planner evaluation, independent result oracles and browser acceptance for both execution paths. Actual-model benefit is evaluated separately from deterministic fixtures.
+
+- Actual-model paired evaluation exposed contradictory replies, omitted calculations and copied occupied targets. Ordinary CSV replies now use the shared typed decoder; simple two-step calculation reuse gets the existing structure guide, and explicit fresh-output requests can refresh inherited unnamed CSV targets without touching old data. Initial negative comparison results remain documented.
+
+- Reject explicit CSV selection/filter requests reduced to repeated inspections, retain negation/clarification handling, and bind a single declared source in simple CSV/spatial guides. Focus automatic descriptive schemas without changing the operation allowlist. Fix the paired oracle to locate the producing step and record extra inspections separately.
+
+- Final focused local-model regressions: selection, filtering and vector-to-table grouping passed independently with recommendations OFF/ON (3/3 each, one call per task). This does not demonstrate a ranking benefit; keep it experimental OFF.
+
+## Domain knowledge design — documentation only
+
+- Record scoped knowledge acquisition, Planner/Critic/backend responsibilities, correction and provenance, minimal frontend controls and portable method packages. Preserve the cross-chat decision gate; no runtime behavior or model weights change.

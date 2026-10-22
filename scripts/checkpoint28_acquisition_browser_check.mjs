@@ -1,0 +1,122 @@
+#!/usr/bin/env node
+// Actual shared backend and temporary CSV files; deterministic model proposal only.
+import {createServer} from 'node:http';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,dirname,extname,isAbsolute} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const root=await mkdtemp(resolve(tmpdir(),'actioncharter-acquisition-'));
+const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??resolve(repo,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(repo,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+const {chromium}=await import(isAbsolute(provider)?pathToFileURL(provider).href:provider);
+let apiPort,child,browser; const calls=[],errors=[],cases=[];
+const frontend=createServer(async(req,res)=>{
+ try {
+  if(req.url.startsWith('/api/')) {
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   calls.push({method:req.method,path:req.url,action:req.method==='POST'?JSON.parse(Buffer.concat(chunks).toString()).action:undefined});
+   const response=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});
+   res.writeHead(response.status,{'Content-Type':'application/json'});res.end(await response.text());return;
+  }
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  const file=pathname.startsWith('/assets/')?resolve(repo,'interface/dist','.'+pathname):resolve(repo,'interface/dist/index.html');
+  const content=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(content);
+ }catch(error){res.writeHead(500);res.end(String(error));}
+});
+await new Promise(done=>frontend.listen(0,'127.0.0.1',done));
+const origin=`http://127.0.0.1:${frontend.address().port}`;
+try{
+ child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root,'--acquisition-fixture'],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'false',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
+ let stderr='';child.stderr.on('data',data=>stderr+=data);
+ apiPort=await new Promise((done,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error(`API startup timeout: ${stderr}`)),20000);child.stdout.on('data',data=>{output+=data;if(output.includes('\n')){clearTimeout(timer);done(JSON.parse(output.split('\n')[0]).port);}});child.on('exit',code=>{clearTimeout(timer);reject(new Error(`API exited ${code}: ${stderr}`));});});
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1600,height:1000}});page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+ const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('.planner-composer button[type=submit]')?.textContent?.includes('Send'),{},{timeout:30000});};
+ const countModels=async()=>{try{return (await readFile(resolve(root,'model-calls.jsonl'),'utf8')).trim().split('\n').filter(Boolean).length;}catch{return 0;}};
+ const request='Inspect sample_orders.csv. Trim whitespace and uppercase region into a new region_clean column, preserving originals, and save a fresh CSV. Do not execute.';
+ const openSettings=async()=>{const gear=page.getByRole('button',{name:'Conversation settings',exact:true});if(await gear.getAttribute('aria-expanded')!=='true')await gear.click();};
+ await page.goto(origin);
+ await openSettings();
+ const toggle=page.getByRole('switch',{name:'Acquire capabilities · optional',exact:true});
+ await toggle.waitFor();assert.equal(await toggle.getAttribute('aria-checked'),'false');
+ await send(request);
+ assert.equal(await page.getByRole('region',{name:'Capability candidate'}).count(),0);
+ assert.equal(await countModels(),1);
+ assert.equal((await readdir(root)).includes('operation-packages'),false);
+ cases.push('Acquisition OFF explains the gap with no candidate, fixture batch or installation');
+ await openSettings();
+ await toggle.click();await page.waitForFunction(()=>document.querySelector('[aria-labelledby="planner-acquisition-label"]')?.getAttribute('aria-checked')==='true');
+ assert.equal(await countModels(),1);
+ await page.reload();await openSettings();await page.waitForFunction(()=>document.querySelector('[aria-labelledby="planner-acquisition-label"]')?.getAttribute('aria-checked')==='true');assert.equal(await toggle.getAttribute('aria-checked'),'true');
+ assert.equal(await countModels(),1);
+ const recommendations=page.getByRole('switch',{name:'Use outcome recommendations',exact:true});
+ assert.equal(await recommendations.getAttribute('aria-checked'),'false');await recommendations.click();
+ await page.waitForFunction(()=>document.querySelector('[aria-labelledby="planner-recommendations-label"]')?.getAttribute('aria-checked')==='true');
+ assert.equal(await countModels(),1);
+ await page.getByRole('button',{name:'Close conversation settings',exact:true}).click();
+ await page.getByText('Recommendations from verified checks · this chat',{exact:true}).click();
+ await page.getByText(/No verified checks were supplied to the last planning request/).waitFor();
+ cases.push('Enabled recommendations remain visible and explain empty evidence');
+ cases.push('Gear settings change recommendations without model calls');
+ cases.push('Per-chat ON persists across refresh with no model call');
+ await send(request);
+ const candidate=page.getByRole('region',{name:'Capability candidate'});
+ await candidate.getByText('Tested capability candidate',{exact:true}).waitFor({timeout:30000});
+ assert((await candidate.textContent()).includes('held-out checks passed'));
+ assert((await candidate.textContent()).includes('Critic · advisory: suitable'));
+ await candidate.screenshot({path:'/tmp/actioncharter-capability-candidate.png'});
+ assert.equal(await countModels(),3);
+ assert.equal((await readdir(root)).includes('operation-packages'),false);
+ assert.equal((await readdir(resolve(root,'data/output'))).length,0);
+ assert.equal(await page.getByRole('switch',{name:'⚠ Allow writes',exact:true}).getAttribute('aria-checked'),'false');
+ cases.push('Planner owns a closed text candidate; synthetic, held-out and negative checks plus Critic do not install or grant writes');
+ await page.reload();await candidate.waitFor();assert.equal(await countModels(),3);
+ await candidate.getByRole('button',{name:'Install and update workflow',exact:true}).click();
+ await page.locator('[data-operation-node="planned_step_2"]').waitFor({timeout:30000});
+ await page.getByRole('button',{name:'Authorize',exact:true}).first().waitFor({state:'visible'});
+ await page.waitForFunction(()=>!document.querySelector('.top-actions .authorize-button')?.disabled);
+ assert.equal(await countModels(),4);
+ assert.equal((await readdir(resolve(root,'operation-packages'))).filter(f=>f.endsWith('.json')).length,1);
+ assert.equal((await readdir(resolve(root,'data/output'))).length,0);
+ assert.equal(await page.getByRole('switch',{name:'⚠ Allow writes',exact:true}).getAttribute('aria-checked'),'false');
+ cases.push('One install action retests/registers the exact package and asks Planner for a normal workflow, with no execution');
+ await page.getByRole('switch',{name:'⚠ Allow writes',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[aria-labelledby="toolbar-write-label"]')?.getAttribute('aria-checked')==='true');
+ await page.getByRole('button',{name:'Authorize',exact:true}).first().click();
+ await page.waitForFunction(()=>document.querySelector('.workflow-review-panel')?.textContent?.includes('region_clean'));
+ assert((await page.locator('.workflow-review-panel').textContent()).includes('region_clean'));
+ await page.locator('.workflow-authorization-form textarea').fill('Only the fresh temporary normalized CSV.');
+ await page.locator('.workflow-authorization-form button[type=submit]').click();
+ await page.locator('.authorization-duration').waitFor();
+ await page.locator('.workflow-review-panel .execute-button').click();
+ await page.locator('.results-workspace .outcome-step').waitFor({timeout:30000});
+ const files=await readdir(resolve(root,'data/output'));assert.equal(files.filter(f=>f.endsWith('.csv')).length,1);
+ const csv=await readFile(resolve(root,'data/output',files.find(f=>f.endsWith('.csv'))),'utf8');
+ assert(csv.includes('region_clean')&&csv.includes('NORTH'));
+ const ownId=await page.evaluate(()=>localStorage.getItem('actioncharter:planner-conversation:v1'));
+ const runs=await page.evaluate(async conversation_id=>(await fetch('/api/v1/workflow/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',conversation_id})})).json(),ownId);
+ assert(JSON.stringify(runs).includes('completed'));
+ cases.push('Promoted text adapter runs through separate write availability, exact authorization and deterministic output verification');
+ await page.getByRole('button',{name:'Planner agent',exact:true}).click();
+ await send(request);
+ await page.getByText('Recommendations from verified checks · this chat',{exact:true}).waitFor();
+ const receipt=await page.evaluate(async()=>{const conversation_id=localStorage.getItem('actioncharter:planner-conversation:v1');return (await fetch('/api/v1/planner/conversation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read',conversation_id})})).json();});
+ assert(receipt.context_usage.outcome_recommendations.items.some(item=>item.verified_passes>0));
+ cases.push('Real durable-run checks feed own-chat recommendations on the next request');
+
+ await page.getByRole('button',{name:'New chat',exact:false}).click();await openSettings();await toggle.waitFor();
+ await page.waitForFunction(()=>document.querySelector('[aria-labelledby="planner-acquisition-label"]')?.disabled===false);
+ assert.equal(await toggle.getAttribute('aria-checked'),'false');
+ await send(request);await page.locator('[data-operation-node="planned_step_2"]').waitFor({timeout:30000});
+ assert.equal(await candidate.count(),0);
+ cases.push('New chats default OFF but can reuse the explicitly installed public adapter without generating another candidate');
+ assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,live_service_calls:0,page_errors:errors},null,2));
+}catch(error){console.error(error);console.error(JSON.stringify({cases,errors,calls},null,2));throw error;}
+finally{await browser?.close();child?.kill('SIGTERM');await new Promise(done=>frontend.close(done));await rm(root,{recursive:true,force:true});}

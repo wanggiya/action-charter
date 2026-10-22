@@ -7,10 +7,11 @@ export function geometryFeatures(value:unknown):MapFeature[]{
  const data=value as Record<string,unknown>;
  if(data.status!=='available'||!['EPSG:4326','OGC:CRS84'].includes(String(data.crs)))return [];
  if(data.kind==='wgs84_points'&&Array.isArray(data.points))return data.points.slice(0,32).flatMap((p):MapFeature[]=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite)&&Math.abs(p[0])<=180&&Math.abs(p[1])<=90?[{id:p[2],geometry:{type:'Point',coordinates:p.slice(0,2)},properties:{}}]:[]);
- if(data.kind!=='wgs84_geometry'||!Array.isArray(data.features)||JSON.stringify(data.features).length>128000)return [];
+ if(data.kind!=='wgs84_geometry'||!Array.isArray(data.features)||JSON.stringify(data.features).length>384000)return [];
+ const featureLimit=Math.max(1,Math.min(256,Number(data.feature_limit)||32)),vertexLimit=Math.max(1,Math.min(8192,Number(data.vertex_limit)||2048));
  let count=0;
- const valid=(v:unknown,depth:number):boolean=>Array.isArray(v)&&v.length>0&&(depth===0?v.length===2&&v.every(Number.isFinite)&&Math.abs(v[0])<=180&&Math.abs(v[1])<=90&&++count<=2048:depth<=3&&v.every(child=>valid(child,depth-1)));
- return data.features.slice(0,32).flatMap((raw):MapFeature[]=>{
+ const valid=(v:unknown,depth:number):boolean=>Array.isArray(v)&&v.length>0&&(depth===0?v.length===2&&v.every(Number.isFinite)&&Math.abs(v[0])<=180&&Math.abs(v[1])<=90&&++count<=vertexLimit:depth<=3&&v.every(child=>valid(child,depth-1)));
+ return data.features.slice(0,featureLimit).flatMap((raw):MapFeature[]=>{
   if(!raw||typeof raw!=='object')return [];
   const feature=raw as MapFeature,g=feature.geometry;
   if(!Number.isInteger(feature.id)||!g||!(g.type in levels)||!valid(g.coordinates,levels[g.type]))return [];

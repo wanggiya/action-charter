@@ -1,4 +1,5 @@
 import {useGraphLayout,freePosition} from "./lib/use-graph-layout";
+import type {ResultViewSpec} from './lib/result-exploration';
 import {ResultsWorkspace, type ResultRecord, type ResultView} from './components/ResultsWorkspace';
 import {CRITIC_NODE_ID, criticState, withCriticReview} from "./lib/critic-graph";
 import {useWritePolicy, WritePolicyStatus} from "./lib/write-policy";
@@ -10,6 +11,7 @@ import { useCanvasZoom } from "./lib/use-canvas-zoom";
 import { CriticOutcome } from "./components/CriticOutcome";
 import { OperationFlow } from "./components/OperationFlow";
 import { ReusableRecipesPanel } from "./components/ReusableRecipesPanel";
+import { ExecutionRunHistory } from "./components/ExecutionRunHistory";
 import { WorkflowRunsPanel } from "./components/WorkflowRunsPanel";
 import { startWorkflowRun, runActive, runInCurrentChat, runs as workflowRuns, runSchema, type WorkflowRun } from "./lib/workflow-tools";
 import { parseWorkflowExecution } from "./lib/interface-api";
@@ -378,10 +380,13 @@ export default function App() {
     observedWritePolicy.current=identity;
   },[writePolicy?.session_id,writePolicy?.revision]);
   const [workflowRun, setWorkflowRun] = useState<WorkflowRun | null>(null);
+  const [submittedInspection,setSubmittedInspection]=useState<WorkflowRun|null>(null);
   const [directExportRun, setDirectExportRun] = useState<WorkflowRun | null>(null);
   const [recordsNotice, setRecordsNotice] = useState("");
   const [outcomeOpen, setOutcomeOpen] = useState(false);
-  const [outcomeSelection,setOutcomeSelection]=useState<{step?:string;view:ResultView}>({view:"Overview"});
+  const [outcomeSelection,setOutcomeSelection]=useState<{step?:string;view:ResultView;spec?:ResultViewSpec}>({view:"Overview"});
+  const executionScopeRef=useRef<{sha:string|undefined;edited:boolean;chat:string|null}>({sha:undefined,edited:false,chat:null});
+  const executionStartRef=useRef(false);
   const [workflowReview, setWorkflowReview] = useState<WorkflowReview | null>(null);
   const [workflowReviewOpen, setWorkflowReviewOpen] = useState(false);
   const [executionWorkflowBusy, setWorkflowBusy] = useState(false);
@@ -396,7 +401,7 @@ export default function App() {
   const [workflowApprover, setWorkflowApprover] = useState("operator");
   const [workflowReason, setWorkflowReason] = useState("");
   const [currentInspection, setCurrentInspection] = useState<InspectionRun | null>(null);
-  const [inspectionHistorySelection, setInspectionHistorySelection] = useState<InspectionRun | null>(null);
+  const [inspectionHistorySelection, setInspectionHistorySelection] = useState<InspectionRun | WorkflowRun | null>(null);
   const [inspectionRuns, setInspectionRuns] = useState<InspectionRun[]>([]);
   const [inspectionNotice, setInspectionNotice] = useState("");
   const [editedPlan, setEditedPlan] = useState<InterfacePlannerResult | null>(null);
@@ -1043,7 +1048,7 @@ export default function App() {
     }
   };
   const openExecutionInventory = async () => {
-    setWorkflowReviewOpen(false); setOutcomeOpen(false);
+    setWorkflowReviewOpen(false); setOutcomeOpen(false); setRunPanelOpen(false);
     setTextPlannerOpen(false);
     setIntentOpen(false);
     setPlannerOpen(false);
@@ -2063,6 +2068,14 @@ export default function App() {
     if (results[1].status === "fulfilled") setRecipeInventory(results[1].value); else setRecipeInventory(null);
     setRecordsNotice(results.some((result) => result.status === "rejected") ? "Some saved records could not be loaded. Restart the updated API and refresh." : "");
   };
+  executionScopeRef.current={sha:savedPlannerResult?.plan_sha256,edited:Boolean(editedPlan),chat:currentChatId()};
+  const currentScopeSteps=plannerResult?.plan.steps??[];
+  const readOnlyScope=Boolean(currentScopeSteps.length)&&currentScopeSteps.every(step=>{
+    const declared=plannerSkills?.skills.find(skill=>skill.id===step.skill);
+    return declared?.access==='read_only'&&!declared.approval_required&&!step.requires_approval;
+  });
+  const currentReview=workflowReview?.plan_sha256===savedPlannerResult?.plan_sha256?workflowReview:null;
+  const requiresWorkflowAuthorization=currentReview?Boolean(currentReview.approval_required_step_ids.length):!readOnlyScope;
   const openWorkflowExecution = async (authorization = false) => {
     setRunPanelOpen(false); setWorkflowReviewOpen(true); setExecutionInventoryOpen(false); setOutcomeOpen(false); setTextPlannerOpen(false); setIntentOpen(false); setWorkflowNotice(""); setAuthorizationFocus(authorization);
     if (editedPlan) { setWorkflowNotice("Validate and save block edits before execution."); return; }
@@ -2088,27 +2101,27 @@ export default function App() {
     } catch (e) { setWorkflowAuthorization(null); setWorkflowNotice(e instanceof Error ? e.message : "Authorization blocked"); }
     finally { setWorkflowBusy(false); }
   };
-  const executeReviewedWorkflow = async () => {
-    if (!workflowReview || workflowBusy || editedPlan || workflowReview.plan_sha256 !== savedPlannerResult?.plan_sha256) return;
-    if (workflowReview.approval_required_step_ids.length && workflowAuthorization?.review_sha256 !== workflowReview.review_sha256) { setAuthorizationFocus(true); setWorkflowNotice("Authorize the highlighted operations before execution."); return; }
+  const executeReviewedWorkflow = async (review=workflowReview, authorization=workflowAuthorization) => {
+    if (!review || workflowBusy || editedPlan || review.plan_sha256 !== executionScopeRef.current.sha || executionScopeRef.current.edited) return;
+    if (review.approval_required_step_ids.length && authorization?.review_sha256 !== review.review_sha256) { setAuthorizationFocus(true); setWorkflowNotice("Authorize the highlighted operations before execution."); return; }
     recordedPlan.select(null);
     setDirectExportRun(null);
     const executingChat=currentChatId();
     setWorkflowBusy(true); setWorkflowNotice("Executing the exact reviewed workflow…"); setWorkflowOutcomeNotice(""); setCurrentInspection(null); setInspectionHistorySelection(null); setExecutionResult(null);
     try {
       let result: InspectionRun | RecipeExecutionResult;
-      if (workflowReview.workflow_kind === "snakemake_export") {
-        result = await executeCurrentWorkflow(workflowReview, workflowAuthorization);
+      if (review.workflow_kind === "snakemake_export") {
+        result = await executeCurrentWorkflow(review, authorization);
         if ('run_id' in result) setDirectExportRun({
           run_id:result.run_id,plan_sha256:result.plan_sha256,plan_filename:result.plan_filename,conversation_id:executingChat,
           status:result.status,started_at:result.started_at,finished_at:result.finished_at,cancel_requested:false,
           failed_step_id:null,finding:result.finding??null,recovery_guidance:'Inspect recorded export evidence before recovery.',
           execution_performed:result.execution_performed,result,partial_outputs:[],
-          steps:result.step_results.map(step=>({...step,arguments:workflowReview.steps.find(item=>item.step_id===step.step_id)?.arguments??{},depends_on:workflowReview.steps.find(item=>item.step_id===step.step_id)?.depends_on??[]})),
+          steps:result.step_results.map(step=>({...step,arguments:review.steps.find(item=>item.step_id===step.step_id)?.arguments??{},depends_on:review.steps.find(item=>item.step_id===step.step_id)?.depends_on??[]})),
         });
       }
       else {
-        let run = await startWorkflowRun(workflowReview, workflowAuthorization);
+        let run = await startWorkflowRun(review, authorization);
         setWorkflowRun(run);
         while (runActive(run)) {
           await new Promise(resolve => window.setTimeout(resolve, 700));
@@ -2135,9 +2148,74 @@ export default function App() {
     } catch (e) { const message = e instanceof Error ? e.message : "Workflow execution failed. Inspect history before retrying."; setWorkflowNotice(message); setWorkflowOutcomeNotice(message); setWorkflowAuthorization(null); }
     finally { setWorkflowBusy(false); }
   };
-  const executeFromHeader = () => {
-    if (workflowReviewOpen && workflowReview && workflowReview.plan_sha256 === savedPlannerResult?.plan_sha256) void executeReviewedWorkflow();
-    else void openWorkflowExecution();
+  const openPlannerResultView = async (spec:ResultViewSpec) => {
+    const chat=currentChatId();
+    if(spec.plan_sha256!==executionScopeRef.current.sha||executionScopeRef.current.edited)throw new Error('The proposed result view belongs to a different workflow.');
+    const run=runSchema.parse(await workflowRuns({action:'read',run_id:spec.run_id}));
+    if(currentChatId()!==chat||executionScopeRef.current.sha!==spec.plan_sha256||executionScopeRef.current.edited||!matchesPlanRun(run,spec.plan_sha256,chat))throw new Error('Workspace changed while opening recorded results. Nothing executed.');
+    setWorkflowRun(run);recordedPlan.select(run);setInspectionHistorySelection(null);
+    setOutcomeSelection({step:spec.step_id,view:spec.view,spec});setWorkflowReviewOpen(false);setExecutionInventoryOpen(false);setRunPanelOpen(false);setOutcomeOpen(true);
+  };
+  const acceptSubmittedInspection = async (initial:WorkflowRun) => {
+    const chat=currentChatId();
+    if(initial.conversation_id!==chat)return;
+    setWorkflowBusy(true);
+    const matches=()=>currentChatId()===chat && !executionScopeRef.current.edited && executionScopeRef.current.sha===initial.plan_sha256;
+    try{
+      // Plan callbacks and this run arrive together; allow the saved scope to render.
+      await new Promise(resolve=>window.setTimeout(resolve,0));
+      if(!matches())return;
+      setWorkflowRun(initial);setWorkflowNotice('Inspecting the explicitly submitted dataset…');
+      setCurrentInspection(null);setExecutionResult(null);setInspectionHistorySelection(null);
+      let run=initial;
+      while(runActive(run)){
+        await new Promise(resolve=>window.setTimeout(resolve,500));
+        run=runSchema.parse(await workflowRuns({action:'read',run_id:run.run_id}));
+        if(!matches())return;
+        setWorkflowRun(run);
+      }
+      if(!matches())return;
+      if(run.status!=='completed'||run.result==null){
+        setRunPanelOpen(true);setWorkflowReviewOpen(false);setOutcomeOpen(false);
+        setWorkflowNotice(run.finding??'Inspection stopped. Inspect the recorded run; nothing was retried.');return;
+      }
+      const result=parseWorkflowExecution(run.result);
+      if('run_id' in result){setCurrentInspection(result);setExecutionResult(null);}
+      else{setExecutionResult(result);setCurrentInspection(null);}
+      setWorkflowReviewOpen(false);setExecutionInventoryOpen(false);setRunPanelOpen(false);
+      setOutcomeSelection({view:'Overview'});setOutcomeOpen(true);setWorkflowNotice('');setWorkflowOutcomeNotice('');
+    }catch(e){setWorkflowNotice(e instanceof Error?e.message:'Inspection status unavailable. Check Execution History; nothing was retried.');throw e;}
+    finally{setWorkflowBusy(false);}
+  };
+  useEffect(()=>{
+    if(!submittedInspection)return;
+    const run=submittedInspection;
+    setSubmittedInspection(null);
+    if(!matchesPlanRun(run,savedPlannerResult?.plan_sha256,currentChatId())||editedPlan){
+      setWorkflowNotice('The submitted inspection belongs to a different workspace scope. Its run is preserved in Execution History.');return;
+    }
+    void acceptSubmittedInspection(run).catch(()=>{/* Recorded run remains available for read-only recovery. */});
+  },[submittedInspection,savedPlannerResult?.plan_sha256,Boolean(editedPlan)]);
+  const executeFromHeader = async () => {
+    if(workflowBusy||editBusy||editedPlan||!savedPlannerResult||executionStartRef.current)return;
+    executionStartRef.current=true;
+    const expected={...executionScopeRef.current};
+    setWorkflowBusy(true);setWorkflowNotice('Checking the exact workflow before execution…');
+    try{
+      const review=await prepareCurrentWorkflow(savedPlannerResult);
+      if(executionScopeRef.current.sha!==expected.sha||executionScopeRef.current.chat!==expected.chat||executionScopeRef.current.edited)throw new Error('Workspace changed during preparation. Nothing executed.');
+      setWorkflowReview(review);
+      const authorized=workflowAuthorization?.review_sha256===review.review_sha256?workflowAuthorization:null;
+      if(!review.execution_available||(review.approval_required_step_ids.length&&!authorized)){
+        setWorkflowAuthorization(authorized);setWorkflowReviewOpen(true);setTextPlannerOpen(false);setIntentOpen(false);setOutcomeOpen(false);setExecutionInventoryOpen(false);setRunPanelOpen(false);setAuthorizationFocus(true);
+        setWorkflowNotice(!review.execution_available?'Write operations are OFF. Enable Allow writes, then authorize this exact workflow.':'Authorize the highlighted operations, then click Execute.');
+        return;
+      }
+      // This deliberate click runs read-only scope directly. Writes still require
+      // exact existing authorization; the backend independently rechecks both.
+      await executeReviewedWorkflow(review,authorized);
+    }catch(error){setWorkflowReviewOpen(true);setWorkflowNotice(error instanceof Error?error.message:'Workflow preparation failed. Nothing executed.');}
+    finally{executionStartRef.current=false;setWorkflowBusy(false);}
   };
   const acceptReusablePlan = async (result: InterfacePlannerResult) => {
     const stored = await saveGeneratedPlannerPlan(result);
@@ -2290,8 +2368,8 @@ export default function App() {
         <button className={`journey-step ${outcomeOpen ? "active" : ""}`} aria-pressed={outcomeOpen} onClick={() => { setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setTextPlannerOpen(false); setIntentOpen(false); setRunPanelOpen(false);setInspectionHistorySelection(null); setOutcomeOpen(true); }}><FileCheck2 size={16}/><strong>Outcome</strong></button>
       </div></nav>
       <div className="top-actions"><div className="workflow-primary-actions"><WritePolicyStatus/>
-        <button className="context-intent-toggle authorize-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan)} onClick={() => void openWorkflowExecution(true)}><CircleAlert size={16}/> Authorize</button>
-        <button className="context-intent-toggle execute-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan) || Boolean(workflowReviewOpen && workflowReview?.approval_required_step_ids.length && !workflowAuthorization)} onClick={executeFromHeader}><Play size={16} fill="currentColor"/> Execute</button>
+        {requiresWorkflowAuthorization&&<button className="context-intent-toggle authorize-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan)} onClick={() => void openWorkflowExecution(true)}><CircleAlert size={16}/> Authorize</button>}
+        <button className="context-intent-toggle execute-button" disabled={workflowBusy || editBusy || mode === "proposal" || !savedPlannerResult || Boolean(editedPlan) || Boolean(savedPlannerResult&&requiresWorkflowAuthorization&&(!workflowAuthorization||!currentReview?.execution_available))} onClick={()=>void executeFromHeader()}><Play size={16} fill="currentColor"/> Execute</button>
         </div>
         <button className="context-intent-toggle utility-button" disabled={workflowBusy || editBusy || Boolean(editedPlan)} onClick={() => setReusableOpen(true)}><LayoutTemplate size={15}/> Reusable recipes</button>
         {runActive(workflowRun) && <button className="context-intent-toggle authorize-button" disabled={workflowRun?.cancel_requested} onClick={() => { setRunPanelOpen(true); setWorkflowReviewOpen(false); setExecutionInventoryOpen(false); setOutcomeOpen(false); if(workflowRun)void workflowRuns({action:"cancel",run_id:workflowRun.run_id}).then(value=>setWorkflowRun(runSchema.parse(value))).catch(()=>setWorkflowNotice("Cancellation request failed. Reopen workflow runs to check status.")); }}><XCircle size={15}/>{workflowRun?.cancel_requested ? "Stopping after current operation…" : "Cancel"}</button>}
@@ -2380,7 +2458,7 @@ export default function App() {
       {executionResult && <section className={`execution-result result-${executionResult.status}`} aria-live="assertive"><header className="execution-verdict">{executionResult.status === "validated_success" ? <CheckCircle2 size={34}/> : <XCircle size={34}/>}<span><small>Final execution status</small><strong>{executionResult.status === "validated_success" ? "SUCCESS — OUTPUT VALIDATED" : "FAILURE — VALIDATION DID NOT PASS"}</strong><em>{executionResult.status === "validated_success" ? "The approved recipe ran and its deterministic checks passed." : "Do not treat the produced output as a successful result."}</em></span></header><ol>{executionResult.step_results.map((step) => <li key={step.step_id}><div className="execution-step-line">{step.status === "validation_failed" ? <XCircle size={15}/> : <CheckCircle2 size={15}/>}<strong>{step.step_id} · {step.skill_id.replaceAll("_", " ")}</strong><small>{step.status} · validation {step.validation_performed ? "performed" : "not required"}</small></div><div className="execution-outcome"><h3>Outcome</h3>{outcomeFacts(step.outcome).map(([name, value]) => <div key={name}><span>{name}</span><strong>{value}</strong></div>)}{step.validation_outcome !== null && <><h3>Validation</h3>{outcomeFacts(step.validation_outcome).map(([name, value]) => <div key={`validation-${name}`}><span>{name}</span><strong>{value}</strong></div>)}</>}</div></li>)}</ol><dl>{[["Run result", executionResult.run_result_path], ["Evidence", executionResult.evidence_path], ["Report", executionResult.report_path]].map(([label, path]) => { const parts = evidencePathParts(path); return <div key={label}><dt>{label}</dt><dd><strong>{parts.filename}</strong><small>{parts.directory}</small></dd></div>; })}</dl></section>}
     </section>}
     <div className={`workspace ${intentOpen || textPlannerOpen ? "intent-open" : ""} ${textPlannerOpen ? "text-planner-open" : ""} ${rightPanelOpen ? "right-panel-open" : ""} ${inspectorClosed ? "inspector-closed" : ""}`}>
-      <TextPlanner onTaskBusyChange={setTaskTransitionBusy} onScopeChange={() => {
+      <TextPlanner onResultView={openPlannerResultView} onSubmittedRun={async(run)=>{setSubmittedInspection(run);}} onTaskBusyChange={setTaskTransitionBusy} onScopeChange={() => {
         cancelNodeLayoutDrag();setPlannerResult(null);setSavedPlannerResult(null);setEditedPlan(null);
         setWorkflowReview(null);setWorkflowAuthorization(null);setWorkflowReviewOpen(false);setOutcomeOpen(false);
         setExecutionResult(null);setCurrentInspection(null); setInspectionHistorySelection(null);setOutcomeSelection({view:'Overview'});setWorkflowNotice('');setWorkflowOutcomeNotice('');
@@ -2459,15 +2537,15 @@ export default function App() {
         </div>
         <div className={`timeline ${timelineExpanded ? "expanded" : "compact"}`}><div className="timeline-title"><button className="timeline-toggle" aria-expanded={timelineExpanded} onClick={() => setTimelineExpanded((value) => !value)}>{timelineExpanded ? "Collapse" : "Expand"}</button><span>{mode === "proposal" ? "Proposed structure" : "Execution timeline"}</span><small>Select a stage to inspect evidence</small><div className="timeline-navigation"><button type="button" aria-label="Scroll timeline left" onClick={() => timelineScrollRef.current?.scrollBy({ left: -Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowLeft size={14}/></button><button type="button" aria-label="Scroll timeline right" onClick={() => timelineScrollRef.current?.scrollBy({ left: Math.max(220, timelineScrollRef.current.clientWidth * .7), behavior: "smooth" })}><ArrowRight size={14}/></button></div></div><div className="timeline-scroll" ref={timelineScrollRef}><div className="timeline-content" style={{ minWidth: Math.max(600, nodes.length * 112) }}><div className="timeline-events" style={{ gridTemplateColumns: `repeat(${nodes.length}, minmax(96px, 1fr))` }}>{nodes.map((node) => <button key={node.id} aria-label={`Inspect ${titleOf(node)}`} title={titleOf(node)} className={`timeline-event category-${categoryOf(node)} status-${node.status} ${executionProgress?.steps.some((step) => step.status === "running" && node.id === `active_${step.step_id}`) ? "is-running" : ""} ${selected.id === node.id ? "selected" : ""}`} onClick={() => {setSelectedId(node.id);if(node.id===CRITIC_NODE_ID){setOutcomeOpen(false);setRunPanelOpen(false);setWorkflowReviewOpen(false);setExecutionInventoryOpen(false);}if(node.id === "planned_outcome"){setInspectionHistorySelection(null); setOutcomeOpen(true);}}}><span className="timeline-event-status">{node.id===CRITIC_NODE_ID&&recordedPlan.run?criticState(recordedPlan.run).label:node.status}</span><span className="timeline-event-marker"/><strong className="timeline-event-label">{titleOf(node)}</strong></button>)}</div></div></div></div>
       </section>
-      {outcomeOpen && <ResultsWorkspace key={`${inspectionHistorySelection?.run_id??recordedPlan.run?.run_id??'empty'}:${outcomeSelection.step??'all'}:${outcomeSelection.view}`} record={inspectionHistorySelection?inspectionResultRecord(inspectionHistorySelection):recordedPlan.run?{...recordedPlan.run,durable:recordedPlan.run}:graphSelection==='live-plan'?null:currentInspection?inspectionResultRecord(currentInspection):executionResult?legacyResultRecord(executionResult,executionResult.run_result_path):null} notice={editedPlan?'Draft edits have no execution outcome. Validate the workflow before authorization or execution.':recordedPlan.status||workflowOutcomeNotice} initialStep={outcomeSelection.step} initialView={outcomeSelection.view} onClose={()=>setOutcomeOpen(false)}/>}
-      {executionInventoryOpen && <aside className="record-workspace execution-inventory-workspace workspace-right-panel" aria-labelledby="runs-title"><PanelResize side="information"/><header className="template-workspace-head"><div><p className="eyebrow">Durable governed history</p><h2 id="runs-title">Execution History</h2><p>Reopen persisted progress after closing the browser or restarting the interface API. This view cannot retry an execution.</p></div><button aria-label="Close execution attempts" onClick={() => setExecutionInventoryOpen(false)}><X size={18}/></button></header>{executionInventoryNotice && <p className="recipe-inventory-notice">{executionInventoryNotice}</p>}<h3>Current-plan attempts · inspections and exports</h3>{inspectionNotice && <p role="status">{inspectionNotice}</p>}{inspectionRuns.map((run) => <article className="execution-attempt" key={run.run_id}><strong>{run.status} · {run.plan_sha256.slice(0, 12)}</strong><p>{new Date(run.started_at).toLocaleString()} · {run.step_results.length} completed steps</p><button className="context-intent-toggle" onClick={() => { setInspectionHistorySelection(run); setExecutionInventoryOpen(false); setOutcomeOpen(true); }}>View outcome</button></article>)}<button className="context-intent-toggle" onClick={() => { setRunPanelOpen(true); setExecutionInventoryOpen(false); }}>Workflow runs · cancellation and recovery</button><h3>Governed recipe attempts</h3>{executionInventory && <div className="execution-attempts"><div className="execution-attempt-summary"><strong>{executionInventory.attempt_count}</strong><span>durable attempt{executionInventory.attempt_count === 1 ? "" : "s"}</span><small>Read-only inventory · no execution performed</small></div>{executionInventory.attempts.map((attempt) => <article className={`execution-attempt status-${attempt.status}`} key={attempt.execution_preview_sha256}><header><span><strong>{attempt.recipe_id ?? "Legacy execution attempt"}</strong><small>{attempt.status.replaceAll("_", " ")}</small></span><time dateTime={attempt.started_at}>{new Date(attempt.started_at).toLocaleString()}</time></header><dl><div><dt>Steps</dt><dd>{attempt.step_count}</dd></div><div><dt>Stopped at</dt><dd>{attempt.failed_step_id ?? "—"}</dd></div><div><dt>Finished</dt><dd>{attempt.finished_at ? new Date(attempt.finished_at).toLocaleString() : "In progress"}</dd></div></dl><p className={`execution-authority ${attempt.authority_link}`} title={attempt.authority_reason}>{attempt.authority_link === "verified" ? "Approval linked at run start" : attempt.authority_link === "blocked" ? "Authority link blocked" : "Approval link unavailable"} · {attempt.authority_reason}</p><p className={`execution-authority ${attempt.result_link}`} title={attempt.result_reason}>{attempt.result_link === "verified" ? "Result and evidence verified" : attempt.result_link === "blocked" ? "Result link blocked" : "Result link unavailable"} · {attempt.result_reason}</p>{attempt.partial_outputs.length > 0 && <div><strong>CSV files present after failure</strong>{attempt.partial_outputs.map((output) => <p key={output.path}><code title={output.sha256}>{output.path}</code></p>)}{attempt.recovery_guidance && <p>{attempt.recovery_guidance}</p>}</div>}<code title={attempt.execution_preview_sha256}>{attempt.execution_preview_sha256}</code><button disabled={!attempt.recipe_id || !attempt.recipe_sha256} onClick={() => void reopenExecutionAttempt(attempt.execution_preview_sha256)}>{attempt.status === "running" ? "View live graph" : "Reopen run graph"}</button></article>)}</div>}</aside>}
+      {outcomeOpen && <ResultsWorkspace key={`${inspectionHistorySelection?.run_id??recordedPlan.run?.run_id??'empty'}:${outcomeSelection.step??'all'}:${outcomeSelection.view}`} record={inspectionHistorySelection?('steps' in inspectionHistorySelection?{...inspectionHistorySelection,durable:inspectionHistorySelection}:inspectionResultRecord(inspectionHistorySelection)):recordedPlan.run?{...recordedPlan.run,durable:recordedPlan.run}:graphSelection==='live-plan'?null:currentInspection?inspectionResultRecord(currentInspection):executionResult?legacyResultRecord(executionResult,executionResult.run_result_path):null} notice={editedPlan?'Draft edits have no execution outcome. Validate the workflow before authorization or execution.':recordedPlan.status||workflowOutcomeNotice} initialStep={outcomeSelection.step} initialView={outcomeSelection.view} initialSpec={outcomeSelection.spec} onViewApplied={()=>setOutcomeSelection(current=>({...current,spec:undefined}))} onClose={()=>setOutcomeOpen(false)}/>}
+      {executionInventoryOpen && <aside className="record-workspace execution-inventory-workspace workspace-right-panel" aria-labelledby="runs-title"><PanelResize side="information"/><header className="template-workspace-head"><div><p className="eyebrow">Durable governed history</p><h2 id="runs-title">Execution History</h2><p>Reopen persisted progress after closing the browser or restarting the interface API. This view cannot retry an execution.</p></div><button aria-label="Close execution attempts" onClick={() => setExecutionInventoryOpen(false)}><X size={18}/></button></header><ExecutionRunHistory onManage={()=>{setRunPanelOpen(true);setExecutionInventoryOpen(false);}} onOutcome={run=>{setInspectionHistorySelection(run);setOutcomeSelection({view:"Overview"});setExecutionInventoryOpen(false);setRunPanelOpen(false);setOutcomeOpen(true);}}/>{executionInventoryNotice && <p className="recipe-inventory-notice">{executionInventoryNotice}</p>}<h3>Current-plan attempts · inspections and exports</h3>{inspectionNotice && <p role="status">{inspectionNotice}</p>}{inspectionRuns.map((run) => <article className="execution-attempt" key={run.run_id}><strong>{run.status} · {run.plan_sha256.slice(0, 12)}</strong><p>{new Date(run.started_at).toLocaleString()} · {run.step_results.length} completed steps</p><button className="context-intent-toggle" onClick={() => { setInspectionHistorySelection(run); setExecutionInventoryOpen(false); setOutcomeOpen(true); }}>View outcome</button></article>)}<h3>Governed recipe attempts</h3>{executionInventory && <div className="execution-attempts"><div className="execution-attempt-summary"><strong>{executionInventory.attempt_count}</strong><span>durable attempt{executionInventory.attempt_count === 1 ? "" : "s"}</span><small>Read-only inventory · no execution performed</small></div>{executionInventory.attempts.map((attempt) => <article className={`execution-attempt status-${attempt.status}`} key={attempt.execution_preview_sha256}><header><span><strong>{attempt.recipe_id ?? "Legacy execution attempt"}</strong><small>{attempt.status.replaceAll("_", " ")}</small></span><time dateTime={attempt.started_at}>{new Date(attempt.started_at).toLocaleString()}</time></header><dl><div><dt>Steps</dt><dd>{attempt.step_count}</dd></div><div><dt>Stopped at</dt><dd>{attempt.failed_step_id ?? "—"}</dd></div><div><dt>Finished</dt><dd>{attempt.finished_at ? new Date(attempt.finished_at).toLocaleString() : "In progress"}</dd></div></dl><p className={`execution-authority ${attempt.authority_link}`} title={attempt.authority_reason}>{attempt.authority_link === "verified" ? "Approval linked at run start" : attempt.authority_link === "blocked" ? "Authority link blocked" : "Approval link unavailable"} · {attempt.authority_reason}</p><p className={`execution-authority ${attempt.result_link}`} title={attempt.result_reason}>{attempt.result_link === "verified" ? "Result and evidence verified" : attempt.result_link === "blocked" ? "Result link blocked" : "Result link unavailable"} · {attempt.result_reason}</p>{attempt.partial_outputs.length > 0 && <div><strong>CSV files present after failure</strong>{attempt.partial_outputs.map((output) => <p key={output.path}><code title={output.sha256}>{output.path}</code></p>)}{attempt.recovery_guidance && <p>{attempt.recovery_guidance}</p>}</div>}<code title={attempt.execution_preview_sha256}>{attempt.execution_preview_sha256}</code><button disabled={!attempt.recipe_id || !attempt.recipe_sha256} onClick={() => void reopenExecutionAttempt(attempt.execution_preview_sha256)}>{attempt.status === "running" ? "View live graph" : "Reopen run graph"}</button></article>)}</div>}</aside>}
       <WorkflowRunsPanel canInspect={(run)=>matchesPlanRun(run,savedPlannerResult?.plan_sha256,currentChatId())&&!editedPlan&&graphSelection==='live-plan'} onInspectStep={(run,step)=>{if(matchesPlanRun(run,savedPlannerResult?.plan_sha256,currentChatId())&&!editedPlan){recordedPlan.select(run);setSelectedId(step===CRITIC_NODE_ID?CRITIC_NODE_ID:`planned_${step}`);setRunPanelOpen(false);setOutcomeOpen(false);revealSelectedOperation();}}} open={runPanelOpen} onClose={() => setRunPanelOpen(false)} current={workflowRun} onCurrent={setWorkflowRun} onRecovery={acceptReusablePlan} polling={!executionWorkflowBusy}/>
       {workflowReviewOpen && <aside className="record-workspace workspace-right-panel workflow-review-panel" aria-labelledby="execute-title"><PanelResize side="information"/>
         <header className="template-workspace-head"><h2 id="execute-title">{authorizationFocus ? "Authorize operations" : "Execute workflow"}</h2><button aria-label="Close workflow review" onClick={() => setWorkflowReviewOpen(false)}><X size={18}/></button></header>
         {workflowNotice && <p className="workflow-review-notice" ref={workflowNoticeRef} role="status">{workflowAuthorization && workflowNotice.startsWith("Authorization recorded for") ? <>Authorization recorded for <strong className="authorization-duration">30 minutes</strong>. Click Execute to run this exact workflow.</> : workflowNotice}</p>}
         {workflowReview && <><p>{workflowReview.workflow_kind === "snakemake_export" ? "Export and static verification only. Completed source operations are reused; PostGIS and Snakemake will not run." : "Review the exact inputs, operations and affected resources beside the graph."}</p>{workflowReview.export_path && <dl><div><dt>Package</dt><dd>{workflowReview.export_path}</dd></div></dl>}<ol>{workflowReview.steps.map((step) => <li key={step.step_id} className={authorizationFocus && step.requires_approval ? "authorization-step" : ""}><button className="review-step-link" onClick={() => { setSelectedId(`planned_${step.step_id}`); requestAnimationFrame(() => revealSelectedOperation()); }}><small>{step.step_id.replace("step_", "Step ")}</small><strong>{skillLabel(step.skill)}</strong></button><p>{step.purpose}</p><OperationFlow stepId={step.step_id} skill={step.skill} arguments={step.arguments} dependsOn={step.depends_on}/><>{step.skill === "calculate_csv_columns" && <CalculationSummary arguments={step.arguments}/>}</><dl>{Object.entries({...step.arguments,...(step.adapter_configuration ? {"fixed adapter configuration":step.adapter_configuration} : {})}).filter(([key]) => step.skill !== "calculate_csv_columns" || !["calculations", "assumptions"].includes(key)).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd></div>)}</dl><div className="review-step-footer"><small className="review-step-dependencies">After: {step.depends_on?.join(", ") || "workflow start"}</small><small className="review-step-gates">{step.execution_mode === "reuse_completed" ? "Reusing completed evidence · will not rerun" : step.requires_approval ? "Authorization required · highlighted in graph" : "No authorization required"} · {step.validation_required ? "Result validation required" : "Inspection result"}</small></div></li>)}</ol>
         {workflowReview.approval_required_step_ids.length > 0 ? <WorkflowAuthorizationForm executionButton={<button type="button" className="context-intent-toggle execute-button" disabled={workflowBusy || !workflowReview.execution_available || Boolean(workflowReview.approval_required_step_ids.length && !workflowAuthorization)} onClick={() => void executeReviewedWorkflow()}><Play size={16} fill="currentColor"/>{workflowBusy ? "Working…" : "Execute"}</button>} initialApprover={workflowApprover} initialReason={workflowReason} busy={workflowBusy} authorized={Boolean(workflowAuthorization)} available={workflowReview.execution_available} onDraft={(approver, reason) => { setWorkflowApprover(approver); setWorkflowReason(reason); }} onAuthorize={(approver, reason) => void authorizeReviewedWorkflow(approver, reason)}/> : <p>Read-only inspection: clicking Execute authorizes this exact inspection. No approval record is needed.</p>}
-        {!workflowReview.execution_available && <p role="alert">Write operations are OFF. Open Settings → Allow write operations, then review and authorize this workflow.</p>}
+        {!workflowReview.execution_available && <p role="alert">Write operations are OFF. Enable the Allow writes switch above, then review and authorize this workflow.</p>}
         {!workflowReview.approval_required_step_ids.length && <div className="workflow-decision-actions"><button type="button" className="context-intent-toggle execute-button" disabled={workflowBusy || !workflowReview.execution_available || Boolean(workflowReview.approval_required_step_ids.length && !workflowAuthorization)} onClick={() => void executeReviewedWorkflow()}><Play size={16} fill="currentColor"/>{workflowBusy ? "Working…" : "Execute"}</button></div>}</>}
       </aside>}
       <aside id="workflow-information" hidden={inspectorClosed} className={`inspector category-${categoryOf(selected)}`}>

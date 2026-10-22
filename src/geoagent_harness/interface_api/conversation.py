@@ -1,6 +1,7 @@
 """Bounded, durable planning dialogue. This coordinator has no execution tools."""
 from __future__ import annotations
 
+import sqlite3
 import json
 import os
 import re
@@ -10,7 +11,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Literal, Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, StrictBool
 
 from geoagent_harness.approvals import plan_sha256
 from geoagent_harness.agent_manifest import load_agent_manifest
@@ -24,7 +25,7 @@ from geoagent_harness.planner.prompt import build_planner_request
 from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan
 from geoagent_harness.planner.response_diagnostics import response_diagnostics, TruncatedModelReply
 from geoagent_harness.planner.calculation_prompt import calculation_reply_example, SchemaRepairDeferral
-from geoagent_harness.planner.request_coverage import requests_calculated_columns, simple_calculation_sequence, validate_calculation_coverage, RequestedOperationOmission
+from geoagent_harness.planner.request_coverage import requests_calculated_columns, simple_calculation_sequence, validate_calculation_coverage, validate_table_coverage, requested_table_operations, RequestedOperationOmission, inspection_only_skill, validate_inspection_scope
 from geoagent_harness.planner.reuse_claims import constrain_reuse_claims, supplied_reuse_sources, UnverifiedReuseClaim
 from geoagent_harness.planner.policy import normalize_plan_input_filenames, PlannerPolicyError
 from .workflow import _check, ARGUMENTS
@@ -33,7 +34,7 @@ from geoagent_harness.recipe_catalog.discovery import DiscoveryRequest
 from geoagent_harness.operations.registry import argument_models
 from geoagent_harness.operations.packages import installed_packages, package_sha, ProjectionArguments
 
-PLANNER_CONTRACT_REVISION = "csv-revision-v3"
+PLANNER_CONTRACT_REVISION = "inspection-source-v2"
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
@@ -90,7 +91,7 @@ def _check_prompt(request):
 
 class TurnRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['list', 'read', 'turn', 'list_tasks', 'create_task', 'select_task', 'bind_task_plan']
+    action: Literal['list', 'read', 'turn', 'list_tasks', 'create_task', 'select_task', 'bind_task_plan', 'configure_acquisition', 'configure_recommendations', 'install_capability']
     conversation_id: str = Field(pattern=r'^[a-f0-9]{32}$')
     expected_revision: int = Field(default=0, ge=0)
     message: str = Field(default='', max_length=8000)
@@ -103,6 +104,12 @@ class TurnRequest(BaseModel):
     task_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     expected_task_revision: int | None = Field(default=None, ge=0)
     task_title: str = Field(default='', max_length=160)
+    recommendations_enabled: StrictBool | None = None
+    acquisition_enabled: StrictBool | None = None
+    confirmed_candidate_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+
+from .exploration_contracts import ResultViewSpec, ResultViewReply
 
 
 class Reply(BaseModel):
@@ -114,8 +121,15 @@ class Reply(BaseModel):
     reused_recipe_ids: list[Annotated[str, Field(min_length=1, max_length=64, pattern=r'^(recipe_[a-z][a-z0-9_]{0,55}|[a-f0-9]{64})$')]] = Field(default_factory=list, max_length=3)
     recipe_mode: Literal['replace', 'append'] = 'replace'
     workflow_action: Literal['prepare_recipe', 'review_outcome'] | None = None
+    result_view: ResultViewSpec | None = None
     approval_performed: Literal[False] = False
     execution_performed: Literal[False] = False
+
+
+from geoagent_harness.capabilities.service import CapabilityProposal,explicit_text_gap,gap_decoder,CapabilityGapMismatch,explicit_text_constraints
+
+class AcquisitionReply(Reply):
+    capability_request: CapabilityProposal | None = None
 
 
 class Entry(BaseModel):
@@ -136,6 +150,9 @@ class Conversation(BaseModel):
     messages: list[Entry] = Field(default_factory=list, max_length=100)
     planner_result: PlannerResult | None = None
     recipe_candidate: dict | None = None
+    recommendations_enabled: bool = False
+    acquisition_enabled: bool = False
+    capability_candidate: dict | None = None
     selected_skill_ids: list[str] = Field(default_factory=list, max_length=64)
     allowed_skill_ids: list[str] = Field(default_factory=lambda: list(ARGUMENTS), max_length=64)
     active_task_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
@@ -161,6 +178,9 @@ def _response(state: Conversation, changed: bool, models=None, root=None):
     payload = state.model_dump(mode='json')
     payload['task_history_preview'] = _history(state.messages, True)[0]
     payload['task_message_count'] = len(state.messages)
+    if state.capability_candidate and root is not None:
+        installed=installed_packages(root).get(state.capability_candidate['operation_id'])
+        payload['capability_candidate']['installed']=bool(installed and package_sha(installed)==state.capability_candidate['package_sha256'])
     if root is not None:
         from .method_helper import observe
         payload['method_helper'] = observe(root, state.conversation_id, state.planner_result, models or ARGUMENTS)
@@ -278,6 +298,30 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             return _response(state, False, models, root)
         if request.conversation_id in _ACTIVE or request.expected_revision != state.revision:
             raise InterfaceApiError('Conversation digest no longer matches; reload before sending')
+        if request.action == 'configure_recommendations':
+            if request.recommendations_enabled is None:
+                raise InterfaceApiError('Choose recommendations ON or OFF explicitly')
+            state.recommendations_enabled = request.recommendations_enabled
+            state.revision += 1
+            write_turn(root, state.model_dump(mode='json'), expected_revision=request.expected_revision, expected_task_revision=request.expected_revision)
+            state.task_revision = state.revision
+            return _response(state, False, models, root)
+        if request.action == 'configure_acquisition':
+            if request.acquisition_enabled is None:raise InterfaceApiError('Choose acquisition ON or OFF explicitly')
+            state.acquisition_enabled=request.acquisition_enabled
+            state.capability_candidate=None
+            state.revision+=1
+            value=state.model_dump(mode='json')
+            write_turn(root,value,expected_revision=request.expected_revision,expected_task_revision=request.expected_revision)
+            state.task_revision=state.revision
+            return _response(state,False,models,root)
+        if request.action == 'install_capability':
+            if not state.acquisition_enabled or not state.capability_candidate or not request.confirmed_candidate_sha256:
+                raise InterfaceApiError('Review an enabled, tested candidate and confirm its exact digest')
+            from geoagent_harness.capabilities.service import promote
+            receipt=promote(state.capability_candidate,root=root,conversation_id=state.conversation_id,
+                revision=state.revision,confirmed_sha=request.confirmed_candidate_sha256)
+            return {**_response(state,False,argument_models(root),root),'installed_capability':receipt}
         if request.action in {'create_task', 'select_task'}:
             raise InterfaceApiError('Each conversation is one task. Use New chat for separate work; cross-chat task linking is unavailable.')
         if request.task_id is not None and request.task_id != state.conversation_id:
@@ -318,23 +362,71 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
         system['mandatory_rules'][0] = 'Return exactly one JSON object matching required_json_schema. Keep message, summary and each purpose short. A null plan means a clarification or explanation; a plan is the complete revised workflow, never a patch.'
         system.pop('required_json_schema')
         system.pop('tabular_argument_schemas', None)
-        system['required_json_schema'] = Reply.model_json_schema()
-        system['required_json_schema']['$defs']['PlanStep']['properties']['skill']['enum'] = available
+        text_gap=explicit_text_gap(request.message,[step.skill for step in base.plan.steps] if base else [],installed_packages(root))
+        text_constraints=explicit_text_constraints(request.message) if text_gap and state.acquisition_enabled else None
+        reply_type = AcquisitionReply if state.acquisition_enabled else Reply
+        system['required_json_schema'] = reply_type.model_json_schema()
+        from .result_exploration import view_context, validate_view, requests_result_view, requests_result_explanation, explanation_text, prepared_view_text, recorded_explanation_spec, bind_view_schema
+        result_context = view_context(root, request.conversation_id, base)
+        explanation_intent = bool(result_context and requests_result_explanation(request.message))
+        view_intent = bool(result_context and (requests_result_view(request.message) or explanation_intent))
+        view_query_requested = bool(re.search(r'\b(?:filter|where|sort|order|missing|contains|above|below|greater|less|columns|fields|only)\b', request.message, re.I))
+        if view_intent:
+            system['required_json_schema'] = bind_view_schema(ResultViewReply.model_json_schema(), result_context)
+            if not view_query_requested:
+                system['required_json_schema']['$defs']['ResultViewSpec']['properties'].pop('query', None)
+            if explanation_intent:
+                definitions=system['required_json_schema']['$defs']
+                definitions['ResultViewSpec']['properties'].pop('spatial',None)
+                definitions.pop('SpatialViewOptions',None)
+                definitions['ResultViewSpec']['properties']['explanation_fields']['minItems']=1
+                definitions['ResultViewSpec']['required']=list(dict.fromkeys([*definitions['ResultViewSpec'].get('required',[]),'explanation_fields']))
+
+        if result_context:
+            system['result_view_context'] = result_context
+        else:
+            # First-time planning must not carry a whole result-query schema.
+            system['required_json_schema']['properties'].pop('result_view', None)
+            for definition in ('ResultViewSpec','ExplorationQuery','ResultFilter','ResultSort','ChartAnalysis','SpatialViewOptions'):
+                system['required_json_schema'].get('$defs', {}).pop(definition, None)
+
+        if not view_intent:
+            system['required_json_schema']['$defs']['PlanStep']['properties']['skill']['enum'] = available
         from geoagent_harness.recipe_catalog.composition import catalog, recipe_digest
-        from geoagent_harness.planner.bindings import automatic_recipe_parameters, allocate_csv_outputs, refresh_automatic_targets, bind_required_gates
+        from geoagent_harness.planner.bindings import automatic_recipe_parameters, allocate_csv_outputs, refresh_automatic_targets, refresh_inherited_csv_targets, bind_required_gates
         from geoagent_harness.recipe_catalog.discovery import library_structure, discover
         library = {key:value for key,value in catalog(root).items() if all(step.skill in available for step in value.steps)}
         structures = {key:library_structure(value,root) for key,value in library.items()}
         reusable = {key:value for key,value in library.items() if structures[key]['composition_available']}
         words = set(re.findall(r'[a-z]{3,}', request.message.casefold()))
-        ranked = sorted(reusable.values(), key=lambda r: (-len(words & set(re.findall(r'[a-z]{3,}', r.name.casefold()+' '+r.description.casefold()))),r.id))[:5]
+        recommendation_receipt = {'status': 'disabled', 'scope': 'this_chat', 'items': []}
+        if state.recommendations_enabled:
+            from geoagent_harness.planner.outcome_recommendations import recommendations
+            try:
+                items = recommendations(root, state.conversation_id, available)
+                recommendation_receipt = {'status': 'available', 'scope': 'this_chat', 'items': items}
+                system['outcome_recommendations'] = {**recommendation_receipt, 'rule': 'Historical operation checks only, not proof of suitability for new data. Use only compatible operations for the current request. No execution authority. Critic opinions do not affect these scores.'}
+            except (ValueError, OSError, sqlite3.Error):
+                recommendation_receipt['status'] = 'unavailable'
+        from geoagent_harness.planner.outcome_recommendations import rank_recipes, ranking_receipt
+        ranked = rank_recipes(reusable.values(), words, recommendation_receipt['items'])[:5]
+        recommendation_receipt.update(ranking_receipt(reusable.values(), words, recommendation_receipt['items']))
+        if 'outcome_recommendations' in system:
+            system['outcome_recommendations'].update(recommendation_receipt)
         system['reusable_recipes'] = [{'id':r.id,'recipe_sha256':recipe_digest(r),'name':structures[r.id]['name'],'description':structures[r.id]['description'],
             'parameters':structures[r.id]['parameters'],'skills':[s.skill for s in r.steps],
             'output_contract':r.output_contract} for r in ranked]
         for item,recipe in zip(system['reusable_recipes'],ranked):
             item['automatic_parameters']=automatic_recipe_parameters(recipe)
         from geoagent_harness.planner.prompt_scope import compact_schema, schema_scope, compact_calculation_schema
-        supplied_schemas=schema_scope(request.message, available, [step.skill for step in base.plan.steps] if base else [], selected=bool(selected))
+        supplied_schemas=schema_scope(request.message, available, [step.skill for step in base.plan.steps] if base else [], selected=bool(selected), acquisition=state.acquisition_enabled)
+        if view_intent:
+            supplied_schemas = []
+        inspection_skill = inspection_only_skill(request.message)
+        from .inspection_policy import request_source
+        explicit_inspection_source = request_source(request.message) if inspection_skill else None
+        if inspection_skill in available:
+            supplied_schemas = [inspection_skill]
         system['deferred_operation_schema_ids']=[name for name in available if name not in supplied_schemas]
         system['operation_argument_schemas'] = {name: ({'$ref':'#/installed_adapter_argument_schema'} if name.startswith('ext_') else compact_schema(models[name].model_json_schema())) for name in supplied_schemas}
 
@@ -360,12 +452,15 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                 'required_rule':'The inspection and attribute export MUST use the same original input path. Export MUST depend on inspection. Aggregation MUST depend on the export and reference its CSV-producing step ID.'}
 
         system['installed_adapter_bindings'] = {id: package_sha(package) for id,package in installed_packages(root).items() if id in available}
+        if any(p.text_transform is not None for p in installed_packages(root).values()):
+            from geoagent_harness.operations.packages import configuration
+            system['installed_adapter_configurations']={id:configuration(p) for id,p in installed_packages(root).items() if id in available}
         system['mandatory_rules'] += [
             'Bare input filenames resolve under data/input. source_reference_checks lists only existing safe paths explicitly supplied in this turn; it is an existence check, not content inspection. Use these supplied paths without asking the user to repeat them. Ask for a source only when missing, ambiguous or unavailable. File presence grants no authority.',
             'Handle mechanical setup automatically. Backend allocates omitted CSV output paths and automatic_parameters; do not ask users to type intermediate filenames, JSON bindings or register a recipe to complete a task. Preserve explicit output paths. Ask only for missing semantic scope such as columns, join keys or fill strategy. Do not infer an unspecified database target or conversion format.',
             'You also own reusable recipe authoring. When the user asks to make/save the current workflow as a reusable recipe, return workflow_action=prepare_recipe with plan=null and no recipe_uses. Backend runs the separate Planner authoring function, isolated fixtures and Critic assessment; it cannot register or execute user data. When asked about the outcome of this chat, workflow_action=review_outcome requests evidence-based Critic assessment. Never invent an outcome or claim registration, tests or execution from conversation text.',
             'Reusable recipes are optional typed subworkflows, not execution tools. For a matching request return plan=null and recipe_uses with exact listed recipe hashes, unique aliases and semantic parameters; omit automatic_parameters for backend allocation. recipe_mode=replace returns a complete replacement; append preserves the current plan and adds recipes. Never supply both plan and recipe_uses. A csv_source parameter accepts an original input path or {"recipe_output":"earlier_alias"} only when that alias produces table/csv-v1. Inspection metadata cannot feed a table source. Backend expands recipes and validates every operation; nothing runs or is authorized. Use ordinary plan steps for requests the listed recipes cannot express; ask for missing user scope.',
-            'Installed ext_ operations are trusted CSV projections with fixed package columns. Supply the exact package_sha256 from installed_adapter_bindings and a fresh target_path; use exactly one original path or ancestor source_step. They require approval and validation and produce a CSV artifact. Do not supply columns or invent new adapter bindings.',
+            'Installed ext_ operations use trusted CSV adapters with fixed package configuration (projection columns or a closed text transform). Supply the exact package_sha256 from installed_adapter_bindings and a fresh target_path; use exactly one original path or ancestor source_step. They require approval and validation and produce a CSV artifact. Do not supply columns or invent new adapter bindings.',
             'Tabular operations are explicit pandas-backed contracts. inspect_csv reads CSV/TSV and returns metadata/previews only, never a CSV artifact; NEVER use inspect_csv as source_step/right_step. The first transform must read the original data/input path, even when its completion dependency is inspect_csv; later source references name CSV-producing transforms. table transforms/export require approval and validation. Preserve identifiers as strings, treat only empty CSV cells as missing. Use path for original data/input files or source_step for an ancestor table-producing operation; join uses right_path or right_step. Omit unused source fields rather than null. Every transform needs a unique data/output/*.csv target. Do not use Python expressions, query(), eval, callables or library function names; calculate_csv_columns accepts only its typed expression tree. CSV-producing intermediates are referred to by step ID, never arbitrary data/output input paths. vector_attributes_to_csv explicitly drops geometry after inspect_vector of the same GeoJSON and can feed tabular steps. Ask for missing columns/keys/strategies; omit CSV target_path for backend allocation instead of requesting intermediate filenames.',
             'export_snakemake_workflow and verify_snakemake_export are terminal main-workflow operations, not replay execution. To add Snakemake to a saved workflow, preserve existing steps exactly; append export_snakemake_workflow with source_plan_filename/source_plan_sha256 from saved_source_reference, requires_approval=true and validation_required=true, depending on all preceding operations, then verify_snakemake_export with arguments={}, requires_approval=false and validation_required=true depending on export. The source workflow must complete with verified successful evidence before export can execute. Do not invent source references. Ask the operator to save/complete the original workflow if no reference exists. Original operations are reused, not rerun.',
             'Ask only for missing REQUIRED arguments for the requested operation. A local convert_vector requires path and target_path, not a database schema. For GeoJSON to GeoPackage, .gpkg on target_path defines the format. source_layer and target_layer are optional; do not require them for the single-layer sample GeoJSON. Ask only for the output filename/path if missing, and suggest data/output/sample_points.gpkg as a proposed choice, without treating it as accepted. Database target_schema/target_table belong to PostGIS operations only. Do not invent required scope.',
@@ -441,6 +536,22 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                      if isinstance(step.arguments.get(key), str)} if base else set()
             datasets = [dataset for dataset in datasets if dataset.path in paths or
                         re.search(r'(?<![\w.])' + re.escape(Path(dataset.path).name) + r'(?![\w.])', text)]
+        if state.acquisition_enabled:
+            if set(supplied_schemas).issubset({'inspect_csv'}|{skill for skill in available if skill.startswith('ext_')}):
+                for name in ('conversion_clarification_example','conversion_arguments_example','tabular_dataflow_example'):
+                    system.pop(name,None)
+                system['required_skill_arguments']={key:value for key,value in system.get('required_skill_arguments',{}).items() if key in supplied_schemas}
+                system['selected_skill_requirements']=[item for item in system.get('selected_skill_requirements',[]) if item['skill'] in supplied_schemas]
+            system['capability_acquisition']={
+                'enabled':True,'family':'closed_csv_text_transform','existing_operations_first':True,
+                'rule':'Use registered operations and recipes first. Only for a missing CSV text transform, return capability_request with gap_reason and definition, plan=null, and no recipe/workflow actions. Definition has source_column, a NEW output_column, and up to five strip/upper/lower/collapse_whitespace/replace_literal steps. No Python, regex, SQL, imports, paths, package installs or arbitrary functions. Backend tests synthetic data only; operator must explicitly install the exact tested candidate. Do not claim execution, successful tests or approval. If a compatible installed text definition exists, plan with its exact ID and package digest instead of requesting it again. Ask only for genuinely missing column/semantic choices.'}
+        if text_gap:
+            system['known_capability_gap']={'family':'csv_text_transform','registered_text_family':False,'plan_must_be_null':True,
+                'rule':'The registry has no text transformation adapter. Numeric calculate_csv_columns, selecting columns and filling nulls cannot perform arbitrary string normalization. Existing recipes cannot add an unregistered primitive. '+('Acquisition is ON: propose capability_request using the declared definition schema, plan=null. Ask only for missing semantic column/transform choices, not permission to prepare.' if state.acquisition_enabled else 'Acquisition is OFF: explain this unsupported text operation with plan=null; no partial workflow, generated code, fake arithmetic, registration or execution.')}
+            system['mandatory_rules'].insert(0,system['known_capability_gap']['rule'])
+            if text_constraints is not None:
+                system['known_capability_gap']['explicit_request_constraints']=text_constraints.model_dump(mode='json')
+                system['mandatory_rules'].insert(0,'The source/output columns and simple strip/case operation are explicitly supplied in explicit_request_constraints. Return the bounded capability_request now. There is no missing semantic choice or permission; do not ask the user to repeat these facts.')
         model_request.messages = [ChatMessage(role='system', content=json.dumps(system, separators=(',', ':'))), ChatMessage(role='user', content=json.dumps({
             'initial_request': redact_text(task_messages[0].content)[:1000] if task_messages and request.use_history else None,
             'active_task': {'task_id': state.active_task_id, 'title': state.task_title} if state.active_task_id else None,
@@ -465,8 +576,41 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             model_request.messages[1].content = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
             helper_note = None
             helper_receipt = {'contract_version':'1.0','status':'omitted_prompt_budget','evidence_kind':'validated_plan_only','model_calls':0}
+        if result_context:
+            payload = json.loads(model_request.messages[0].content)
+            payload['result_view_context'] = result_context
+            payload['mandatory_rules'].insert(0, 'For a request to display/filter/chart an existing result, return result_view referencing result_view_context, plan=null and no other workflow/recipe/capability action. Preserve the workflow. Table queries use typed literal filters and explicit text/numeric sorting. Charts require group_by and count/sum/mean/min/max; numeric nulls are excluded. Do not invent units, fields, values or geometry links. The backend calculates values. Ask a concrete question if analytical meaning is missing. Use result_view only when a view of recorded results was requested; planning new processing still returns a plan.')
+            if view_intent:
+                payload = {'required_json_schema': system['required_json_schema'], 'result_view_context': result_context,
+                    'mandatory_rules': [
+                        'You are the Planner configuring a native result view. No raw data values are needed; the backend will read the recorded artifact and compute totals. Fulfill latest_message, not the earlier inspection task.',
+                        'For layer/band/render requests choose result_view view=Map and typed spatial settings; no paths, exact pixel queries or execution. For explanations choose recorded_facts keys in explanation_fields, omit spatial/chart/query; backend renders the facts and scope, not your free-form message. Do not infer domain meanings or units.',
+                        'Return one JSON ResultViewReply. plan=null. Use result_view for the requested display of existing results, or ask a concrete missing-field/meaning question with result_view=null. Never substitute an inspection workflow or promise future repair.',
+                        payload['mandatory_rules'][0],
+                        'Group by a field means include all its categories; do not ask the user for category values. Do not add filtering, sorting, paging or column-selection parameters unless latest_message requests them. The ordinary result_view omits query and uses backend defaults.',
+                        'Filter values are literal text or typed numeric comparisons. Numeric nulls are excluded; missing categories are grouped separately. count counts rows. Views and field names must match result_view_context. No units, plotted values, sampling claims or geometry relationships may be invented.',
+                        'The backend reads only the exact hash-bound recorded artifact and calculates all values. Preserve the current workflow. No workflow execution, approval, installation or write authority is performed or granted by this proposal.',
+                    ]}
+            if view_intent:
+                user_payload = json.loads(model_request.messages[1].content)
+                user_payload.pop('initial_request', None)
+                user_payload.pop('active_task', None)
+                latest_message = user_payload.pop('latest_message')
+                user_payload['latest_message'] = latest_message
+                model_request.messages[1].content = json.dumps(user_payload, separators=(',', ':'))
+            model_request.messages[0].content = json.dumps(payload, separators=(',', ':'))
         from geoagent_harness.planner.decoder_schema import decoder_schema
         decoder_operations = {}
+        # Use the same trusted tabular argument contracts for ordinary CSV
+        # planning, not just calculations. A free-form arguments object also
+        # skipped the closed proposal/exchange distinction in the decoder.
+        from geoagent_harness.tabular.schemas import ARGUMENTS as table_arguments
+        for name in supplied_schemas:
+            if name in table_arguments and name != 'calculate_csv_columns':
+                schema=compact_schema(models[name].model_json_schema())
+                if is_table_write(name):
+                    schema['required']=[key for key in schema.get('required',[]) if key!='target_path']
+                decoder_operations[name]=schema
         if 'calculate_csv_columns' in supplied_schemas:
             # Focus the decoder on this small working slice. Other allowlisted
             # operations remain available and all backend validators still run.
@@ -477,6 +621,12 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                     if is_table_write(name):
                         schema['required'] = [key for key in schema.get('required', []) if key != 'target_path']
                     decoder_operations[name] = schema
+        for operation_id,package in installed_packages(root).items():
+            if operation_id in available:
+                schema=compact_schema(ProjectionArguments.model_json_schema())
+                schema['properties']['package_sha256']={'type':'string','const':package_sha(package)}
+                schema['required']=[key for key in schema.get('required',[]) if key!='target_path']
+                decoder_operations[operation_id]=schema
         spatial_sequence = ({'inspect_vector','vector_attributes_to_csv','aggregate_csv'} == set(supplied_schemas)
                             and bool(re.search(r'attributes?', request.message, re.I))
                             and bool(re.search(r'group|aggregat', request.message, re.I))
@@ -489,18 +639,42 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                 schema['required']=[key for key in schema.get('required',[]) if key!='target_path']
                 decoder_operations[name]=schema
         step_sequence = ['inspect_vector','vector_attributes_to_csv','aggregate_csv'] if spatial_sequence else None
+        if inspection_skill in available:
+            step_sequence = [inspection_skill]
+            decoder_operations[inspection_skill] = compact_schema(models[inspection_skill].model_json_schema())
+            if explicit_inspection_source:
+                decoder_operations[inspection_skill]['properties']['path'] = {'type':'string','const':explicit_inspection_source}
+            payload = json.loads(model_request.messages[0].content)
+            payload['requested_step_sequence'] = step_sequence
+            payload['requested_inspection_source'] = explicit_inspection_source
+            payload['requested_step_sequence_scope'] = 'This latest explicit inspection replaces the active workflow, not the transcript/history. Use requested_inspection_source, never an earlier input. Single-file metadata inspection only. Return exactly this inspector for the supplied file; no database validation, report, export or transformation. Nothing has executed.'
+            model_request.messages[0].content = json.dumps(payload, separators=(',', ':'))
+        explicit_sources=system['source_reference_checks']['existing_supplied_paths']
+        original_vector_source=explicit_sources[0] if spatial_sequence and len(explicit_sources)==1 else None
+        table_requested=requested_table_operations(request.message,[step.skill for step in base.plan.steps] if base else [])
+        if (len(table_requested)==1 and set(supplied_schemas)=={'inspect_csv',*table_requested}
+            and re.search(r'\binspect\b',request.message,re.I)
+            and not re.search(r"\b(?:do not|don't|skip|without)\s+inspect\b",request.message,re.I)
+            and (base is None or len(base.plan.steps)<=2 and len({step.skill for step in base.plan.steps})==len(base.plan.steps) and all(step.skill in supplied_schemas for step in base.plan.steps))):
+            step_sequence=['inspect_csv',next(iter(table_requested))]
+            payload=json.loads(model_request.messages[0].content)
+            payload['requested_step_sequence']=step_sequence
+            payload['requested_step_sequence_scope']='Return these explicitly requested operation kinds in order. The transformation reads the original CSV and follows inspection through depends_on. Generate actual requested arguments and omit target_path for a fresh backend-allocated CSV. Return plan=null only for genuinely missing semantic scope; no operations run.'
+            model_request.messages[0].content=json.dumps(payload,separators=(',',':'))
         preserved_inspection_source = None
         preserved_inspection_arguments = None
+        if table_requested and step_sequence==['inspect_csv',next(iter(table_requested))] and len(system['source_reference_checks']['existing_supplied_paths'])==1:
+            preserved_inspection_source=system['source_reference_checks']['existing_supplied_paths'][0]
         if spatial_sequence:
             payload=json.loads(model_request.messages[0].content)
             payload['requested_step_sequence']=step_sequence
             payload['requested_step_sequence_scope']='For this explicit attribute extraction and sum-grouping request, provide these operation kinds in order, inspecting the same supplied source before export. Generate the actual fields and arguments; do not execute. plan=null remains available for a genuinely missing semantic choice.'
             model_request.messages[0].content=json.dumps(payload,separators=(',',':'))
-        if requests_calculated_columns(request.message) and simple_calculation_sequence(request.message) and set(supplied_schemas).issubset({'inspect_csv', 'calculate_csv_columns'}) and decoder_operations:
+        if requests_calculated_columns(request.message) and simple_calculation_sequence(request.message) and set(supplied_schemas).issubset({'inspect_csv', 'calculate_csv_columns'}) and 'calculate_csv_columns' in decoder_operations:
             # Preserve arbitrary existing workflows through the general path.
             # A fresh request or one original inspection has a small, explicit
             # skeleton; no paths, names or formula values are filled in here.
-            if base is None or (len(base.plan.steps) == 1 and base.plan.steps[0].skill == 'inspect_csv'):
+            if base is None or (len(base.plan.steps)<=2 and any(step.skill=='inspect_csv' for step in base.plan.steps) and len({step.skill for step in base.plan.steps})==len(base.plan.steps) and all(step.skill in {'inspect_csv','calculate_csv_columns'} for step in base.plan.steps)):
                 inspect_first = 'inspect_csv' in available and (base is not None or bool(re.search(r'\binspect\b', request.message, re.I)))
                 step_sequence = (['inspect_csv'] if inspect_first else []) + ['calculate_csv_columns']
                 if base is not None and re.search(r'\bkeep\s+(?:(?:the|current|existing)\s+)?(?:csv\s+)?inspection\b', request.message, re.I) and not re.search(r'\.(?:csv|tsv)\b', request.message, re.I):
@@ -512,11 +686,35 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                 payload['requested_step_sequence'] = step_sequence
                 payload['requested_step_sequence_scope'] = 'For this simple request return these operation kinds in order. Supply the actual requested arguments and typed formula; no operations run. Use plan=null for genuine missing scope or unavailable capability.'
                 model_request.messages[0].content = json.dumps(payload, separators=(',', ':'))
-        model_request.response_schema = decoder_schema(system['required_json_schema'], decoder_operations, step_sequence=step_sequence, inspection_source=preserved_inspection_source, inspection_arguments=preserved_inspection_arguments)
+        text_workflow_binding=False
+        requested_text=explicit_text_constraints(request.message)
+        compatible=[(id,p) for id,p in installed_packages(root).items() if id in available and p.text_transform is not None and p.text_transform==requested_text]
+        supplied_inputs=system['source_reference_checks']['existing_supplied_paths']
+        if (compatible and len(supplied_inputs)==1 and Path(supplied_inputs[0]).suffix.lower() in {'.csv','.tsv'}
+            and re.search(r'\binspect\b',request.message,re.I) and not re.search(r'\b(?:filter|join|select|group|aggregate|convert|snakemake|report|export)\b',request.message,re.I)
+            and (base is None or len(base.plan.steps)==1 and base.plan.steps[0].skill=='inspect_csv')):
+            operation_id=sorted(compatible,key=lambda item:(item[0] not in request.message,item[0]))[0][0]
+            step_sequence=['inspect_csv',operation_id];preserved_inspection_source=supplied_inputs[0]
+            preserved_inspection_arguments=None
+            if base is not None:
+                previous=base.plan.model_copy(deep=True);normalize_plan_input_filenames(previous)
+                if previous.steps[0].arguments.get('path')==preserved_inspection_source:preserved_inspection_arguments=previous.steps[0].arguments
+            decoder_operations['inspect_csv']=compact_schema(models['inspect_csv'].model_json_schema())
+            payload=json.loads(model_request.messages[0].content)
+            payload['requested_step_sequence']=step_sequence
+            payload['registered_text_contract_binding']={'operation_id':operation_id,'source':preserved_inspection_source,
+                'rule':'This installed contract exactly matches the explicit requested source/output columns and text steps. Inspect the CSV, then use this operation reading the original CSV path, depends_on=[step_1], with its exact package digest. Do not substitute vector inspection or numeric calculations. No new acquisition or semantic clarification is needed. Return the complete workflow now; never execute.'}
+            model_request.messages[0].content=json.dumps(payload,separators=(',',':'));text_workflow_binding=True
+        model_request.response_schema = decoder_schema(system['required_json_schema'], decoder_operations, step_sequence=step_sequence, inspection_source=preserved_inspection_source, inspection_arguments=preserved_inspection_arguments, original_vector_source=original_vector_source)
+        if text_gap:model_request.response_schema=gap_decoder(model_request.response_schema,state.acquisition_enabled,text_constraints)
+        if text_workflow_binding:model_request.response_schema['anyOf']=model_request.response_schema['anyOf'][:1]
         prompt_bytes = _check_prompt(model_request)
-        client = model_client or SharedModelClient(load_model_settings())
+        local_explanation = recorded_explanation_spec(request.message,result_context) if explanation_intent else None
+        client = None if local_explanation else model_client or SharedModelClient(load_model_settings())
         from geoagent_harness.planner.recipe_discovery_loop import DiscoverySession
         discovery_session=DiscoverySession()
+        if state.acquisition_enabled:
+            discovery_session.budget.deadline_seconds=min(discovery_session.budget.deadline_seconds or 180,180)
         base_decoder_schema = model_request.response_schema
         base_reply_schema = system['required_json_schema']
         def prepare_reuse_contract():
@@ -551,7 +749,14 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             started=monotonic()
             diagnostics={'planner_contract':PLANNER_CONTRACT_REVISION,'stage':'planner_generation' if not attempt else 'planner_correction','prompt_bytes':prompt_bytes,'supplied_schema_count':len(system['operation_argument_schemas']),'available_operation_count':len(available),'retrieved_method_count':successful_receipt['count'], 'response_schema_bytes':len(json.dumps(model_request.response_schema,separators=(',',':')).encode()) if model_request.response_schema else 0}
             try:
-                result = discovery_session.complete(client,model_request,parse=Reply.model_validate_json,query=discovery_query,check_prompt=_check_prompt,diagnostics=diagnostics,prepare_request=prepare_reuse_contract)
+                if local_explanation:
+                    from geoagent_harness.model.schemas import ModelResult
+                    result=ModelResult(model='recorded-evidence-service',content=json.dumps({'message':'Recorded evidence','plan':None,'result_view':local_explanation}))
+                    diagnostics.update(stage='recorded_evidence',prompt_bytes=0,model_calls=0,supplied_schema_count=0,response_schema_bytes=0)
+                    recent=[];omitted=len(task_messages);helper_note=None
+                    helper_receipt={'contract_version':'1.0','status':'not_used_recorded_evidence','evidence_kind':'validated_plan_only','model_calls':0}
+                else:
+                    result = discovery_session.complete(client,model_request,parse=reply_type.model_validate_json,query=discovery_query,check_prompt=_check_prompt,diagnostics=diagnostics,prepare_request=prepare_reuse_contract)
             except ValueError as error:
                 raise PlannerAgentError('Planner recipe discovery was invalid or exceeded its bounded budget',findings=['Use at most two read-only discovery requests, then return a final workflow or concrete missing-input question.']) from error
             except ModelClientError as error:
@@ -565,7 +770,7 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                 if result.finish_reason == 'length':
                     raise TruncatedModelReply('The model stopped at its output-token limit; no partial workflow was accepted.')
                 try:
-                    reply = Reply.model_validate_json(result.content)
+                    reply = reply_type.model_validate_json(result.content)
                 except ValidationError as reply_error:
                     # Compatibility with the old Planner's closed plan-only schema.
                     # No coercion, arbitrary envelope extraction or gate relaxation.
@@ -581,6 +786,34 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                         raise RequestedOperationOmission('The source filename is already supplied and safely resolves to '+', '.join(paths)+'. Return the requested proposal using that source; do not ask the user to repeat its path. Ask only for genuinely missing semantic inputs. Existence is not inspection or execution authority.')
                 if reply.recipe_discovery is not None:
                     raise ValueError('Return a final reply after the discovery budget')
+                if text_workflow_binding and reply.plan is None:
+                    raise CapabilityGapMismatch('A compatible installed text contract and exact CSV source are supplied in registered_text_contract_binding. Return the complete requested workflow; no acquisition or repeated input/permission question is needed.')
+                if text_constraints is not None:
+                    candidate_request=getattr(reply,'capability_request',None)
+                    if candidate_request is None or candidate_request.definition!=text_constraints:
+                        raise CapabilityGapMismatch('Use the explicitly supplied source/output columns and strip/case sequence in known_capability_gap.explicit_request_constraints. Prepare capability_request now with plan=null; do not ask permission or replace it with numeric arithmetic.')
+                if text_gap and (reply.plan is not None or reply.recipe_uses or reply.workflow_action):
+                    raise CapabilityGapMismatch(system['known_capability_gap']['rule'])
+                if getattr(reply,'capability_request',None) is not None and (reply.plan is not None or reply.recipe_uses or reply.workflow_action or reply.recipe_discovery):
+                    raise ValueError('A capability candidate preserves the current workflow; return plan=null and no other action')
+                if view_intent and (reply.plan is not None or reply.recipe_uses or reply.workflow_action or reply.recipe_discovery or getattr(reply,'capability_request',None) is not None):
+                    raise ValueError('This request displays recorded results. Return result_view with plan=null, not a replacement workflow.')
+                if view_intent and reply.result_view is None and not re.search(r'\?|\b(?:which|specify|clarify|missing|need|required|unavailable|unsupported)\b', reply.message, re.I):
+                    raise ValueError('The requested recorded-result view is missing. A summary of the earlier inspection does not fulfill latest_message. Return result_view now, or ask a concrete genuinely missing semantic-input question. No repair permission is needed.')
+                if reply.result_view is not None:
+                    if reply.plan is not None or reply.recipe_uses or reply.workflow_action or reply.recipe_discovery or getattr(reply,'capability_request',None) is not None:
+                        raise ValueError('Result exploration preserves the current workflow; return result_view alone with plan=null')
+                    validate_view(reply.result_view, result_context)
+                    if explanation_intent and not reply.result_view.explanation_fields:
+                        raise ValueError('Select supplied recorded_facts keys in explanation_fields; no new analysis or spatial read')
+                    if not explanation_intent and reply.result_view.explanation_fields:
+                        raise ValueError('A display request needs display settings, not explanation_fields')
+                    if reply.result_view.explanation_fields:
+                        reply.message = explanation_text(reply.result_view, result_context)
+                    else:
+                        reply.message = prepared_view_text(reply.result_view)
+                    if view_intent and not view_query_requested and reply.result_view.query != reply.result_view.query.__class__():
+                        raise ValueError('The request includes no filter, sort, paging or column selection. Omit query; grouping by a field includes all its categories.')
                 if reply.workflow_action and (reply.plan is not None or reply.recipe_uses):
                     raise ValueError('A workflow action preserves the current plan; do not also return replacement operations')
                 if reply.workflow_action == 'prepare_recipe' and base is None:
@@ -598,18 +831,26 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                     raise SchemaRepairDeferral('The model returned a schema-repair promise instead of the requested workflow; this is not a request for missing user data.')
                 if reply.plan is not None:
                     plan = reply.plan
+                    validate_inspection_scope(plan, request.message)
                     validate_calculation_coverage(plan, request.message)
+                    validate_table_coverage(plan, request.message,[step.skill for step in base.plan.steps] if base else [])
                     from geoagent_harness.skill_registry import load_skill_registry
                     gate_bindings = bind_required_gates(plan, load_skill_registry(root))
-                    assigned_outputs=allocate_csv_outputs(plan)+refresh_automatic_targets(plan,base,root)
+                    assigned_outputs=allocate_csv_outputs(plan)+refresh_automatic_targets(plan,base,root)+refresh_inherited_csv_targets(plan,base,root,request.message)
                     if assigned_outputs:
                         reply.message += ' Safe CSV output paths were allocated automatically; review them before authorization.'
                     normalize_plan_input_filenames(plan)
+                    if explicit_inspection_source and (len(plan.steps) != 1 or plan.steps[0].arguments.get('path') != explicit_inspection_source):
+                        raise PlannerPolicyError('The latest inspection explicitly requests '+explicit_inspection_source+'. Return that exact source with the requested inspector, not an earlier chat input. Correct the proposal now; nothing executed.')
+                    if original_vector_source is not None and ([step.skill for step in plan.steps]!=step_sequence or any(step.arguments.get('path')!=original_vector_source for step in plan.steps[:2]) or plan.steps[2].arguments.get('source_step')!='step_2'):
+                        raise RequestedOperationOmission('Use the explicitly supplied vector source '+original_vector_source+' for inspection and attribute extraction, then aggregate source_step=step_2. Do not reuse a historical input filename. Return the complete workflow; nothing executed.')
                     if preserved_inspection_source is not None:
-                        if [step.skill for step in plan.steps] != ['inspect_csv', 'calculate_csv_columns'] or any(step.arguments.get('path') != preserved_inspection_source for step in plan.steps) or plan.steps[0].arguments != preserved_inspection_arguments:
-                            raise RequestedOperationOmission('Preserve the existing inspect_csv arguments exactly as supplied in current_plan, including preview/delimiter settings. Keep source '+preserved_inspection_source+' for both inspect_csv and calculate_csv_columns; read the original CSV path, never a generic example file or inspection source_step.')
+                        if [step.skill for step in plan.steps] != step_sequence or any(step.arguments.get('path') != preserved_inspection_source for step in plan.steps) or preserved_inspection_arguments is not None and plan.steps[0].arguments != preserved_inspection_arguments:
+                            violation=CapabilityGapMismatch if text_workflow_binding else RequestedOperationOmission
+                            raise violation('Preserve the existing inspect_csv arguments exactly as supplied in current_plan, including preview/delimiter settings. Keep source '+preserved_inspection_source+' for both inspection and the added CSV transform; read the original CSV path, never a generic example file or inspection source_step.')
                         if plan.steps[1].depends_on != ['step_1']:
-                            raise RequestedOperationOmission('The added calculate_csv_columns must depend_on ["step_1"] to follow the retained inspection. Its input is still the original CSV path, never the metadata-only inspection source_step.')
+                            violation=CapabilityGapMismatch if text_workflow_binding else RequestedOperationOmission
+                            raise violation('The added CSV transform must depend_on ["step_1"] to follow the retained inspection. Its input is still the original CSV path, never the metadata-only inspection source_step.')
                     proposed = PlannerResult(model=result.model, original_request=pack.original_request,
                         context_references=[reference.path for reference in pack.context_references], plan=plan)
                     # Both policy and typed dispatcher/path checks precede storage/display.
@@ -648,10 +889,13 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                     findings = [str(error)]
                     kind = 'reuse_claim'
                     message = 'Planner reported unverified recipe reuse after one correction attempt'
+                elif isinstance(error, CapabilityGapMismatch):
+                    findings=[str(error)];kind='capability_gap'
+                    message='Planner repeated an unsupported text workflow after one correction attempt'
                 elif isinstance(error, RequestedOperationOmission):
                     findings = [str(error)]
                     kind = 'request_coverage'
-                    message = 'Planner omitted the requested calculation after one correction attempt'
+                    message = 'Planner omitted a requested operation after one correction attempt'
                 elif isinstance(error, SchemaRepairDeferral):
                     findings = list(dict.fromkeys([str(error), *previous_findings]))[:6]
                     kind = 'repair_deferral'
@@ -666,10 +910,10 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                     message = "Planner plan failed deterministic policy after one correction attempt"
                 if attempt:
                     failure = PlannerAgentError(message, findings=findings, correction_attempted=True,
-                        reason='unverified_reuse_claim' if kind == 'reuse_claim' else 'request_coverage_incomplete' if kind == 'request_coverage' else 'schema_repair_deferred' if kind == 'repair_deferral' else 'output_truncated' if kind == 'output_truncated' else None)
+                        reason='capability_gap_unresolved' if kind=='capability_gap' else 'unverified_reuse_claim' if kind == 'reuse_claim' else 'request_coverage_incomplete' if kind == 'request_coverage' else 'schema_repair_deferred' if kind == 'repair_deferral' else 'output_truncated' if kind == 'output_truncated' else None)
                     failure.planner_diagnostics = {**diagnostics, 'effort_budget': discovery_session.budget.receipt()}
                     raise failure from error
-                if reply is not None and reply.plan is not None:
+                if reply is not None and reply.plan is not None and not view_intent:
                     for step in reply.plan.steps:
                         if step.skill in available and step.skill not in system['operation_argument_schemas']:
                             system['operation_argument_schemas'][step.skill]=compact_schema(models[step.skill].model_json_schema())
@@ -685,6 +929,8 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
                     'serialization_rules': 'plan is a JSON object or null, never a string or list. Write JSON directly: no Markdown, commentary, Python syntax, NaN/Infinity or ellipses. Keep message to one short sentence; keep the full requested workflow.',
                     'instruction': 'Return the complete Reply object with message and plan, matching required_json_schema and operation_argument_schemas. Do not describe the schema or promise future repair. Use only available skills and preserve requested scope, approval and validation. Do not execute or claim execution.',
                 }
+                if view_intent:
+                    correction['instruction'] = 'Return ResultViewReply with plan=null and a corrected result_view for result_view_context, or a concrete missing semantic-input question. No workflow proposal or permission to repair is needed.'
                 if 'calculate_csv_columns' in supplied_schemas:
                     correction['valid_reply_structure_example'] = system['reply_shape_example']
                     correction['example_scope'] = system['reply_example_scope']
@@ -699,6 +945,23 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             current_examples,current_receipt=retrieve(root,request.conversation_id,request.message,available,use_history=request.use_history,selected_id=request.successful_method_id)
             if current_examples!=successful_methods:
                 raise InterfaceApiError('Saved method evidence or contracts changed during planning. Current workflow preserved; retry generation with reviewed scope.')
+        capability_candidate=None
+        if getattr(reply,'capability_request',None) is not None:
+            from geoagent_harness.capabilities.service import prepare,remember,digest
+            try:
+                capability_candidate=prepare(reply.capability_request,root=root,conversation_id=state.conversation_id,
+                    revision=state.revision+1,message=request.message,budget=discovery_session.budget,critic_client=critic_client)
+            except (ModelClientError,ValueError,OSError) as error:
+                failure={'schema_version':'1.0','status':'preparation_failed','source_conversation_id':state.conversation_id,
+                    'source_revision':state.revision+1,'committed_turn':False,'request':request.message,
+                    'failure_code':getattr(error,'code','candidate_preparation_failed'),'effort_budget':discovery_session.budget.receipt()}
+                failure['candidate_sha256']=digest(failure)
+                remember(root,failure)
+                error.planner_diagnostics={**diagnostics,'effort_budget':discovery_session.budget.receipt()}
+                raise
+            reply.message=('Compatible installed text capability found. Continue with the existing operation; no acquisition tests ran.' if capability_candidate['status']=='use_existing' else
+                'Text capability candidate tested on synthetic data. Review and install it to make the operation available; your workflow is preserved and nothing was authorized or executed.' if capability_candidate['status']=='tested' else
+                'Capability preparation did not pass its tests or assessment. Your workflow is preserved; no operation was registered.')
         prepared_candidate=None
         if reply.workflow_action == 'prepare_recipe':
             from geoagent_harness.planner.recipe_authoring import prepare_recipe
@@ -724,15 +987,21 @@ def conversation_turn(request: TurnRequest, *, project_root: Path, model_client=
             current_method = method_for_planner(root, request.conversation_id, request.method_id)
             if current_method != selected_method:
                 raise InterfaceApiError('Selected method changed while planning; response discarded')
+        if reply.result_view is not None and view_context(root, request.conversation_id, base) != result_context:
+            raise InterfaceApiError('Recorded result scope changed while planning its view. Nothing executed; ask again for the current result.')
         discovery_session.budget.check_time()
         with _LOCK:
             latest = _read(path, request.conversation_id)
             if latest.revision != request.expected_revision:
                 raise InterfaceApiError('Conversation digest no longer matches; reload before sending')
             state.messages.extend([Entry(role='user', content=pack.original_request, selected_skill_ids=selected, task_id=state.active_task_id, conversation_id=request.conversation_id if state.active_task_id else None), Entry(role='assistant', content=redact_text(reply.message)[:8000], plan_skill_ids=list(dict.fromkeys(step.skill for step in (proposed or base).plan.steps)) if (proposed or base) else [], task_id=state.active_task_id, conversation_id=request.conversation_id if state.active_task_id else None)])
+            state.capability_candidate=capability_candidate
+            if capability_candidate and capability_candidate.get('candidate_sha256'):
+                from geoagent_harness.capabilities.service import remember
+                remember(root,capability_candidate)
             state.selected_skill_ids = selected
             state.allowed_skill_ids = available
-            state.context_usage = {'history_enabled': request.use_history, 'included_messages': len(recent), 'omitted_messages': omitted, 'excerpts_truncated': shortened, 'prompt_bytes': prompt_bytes, 'prompt_limit_bytes': MAX_PROMPT_BYTES, 'opening_message_included': bool(task_messages and request.use_history), 'current_workflow_included': base is not None, 'selected_method_id': selected_method['method_id'] if selected_method else None, 'selected_method_revision': selected_method['revision'] if selected_method else None, 'method_helper': helper_receipt,'successful_methods':successful_receipt,'model_request':diagnostics,'recipe_discovery':discovery_session.receipt(),'recipe_reuse':reuse_receipt,'required_gate_bindings':gate_bindings,'effort_budget':discovery_session.budget.receipt()}
+            state.context_usage = {'result_view': reply.result_view.model_dump(mode='json') if reply.result_view else None, 'outcome_recommendations': recommendation_receipt, 'history_enabled': request.use_history, 'included_messages': len(recent), 'omitted_messages': omitted, 'excerpts_truncated': shortened, 'prompt_bytes': prompt_bytes, 'prompt_limit_bytes': MAX_PROMPT_BYTES, 'opening_message_included': bool(task_messages and request.use_history and not view_intent), 'current_workflow_included': base is not None and not local_explanation, 'selected_method_id': selected_method['method_id'] if selected_method else None, 'selected_method_revision': selected_method['revision'] if selected_method else None, 'method_helper': helper_receipt,'successful_methods':successful_receipt,'model_request':diagnostics,'recipe_discovery':discovery_session.receipt(),'recipe_reuse':reuse_receipt,'required_gate_bindings':gate_bindings,'effort_budget':discovery_session.budget.receipt()}
             state.revision += 1
             state.planner_result = proposed or base
             if proposed is not None and (base is None or plan_sha256(proposed.plan)!=plan_sha256(base.plan)):

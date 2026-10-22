@@ -20,3 +20,5 @@ Use fresh output paths. Review the exact proposal before authorizing and executi
 Examples use repository sample data; do not substitute private data for a public demo.
 
 The recipe-composition example is a request for the reusable-recipes service, not a Planner plan or operation package. See [recipe and recovery acceptance](../docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md).
+
+- [Acquire/reuse CSV text normalization](text-normalization/README.md): optional bounded text adapter preparation, synthetic verification, explicit install and separately authorized execution.

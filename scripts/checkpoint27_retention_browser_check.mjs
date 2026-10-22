@@ -44,7 +44,9 @@ try{
  const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();};
  const authorize=async()=>{await page.getByRole('button',{name:'Authorize',exact:true}).first().click();await page.locator('.workflow-authorization-form textarea').fill('Only the reviewed temporary CSV fixture outputs.');await page.locator('.workflow-authorization-form button[type=submit]').click();await page.locator('.authorization-duration').waitFor();};
  await page.goto(origin);
+ await page.getByRole('button',{name:'Conversation settings',exact:true}).click();
  await page.getByRole('switch',{name:'Chat memory'}).waitFor();
+ await page.getByRole('button',{name:'Close conversation settings',exact:true}).click();
  await send('Clean sample_orders.csv: keep region and amount, and replace missing regions with Unknown.');
  await page.locator('[data-operation-node="planned_step_2"]').waitFor();
  let chat=await state(); const originalChat=chat.conversation_id;

@@ -1,10 +1,16 @@
 # Current implementation status
 
-Updated: 2026-10-20
+[Domain knowledge](../docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md): design only; sharing gated.
 
-Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) preserves history. 27.1/27.2 retention/discovery, bounded calculations and recorded Results are delivered. [27.3/27.4d](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds evidence-bound advisory recipe notes, ten chart views, verified CSV grouping, bounded WGS84 boundaries/attributes and persistent collision-aware graph layout. The warning Allow writes toolbar switch shares Settings' session policy; overwrite remains deferred. [Acceptance](../docs/CHECKPOINT27_EVALUATION.md): 1,825 tests and six correct local-model trials; optional Critic timed out. Operator requires implemented/validated 28.1 optional capabilities, 28.2 learning/RL and 29 private memory before demo/real-data testing; these remain unfinished. 28.3 expands visualization; packaging follows demo acceptance. Cross-chat sharing stays 30+.
+Updated: 2026-10-22
 
-Planner follow-up: existing CSV inspection scopes calculation revisions; calculation-creating assignments and negative PostGIS mentions are recognized. Preflight; chart details; block opens/X closes.
+[Inspect on send](../docs/INSPECTION_ON_SEND_EXPANSION.md): CSV/vector/raster; source binding; API `inspection-source-v2`.
+
+Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) and 27 [acceptance](../docs/CHECKPOINT27_EVALUATION.md) preserve delivered reuse, results, charts/geometry, runtime writes and persistent graph layout. Acceptance limited; packaging after demo; cross-chat 30+.
+
+[28.1 bounded pilot](../docs/CHECKPOINT28_1.md): per-chat default-OFF acquisition, Planner-owned closed text definitions, resource-bounded synthetic/held-out checks, advisory Critic, explicit exact-digest install and normal authorized CSV execution. No arbitrary Python/dependency installation. Fixture/model pilot passes; broader reliability unproven. 28.2 learning/RL, 28.3 visualization expansion and 29 private domain knowledge remain unfinished pre-demo gates.
+
+[28.3 spatial](../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md): spatial views, facts, named saved-run outcomes; broader gates open.
 
 ## Product boundary
 
@@ -50,15 +56,16 @@ Main-workflow Snakemake export/static verification binds an original saved workf
 
 ## Verification and remaining work
 
-Current validation: 1,804 backend tests and frontend typecheck/build passed. Results, CSV, calculation, retention, visualization, Planner and adapter browser fixtures exercise recorded-data scope, resizing and verified reads. Model replies are fixtures, not live-model/service acceptance. Details/counts remain in delivery guides.
+Verification counts and limits are recorded in delivery guides. Browser fixtures cover results, CSV calculations, retention, Planner and adapters; fixture models are not live-model acceptance.
 
-Playwright is pinned as a frontend development dependency. Browser engines and optional minimal-Linux audio runtime are stored in Git/Docker-ignored project-local test directories, separate from normal browser profiles and shared Playwright caches; test profiles/data are temporary. Runtime use does not require these browser test tools. See the checkpoint 25 guide for repeatable setup.
+Playwright is pinned for development. Engines/minimal-Linux runtime stay in ignored project-local test directories; profiles/data are temporary and separate from normal/shared browser caches. Runtime requires no browser test tools. See the checkpoint 25 guide.
 
 Checkpoint 26 now adds JSON recipe composition, optional Builder→fixture tests→Critic preparation, durable runs, cooperative cancellation, bounded intermediate previews and recovery proposals. Remaining reads can resume; writes use fresh targets and fresh authorization. No automatic write reuse/retry. [Delivery and acceptance](../docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md). Transactional/write-intermediate resume, parallel scheduling, broader memory and laptop/PC release evaluation remain incomplete.
 
 ## Record navigation
 
 [Architecture](ARCHITECTURE.md), [roadmap](PRODUCT_ROADMAP.md), [documentation responsibilities](../docs/DOCUMENTATION_GUIDE.md). This overview feeds model context; full-file identity still covers the preserved history below. Historical next steps are not current scope.
+28.2: [paired evaluation](../docs/CHECKPOINT28_2_EVALUATION.md), ranking OFF. Direct read-only Execute; writes need Allow writes/Authorize/Execute. Initial model trial OFF 3/6, ON 2/6; focused 3/3 both modes; ranking benefit unproven.
 
 <!-- historical-checkpoints -->
 

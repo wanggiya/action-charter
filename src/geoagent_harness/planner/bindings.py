@@ -34,6 +34,33 @@ def refresh_automatic_targets(plan,base,root):
     return refreshed
 
 
+def refresh_inherited_csv_targets(plan, base, root, message):
+    """Allocate fresh proposal targets only for an explicit fresh-output request.
+
+    A model may copy a prior named output even though the user requested fresh
+    files without specifying names. Preserve every explicitly requested target;
+    never mutate files, existing authority, non-CSV resources or tool inputs.
+    """
+    from pathlib import PurePosixPath
+    text=message.casefold()
+    if base is None or not re.search(r'\bfresh\s+(?:csv|files?|outputs?)\b|\bnew\s+(?:csv|output)\s+files?\b',text):
+        return []
+    if re.search(r"\b(?:no|without|do not|don't|avoid)\s+(?:\w+\s+){0,3}(?:fresh|new)\s+(?:csv|files?|outputs?)\b",text):
+        return []
+    previous={step.arguments.get('target_path') for step in base.plan.steps if is_table_write(step.skill)}
+    assigned=[]
+    for step in plan.steps:
+        target=step.arguments.get('target_path')
+        if not is_table_write(step.skill) or not isinstance(target,str) or target not in previous:
+            continue
+        if target.casefold() in text or PurePosixPath(target).name.casefold() in text:
+            continue
+        if (root/target).exists() or (root/target).is_symlink():
+            step.arguments['target_path']=fresh_csv_path()
+            assigned.append(step.step_id)
+    return assigned
+
+
 def automatic_recipe_parameters(recipe):
     def references(value):
         if isinstance(value,dict):

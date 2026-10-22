@@ -39,6 +39,7 @@ try{
  await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
  await writeFile(resolve(root,'data/input/sample_orders.csv'),'order_id,region,amount\n'+Array.from({length:1500},(_,i)=>`${String(i+1).padStart(4,'0')},${i===0?'<img src=x onerror=alert(1)>':'north'},${i===2?'':i+1}`).join('\n')+'\n');
  const results=page.locator('.results-workspace');
+ const showPreviewOptions=async()=>{const summary=results.getByText('Preview options',{exact:true});if(await summary.count()&&!(await summary.evaluate(node=>node.parentElement.open)))await summary.click();};
  const operations=page.getByRole('region',{name:'Workflow operations'});
  const generate=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();await page.locator('[data-operation-node="planned_step_1"]').waitFor({timeout:20000});};
  const done=async()=>{await results.locator('.outcome-step').waitFor({timeout:30000});await page.waitForFunction(()=>document.querySelector('[data-critic-node]')?.getAttribute('data-critic-state')==='Reviewed');};
@@ -50,7 +51,7 @@ try{
  await page.getByText(/The running API has an older or incompatible Planner version/).waitFor();
  assert.equal(calls.filter(call=>call.path==='/api/v1/planner/conversation'&&call.action==='turn').length,turnsBeforeLegacy);
  await page.unroute('**/api/v1/health');
- assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'csv-revision-v3');
+ assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'inspection-source-v2');
  cases.push('Legacy API is detected before a planner POST; current health reports the loaded Planner contract');
  await generate('Inspect sample_orders.csv. Calculate doubled as amount multiplied by 2, preserve original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.');
  const inspector=page.locator('#workflow-information');
@@ -93,7 +94,7 @@ try{
  assert.equal(await results.locator('th[aria-sort=ascending]').count(),1);
  cases.push('Table search/sort use saved rows, preserve literal HTML-like values and expose total versus loaded counts');
  const beforeModels=await readFile(resolve(root,'model-calls.jsonl'),'utf8');
- await results.getByRole('button',{name:'Load verified CSV',exact:true}).click();
+ await showPreviewOptions();await results.getByRole('button',{name:'Load verified CSV',exact:true}).click();
  await results.getByText(/1000 loaded \/ 1500 recorded rows/).waitFor();
  await results.screenshot({path:'/tmp/actioncharter-results-table.png'});
  await results.getByRole('button',{name:'Next page',exact:true}).click();
@@ -173,7 +174,7 @@ try{
  await results.getByRole('tab',{name:'Table',exact:true}).click();
  const output=(await readdir(resolve(root,'data/output')))[0];
  await writeFile(resolve(root,'data/output',output),'amount,doubled\n999,1998\n');
- await results.getByRole('button',{name:'Recheck CSV artifact',exact:true}).click();
+ await showPreviewOptions();await results.getByRole('button',{name:'Recheck CSV artifact',exact:true}).click();
  await results.getByRole('alert').filter({hasText:'Artifact changed since execution'}).waitFor();
  assert((await results.locator('.result-data-table').textContent()).includes('10 loaded / 1500 recorded rows'));
  cases.push('Changed artifact is refused and falls back to the saved snapshot; no fresh contents masquerade as recorded results');
@@ -181,7 +182,7 @@ try{
  let release;const hold=new Promise(done=>release=done);let entered;const seen=new Promise(done=>entered=done);
  const delayed=async route=>{if(route.request().postDataJSON().action!=='preview'){await route.continue();return;}const response=await route.fetch();entered();await hold;await route.fulfill({response});};
  await page.route('**/api/v1/workflow/runs',delayed);
- await results.getByRole('button',{name:'Load verified CSV',exact:true}).click();await seen;
+ await showPreviewOptions();await results.getByRole('button',{name:'Load verified CSV',exact:true}).click();await seen;
  await page.getByRole('button',{name:'Planner agent',exact:true}).click();
  await page.getByRole('button',{name:'New chat',exact:true}).click();release();
  await page.unroute('**/api/v1/workflow/runs',delayed);
@@ -195,7 +196,7 @@ try{
 
  await generate('Inspect sample_points.geojson. Return feature count, fields and CRS. No writes.');
  await page.getByRole('button',{name:'Execute',exact:true}).first().click();
- await page.locator('.workflow-review-panel .execute-button').click();await done();
+ await done();
  await results.getByRole('tab',{name:'Map',exact:true}).click();
  assert.equal(await results.locator('svg circle').count(),2);
  assert.equal(await results.locator('.map-geometry.polygon').count(),1);

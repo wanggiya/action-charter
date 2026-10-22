@@ -19,9 +19,7 @@ successful.
   fixed approval-gated operations.
 - **Critic Agent:** reads bounded deterministic evidence, identifies unresolved
   risks, and produces a schema-constrained assessment without changing status.
-- **Builder Agent:** proposes bounded extension candidates that remain
-  untrusted until isolated tests, review, promotion, activation, and
-  post-activation verification succeed.
+- **Optional capability preparation:** Planner proposes closed data-only CSV adapter candidates; fixed backend workers test them, Critic assesses applicability, and the operator explicitly installs eligible exact versions. The historical Builder lifecycle remains a separate compatibility/experimental path, not an extra agent in this pilot.
 - **Human Operator:** approves or denies an exact digest and consequential step
   scope. A changed artifact requires a new decision.
 - **Harness:** owns schemas, policy, state, digests, approvals, redaction,
@@ -111,9 +109,9 @@ rollback execute only fixed identifier-safe mutations. Both verifiers reload
 and rehash the artifact chain and inspect PostGIS through separate read-only
 transactions rather than trusting executor claims.
 
-## Generated-extension lifecycle
+## Historical Builder generated-extension lifecycle
 
-The Builder cannot promote its own output. Generated candidates pass through:
+The current optional data-only path is documented in [checkpoint 28.1](../docs/CHECKPOINT28_1.md); arbitrary generated Python is not enabled by it. The historical Builder cannot promote its own output. Generated candidates pass through:
 
 ```text
 bounded request
@@ -130,3 +128,29 @@ bounded request
 
 This preserves the same separation between intelligence and authority when the
 system proposes extensions to itself.
+
+28.2 adds `planner.outcome_recommendations`: bounded dispatch-contract-bound check metadata in existing SQLite, chat-private ranking supplied to Planner, and relevance-first recipe tie-breaking. No new agent/container; Critic assessments remain distinct. See [scope and limits](../docs/CHECKPOINT28_2.md).
+
+28.2 paired evaluation reuses conversation/review/write-policy/durable-run services in disposable projects, with independent CSV/spatial result checks. The toolbar uses registered access for presentation and freshly prepares authoritative scope before direct read-only execution; writes still require exact approval. Recommendation receipts expose policy and supplied ordering, never inferred model adoption.
+
+## Explicit inspection submission — 28.2
+
+The [CSV-first submit coordinator](../docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md)
+wraps existing conversation validation, immutable plan storage and durable runs.
+A deterministic policy plus fixed bounded reader enforces explicit user intent,
+exact source content, chat revision, contract and no-approval read scope. Additive
+submission receipts prevent replay and permit read-only reconciliation. Existing
+conversation reads and plan-only commands do not dispatch. No extra LLM agent or
+container is added. [Non-RL learning direction](../docs/LEARNING_WITHOUT_RL.md) is
+separate proposed work, not execution authority.
+
+## Typed result exploration — 28.3
+
+[Result exploration](../docs/CHECKPOINT28_3_RESULTS.md) shares the existing verified
+artifact reader between preview and typed full-bounded-file queries. Closed
+filter/sort/page/aggregate contracts produce stable source-row IDs, bounded
+profiles and explicit source/matching scopes. Planner proposes result_view from
+recorded own-chat metadata; the coordinator checks scope/fields and preserves the
+workflow. UI applies one explicit request, never replays it on restoration, and
+uses existing tabs/charts/maps. No separate execution engine, extra agent or
+model-derived plotted values are introduced.

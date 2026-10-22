@@ -1,10 +1,18 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-10-20
+Updated: 2026-10-22
 
 Planner reliability follow-up: schema-repair permission deferrals now use one correction attempt and preserve saved workflows on failure. Calculation follow-up recognizes multiplied/divided/new-column wording, supplies complete non-executing examples and distinguishes repeated repair deferrals from missing user scope. The correction budget and backend checks are unchanged. Conversational Planner now requests a portable decoder schema and distinguishes malformed JSON from reported output truncation; required proposal gates bind upward from registry contracts and backend policy remains authoritative. One local CSV planning smoke passed; broader evaluation remains open. [Protocol and diagnostics](../docs/PLANNER_STRUCTURED_OUTPUT.md). A historical plan claimed calculated columns but contained only inspect_csv. New explicit calculated-column requests check operation presence before storage, use focused instructions/typed source decoding and a narrow single-column skeleton and receive one correction on omission; old records remain unchanged. Reuse provenance now constrains generated IDs to supplied/inspected sources and refreshes after discovery; unverified claims still reject. These are narrow regression guards, not checkpoint completion.
 
 Inspector follow-up: actual operation list and formula visibility, collapsed raw/audit details and compact history. This changes presentation only; a missing calculation is reported, never inserted or authorized automatically.
+
+History usability follow-up: Execution History now lists named saved workflow runs directly and opens their outcomes without changing the active plan. Full learning/inspection coverage gates remain open.
+
+Same-chat inspection follow-up: enforce loaded API `inspection-source-v2` before submission and test vector → raster → display → recorded facts → CSV. This is a reliability correction within checkpoint 28, with unchanged authority and deferred knowledge/RL scope.
+
+## Checkpoint 28.1 bounded acquisition pilot — 2026-10-20
+
+[Implementation and acceptance](../docs/CHECKPOINT28_1.md): a default-OFF per-chat switch lets Planner prepare one closed CSV text adapter family. Synthetic/held-out/effect checks precede explicit installation; normal review/authorization/execution follows. Fixtures and one actual-model OFF/ON/changed-input-reuse profile pass; operator acceptance and broader reliability remain explicit. This is generated data-only configuration, not unrestricted Python. Existing adapters/recipes remain first choice. General Python isolation is deferred; proceed to 28.2 only after this pilot is accepted. Then 28.3 visualization, 29 private knowledge and the established demo/package gates remain in order.
 
 ## Post-calculation delivery clarification
 
@@ -27,8 +35,7 @@ OFF by default, explicit task opt-in, existing operations/recipes first. Size al
 never triggers generation. Prepare/test a restricted candidate only for a real gap,
 with hard attempt/call/runtime/resource bounds. Reuse accepted installed versions;
 installation, write availability, exact authorization and execution stay separate.
-Evaluate saved effort against a fixed baseline, including failures. This feature
-is not implemented; its runtime optionality does not remove the pre-demo pilot gate.
+Evaluate saved effort against a fixed baseline, including failures. The bounded text pilot is now implemented; its acceptance and limits are linked above. Runtime optionality does not remove the pre-demo pilot gate.
 
 ## Immediate priority
 
@@ -1178,3 +1185,49 @@ Bounded vector/raster metadata handoff implemented with shared scope checks and 
 Checkpoint 26.1 delivery/acceptance: [private conversation memory](../docs/CHECKPOINT26_CONVERSATIONS.md). It uses existing durable state without claiming completion of cancellation, retry/resume or the whole checkpoint.
 
 Operator revision: [current conversation model](../docs/CHECKPOINT26_CONVERSATIONS.md) supersedes separate task controls and cross-chat continuation. Each chat retains its own context across topic changes. Cross-conversation memory is deferred for discussion, not implementation; 26.2–26.4 should first work within one conversation.
+
+### 28.2 implementation slice
+
+[Delivery and remaining evaluation](../docs/CHECKPOINT28_2.md): optional own-chat verified-check ranking and conversation settings gear implemented. Offline selector cases compare a fixed baseline; representative end-to-end model improvement is still unverified. Keep optional OFF and finish that acceptance gate before declaring the broader learning requirement complete. Then 28.3 and 29 retain their order.
+
+28.2 follow-up: [execution interaction and paired evaluation](../docs/CHECKPOINT28_2_EVALUATION.md) implement direct read-only Execute, separate write gates and six paired temporary cases. Ranking stays optional OFF until its predeclared model-benefit threshold is demonstrated. 28.3/29 and the demo gates are not silently advanced.
+
+Measured 28.2 status: the initial local-model comparison did not demonstrate benefit (OFF 3/6, ON 2/6). Intermediate request/source and oracle defects are preserved in the evaluation notes. Coverage/source/fresh-output fixes improve deterministic handling but do not justify a general learning claim or default enablement.
+
+Final focused post-fix local-model checks passed selection/filtering/combined tasks with both modes (3/3 each, one call per task). This is a regression result, not the six-case/two-repetition learning-benefit gate; rankings remain experimental OFF. See the paired evaluation notes for preserved negative/intermediate results.
+
+28.2 scope reliability follow-up: narrowly recognized single-file metadata requests use an inspector-only decoder and backend extra-step rejection. Broader semantic coverage remains an acceptance limit.
+
+### Proposed 28.2 follow-up — inspection on send
+
+[Design and measurable acceptance](../docs/INSPECTION_ON_SEND_DESIGN.md): implement bounded inspector eligibility first, durable submission binding second, composer/graph/CLI integration third, and regression plus actual-model acceptance last. Start with one local CSV inspector; broader workflows and writes keep explicit execution gates. Design only; no new agent or default automatic execution is delivered. Existing 28.2/28.3/29 gates retain their order.
+
+### Deferred harness and specialization research — 2026-10-21
+
+[Recorded direction](../docs/DEFERRED_AGENT_HARNESS_RESEARCH.md): specialize in verified data-science/engineering workflows and measure time/reliability against a fair same-small-model harness baseline. Codex remains a separately configured product reference. DeepSeek Harness source review and any reuse/migration are deferred; no comparative advantage is established and no research implementation is authorized by this note. Existing checkpoint order remains unchanged.
+
+### 28.2 bounded inspection submission delivered — 2026-10-21
+
+[Delivery](../docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md): explicit default-OFF Linux CSV inspection on send, ordinary stricter table limits, source/contract/revision binding, durable receipt/run identity and frontend/CLI parity. This supersedes the earlier design-only status of that slice, not broader 28.2 acceptance. [Learning without RL](../docs/LEARNING_WITHOUT_RL.md) prioritizes measured case reuse, failure feedback and context-aware retrieval before adaptive policies or training. Those alternatives remain proposed; external-harness research stays deferred.
+
+### Operator clarification — inspection is format-independent (2026-10-21)
+
+[Requested expansion and acceptance](../docs/INSPECTION_ON_SEND_EXPANSION.md): inspection-on-send should cover supported non-writing inspection tasks, including vector/raster and eventually bounded multi-inspection graphs, using one preference. CSV-only eligibility is the current pilot restriction. Documented only; no runtime expansion is delivered. Finish within 28.2 alongside honest non-RL learning acceptance; next numbered checkpoint stays 28.3 visualization, then 29 private domain knowledge. No live-service permission or external-harness research is implied.
+
+### 28.3 first result-exploration slice — 2026-10-21
+
+[Delivery and acceptance](../docs/CHECKPOINT28_3_RESULTS.md): shared typed result queries, complete bounded CSV filters/sort/paging and source profiles, filtered chart totals, stable table/chart identities, map displayed extent/type summary and Planner result_view proposals. Preserve old previews/workflows and exact write controls. No added agent or dependency. This is not full 28.3 completion or closure of the outstanding 28.2 format-independent inspection/learning gates; richer spatial/raster exploration, grounded explanations and measured scale remain.
+
+## Domain knowledge acquisition direction — recorded 2026-10-21
+
+[Design and acceptance](../docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md): automatically capture scoped dataset definitions, domain methods, preferences and recipes with evidence and corrections. Checkpoint 29 first validates private single-chat reuse; project knowledge across chats remains a checkpoint-30-or-later decision, then sanitized portable packages. No sharing or training implementation is authorized by this documentation update. Existing inspection/visualization and pre-demo gates remain.
+
+## 28.2 single-dataset inspection expansion — implementation
+
+[Scope and acceptance](../docs/INSPECTION_ON_SEND_EXPANSION.md): local vector/raster inspectors now share bounded automatic submission with CSV, including source-package hashes, closed adapter contracts, private spatial snapshots and normal recorded results. Multi-inspection graphs and service reads remain unfinished. This does not complete 28.2 learning or 28.3 visualization/private knowledge gates.
+
+## 28.3 vector-first spatial views
+
+[Delivery and acceptance](../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md): explicit hash-bound vector layers/display reprojection and linked sampled attributes precede bounded raster image rendering and exact pixel inspection. Existing snapshots, shared CLI/API and write boundaries remain. Resource/recovery acceptance and documented limitations precede knowledge checkpoint 29; this does not close learning/private-memory gates or enable cross-chat sharing.
+
+28.3 follow-up: typed Planner spatial settings and backend-formatted recorded-fact explanations are implemented; same-chat inspection binds the latest source before storage. These do not constitute domain learning, new statistics or checkpoint-29 memory. See the spatial-view acceptance guide.

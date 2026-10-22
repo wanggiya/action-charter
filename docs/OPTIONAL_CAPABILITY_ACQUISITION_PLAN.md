@@ -1,7 +1,7 @@
 # Optional capability acquisition — checkpoint 28.1
 
-Operator decision recorded 2026-10-19. **Design only; not implemented by this
-document.** This refines [the delivery plan](POST_CALCULATION_DELIVERY_PLAN.md)
+Operator decision recorded 2026-10-19. **Original design; not implemented by this document.**
+The bounded data-only text pilot is now implemented separately: [28.1 delivery and acceptance](CHECKPOINT28_1.md). General generated Python, RL and memory remain outside that pilot. This refines [the delivery plan](POST_CALCULATION_DELIVERY_PLAN.md)
 without renumbering checkpoints or changing historical implementation records.
 
 ## Purpose and activation

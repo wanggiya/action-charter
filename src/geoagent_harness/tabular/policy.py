@@ -33,7 +33,9 @@ def validate_steps(steps, dependencies):
             if path:
                 path=relative_path(path,'input')
                 suffix=Path(path).suffix.lower()
-                if suffix not in ({'.geojson','.json'} if skill(step)=='vector_attributes_to_csv' else {'.csv','.tsv'}):raise TabularError('Input format does not match the operation data contract')
+                formats={'.geojson','.json'} if skill(step)=='vector_attributes_to_csv' else {'.csv','.tsv'}
+                if suffix not in formats:
+                    raise TabularError(f'{step.step_id}: {skill(step)} requires {" or ".join(sorted(formats))} input; {key} has format {suffix or "(no extension)"}. Use the source requested in this turn, never an incompatible historical input. Nothing executed.')
         if is_table_write(skill(step)):
             target=relative_path(args.target_path,'output')
             if not target.endswith('.csv'):raise TabularError('Table output must be .csv')

@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+// Actual shared backend and temporary CSV files; deterministic model proposal only.
+import {createServer} from 'node:http';
+import {spawn} from 'node:child_process';
+import {mkdtemp,readFile,writeFile,readdir,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,dirname,extname,isAbsolute} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const root=await mkdtemp(resolve(tmpdir(),'actioncharter-execution-'));
+const provider=process.env.ACTIONCHARTER_PLAYWRIGHT_MODULE??resolve(repo,'interface/node_modules/playwright/index.mjs');
+process.env.PLAYWRIGHT_BROWSERS_PATH = resolve(repo,'interface/.playwright-browsers');
+const browserLibArchitecture=process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu';
+process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',browserLibArchitecture),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+const {chromium}=await import(isAbsolute(provider)?pathToFileURL(provider).href:provider);
+let apiPort,child,browser; const calls=[],errors=[],cases=[];
+const frontend=createServer(async(req,res)=>{
+ try {
+  if(req.url.startsWith('/api/')) {
+   const chunks=[];for await(const chunk of req)chunks.push(chunk);
+   calls.push({method:req.method,path:req.url,action:req.method==='POST'?JSON.parse(Buffer.concat(chunks).toString()).action:undefined});
+   const response=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});
+   res.writeHead(response.status,{'Content-Type':'application/json'});res.end(await response.text());return;
+  }
+  const pathname=new URL(req.url,'http://localhost').pathname;
+  const file=pathname.startsWith('/assets/')?resolve(repo,'interface/dist','.'+pathname):resolve(repo,'interface/dist/index.html');
+  const content=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(content);
+ }catch(error){res.writeHead(500);res.end(String(error));}
+});
+await new Promise(done=>frontend.listen(0,'127.0.0.1',done));
+const origin=`http://127.0.0.1:${frontend.address().port}`;
+try{
+ child=spawn(resolve(repo,'.venv/bin/python'),[resolve(repo,'scripts/checkpoint24_fixture_api.py'),'--root',root,'--planning-task-fixture','--spatial-view-fixture'],{cwd:repo,env:{PATH:process.env.PATH,PYTHONPATH:resolve(repo,'src'),ENABLE_WRITE_TOOLS:'false',ALLOW_OVERWRITE:'false',MODEL_NAME:'fixture',MODEL_BASE_URL:'http://127.0.0.1:1/v1',POSTGRES_HOST:'127.0.0.1',POSTGRES_PORT:'1',POSTGRES_PASSWORD_FILE:resolve(root,'missing-secret'),GEOSERVER_BASE_URL:'http://127.0.0.1:1',GEOSERVER_PASSWORD_FILE:resolve(root,'missing-geoserver-secret'),INTERFACE_FRONTEND_ORIGIN:origin}});
+ let stderr='';child.stderr.on('data',data=>stderr+=data);
+ apiPort=await new Promise((done,reject)=>{let output='';const timer=setTimeout(()=>reject(new Error(`API startup timeout: ${stderr}`)),20000);child.stdout.on('data',data=>{output+=data;if(output.includes('\n')){clearTimeout(timer);done(JSON.parse(output.split('\n')[0]).port);}});child.on('exit',code=>{clearTimeout(timer);reject(new Error(`API exited ${code}: ${stderr}`));});});
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1600,height:1000}});page.on('pageerror',error=>errors.push(error.message));
+ await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+ const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('.planner-composer button[type=submit]')?.textContent?.includes('Send'),{},{timeout:30000});};
+ const executionCalls=()=>calls.filter(call=>call.path==='/api/v1/workflow/runs'&&call.action==='start').length;
+ const authorizationCalls=()=>calls.filter(call=>call.path==='/api/v1/workflow/authorize').length;
+ await page.goto(origin);
+ const results=page.locator('.results-workspace');
+ const spatialCalls=()=>calls.filter(c=>c.action==='spatial_view').length;
+ const executions=()=>calls.filter(c=>c.path==='/api/v1/workflow/authorize'||c.action==='start').length;
+ await page.getByRole('button',{name:'Conversation settings',exact:true}).click();
+ await page.getByRole('switch',{name:'Inspect on send',exact:true}).click();await page.keyboard.press('Escape');
+ await send('Inspect layers.gpkg. Return feature count, fields and CRS. No writes.');
+ await results.locator('.outcome-step').waitFor({timeout:30000});
+ await results.getByRole('tab',{name:'Map',exact:true}).click();
+ assert.equal(spatialCalls(),0);
+ await results.getByRole('button',{name:'Load verified vector',exact:true}).click();
+ await results.getByText('Source CRS EPSG:3857 → display EPSG:4326 · reprojected for display only. Layer projected.',{exact:true}).waitFor();
+ assert.equal(spatialCalls(),1);
+ assert.equal(await results.locator('[data-map-feature]').count(),1);
+ await results.locator('[data-map-feature]').first().focus();await page.keyboard.press('Enter');
+ await results.getByRole('button',{name:'Fit selected feature'}).click();
+ await results.getByRole('tab',{name:'Table',exact:true}).click();
+ assert.match(await results.textContent(),/Projected point/);
+ await results.getByRole('tab',{name:'Map',exact:true}).click();assert.equal(spatialCalls(),1);
+ cases.push('Explicit verified vector read reprojects a projected source and links selection to its attribute table');
+ for(const width of [1600,1100]){
+  await page.setViewportSize({width,height:1000});
+  const planner=await page.locator('.planner-dialogue').boundingBox(),graph=await page.locator('.flow-stage').boundingBox(),result=await results.boundingBox();
+  assert.ok(planner&&graph&&result);
+  assert.ok(planner.x+planner.width<=graph.x+1,'Planner and graph must not overlap');
+  assert.ok(graph.x+graph.width<=result.x+1,'Graph and Outcome must not overlap');
+  const picker=await page.locator('.planner-session-picker').boundingBox(),source=await page.getByRole('button',{name:'Graph to view',exact:true}).boundingBox();
+  assert.ok(picker&&source&&picker.x+picker.width<=source.x,'Chat and graph selectors must not overlap');
+ }
+ await page.setViewportSize({width:1600,height:1000});
+ cases.push('Planner, graph and Outcome occupy distinct desktop columns; chat and saved-plan selectors never overlap');
+
+ await results.getByRole('combobox',{name:'Vector layer',exact:true}).selectOption('boundaries');
+ assert.equal(spatialCalls(),1);
+ await results.getByRole('button',{name:'Load verified vector',exact:true}).click();
+ await results.locator('.map-geometry.polygon').waitFor();
+ assert.equal(await results.locator('.map-geometry.polygon').getAttribute('fill-rule'),'evenodd');
+ await results.getByRole('button',{name:'Hide layer',exact:true}).click();
+ assert.equal(await results.locator('[data-map-feature]').count(),0);
+ await results.getByRole('button',{name:'Show layer',exact:true}).click();
+ assert.equal(spatialCalls(),2);
+ await results.locator('[data-map-feature]').first().focus();await page.keyboard.press('Enter');
+ assert.match(await results.locator('.selected-feature').textContent(),/Boundary <b>literal<\/b>/);
+ assert.equal(await results.locator('.selected-feature b').count(),0);
+ await page.screenshot({path:resolve(tmpdir(),'actioncharter-vector-results.png')});
+ await results.getByRole('combobox',{name:'Vector layer',exact:true}).selectOption('routes');
+ await results.getByRole('button',{name:'Load verified vector',exact:true}).click();
+ await results.locator('.map-geometry.line').waitFor();
+ cases.push('Layer selection is explicit, polygons retain holes, lines render, visibility adds no read, and attributes stay literal');
+ const map=results.locator('.recorded-point-map svg');const box=await map.boundingBox();
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.wheel(0,-200);
+ await results.getByRole('button',{name:'Fit extent',exact:true}).click();
+ assert.equal(spatialCalls(),3);
+ await send('Show boundaries layer on the map.');
+ await results.locator('.map-geometry.polygon').waitFor();
+ assert.equal(await results.getByRole('combobox',{name:'Vector layer',exact:true}).inputValue(),'boundaries');
+ const explanationReads=spatialCalls();
+ await send('Explain the current result.');
+ assert.match(await page.locator('.planner-messages .role-assistant').last().textContent(),/Layer count: 3/);
+ assert.doesNotMatch(await page.locator('.planner-messages .role-assistant').last().textContent(),/99999/);
+ assert.equal(spatialCalls(),explanationReads);
+ cases.push('Planner selects an existing layer; recorded explanation shows real counts without another source read or invented model numbers');
+
+ await page.getByRole('button',{name:'New chat',exact:false}).click();
+ await send('Inspect image.tif. Return dimensions, bands, bounds and CRS. No writes.');
+ await results.locator('.outcome-step').waitFor({timeout:30000});
+ await results.getByRole('tab',{name:'Map',exact:true}).click();
+ await results.getByRole('button',{name:'Load verified raster',exact:true}).click();
+ const image=results.getByRole('img',{name:'Verified raster preview',exact:true});await image.waitFor();
+ assert.match(await results.textContent(),/1 NoData/);
+ const rasterBox=await image.boundingBox();
+ // SVG preserves aspect ratio; its square image is centered in the viewport.
+ const side=Math.min(rasterBox.width,rasterBox.height),left=rasterBox.x+(rasterBox.width-side)/2,top=rasterBox.y+(rasterBox.height-side)/2;
+ await page.mouse.click(left+side*.75,top+side*.25);
+ await results.getByRole('status').filter({hasText:'Source pixel row 0, column 1'}).waitFor();
+ assert.match(await results.textContent(),/Band 1: 10/);
+ cases.push('Raster preview shows transparent NoData and click reads exact source pixel value/coordinates');
+ const before=spatialCalls();
+ await results.getByRole('combobox',{name:'Raster display',exact:true}).selectOption('rgb');assert.equal(spatialCalls(),before);
+ await results.getByRole('button',{name:'Apply raster display',exact:true}).click();
+ await page.waitForFunction(()=>!document.querySelector('.spatial-controls button')?.disabled);
+ assert.match(await results.getByLabel('Raster legend').textContent(),/Band 3/);
+ await page.screenshot({path:resolve(tmpdir(),'actioncharter-raster-results.png')});
+ await results.getByRole('tab',{name:'Overview',exact:true}).click();await results.getByRole('tab',{name:'Map',exact:true}).click();
+ assert.equal(spatialCalls(),before+1);
+ await results.getByRole('combobox',{name:'Raster display',exact:true}).selectOption('classes');
+ await results.getByRole('button',{name:'Apply raster display',exact:true}).click();
+ await page.waitForFunction(()=>!document.querySelector('.spatial-controls button')?.disabled);
+ assert.equal(await results.locator('.raster-legend i').count(),3);
+ cases.push('RGB and categorical rendering apply only on request; tab switches do not reread');
+ await send('Display band 2 as a color ramp.');
+ await page.waitForFunction(()=>document.querySelector('select[aria-label="Raster band"]')?.value==='2');
+ assert.equal(await results.getByRole('combobox',{name:'Raster display',exact:true}).inputValue(),'ramp');
+ assert.match(await results.getByLabel('Raster legend').textContent(),/Band 2: 100/);
+ const rasterReads=spatialCalls();
+ await send('Explain the current result.');
+ assert.match(await page.locator('.planner-messages .role-assistant').last().textContent(),/Band count: 3/);
+ assert.equal(spatialCalls(),rasterReads);
+ cases.push('Planner applies band/color settings and explains recorded dimensions without modifying the workflow or rereading for explanation');
+
+ await writeFile(resolve(root,'data/input/image.tif'),'changed');
+ await results.getByRole('button',{name:'Apply raster display',exact:true}).click();
+ await results.getByRole('alert').waitFor();assert.equal(await image.count(),0);
+ assert.equal(executions(),0);
+ assert.equal((await readdir(resolve(root,'data/output'))).length,0);
+ cases.push('Changed source clears verified image, preserves recorded evidence and never starts workflow execution or writes');
+ assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({status:'PASS',cases,actual_backend:true,model_fixture_only:true,page_errors:errors,live_service_calls:0},null,2));
+}catch(error){console.error(error);console.error(JSON.stringify({cases,errors,calls},null,2));throw error;}
+finally{await browser?.close();child?.kill('SIGTERM');await new Promise(done=>frontend.close(done));await rm(root,{recursive:true,force:true});}

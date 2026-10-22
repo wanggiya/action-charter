@@ -47,7 +47,7 @@ def test_keep_inspection_calculation_followup_has_focused_typed_decoder(project,
     assert steps[1]['arguments']['calculations'][0]['expression']['right']['value'] == 2
     assert steps[1]['requires_approval'] and steps[1]['validation_required']
     assert result['context_usage']['model_request']['prompt_bytes'] < 28000
-    assert result['context_usage']['model_request']['planner_contract'] == 'csv-revision-v3'
+    assert result['context_usage']['model_request']['planner_contract'] == 'inspection-source-v2'
     assert not result['execution_performed'] and not result['approval_performed']
     assert not (project/'data/output').exists()
 
@@ -326,3 +326,22 @@ def test_http_repeated_omission_is_specific_and_does_not_save_or_execute(project
 def test_complex_or_negative_requests_keep_general_step_decoding(message):
     from geoagent_harness.planner.request_coverage import simple_calculation_sequence
     assert not simple_calculation_sequence(message)
+
+
+def test_repeat_existing_inspection_calculation_gets_typed_two_step_guide(project):
+    turn(project,Client(ready()),PROMPT)
+    client=Client(ready(multiplier=3))
+    response=turn(project,client,'Replace the current workflow: inspect sample_orders.csv and calculate doubled = amount * 3, propagating missing values. Save to a fresh CSV.',revision=1)
+    system=json.loads(client.requests[0].messages[0].content)
+    assert system['requested_step_sequence']==['inspect_csv','calculate_csv_columns']
+    assert len(client.requests[0].response_schema['$defs']['WorkflowPlan']['properties']['steps']['prefixItems'])==2
+    assert response['planner_result']['plan']['steps'][1]['arguments']['calculations'][0]['expression']['right']['value']==3
+    assert not response['execution_performed']
+
+
+def test_existing_calculation_without_inspection_keeps_general_structure(project):
+    turn(project,Client(ready(inspect=False)),PROMPT.replace('Inspect sample_orders.csv. ',''))
+    client=Client(ready(multiplier=3,inspect=False))
+    response=turn(project,client,'Change the numeric column doubled to amount multiplied by 3 in sample_orders.csv, preserving missing values.',revision=1)
+    assert 'requested_step_sequence' not in json.loads(client.requests[0].messages[0].content)
+    assert [step['skill'] for step in response['planner_result']['plan']['steps']]==['calculate_csv_columns']

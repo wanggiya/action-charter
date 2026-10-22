@@ -68,3 +68,58 @@ def validate_calculation_coverage(plan, message: str) -> None:
             'that limitation or ask for that input. Do not claim the complete '
             'calculation workflow is ready from inspection alone.'
         )
+
+
+def requested_table_operations(message: str, existing=()) -> set[str]:
+    """Recognize narrow explicit CSV commands; never infer execution authority."""
+    text=message.casefold()
+    requested=set()
+    if not re.search(r'\.(?:csv|tsv)\b|\bcsv\b|\btabular\b|\bpandas\b|\bselect_csv_columns\b|\bfilter_csv_rows\b',text) and not any('csv' in skill for skill in existing):
+        return requested
+    for clause in re.split(r'[.!?](?:\s+|$)|[;\n]',text):
+        if not re.search(r"\b(?:remove|delete|omit|skip|without|no|do not|don't|never)\s+(?:(?:the|any|all|use)\s+){0,2}(?:select\w*|column selection)\b",clause):
+            if re.search(r'\bselect_csv_columns\b|\bselect\s+(?:only\s+)?(?:columns?\b|[a-z_]\w*\s*(?:,|\band\b))',clause):
+                requested.add('select_csv_columns')
+        if not re.search(r"\b(?:remove|delete|omit|skip|without|no|do not|don't|never)\s+(?:(?:the|any|all|use)\s+){0,2}(?:filter\w*|keep)\b",clause):
+            if re.search(r'\bfilter_csv_rows\b|\bfilter\s+(?:(?:the|csv|table|data)\s+)?rows\b|\bkeep\s+(?:only\s+)?rows\s+(?:where|with)\b',clause):
+                requested.add('filter_csv_rows')
+    return requested
+
+
+def validate_table_coverage(plan, message: str, existing=()) -> None:
+    if plan is None:return
+    missing=requested_table_operations(message,existing)-{step.skill for step in plan.steps}
+    if missing:
+        raise RequestedOperationOmission('The explicitly requested table operation is missing: '+', '.join(sorted(missing))+'. Repeated inspect_csv steps only return metadata; they cannot select columns or filter rows. Return the complete requested workflow with typed arguments, or ask only for genuinely missing semantic inputs with plan=null. Nothing has executed.')
+
+
+def inspection_only_skill(message: str) -> str | None:
+    """Recognize a complete, narrow metadata-only request, not arbitrary prose.
+
+    Broader/follow-up requests retain the general planner path. This is scope
+    validation, never authorization or an instruction to execute anything.
+    """
+    match = re.fullmatch(
+        r'\s*inspect\s+[^\s;]+\.(csv|tsv|geojson|gpkg|shp|tif|tiff)\.?\s*'
+        r'(?:return\s+(?:row count|column names|columns|feature count|fields|crs|a preview|preview|metadata|width|height|dimensions|band count|bands|bounds|resolution|driver|geometry type|layer names|nodata)'
+        r'(?:\s*(?:,|and)\s*(?:row count|column names|columns|feature count|fields|crs|a preview|preview|metadata|width|height|dimensions|band count|bands|bounds|resolution|driver|geometry type|layer names|nodata))*\.\s*)?'
+        r'(?:no writes\.?\s*)?', message, re.I,
+    )
+    if not match:
+        return None
+    extension = match[1].casefold()
+    return ('inspect_csv' if extension in {'csv', 'tsv'} else
+            'inspect_raster' if extension in {'tif', 'tiff'} else 'inspect_vector')
+
+
+def validate_inspection_scope(plan, message: str) -> None:
+    skill = inspection_only_skill(message)
+    if skill and plan is not None and (
+        len(plan.steps) != 1 or plan.steps[0].skill != skill
+    ):
+        raise RequestedOperationOmission(
+            'This request is only metadata inspection of one supplied file. '
+            f'Return exactly one {skill} step. Do not add PostGIS validation, '
+            'reports, exports, transforms or other operations. Correct the proposal '
+            'now; no permission to repair is needed and nothing has executed.'
+        )

@@ -253,6 +253,14 @@ def validate_output(result,settings):
     root=Path(settings.project_root).resolve()
     data=read_bytes(root,result['output']['path'],'output');frame=read_frame(data)
     checks={'output_sha256':hashlib.sha256(data).hexdigest()==result['output']['sha256'],'row_count':len(frame)==result['row_count'],'columns':list(frame.columns)==result['columns'],'source_identity':all(hashlib.sha256(read_bytes(root,s['path'],s['area'])).hexdigest()==s['sha256'] for s in result['sources'])}
+    if 'text_transform_definition' in result:
+        from geoagent_harness.operations.packages import installed_packages,package_sha
+        from geoagent_harness.capabilities.text import verify_frame
+        package=installed_packages(root).get(result['operation'])
+        checks['installed_package_identity']=bool(package and package.text_transform is not None and package_sha(package)==result.get('package_sha256') and package.text_transform.model_dump(mode='json')==result['text_transform_definition'])
+        source=result['sources'][0]
+        original=read_frame(read_bytes(root,source['path'],source['area']),result.get('source_delimiter',','))
+        checks['text_transform_values']=checks['installed_package_identity'] and verify_frame(original,frame,package.text_transform)
     if result.get('operation') == 'calculate_csv_columns':
         from .calculations import verify_calculation
         args = ARGUMENTS['calculate_csv_columns'].model_validate(result['calculation_arguments'])
