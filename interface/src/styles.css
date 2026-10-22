@@ -1308,3 +1308,52 @@
 .chart-value-detail dd {text-align:right; text-transform:none; color:#edf6ff;}
 .chart-value-detail > small {display:block; margin-top:9px; color:#a3b9ca; font-size:11px;}
 .chart-summary dd > button {font:inherit; color:inherit; padding:3px 7px; border:1px solid var(--line-strong); border-radius:5px; background:var(--surface);}
+
+.capability-candidate {min-width:0; margin:10px 0; padding:12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--surface);}
+.capability-candidate h3 {margin:0 0 9px;}
+.capability-candidate pre {max-height:280px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere;}
+.capability-candidate > button {margin-top:10px;}
+
+.planner-dialogue{position:relative}.planner-settings-popover{position:absolute;top:55px;right:12px;z-index:40;width:min(390px,calc(100% - 24px));max-height:70%;overflow:auto;padding:16px;border:1px solid var(--border, #456778);border-radius:10px;background:rgba(15,25,36,.97);box-shadow:0 12px 32px #0008;display:flex;flex-direction:column;gap:12px}.planner-settings-popover header{display:flex;justify-content:space-between;align-items:center}.planner-settings-popover small{line-height:1.5}
+
+.verified-result-explorer {margin:12px 0;padding:12px;border-block:1px solid color-mix(in srgb,var(--blue) 35%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--blue) 9%,transparent),transparent 32%,transparent 68%,color-mix(in srgb,var(--blue) 6%,transparent));}
+.verified-result-explorer>p {margin:0 0 8px}.verified-result-explorer details {margin-top:12px}.verified-result-explorer summary {cursor:pointer;color:var(--foreground)}
+.verified-result-explorer .visualization-controls {display:flex;flex-wrap:wrap;gap:10px;margin-block:12px}.verified-result-explorer label {flex:1 1 130px;min-width:0}.verified-result-explorer input,.verified-result-explorer select {width:100%;min-width:0}
+
+/* Keep submission status in its own row when Outcome reduces planner space. */
+.planner-dialogue > .planner-submit-mode,.planner-dialogue > .planner-submission-notice { flex-shrink:0; overflow-wrap:anywhere; }
+.app-shell .planner-dialogue > footer { margin-top:0; }
+
+/* Spatial exploration reuses Results surfaces and material colors. */
+.spatial-controls {display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+.spatial-controls label {display:grid;gap:5px;min-width:100px;font-size:12px}
+.spatial-controls select {max-width:240px;width:100%}
+.spatial-controls button {padding:8px 11px;border:1px solid var(--cyan);border-radius:6px;color:var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+.spatial-read-note {color:var(--muted);font-size:12px}
+.raster-opacity {display:flex;align-items:center;gap:12px;font-size:12px;margin:12px 0}
+.raster-image {display:block;width:100%;height:400px;max-height:60vh;touch-action:none;cursor:crosshair;border:1px solid var(--line);border-radius:8px;background:repeating-conic-gradient(#8c9aab22 0% 25%,transparent 0% 50%) 0 0 / 20px 20px}
+.raster-legend {display:flex;flex-wrap:wrap;gap:10px;font-size:12px;align-items:center;margin:12px 0}
+.raster-legend span {display:inline-flex;align-items:center;gap:6px}
+.raster-legend i {display:inline-block;width:12px;height:12px;border-radius:2px}
+.raster-ramp {width:100px;height:12px;background:linear-gradient(90deg,rgb(40,180,225),rgb(245,90,55));border-radius:3px}
+
+/* Planner and a docked result/review must never share the graph's grid cell. */
+@media(min-width:1051px) {
+ .app-shell .workspace.text-planner-open.right-panel-open:not(:has(>.results-workspace.is-expanded)) {
+  grid-template-columns:var(--planner-panel-width,360px) minmax(220px,1fr) minmax(320px,min(var(--information-panel-width,400px),calc(100vw - var(--planner-panel-width,360px) - 220px)));
+ }
+ .app-shell .workspace.text-planner-open.right-panel-open:has(>.results-workspace:not(.is-expanded)) {
+  grid-template-columns:var(--planner-panel-width,360px) minmax(220px,1fr) minmax(320px,min(var(--results-panel-width,560px),calc(100vw - var(--planner-panel-width,360px) - 220px)));
+ }
+ .app-shell .workspace.text-planner-open.right-panel-open:not(:has(>.results-workspace.is-expanded))>.flow-stage {grid-column:2;grid-row:1}
+ .app-shell .workspace.text-planner-open.right-panel-open:not(:has(>.results-workspace.is-expanded))>.workspace-right-panel {grid-column:3;grid-row:1}
+}
+.app-shell .workspace.text-planner-open.right-panel-open:has(>.results-workspace.is-expanded)>.planner-dialogue {display:none}
+@media(max-width:1050px) {
+ .app-shell .workspace.text-planner-open.right-panel-open>.planner-dialogue {display:none}
+}
+
+.saved-workflow-runs .history-run-heading {display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between}
+.saved-workflow-runs .execution-attempt header {display:flex;justify-content:space-between;gap:12px}
+.saved-workflow-runs .execution-attempt strong,.saved-workflow-runs p,.saved-workflow-runs code {overflow-wrap:anywhere;min-width:0}
+.saved-workflow-runs .execution-attempt>button {margin-top:12px}

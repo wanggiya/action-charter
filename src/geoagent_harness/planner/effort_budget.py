@@ -25,6 +25,8 @@ class EffortBudget:
         self.started = monotonic()
         self.model_calls = 0
         self.tool_calls = 0
+        self.discovery_calls = 0
+        self.fixture_batches = 0
         self.prompt_bytes = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
@@ -56,7 +58,7 @@ class EffortBudget:
         size = check_prompt(request)
         self.model_calls += 1  # Failed/time-out attempts consume the allowance.
         self.prompt_bytes += size
-        bounded = request.model_copy(update={'timeout_seconds': min(600, remaining)}) if remaining is not None else request
+        bounded = request.model_copy(update={'timeout_seconds': min(600, remaining, request.timeout_seconds or 600)}) if remaining is not None else request
         try:
             result = client.complete(bounded)
         except ModelClientError as error:
@@ -75,14 +77,22 @@ class EffortBudget:
 
     def tool(self):
         self.check_time()
-        if self.tool_calls >= self.MAX_DISCOVERY:
+        if self.discovery_calls >= self.MAX_DISCOVERY:
             self.reject('discovery_call_limit')
+        self.tool_calls += 1
+        self.discovery_calls += 1
+
+    def fixture_batch(self):
+        self.check_time()
+        if self.fixture_batches >= 1:self.reject('fixture_batch_limit')
+        self.fixture_batches += 1
         self.tool_calls += 1
 
     def receipt(self):
         return {
             'model_calls': self.model_calls, 'model_call_limit': self.MAX_CALLS,
-            'tool_calls': self.tool_calls, 'tool_call_limit': self.MAX_DISCOVERY,
+            'tool_calls': self.tool_calls, 'tool_call_limit': self.MAX_DISCOVERY + (1 if self.fixture_batches else 0),
+            'fixture_batches':self.fixture_batches,'fixture_batch_limit':1,
             'prompt_bytes_total': self.prompt_bytes,
             'prompt_tokens': self.prompt_tokens if self.usage_complete else None,
             'completion_tokens': self.completion_tokens if self.usage_complete else None,

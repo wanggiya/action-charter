@@ -10,7 +10,7 @@ def compact_schema(schema):
     return walk(schema)
 
 
-def schema_scope(message, available, existing=(), *, selected=False):
+def schema_scope(message, available, existing=(), *, selected=False, acquisition=False):
     text=message.casefold()
     csv=bool(re.search(r'\.csv\b|\.tsv\b|\bcsv\b|\bpandas\b|\btabular\b',text))
     # Negative scope statements are not requests for spatial capabilities.
@@ -22,15 +22,30 @@ def schema_scope(message, available, existing=(), *, selected=False):
     # Follow-ups often say "keep the inspection" instead of repeating a
     # filename/domain. Use the validated current plan for descriptive scope.
     csv = csv or (calculation and 'inspect_csv' in existing)
+    text_candidate=acquisition and bool(re.search(r'\b(?:trim|strip|uppercase|lowercase|upper case|lower case|whitespace|replace literal)\b',text))
+    csv = csv or (text_candidate and 'inspect_csv' in existing)
+    from .request_coverage import requested_table_operations
+    table_requested=requested_table_operations(message,existing)
+    simple_table=(len(table_requested)==1 and not calculation and not text_candidate
+                  and set(existing).issubset({'inspect_csv',*table_requested})
+                  and not re.search(r'\b(?:join|merge|aggregate|group|convert|fill|export|snakemake|report)\b',text))
     detailed = list(available) if selected or calculation or 'calculate_csv_columns' in existing else [skill for skill in available if skill != 'calculate_csv_columns']
-    if (selected and not calculation) or not csv or spatial:return detailed
+    spatial_table=(spatial and set(existing).issubset({'inspect_vector','vector_attributes_to_csv','aggregate_csv'})
+                   and bool(re.search(r'attributes?',text)) and bool(re.search(r'group|aggregat',text)) and bool(re.search(r'\bsum\b',text))
+                   and not re.search(r'\b(?:convert|raster|join|filter|select|snakemake|report)\b',spatial_text)
+                   and not re.search(r"\b(?:do not|don't|without|skip|remove)\s+(?:inspect|extract|export|group|aggregate)\b",text))
+    if spatial_table:return [skill for skill in detailed if skill in {'inspect_vector','vector_attributes_to_csv','aggregate_csv'}]
+    if (selected and not calculation and not text_candidate and not simple_table) or not csv or spatial:return detailed
     from geoagent_harness.tabular.schemas import ARGUMENTS
     focus=set(ARGUMENTS)|set(existing)|{skill for skill in available if skill.startswith('ext_')}
-    if calculation:
+    if simple_table:
+        focus={'inspect_csv',*table_requested}|set(existing)
+    if calculation or text_candidate:
         # Keep the full operation allowlist. Focus only descriptive schemas; a
         # valid proposal may still use another registered operation and a repair
         # receives its full schema if needed.
-        focus={'inspect_csv','calculate_csv_columns'}|set(existing)
+        focus={'inspect_csv'}|({'calculate_csv_columns'} if calculation else set())|set(existing)
+        if text_candidate:focus|={skill for skill in available if skill.startswith('ext_')}
         for pattern, skill in (
             (r'\bexport\b', 'export_csv'),
             (r'select|keep.only|drop.column', 'select_csv_columns'),

@@ -8,6 +8,8 @@ full interface, learning system or prototype is ready. Preserve the original
 [checkpoint 27 plan](CHECKPOINT27_PLAN.md), [roadmap](../context/PRODUCT_ROADMAP.md)
 and [calculation design](BOUNDED_CALCULATION_DESIGN.md).
 
+[28.1 pilot delivery](CHECKPOINT28_1.md) now implements optional closed text-adapter acquisition; one synthetic actual-model OFF/ON/reuse profile passed; broader reliability and operator acceptance remain explicit. This does not complete learning/RL, advanced memory, general generated Python or demo readiness.
+
 ## Updated delivery order and demo gate
 
 Updated 2026-10-19. [27.4a recorded results](CHECKPOINT27_RECORDED_RESULTS.md) and
@@ -97,3 +99,11 @@ layout and the shared warning write switch. Broader visualization is now an
 explicit 28.3 expansion after 28.1/28.2 pilots. 29 private memory and the 30+
 cross-chat decision gate remain unchanged. Fixture acceptance and actual-model
 measurements are reported separately; no release or parity claim follows.
+
+## 2026-10-21 delivery clarification
+
+[Bounded inspection submission](CHECKPOINT28_2_INSPECTION_SUBMIT.md) is the current
+28.2 interaction slice. RL may take longer: [non-RL learning](LEARNING_WITHOUT_RL.md)
+sets out evaluated case reuse, failure feedback and context-aware retrieval as
+nearer-term options. This does not declare the learning gate passed or remove
+private-memory/capability requirements. External-harness research is deferred.

@@ -2,7 +2,7 @@
 from copy import deepcopy
 
 
-def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspection_source=None, inspection_arguments=None):
+def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspection_source=None, inspection_arguments=None, original_vector_source=None):
     # Older local grammar compilers reject some regexes/bounds in full Pydantic
     # schemas. Keep structure, enums/consts and closed objects; validate patterns,
     # limits and cross-field policy independently after generation. This is not
@@ -85,16 +85,19 @@ def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspec
             'type': 'array', 'prefixItems': [deepcopy(by_skill[skill]) for skill in step_sequence],
             'minItems': len(step_sequence), 'maxItems': len(step_sequence),
         }
-        if inspection_source is not None and step_sequence == ['inspect_csv', 'calculate_csv_columns']:
+        if inspection_source is not None and len(step_sequence)==2 and step_sequence[0]=='inspect_csv':
             # "Keep the inspection" binds its existing source, not the generic
             # example filename. Inspection is not a table-producing source_step.
             for branch in result['$defs']['WorkflowPlan']['properties']['steps']['prefixItems']:
                 arguments = branch['properties']['arguments']
-                if branch['properties']['skill'].get('const') == 'inspect_csv' and inspection_arguments is not None:
-                    branch['properties']['arguments'] = {
-                        'type': 'object', 'properties': {key: {'const': value} for key, value in inspection_arguments.items()},
-                        'required': list(inspection_arguments), 'additionalProperties': False,
-                    }
+                if branch['properties']['skill'].get('const') == 'inspect_csv':
+                    if inspection_arguments is not None:
+                        branch['properties']['arguments'] = {
+                            'type': 'object', 'properties': {key: {'const': value} for key, value in inspection_arguments.items()},
+                            'required': list(inspection_arguments), 'additionalProperties': False,
+                        }
+                    else:
+                        arguments['properties']['path']={'type':'string','const':inspection_source}
                     continue
                 if 'anyOf' in arguments:
                     arguments = next(item for item in arguments['anyOf'] if 'path' in item['properties'])
@@ -102,6 +105,20 @@ def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspec
                 arguments['properties']['path'] = {'type': 'string', 'const': inspection_source}
                 branch['properties']['depends_on'] = {'type': 'array', 'items': {'type': 'string', 'const': 'step_1'}, 'minItems': 1, 'maxItems': 1}
                 branch['required'] = list(dict.fromkeys([*branch['required'], 'depends_on']))
+    if original_vector_source is not None and step_sequence==['inspect_vector','vector_attributes_to_csv','aggregate_csv']:
+        for branch in result['$defs']['WorkflowPlan']['properties']['steps']['prefixItems']:
+            skill=branch['properties']['skill']['const']
+            arguments=branch['properties']['arguments']
+            if skill in {'inspect_vector','vector_attributes_to_csv'}:
+                arguments['properties']['path']={'type':'string','const':original_vector_source}
+            else:
+                arguments=next(item for item in arguments['anyOf'] if 'source_step' in item['properties'])
+                arguments['properties']['source_step']={'type':'string','const':'step_2'}
+                branch['properties']['arguments']=arguments
+            if skill!='inspect_vector':
+                dependency='step_1' if skill=='vector_attributes_to_csv' else 'step_2'
+                branch['properties']['depends_on']={'type':'array','items':{'type':'string','const':dependency},'minItems':1,'maxItems':1}
+                branch['required']=list(dict.fromkeys([*branch['required'],'depends_on']))
     # A full proposal cannot simultaneously request a separate workflow action
     # or recipe/discovery exchange. These are already rejected by the service;
     # express the same distinction to the grammar instead of spending repair on
@@ -110,8 +127,8 @@ def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspec
     proposal = deepcopy(result)
     proposal['properties']['plan'] = {'$ref': '#/$defs/WorkflowPlan'}
     proposal['required'] = list(dict.fromkeys([*proposal['required'], 'plan']))
-    for name in ('workflow_action', 'recipe_uses', 'recipe_discovery'):
-        proposal['properties'].pop(name)
+    for name in ('workflow_action', 'recipe_uses', 'recipe_discovery', 'capability_request', 'result_view'):
+        proposal['properties'].pop(name,None)
     exchange = deepcopy(result)
     exchange['properties']['plan'] = {'type': 'null'}
     return {'type': 'object', 'anyOf': [proposal, exchange], '$defs': definitions}

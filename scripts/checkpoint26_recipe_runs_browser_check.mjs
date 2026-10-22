@@ -40,7 +40,9 @@ try{
 
  page.setDefaultTimeout(15000);
  await page.goto(origin);
+ await page.getByRole('button',{name:'Conversation settings',exact:true}).click();
  await page.getByRole('switch',{name:'Chat memory'}).waitFor();
+ await page.getByRole('button',{name:'Close conversation settings',exact:true}).click();
  await page.getByRole('button',{name:'Reusable recipes',exact:true}).click();
  let dialog=page.getByRole('dialog',{name:'Reusable recipes'});
  await dialog.getByRole('button',{name:/^Select columns and fill missing cells/}).click();

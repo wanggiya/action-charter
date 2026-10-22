@@ -13,6 +13,7 @@
     ]
   },
   "scripts": {
+    "browser:test:28-spatial": "node ../scripts/checkpoint28_spatial_views_browser_check.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -30,7 +31,11 @@
     "browser:test:27-hook-refresh": "node ../scripts/checkpoint27_hook_refresh_browser_check.mjs",
     "browser:test:27-report-authorization": "node ../scripts/checkpoint27_report_authorization_browser_check.mjs",
     "browser:test:27-visualization": "node ../scripts/checkpoint27_visualization_browser_check.mjs",
-    "browser:test:27-results": "node ../scripts/checkpoint27_results_workspace_browser_check.mjs"
+    "browser:test:27-results": "node ../scripts/checkpoint27_results_workspace_browser_check.mjs",
+    "browser:test:28-execution": "node ../scripts/checkpoint28_execution_browser_check.mjs",
+    "browser:test:28-acquisition": "node ../scripts/checkpoint28_acquisition_browser_check.mjs",
+    "browser:test:28-submit": "node ../scripts/checkpoint28_inspection_submit_browser_check.mjs",
+    "browser:test:28-results": "node ../scripts/checkpoint28_result_exploration_browser_check.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.544.0",

@@ -486,3 +486,53 @@ def test_csv_source_schema_exposes_exclusive_choices():
     assert select['allOf'][0]['oneOf'][0]['required']==['path']
     join=JoinTables.model_json_schema()
     assert join['allOf'][1]['oneOf'][1]['required']==['right_step']
+
+
+def test_metadata_only_request_repairs_unrequested_database_and_report(project):
+    inspection = {'summary': 'Inspect orders', 'steps': [{
+        'step_id': 'step_1', 'skill': 'inspect_csv', 'purpose': 'Inspect CSV',
+        'arguments': {'path': 'sample_orders.csv'}, 'requires_approval': False,
+    }]}
+    import copy
+    bad = copy.deepcopy(inspection)
+    bad['steps'] += [
+        {'step_id': 'step_2', 'skill': 'validate_postgis_layer', 'purpose': 'Validate database',
+         'arguments': {'target_schema': 'public', 'target_table': 'orders'}, 'requires_approval': False},
+        {'step_id': 'step_3', 'skill': 'generate_report', 'purpose': 'Report',
+         'arguments': {'task_id': ID}, 'requires_approval': False},
+    ]
+    client = Client({'message': 'Ready', 'plan': bad}, {'message': 'Ready', 'plan': inspection})
+    result = turn(project, client, 'Inspect sample_orders.csv. Return row count and column names. No writes.')
+    assert len(client.requests) == 2
+    assert [step['skill'] for step in result['planner_result']['plan']['steps']] == ['inspect_csv']
+    assert not result['approval_performed'] and not result['execution_performed']
+    system = json.loads(client.requests[0].messages[0].content)
+    assert set(system['operation_argument_schemas']) == {'inspect_csv'}
+    assert not (project / 'data/output').exists()
+
+
+@pytest.mark.parametrize('message', [
+    'Keep the inspection and select region and amount. Do not execute yet.',
+    'Inspect sample_orders.csv. Then load it to PostGIS.',
+    'Inspect sample_orders.csv. Return row count and calculate a total. No writes.',
+])
+def test_inspection_scope_does_not_rewrite_broader_requests(message):
+    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    assert inspection_only_skill(message) is None
+
+
+def test_metadata_only_scope_failure_preserves_saved_workflow(project):
+    import copy
+    initial = turn(project, Client({'message': 'Ready', 'plan': plan()}))
+    bad = copy.deepcopy(plan())
+    bad['steps'].append({
+        'step_id': 'step_2', 'skill': 'validate_postgis_layer', 'purpose': 'Unrequested check',
+        'arguments': {'target_schema': 'public', 'target_table': 'points'}, 'requires_approval': False,
+    })
+    client = Client({'message': 'Ready', 'plan': bad}, {'message': 'Ready', 'plan': bad})
+    with pytest.raises(PlannerAgentError):
+        turn(project, client, 'Inspect sample_points.geojson. Return feature count, fields and CRS. No writes.', revision=1)
+    restored = read(project)
+    assert restored['revision'] == initial['revision']
+    assert restored['planner_result'] == initial['planner_result']
+    assert len(client.requests) == 2

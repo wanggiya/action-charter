@@ -87,3 +87,29 @@ Export to Snakemake and Verify Snakemake package are available in Add and conver
 ## Checkpoint 26 reusable recipes and durable runs
 
 Reusable recipes are available in the normal interface and Planner discovery. Typed JSON instances expand into the existing editable operation graph and pass shared backend checks. Planner owns normal chat composition and recipe preparation; optional Prepare runs sequential Planner → isolated fixtures → Critic, followed by one explicit registration; reuse requires no repeated registration or agent preparation. Main-workflow Execute creates durable run records, with cooperative Cancel after active verification, bounded intermediate disclosures and recovery proposals. Read-only recovery excludes completed steps; write recovery uses fresh targets and fresh authorization. No automatic write reuse, transactional resume, nested canvas groups or advanced indexed-memory completion is implied. Current checkpoint acceptance is documented in [closeout](CHECKPOINT26_CLOSEOUT.md). [Implementation and acceptance](CHECKPOINT26_RECIPES_AND_RECOVERY.md).
+
+## Explicit bounded inspection exception — 28.2
+
+The [CSV submit slice](CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds a default-OFF
+composer preference. With visible explicit inspection-on-send intent, a backend-
+eligible single local CSV metadata operation can run on submission and attach
+recorded Outcome without a second Execute click. Other workflows retain the
+primary journey above; write availability and exact authorization remain
+separate. Restore, refresh and receipt reads do not start work. This is not
+blanket automatic execution of all read-only operations.
+
+## 28.3 recorded-result exploration
+
+[Typed result queries and Planner views](CHECKPOINT28_3_RESULTS.md) extend existing
+Results tabs. Complete-artifact filters, sorting, profiles and chart aggregation
+are explicit hash-verified reads; ordinary viewing retains saved snapshots.
+Planner can suggest a typed view of a matching recorded result, without replacing
+the workflow, invoking operations or changing authority. Filtering a table does
+not imply a geometry join or a filtered map. Wider scaling and spatial/raster
+work remain explicit limitations.
+
+Inspection follow-up: the persistent Inspect on send control supports one eligible bounded local CSV/vector/raster metadata request. Multi-step and service reads retain Execute; mixed writes retain exact authorization. See [accepted formats and limits](INSPECTION_ON_SEND_EXPANSION.md).
+
+Spatial Results now provide explicit verified layer/render reads through the shared run service: vector display reprojection/selection and bounded raster images/pixels. Normal tab switching does not execute or reread; source changes reject new reads. See [scope and acceptance](CHECKPOINT28_3_SPATIAL_VIEWS.md).
+
+Explicit inspection source changes within a chat must update the active workflow/Outcome without erasing history; mismatched historical sources reject before storage. Conversational display settings stay typed and scoped; factual explanation text derives from saved evidence and grants no authority.

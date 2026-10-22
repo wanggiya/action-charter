@@ -24,20 +24,19 @@ _LOCK = RLock()
 TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'validation_failed'}
 
 
-class ChartAnalysis(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    group_by: str = Field(min_length=1, max_length=120)
-    value: str | None = Field(default=None, min_length=1, max_length=120)
-    aggregation: Literal['count', 'sum', 'mean', 'min', 'max']
+from .exploration_contracts import ChartAnalysis, ExplorationQuery
+from .spatial_views import SpatialViewOptions
 
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview']
+    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview', 'explore', 'spatial_view']
     run_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     workflow: WorkflowRequest | None = None
     conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
     analysis: ChartAnalysis | None = None
+    query: ExplorationQuery | None = None
+    spatial: SpatialViewOptions | None = None
     review_outcome: bool = False
     retry_assessment: bool = False
     step_id: str | None = Field(default=None, pattern=r'^step_[1-9][0-9]*$')
@@ -138,6 +137,23 @@ def _read(directory, identity):
     return record
 
 
+def _source_paths(record):
+    """Small local-file labels only; do not expose other operation arguments."""
+    from pathlib import PurePosixPath
+    paths=[]
+    for step in record['steps']:
+        for key in ('path','right_path'):
+            value=step.get('arguments',{}).get(key)
+            if not isinstance(value,str) or len(value)>960 or not value.startswith(('data/input/','data/output/')):
+                continue
+            parsed=PurePosixPath(value)
+            if '..' in parsed.parts or str(parsed)!=value or '\\' in value or any(ord(c)<32 for c in value):
+                continue
+            if value not in paths:paths.append(value)
+            if len(paths)==20:return paths
+    return paths
+
+
 def _present_outputs(root, record):
     """Observe bounded local outputs only; never query a live database/service."""
     outputs=[]
@@ -207,7 +223,9 @@ class _Observer:
             _write(self.directory, record)
 
 
-def _worker(root, directory, identity, workflow, fd, review_outcome=False):
+def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
+    from .inspection_policy import active_inspection
+    inspection_token = active_inspection.set(inspection_binding)
     from geoagent_harness.recipes.control import observer, ExecutionCancelled
     from .workflow import execute_workflow, execution_failure_payload
     token = observer.set(_Observer(directory, identity))
@@ -248,6 +266,7 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False):
             _write(directory, record)
     finally:
         observer.reset(token)
+        active_inspection.reset(inspection_token)
         os.close(fd)
     # Retention is metadata-only and fail-soft after the execution is durable.
     # It is independent of the browser and precedes optional model assessment.
@@ -261,6 +280,11 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False):
 
 
 def _retain_record(root, directory, record):
+    from geoagent_harness.planner.outcome_recommendations import record_outcome
+    try:
+        record['recommendation_evidence'] = record_outcome(root, record)
+    except Exception:
+        record['recommendation_evidence'] = 'unavailable'
     from geoagent_harness.recipe_catalog.successful import retain
     try:
         receipt = retain(root, record)
@@ -307,7 +331,7 @@ def _recovery(root, record):
     return validate_edit(EditRequest(action='validate_plan_edit', planner_result=result), project_root=root)
 
 
-def run_action(request: RunRequest, *, project_root: Path, background=True):
+def run_action(request: RunRequest, *, project_root: Path, background=True, inspection_binding=None, submission_run_id=None):
     from .server import _trusted_root, InterfaceApiError
     from .workflow import prepare_workflow
     root = _trusted_root(project_root)
@@ -315,14 +339,22 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
     if request.action=='assess':
         from .run_assessment import assess_run
         return assess_run(root,request.run_id,retry=request.retry_assessment)
-    if request.action == 'preview':
+    if request.action in {'preview', 'explore', 'spatial_view'}:
         # Capture scope under the run lock; CSV I/O must not hold up progress,
         # cooperative cancellation or another read of the execution record.
         with _LOCK:
             record = _read(directory, request.run_id)
+        if request.action == 'spatial_view':
+            if request.spatial is None:
+                raise InterfaceApiError('Choose spatial viewing options')
+            from .spatial_views import spatial_result
+            return spatial_result(root, record, request)
         from .result_preview import preview_result
         from geoagent_harness.tabular.service import TabularError
         try:
+            if request.action == 'explore':
+                from .result_exploration import explore_result
+                return explore_result(root, record, request)
             return preview_result(root, record, request)
         except TabularError as error:
             raise InterfaceApiError(str(error)) from error
@@ -330,7 +362,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
         if request.action == 'list':
             records = [_read(directory, p.stem) for p in sorted(directory.glob('*.json'),key=lambda p:p.stat().st_mtime,reverse=True)[:50]]
             # Inventory stays small; full bounded results are fetched by run ID.
-            records = [{**r,'result':None,'steps':[{**s,'arguments':{},'outcome':None,'validation_outcome':None} for s in r['steps']]} for r in records]
+            records = [{**r,'source_paths':_source_paths(r),'result':None,'steps':[{**s,'arguments':{},'outcome':None,'validation_outcome':None} for s in r['steps']]} for r in records]
             return {'records': sorted(records, key=lambda r:r['started_at'], reverse=True), 'execution_performed':False}
         if request.action != 'start':
             record = _read(directory, request.run_id)
@@ -354,6 +386,11 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
             raise InterfaceApiError('Workflow review digest no longer matches')
         if review.get('workflow_kind') == 'snakemake_export':
             raise InterfaceApiError('Snakemake export uses its existing synchronous execution path')
+        if inspection_binding is not None:
+            from .inspection_policy import check_dispatch
+            check_dispatch(root, review, inspection_binding)
+        if submission_run_id is not None and (directory / (submission_run_id + '.json')).exists():
+            raise InterfaceApiError('Submission already has an execution record; inspect it rather than restarting')
         paths = list(directory.glob('*.json'))
         if len(paths) >= 200:
             raise InterfaceApiError('Run inventory limit reached; archive reviewed run records before starting more')
@@ -363,7 +400,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
                 'plan_filename','confirmed_plan_sha256','confirmed_review_sha256','plan_approval_filename','recipe_approval_filename')}, sort_keys=True).encode()).hexdigest()
             if review['write_step_ids'] and any(_read(directory,p.stem)['authority_sha256']==authority for p in paths):
                 raise InterfaceApiError('This write authority already has an attempt. Prepare recovery and record fresh authorization.')
-            record = {'schema_version':'1.0', 'run_id':uuid.uuid4().hex, 'plan_filename':review['plan_filename'],
+            record = {'schema_version':'1.0', 'run_id':submission_run_id or uuid.uuid4().hex, 'plan_filename':review['plan_filename'],
                 'plan_sha256':review['plan_sha256'], 'authority_sha256':authority, 'status':'queued',
                 'started_at':_now(), 'finished_at':None, 'cancel_requested':False, 'failed_step_id':None,
                 'finding':None, 'result':None, 'execution_performed':False,
@@ -378,6 +415,9 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
                 record['retention_basis'] = capture_basis(root, review['steps'])
             except Exception:
                 record['retention_basis'] = None
+            if inspection_binding is not None:
+                record['submission_id'] = inspection_binding['submission_id']
+                record['inspection_limits'] = {'source_bytes':8*1024*1024,'rows':10000,'columns':100,'wall_seconds':30,'preview_rows':20,'preview_columns':20}
             record['successful_recipe'] = {'status': 'pending'}
             record['conversation_id']=None
             if request.conversation_id:
@@ -393,10 +433,10 @@ def run_action(request: RunRequest, *, project_root: Path, background=True):
             raise
     if background:
         try:
-            Thread(target=_worker, args=(root,directory,record['run_id'],request.workflow,fd,request.review_outcome), daemon=True).start()
+            Thread(target=_worker, args=(root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding), daemon=True).start()
         except BaseException:
             os.close(fd)
             raise
         return record
-    _worker(root,directory,record['run_id'],request.workflow,fd,request.review_outcome)
+    _worker(root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding)
     return run_action(RunRequest(action='read',run_id=record['run_id']),project_root=root)

@@ -2893,6 +2893,8 @@ def _handler(
                     "status": "ready",
                     "bound_to_loopback": True,
                     "planner_contract_revision": PLANNER_CONTRACT_REVISION,
+                    "inspection_on_send_revision": "bounded-local-v2",
+                    "result_exploration_revision": "typed-views-v1",
                     "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
@@ -3122,6 +3124,7 @@ def _handler(
                 "/api/v1/workflow/runs",
                 "/api/v1/reusable-recipes",
                 "/api/v1/planner/conversation",
+                "/api/v1/planner/submit",
                 "/api/v1/method-memory",
                 "/api/v1/operations/scan",
                 "/api/v1/operations/test-package",
@@ -3310,6 +3313,9 @@ def _handler(
                 elif self.path == "/api/v1/method-memory":
                     from .method_memory import MethodRequest, method_action
                     response = method_action(MethodRequest.model_validate(payload), project_root=project_root)
+                elif self.path == "/api/v1/planner/submit":
+                    from .planner_submission import SubmissionRequest, submission_action
+                    response = submission_action(SubmissionRequest.model_validate(payload), project_root=project_root)
                 elif self.path == "/api/v1/planner/conversation":
                     from .conversation import TurnRequest, conversation_turn
                     response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
@@ -3537,6 +3543,10 @@ def _handler(
                     error = "planner response hit the model output limit"
                     code = "planner_output_truncated"
                     finding = "; ".join(exc.findings)
+                elif getattr(exc, "reason", None) == "capability_gap_unresolved":
+                    error = "planner could not resolve the text-capability request"
+                    code = "planner_capability_gap"
+                    finding = "; ".join(exc.findings)
                 elif "invalid JSON" in message:
                     error = "planner model returned invalid JSON"
                     code = "planner_invalid_json"
@@ -3561,7 +3571,7 @@ def _handler(
                     "schema_findings": exc.findings,
                     "correction_attempted": exc.correction_attempted,
                     "planner_diagnostics": getattr(exc, "planner_diagnostics", None),
-                    "retry_guidance": ("The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted the calculation after one correction. Your saved workflow is preserved. Retry the same calculation request with automatic skill selection or calculate_csv_columns enabled; do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
+                    "retry_guidance": ("The Planner must follow the declared text-capability contract: propose a bounded missing candidate when ON, or use the supplied compatible installed operation. Do not substitute numeric arithmetic. Your workflow is preserved; do not add approval flags or edit stored files." if code == "planner_capability_gap" else "The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted the calculation after one correction. Your saved workflow is preserved. Retry the same calculation request with automatic skill selection or calculate_csv_columns enabled; do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,
@@ -3573,7 +3583,7 @@ def _handler(
                 self._send(HTTPStatus.UNPROCESSABLE_ENTITY, {"error": message})
                 return
             except (ContextPackError, ModelClientError, ModelSettingsError) as exc:
-                if self.path in {"/api/v1/planner/conversation", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
+                if self.path in {"/api/v1/planner/conversation", "/api/v1/planner/submit", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
                     if isinstance(exc, ModelClientError):
                         message, code = str(exc), exc.code
                         guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."

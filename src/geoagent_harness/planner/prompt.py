@@ -113,7 +113,7 @@ def build_planner_request(
     extensions = [id for id in available_skills if id.startswith('ext_')]
     if extensions:
         system_payload['installed_adapter_argument_schema'] = ProjectionArguments.model_json_schema()
-        system_payload['mandatory_rules'].append('Installed ext_ operations use fixed CSV projection adapters. They require the exact installed package_sha256, target_path and one path/source_step, approval and validation. Obtain the digest from the operation contract; ask for clarification if missing. Never infer execution authority from package installation.')
+        system_payload['mandatory_rules'].append('Installed ext_ operations use fixed registered CSV adapter definitions. They require the exact installed package_sha256, target_path and one path/source_step, approval and validation. Obtain the digest from the operation contract; ask for clarification if missing. Never infer execution authority from package installation.')
     user_payload = {
         "task": "Create a plan. Do not execute it.",
         "original_request": context_pack.original_request,

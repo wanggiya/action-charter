@@ -38,9 +38,11 @@ try{
  const page=await browser.newPage({viewport:{width:1600,height:1000}});page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));
  await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
  await page.goto(origin);
+ const openChatSettings=async()=>{const gear=page.getByRole('button',{name:'Conversation settings',exact:true});if(await gear.getAttribute('aria-expanded')!=='true')await gear.click();};
+ await openChatSettings();
  await page.getByRole('switch',{name:'Chat memory'}).waitFor();
  await page.evaluate(()=>{const id=localStorage.getItem('actioncharter:planner-conversation:v1');localStorage.removeItem('actioncharter:chat-memory:v2');localStorage.setItem(`actioncharter:chat-memory:${id}`,'off');});
- await page.reload();
+ await page.reload();await openChatSettings();
  const migratedSwitch=page.getByRole('switch',{name:'Chat memory'});
  assert.equal(await migratedSwitch.getAttribute('aria-checked'),'false');
  assert.equal(await page.evaluate(()=>localStorage.getItem('actioncharter:chat-memory:v2')),'off');
@@ -77,7 +79,9 @@ try{
  assert.equal(await page.locator('.planner-history-bubbles .role-assistant').count(),2);
  assert((await page.getByRole('combobox',{name:'Saved planning conversation'}).locator('option:checked').textContent()).trim().length>0);
  await contextGroup.locator(':scope>summary').click();
+ await openChatSettings();
  assert.equal(await page.getByRole('switch',{name:'Chat memory'}).isVisible(),true);
+ await page.getByRole('button',{name:'Close conversation settings',exact:true}).click();
  await contextGroup.locator(':scope>summary').click();
  assert.equal(calls.filter(call=>call.path==='/api/v1/planner/conversation').length,modelCalls);
  assert.equal(await page.locator('.planner-task-history summary').evaluate(el=>getComputedStyle(el).marginTop),'0px');
@@ -87,9 +91,10 @@ try{
  await context.locator(':scope>summary').click();
  assert.equal(await context.locator(':scope>summary').evaluate(el=>getComputedStyle(el).marginTop),'0px');
  await context.getByText(/Other conversations are not included/).waitFor();
+ await openChatSettings();
  const historySwitch=page.getByRole('switch',{name:'Chat memory'});
- assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
- await historySwitch.click();
+ await openChatSettings();assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
+ await openChatSettings();await historySwitch.click();
  await context.getByText('Excluded; saved history stays intact',{exact:true}).waitFor();
  assert((await context.textContent()).includes('ON · 2 recent messages included'));
  await page.getByRole('textbox',{name:'Message Planner'}).fill('Explain the current workflow without older chat messages.');
@@ -100,13 +105,13 @@ try{
  assert.equal(usage.context_usage.opening_message_included,false);
  assert.equal(usage.task_message_count,6);
  assert((await page.locator('.planner-task-history summary').textContent()).includes('Saved chat history · 6 messages'));
- await historySwitch.click();
+ await openChatSettings();await historySwitch.click();
  cases.push('History switch explains OFF; request receipt proves workflow retained, old messages excluded and full chat saved');
 
  assert.equal(await page.getByRole('button',{name:'Generate method',exact:true}).count(),0);
  assert.equal(await page.getByRole('button',{name:'Use in Planner',exact:true}).count(),0);
  assert.equal(calls.filter(call=>call.path==='/api/v1/method-memory'&&call.action!=='helper_state').length,0);
- await historySwitch.click(); // Remember OFF across chats without deleting any history/workflow.
+ await openChatSettings();await historySwitch.click(); // Remember OFF across chats without deleting any history/workflow.
  cases.push('One Chat memory switch; no method-generation or management steps and no extra model requests');
 
  await page.getByRole('button',{name:'Settings',exact:true}).click();
@@ -136,15 +141,15 @@ try{
  assert.equal(snapshot.task_message_count,2);
  assert.equal(snapshot.conversation_memory.cross_conversation_memory,false);
  assert(!JSON.stringify(snapshot.messages).includes('CSV task inspection'));
- assert.equal(await historySwitch.getAttribute('aria-checked'),'false');
- await historySwitch.click(); // ON also survives switching back and refreshing.
+ await openChatSettings();assert.equal(await historySwitch.getAttribute('aria-checked'),'false');
+ await openChatSettings();await historySwitch.click(); // ON also survives switching back and refreshing.
  const turnCount=calls.filter(call=>call.path==='/api/v1/planner/conversation'&&call.action==='turn').length;
  const planFile=resolve(root,'plans',`planner-plan.${usage.planner_result.plan_sha256}.json`);
  await rm(planFile); // Only this isolated fixture: recover from the conversation snapshot, not inventory.
  cases.push('New chat owns empty independent memory and does not inherit another chat’s plan or authority');
  await page.getByRole('combobox',{name:'Saved planning conversation'}).selectOption(originalId);
  await page.locator('[data-operation-node="planned_step_2"]').waitFor();
- assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
+ await openChatSettings();assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
  assert.equal(calls.filter(call=>call.path==='/api/v1/planner/conversation'&&call.action==='turn').length,turnCount);
  assert((await readFile(planFile,'utf8')).includes('task_identity.csv'));
  assert.equal(await page.getByRole('button',{name:'Open conversation plan',exact:true}).count(),0);
@@ -156,16 +161,18 @@ try{
  await page.locator('.workflow-authorization-form button[type=submit]').click();
  await page.locator('.authorization-duration').waitFor();
  await page.locator('.workflow-review-panel .execute-button').click();
- await page.locator('.workflow-outcome-panel').getByText('Success · output validated',{exact:true}).waitFor({timeout:30000});
+ await page.locator('.results-workspace .outcome-step').first().waitFor({timeout:30000});
+ const completedRuns=await page.evaluate(async()=>(await fetch('/api/v1/workflow/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})})).json());
+ assert(completedRuns.records.some(run=>run.status==='completed'));
  const output=await readFile(resolve(root,'data/output/task_identity.csv'),'utf8');
  assert(output.startsWith('order_id,region\n'));
  assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/runs'&&call.action==='start').length,1);
  cases.push('Reopening a conversation restores its plan; fresh authorization executes real validated CSV');
- await page.reload();
+ await page.reload();await openChatSettings();
  await page.locator('[data-operation-node="planned_step_2"]').waitFor();
  const restored=await page.evaluate(async id=>(await fetch('/api/v1/planner/conversation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read',conversation_id:id})})).json(),originalId);
  assert.equal(restored.task_message_count,6);
- assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
+ await openChatSettings();assert.equal(await historySwitch.getAttribute('aria-checked'),'true');
  assert.equal(calls.filter(call=>call.path==='/api/v1/method-memory'&&call.action!=='helper_state').length,0);
  assert.equal(restored.active_task_id,originalId);
  assert.equal(calls.filter(call=>call.path==='/api/v1/workflow/runs'&&call.action==='start').length,1);
@@ -202,7 +209,7 @@ try{
  await page.locator('.planner-composer button[type=submit]').click();
  await context.getByText('Included · machine-generated, unvalidated',{exact:true}).waitFor();
  assert.equal(await helperCalls(),1);
- await page.reload();await page.locator('[data-operation-node="planned_step_1"]').waitFor();
+ await page.reload();await openChatSettings();await page.locator('[data-operation-node="planned_step_1"]').waitFor();
  assert.equal(await helperCalls(),1);
  await page.getByRole('button',{name:'Settings',exact:true}).click();
  assert.equal(await helperSwitch.getAttribute('aria-checked'),'true');

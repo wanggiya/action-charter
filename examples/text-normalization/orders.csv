@@ -1,0 +1,4 @@
+order_id,region,amount
+001, north ,10
+002, SOUTH ,20
+003,,5

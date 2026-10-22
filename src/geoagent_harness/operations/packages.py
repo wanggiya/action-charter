@@ -9,7 +9,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, model_serializer
+from geoagent_harness.capabilities.text import TextTransform
 from geoagent_harness.tabular.schemas import Source
 
 ADAPTER_ENTRYPOINT = 'geoagent_harness.operations.packages:execute_projection'
@@ -35,15 +36,25 @@ class OperationPackage(BaseModel):
     name: str = Field(min_length=1,max_length=100)
     version: str = Field(pattern=r'^\d+\.\d+\.\d+$')
     runtime: Literal['pandas==3.0.5'] = 'pandas==3.0.5'
-    candidate_function: Literal['pandas.core.indexing.IndexingMixin.loc'] = 'pandas.core.indexing.IndexingMixin.loc'
-    adapter: Literal['csv_column_projection']
-    columns: list[str] = Field(min_length=1,max_length=100)
+    candidate_function: Literal['pandas.core.indexing.IndexingMixin.loc','pandas.Series.str'] = 'pandas.core.indexing.IndexingMixin.loc'
+    adapter: Literal['csv_column_projection','csv_text_transform']
+    columns: list[str] = Field(default_factory=list,max_length=100)
+    text_transform: TextTransform | None = None
     tests: list[Fixture] = Field(min_length=1,max_length=5)
     @model_validator(mode='after')
     def distinct_columns(self):
+        if self.adapter=='csv_column_projection' and (not self.columns or self.text_transform is not None or self.candidate_function!='pandas.core.indexing.IndexingMixin.loc'):
+            raise ValueError('Projection requires fixed columns and its trusted projection adapter')
+        if self.adapter=='csv_text_transform' and (self.columns or self.text_transform is None or self.candidate_function!='pandas.Series.str'):
+            raise ValueError('Text adapter requires its closed transform and trusted text runtime')
         if len(set(self.columns))!=len(self.columns) or any(not c or len(c)>200 for c in self.columns):
             raise ValueError('Choose unique bounded column names')
         return self
+    @model_serializer(mode='wrap')
+    def compatible_manifest(self, handler):
+        value=handler(self)
+        if value['text_transform'] is None:value.pop('text_transform')
+        return value
 
 
 def canonical(package):
@@ -51,6 +62,11 @@ def canonical(package):
 
 def package_sha(package):
     return hashlib.sha256(canonical(package)).hexdigest()
+
+def configuration(package):
+    value={'adapter':package.adapter,'columns':package.columns,'candidate_function':package.candidate_function,'runtime':package.runtime}
+    if package.text_transform is not None:value['text_transform']=package.text_transform.model_dump(mode='json')
+    return value
 
 def parse_package(value):
     package=OperationPackage.model_validate(value)
@@ -94,7 +110,11 @@ def package_skills(root):
     from geoagent_harness.skill_registry.schemas import SkillDefinition
     return [SkillDefinition(id=p.id,version=p.version,status='implemented',kind='transformation',access='artifact_write',approval_required=True,validation_required=True,entrypoint=ADAPTER_ENTRYPOINT,verifier=VERIFIER) for p in installed_packages(root).values()]
 
-def test_package(value):
+def test_package(value, *, timeout_seconds=20):
+    package=parse_package(value)
+    if package.adapter=='csv_text_transform':
+        from geoagent_harness.capabilities.testing import test_text_package
+        return test_text_package(package,timeout_seconds=timeout_seconds)
     from geoagent_harness.mcp_server.settings import load_settings
     from geoagent_harness.tabular.service import read_frame, run_operation, validate_output
     package=parse_package(value)
@@ -119,6 +139,7 @@ def install_package(value, digest, *, root, confirm=False):
     if package.id in current:
         if package_sha(current[package.id])!=digest:raise PackageError('Operation ID already installed with different content')
         return {'id':package.id,'status':'already_installed','package_sha256':digest,'approval_performed':False,'execution_performed':False}
+    if len(current)>=20:raise PackageError('Installed package limit reached; no dependency or package was installed')
     report=test_package(package.model_dump())
     if not report['passed']:raise PackageError('Package fixture tests failed')
     content=json.dumps({'package':package.model_dump(mode='json'),'package_sha256':digest},sort_keys=True,separators=(',',':')).encode()
@@ -126,6 +147,11 @@ def install_package(value, digest, *, root, confirm=False):
     try:
         with ExitStack() as stack:
             parent=_directory(stack,root,create=True)
+            import fcntl
+            fcntl.flock(parent,fcntl.LOCK_EX)
+            current=installed_packages(root)
+            if package.id in current or len(current)>=20:
+                raise PackageError('Package registry changed during testing; reload before installing')
             import uuid
             name=f'{package.id}.json';temporary=f'.package.{uuid.uuid4().hex}.tmp'
             fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
@@ -135,7 +161,8 @@ def install_package(value, digest, *, root, confirm=False):
                 os.fsync(parent)
             finally:os.unlink(temporary,dir_fd=parent)
     except OSError as error:raise PackageError('Package installation failed; existing records were not replaced') from error
-    return {'id':package.id,'status':'installed','package_sha256':digest,'approval_performed':False,'execution_performed':False,'dependency_installed':False}
+    return {'id':package.id,'status':'installed','package_sha256':digest,'approval_performed':False,'execution_performed':False,'dependency_installed':False,
+        **({'test_report':report,'fixture_batches':1} if package.adapter=='csv_text_transform' else {})}
 
 def execute_projection(skill, arguments, settings, completed_results=None):
     from geoagent_harness.tabular.service import run_operation, TabularError
@@ -145,5 +172,9 @@ def execute_projection(skill, arguments, settings, completed_results=None):
     package=installed_packages(settings.project_root).get(skill)
     if package is None or package_sha(package)!=args.package_sha256:
         raise TabularError('Installed adapter is missing or differs from the exact approved package digest')
-    outcome=run_operation('select_csv_columns',{**args.model_dump(exclude_none=True,exclude={'package_sha256'}),'columns':package.columns},settings,completed_results)
+    if package.adapter=='csv_text_transform':
+        from geoagent_harness.capabilities.text import execute_text
+        outcome=execute_text(skill,args,package.text_transform,settings,completed_results)
+    else:
+        outcome=run_operation('select_csv_columns',{**args.model_dump(exclude_none=True,exclude={'package_sha256'}),'columns':package.columns},settings,completed_results)
     return {**outcome,'operation':skill,'package_sha256':args.package_sha256}

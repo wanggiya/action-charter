@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
-from .packages import installed_packages, package_sha, ProjectionArguments
+from .packages import installed_packages, package_sha, ProjectionArguments, configuration
 from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, LABELS
 
 NAMES = {
@@ -146,7 +146,7 @@ def operation_catalog(root, query=''):
           'runtime_requirements':requirements,'effects':{'access':skill.access.value,'reads':'explicit declared inputs/evidence','writes':'explicit declared targets' if skill.access.value!='read_only' else 'none'},
           'approval_required':bool(skill.approval_required) or id=='generate_report','validation_required':bool(skill.validation_required) or id=='verify_snakemake_export',
           'validation_contract':{'verifier':skill.verifier,'read_only_checks':'typed adapter/runtime policy','result_preview':'bounded metadata and evidence; CSV rows limited to 20/4KB'},
-          'adapter_configuration':{'adapter':package.adapter,'columns':package.columns,'candidate_function':package.candidate_function,'runtime':package.runtime} if package else None,
+          'adapter_configuration':configuration(package) if package else None,
           'package_sha256':package_sha(package) if package else None,'default_arguments':defaults,'origin':'installed_adapter' if package else 'builtin'})
     query=query.strip().lower()
     return {'schema_version':'1.0','operations':[item for item in result if query in (item['id']+' '+item['name']).lower()],'operation_count':len(result),'approval_performed':False,'execution_performed':False}

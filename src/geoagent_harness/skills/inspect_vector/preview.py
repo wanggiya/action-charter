@@ -33,12 +33,17 @@ def point_preview(frame, layer):
     return {**snapshot, 'snapshot_sha256': digest}
 
 
-def geometry_preview(frame, layer):
+def geometry_preview(frame, layer, *, feature_limit=32, vertex_limit=2048, byte_limit=64000):
     """Bounded WGS84 features captured during inspection, never a later file read."""
     from shapely.geometry import mapping
     base = point_preview(frame, layer)
     if base['crs'] not in {'EPSG:4326', 'OGC:CRS84'}:
         return base
+    if not (1 <= feature_limit <= 256 and 1 <= vertex_limit <= 8192 and 1 <= byte_limit <= 256000):
+        raise ValueError('Geometry display bounds exceeded')
+    base.update(feature_limit=feature_limit, examined_features=min(len(frame), feature_limit), truncated=len(frame)>feature_limit)
+    if vertex_limit != 2048:
+        base['vertex_limit'] = vertex_limit
     features, vertices, skipped = [], 0, 0
     attributes_truncated = len(frame.columns) - 1 > 12
     columns = [c for c in frame.columns if c != frame.geometry.name][:12]
@@ -49,12 +54,12 @@ def geometry_preview(frame, layer):
             if len(value) < 2 or not all(math.isfinite(v) for v in value[:2]) or not (-180 <= value[0] <= 180 and -90 <= value[1] <= 90):
                 raise ValueError('Invalid coordinate')
             vertices += 1
-            if vertices > 2048:
+            if vertices > vertex_limit:
                 raise ValueError('Vertex budget')
             return [round(value[0], 7), round(value[1], 7)]
         return [coordinates(child) for child in value]
 
-    for index, (_, row) in enumerate(frame.iloc[:MAX_POINTS].iterrows()):
+    for index, (_, row) in enumerate(frame.iloc[:feature_limit].iterrows()):
         geometry = row[frame.geometry.name]
         start = vertices
         if geometry is None or geometry.is_empty or geometry.geom_type not in {'Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'} or not geometry.is_valid:
@@ -66,7 +71,7 @@ def geometry_preview(frame, layer):
             attributes_truncated = attributes_truncated or any(row[key] is not None and len(str(row[key])) > 160 for key in columns)
             properties = {str(key)[:80]: None if row[key] is None else str(row[key])[:160] for key in columns}
             feature = {'type': 'Feature', 'id': index + 1, 'geometry': shape, 'properties': properties}
-            if len(json.dumps(features + [feature], allow_nan=False).encode()) > 64000:
+            if len(json.dumps(features + [feature], allow_nan=False).encode()) > byte_limit:
                 raise ValueError('Byte budget')
             features.append(feature)
         except (ValueError, TypeError, OverflowError):
@@ -76,6 +81,8 @@ def geometry_preview(frame, layer):
                 'features': features, 'vertices': vertices, 'skipped_features': skipped,
                 'attributes_truncated': attributes_truncated,
                 'finding': 'First layer only; up to 32 features, 2048 vertices, 12 attributes and 64 KB. Invalid, unsupported or oversized features omitted. No reprojection or basemap.'}
+    if feature_limit != 32:
+        snapshot['finding'] = f'Selected layer; up to {feature_limit} features, {vertex_limit} vertices, 12 attributes and {byte_limit} bytes. Oversized/invalid features omitted; no simplification.'
     snapshot.pop('snapshot_sha256', None)
     snapshot['snapshot_sha256'] = hashlib.sha256(json.dumps(snapshot, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
     return snapshot

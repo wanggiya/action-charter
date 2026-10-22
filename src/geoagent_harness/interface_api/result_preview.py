@@ -5,7 +5,7 @@ import json
 from geoagent_harness.tabular.service import TabularError, read_bytes, read_frame
 
 
-def preview_result(root, record, request):
+def recorded_frame(root, record, request):
     if request.confirmed_plan_sha256 != record['plan_sha256']:
         raise TabularError('Result preview plan does not match the recorded run')
     if request.conversation_id and request.conversation_id != record.get('conversation_id'):
@@ -33,6 +33,11 @@ def preview_result(root, record, request):
     if delimiter not in {',', '\t'}:
         raise TabularError('Recorded CSV delimiter is unsupported')
     frame = read_frame(content, delimiter)
+    return step, path, actual, frame
+
+
+def preview_result(root, record, request):
+    step, path, actual, frame = recorded_frame(root, record, request)
     analysis = analyze_frame(frame, request.analysis) if request.analysis else None
     columns = list(frame.columns)[:32]
     rows = []

@@ -132,7 +132,6 @@ try{
  await operations.getByRole('button',{name:/Inspect vector dataset/}).click();
  assert.equal(await visualization.count(),0);
  await page.getByRole('button',{name:'Execute',exact:true}).first().click();
- await page.locator('.workflow-review-panel .execute-button').click();
  await closeOutcome();
  await operations.getByRole('button',{name:/Inspect vector dataset/}).click();
  await visualization.getByText('Map recorded geometry',{exact:true}).click();
@@ -165,7 +164,6 @@ try{
  await writeFile(resolve(root,'data/input/sample_points.geojson'),JSON.stringify({type:'FeatureCollection',crs:{type:'name',properties:{name:'EPSG:3857'}},features:[{type:'Feature',properties:{},geometry:{type:'Point',coordinates:[100000,100000]}}]}));
  await generate('Inspect sample_points.geojson. Return feature count, fields and CRS. No writes.');
  await page.getByRole('button',{name:'Execute',exact:true}).first().click();
- await page.locator('.workflow-review-panel .execute-button').click();
  await closeOutcome();
  await operations.getByRole('button',{name:/Inspect vector dataset/}).click();
  await visualization.getByText('Map recorded geometry',{exact:true}).click();
