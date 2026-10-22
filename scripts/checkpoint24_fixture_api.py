@@ -12,6 +12,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
 parser.add_argument('--acquisition-fixture',action='store_true')
 parser.add_argument('--planning-task-fixture',action='store_true')
+parser.add_argument('--csv-discovery-fixture',action='store_true')
 parser.add_argument('--spatial-view-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
 parser.add_argument('--calculation-fixture',action='store_true')
@@ -31,6 +32,29 @@ for directory in ['context','agents']:
 (root/'data/input').mkdir(parents=True,exist_ok=True)
 for name in ['sample_orders.csv','sample_regions.csv','sample_points.geojson','sample_dem.tif']:
     (root/'data/input'/name).write_bytes((repo/'data/input'/name).read_bytes())
+if args.csv_discovery_fixture:
+    with (root/'data/input/large_orders.csv').open('wb') as stream:
+        stream.write(b'id,note\n')
+        for _ in range(12000):stream.write(b'001,'+b'x'*1000+b'\n')
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    from rasterio.windows import Window
+    with rasterio.open(root/'data/input/large_terrain.tif','w',driver='GTiff',width=2048,height=2048,count=1,dtype='float32',crs='EPSG:4326',transform=from_origin(10,20,.001,.001)) as target:
+        for row in range(0,2048,64):target.write(np.zeros((1,64,2048),dtype='float32'),window=Window(0,row,2048,64))
+    from geoagent_harness.interface_api.workflow_runs import _Observer
+    original_progress=_Observer.progress
+    def hold_discovery(self,step,skill,status,outcome=None,validation=None):
+        original_progress(self,step,skill,status,outcome,validation)
+        if isinstance(outcome,dict) and outcome.get('discovery',{}).get('phase')=='verifying' and (root/'hold-discovery').exists():
+            import time
+            (root/'discovery-entered').write_text('temporary test gate')
+            deadline=time.monotonic()+20
+            while (root/'hold-discovery').exists():
+                self.checkpoint()
+                if time.monotonic()>deadline:raise ValueError('Discovery fixture gate timed out')
+                time.sleep(.02)
+    _Observer.progress=hold_discovery
 if args.spatial_view_fixture:
     import geopandas as gpd
     import numpy as np
@@ -42,6 +66,9 @@ if args.spatial_view_fixture:
     gpd.GeoDataFrame({'name':['Route']},geometry=[LineString([(0,0),(4,4)])],crs='EPSG:4326').to_file(root/'data/input/layers.gpkg',layer='routes',driver='GPKG')
     with rasterio.open(root/'data/input/image.tif','w',driver='GTiff',width=2,height=2,count=3,dtype='int16',nodata=-9999,crs='EPSG:4326',transform=from_origin(10,20,2,2)) as dataset:
         dataset.write(np.array([[[0,10],[20,-9999]],[[100,110],[120,-9999]],[[200,210],[220,-9999]]],dtype='int16'))
+        dataset.units=('metres',None,None)
+        dataset.descriptions=('Elevation <b>literal</b>',None,None)
+        dataset.update_tags(owner='Synthetic spatial fixture')
 (root/'data/output').mkdir(exist_ok=True)
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
 if args.calculation_omission_fixture:
@@ -222,6 +249,10 @@ class FixtureModel:
             inspector=inspection_only_skill(latest)
             if args.spatial_view_fixture and inspector in {'inspect_vector','inspect_raster'}:
                 proposed={'summary':'Spatial viewing fixture','steps':[{'step_id':'step_1','skill':inspector,'purpose':'Inspect spatial source','arguments':{'path':request_source(latest)},'requires_approval':False,'validation_required':False}]}
+            elif latest.startswith('Inspect large_orders.csv'):
+                proposed={'summary':'Inspect large CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect large CSV without writes','arguments':{'path':'data/input/large_orders.csv'}}]}
+            elif latest.startswith('Inspect large_terrain.tif'):
+                proposed={'summary':'Inspect large TIFF','steps':[{'step_id':'step_1','skill':'inspect_raster','purpose':'Inspect raster metadata without loading pixels','arguments':{'path':'data/input/large_terrain.tif'}}]}
             elif latest.startswith('Inspect sample_points.geojson'):
                 proposed={'summary':'Vector inspection fixture','steps':[{'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect vector metadata','arguments':{'path':'data/input/sample_points.geojson'},'requires_approval':False,'validation_required':False}]}
             elif latest.startswith('Inspect sample_dem.tif'):

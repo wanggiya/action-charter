@@ -41,7 +41,7 @@ try{
 
  page.setDefaultTimeout(20000);
  const state=()=>page.evaluate(async()=>{const conversation_id=localStorage.getItem('actioncharter:planner-conversation:v1');return (await fetch('/api/v1/planner/conversation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'read',conversation_id})})).json();});
- const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();};
+ const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('.planner-composer button[type=submit]')?.textContent?.includes('Send'));};
  const authorize=async()=>{await page.getByRole('button',{name:'Authorize',exact:true}).first().click();await page.locator('.workflow-authorization-form textarea').fill('Only the reviewed temporary CSV fixture outputs.');await page.locator('.workflow-authorization-form button[type=submit]').click();await page.locator('.authorization-duration').waitFor();};
  await page.goto(origin);
  await page.getByRole('button',{name:'Conversation settings',exact:true}).click();
@@ -78,6 +78,8 @@ try{
  const moving=page.locator('[data-operation-node="planned_step_1"]');
  await moving.scrollIntoViewIfNeeded();
  const bounds=await moving.boundingBox();
+ const hit=await page.evaluate(({x,y})=>{const element=document.elementFromPoint(x,y);return {node:element?.closest('[data-operation-node]')?.getAttribute('data-operation-node'),html:element?.outerHTML.slice(0,250)};},{x:bounds.x+bounds.width*.5,y:bounds.y+bounds.height*.5});
+ assert.equal(hit.node,'planned_step_1',JSON.stringify({hit,bounds}));
  const initialPosition=await moving.evaluate(el=>({left:parseFloat(el.style.left),top:parseFloat(el.style.top)}));
  await page.mouse.move(bounds.x+bounds.width*.5,bounds.y+bounds.height*.5);
  await page.mouse.down();
@@ -90,8 +92,8 @@ try{
  assert.equal(calls.filter(c=>c.action==='start').length,startsBeforeMotion);
  const recipeMaterial=await page.getByRole('button',{name:'Reusable recipes',exact:true}).evaluate(el=>getComputedStyle(el).backgroundImage);
  assert(recipeMaterial.includes('linear-gradient'));
- const rightMaterials=await page.locator('.top-actions>button').evaluateAll(buttons=>buttons.map(el=>({name:el.textContent.trim(),gradient:getComputedStyle(el).backgroundImage,opacity:getComputedStyle(el).opacity,disabled:el.disabled})));
- assert(rightMaterials.length>=5);
+ const rightMaterials=await page.locator('.top-actions>button, .top-actions .execute-button, .top-actions .authorize-button').evaluateAll(buttons=>buttons.map(el=>({name:el.textContent.trim(),gradient:getComputedStyle(el).backgroundImage,opacity:getComputedStyle(el).opacity,disabled:el.disabled})));
+ assert(rightMaterials.length>=5,JSON.stringify(rightMaterials));
  assert(rightMaterials.every(b=>b.gradient.includes('linear-gradient')),JSON.stringify(rightMaterials));
  assert(rightMaterials.filter(b=>b.disabled).every(b=>b.opacity==='1'));
 

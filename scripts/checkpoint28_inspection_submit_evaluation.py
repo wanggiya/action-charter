@@ -117,6 +117,7 @@ def main():
                 report.update(csv_transition=True)
                 report.update(same_chat_transition=True,typed_raster_display=True,recorded_explanation=True,explanation_model_calls=explained['context_usage']['model_request'].get('model_calls'),explanation_fields=explained['context_usage']['result_view']['explanation_fields'],display_and_explanation_processing_runs=0)
             report.update(status='passed', kind=args.kind, verified_metadata=True,
+                          planner_route=(response['conversation'].get('context_usage') or {}).get('model_request',{}).get('stage'),
                           duplicate_reused_same_run=True, approval_performed=False, dataset_writes=0)
         except Exception as error:
             report.update(failure_type=type(error).__name__, finding=str(error), retry_performed=False)

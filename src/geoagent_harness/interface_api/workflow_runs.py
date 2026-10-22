@@ -202,13 +202,13 @@ class _Observer:
                 if step['step_id'] == step_id and step['skill_id'] == skill_id:
                     step['status'] = status
                     if status == 'running':
-                        step['started_at'] = _now()
+                        step.setdefault('started_at', _now())
                         record['execution_performed'] = True  # dispatched; completion not implied
                     else:
                         step['finished_at'] = _now()
                     if outcome is not None:
                         bounded = _bounded_outcome(outcome)
-                        limit = 6000
+                        limit = 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
                         if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
                             from geoagent_harness.skills.inspect_vector.preview import fit_recorded_geometry
                             bounded = fit_recorded_geometry(bounded)

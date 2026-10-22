@@ -14,6 +14,16 @@ SUBMISSION = 'd' * 32
 MESSAGE = 'Inspect sample_orders.csv. Return row count and column names. No writes.'
 
 
+@pytest.fixture(autouse=True)
+def exercise_model_fallback(monkeypatch):
+    """Keep model proposal/failure/gate tests exercising their intended path.
+
+    Production deterministic routing has separate no-model acceptance coverage.
+    """
+    from geoagent_harness.interface_api import conversation
+    monkeypatch.setattr(conversation,'_exact_inspection_plan',lambda *args:None)
+
+
 @pytest.fixture
 def project(tmp_path):
     root = Path(__file__).parents[1]
@@ -358,13 +368,13 @@ def test_raster_band_limit_records_failed_read_without_outputs(project):
     import rasterio
     from rasterio.transform import from_origin
     path=project/'data/input/many.tif'
-    with rasterio.open(path,'w',driver='GTiff',width=1,height=1,count=17,dtype='uint8',transform=from_origin(1,4,1,1)):
+    with rasterio.open(path,'w',driver='GTiff',width=1,height=1,count=129,dtype='uint8',transform=from_origin(1,4,1,1)):
         pass
     req=request();req.turn.message='Inspect many.tif. Return CRS. No writes.'
     reply={'message':'Ready','plan':{'summary':'Inspect raster','steps':[{'step_id':'step_1','skill':'inspect_raster','purpose':'Inspect','arguments':{'path':'many.tif'}}]}}
     result=submission_action(req,project_root=project,model_client=Client(reply),background=False)
-    assert result['run']['status']=='failed'
-    assert not result['run']['steps'][0]['outcome']
+    assert result['run'] is None
+    assert result['submission']['status']=='proposal_only'
     assert not (project/'data/output').exists()
 
 
@@ -443,3 +453,16 @@ def test_csv_format_error_identifies_step_operation_and_expected_formats():
     reply=proposal();reply['plan']['steps'][0]['arguments']['path']='data/input/sample_dem.tif'
     with pytest.raises(PlannerPolicyError,match=r'step_1: inspect_csv requires .csv or .tsv input; path has format .tif'):
         validate_plan_policy(WorkflowPlan.model_validate(reply['plan']),available_skills={'inspect_csv'})
+
+
+def test_discovered_columns_ground_planner_without_sending_sample_values(project):
+    from tests.test_planner_conversation import Client as SequencedClient
+    client=SequencedClient(proposal())
+    response=submission_action(request(),project_root=project,model_client=client,background=False)
+    facts=json.loads(client.requests[0].messages[0].content)['supplied_dataset_characteristics']
+    assert facts['source']=='data/input/sample_orders.csv'
+    assert facts['column_count']==5 and 'amount' in facts['columns']
+    assert 'preview' not in facts and 'source_sha256' not in facts
+    assert response['run']['steps'][0]['outcome']['discovery']['verification']=='sha256_complete'
+    assert response['discovery_performed'] is True
+    assert response['submission']['discovery']['scope']=='preliminary_sample'

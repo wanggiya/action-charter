@@ -292,7 +292,7 @@ def _execute_inspections(review, root):
             record['execution_performed'] = True
             from .inspection_policy import active_inspection
             spatial_binding = None
-            if step['skill'] in {'inspect_vector', 'inspect_raster'} and not active_inspection.get():
+            if step['skill']=='inspect_vector' and relative.lower().endswith('.geojson') and not active_inspection.get():
                 try:
                     from .inspection_policy import bounded_read
                     spatial_binding = bounded_read(root, action='snapshot', path=relative, checkpoint=checkpoint)
@@ -302,15 +302,26 @@ def _execute_inspections(review, root):
             bound = active_inspection.get()
             if bound:
                 check_dispatch(root, review, bound)
-                result = bounded_read(root, action='inspect', path=relative,
-                    source_sha256=bound['source_sha256'],
-                    delimiter=step['arguments'].get('delimiter', ','),
-                    preview_rows=step['arguments'].get('preview_rows', 5), checkpoint=checkpoint)
+                if 'sources' in bound:
+                    bound=next(item for item in bound['sources'] if item['path']==relative)
+                if bound.get('discovery_kind') in {'streaming_csv_v1','streaming_spatial_v1'}:
+                    result=bounded_read(root,action='csv_discover' if bound['discovery_kind']=='streaming_csv_v1' else 'spatial_discover',path=relative,source_identity=bound['source_identity'],
+                        delimiter=step['arguments'].get('delimiter',','),preview_rows=step['arguments'].get('preview_rows',5),
+                        checkpoint=checkpoint,on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value))
+                else:
+
+                    result = bounded_read(root, action='inspect', path=relative,
+                        source_sha256=bound['source_sha256'],
+                        delimiter=step['arguments'].get('delimiter', ','),
+                        preview_rows=step['arguments'].get('preview_rows', 5), checkpoint=checkpoint)
             elif step['skill'] == 'inspect_csv':
                 from geoagent_harness.tabular.service import inspect_csv
-                from .server import load_settings
-                settings = load_settings().model_copy(update={'project_root': root})
-                result = inspect_csv(**step['arguments'], settings=settings)
+                result=bounded_read(root,action='csv_discover',path=relative,
+                    delimiter=step['arguments'].get('delimiter',','),preview_rows=step['arguments'].get('preview_rows',5),
+                    checkpoint=checkpoint,on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value))
+            elif relative.lower().endswith(('.tif','.tiff','.gpkg','.shp')):
+                result=bounded_read(root,action='spatial_discover',path=relative,checkpoint=checkpoint,
+                    on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value))
             elif step['skill'] == 'inspect_vector':
                 result = inspect_vector(root / relative, input_root=root / 'data/input')
             else:

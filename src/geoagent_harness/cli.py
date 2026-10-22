@@ -7737,6 +7737,8 @@ def export_interface_workflows_command(
 # Named tabular/typed-workflow commands share the interface's governed services.
 from geoagent_harness.tabular.cli import register as register_tabular_cli
 register_tabular_cli(app)
+from geoagent_harness.discovery.cli import register as register_discovery_cli
+register_discovery_cli(app)
 from geoagent_harness.operations.cli import register as register_operations_cli
 register_operations_cli(app)
 from geoagent_harness.interface_api.planning_tasks_cli import register as register_planning_tasks_cli

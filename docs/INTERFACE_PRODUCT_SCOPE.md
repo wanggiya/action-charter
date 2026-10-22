@@ -113,3 +113,31 @@ Inspection follow-up: the persistent Inspect on send control supports one eligib
 Spatial Results now provide explicit verified layer/render reads through the shared run service: vector display reprojection/selection and bounded raster images/pixels. Normal tab switching does not execute or reread; source changes reject new reads. See [scope and acceptance](CHECKPOINT28_3_SPATIAL_VIEWS.md).
 
 Explicit inspection source changes within a chat must update the active workflow/Outcome without erasing history; mismatched historical sources reject before storage. Conversational display settings stay typed and scoped; factual explanation text derives from saved evidence and grants no authority.
+
+
+## Characteristics-first discovery follow-up — 2026-10-22
+
+[Target and acceptance](CHECKPOINT28_DISCOVERY_RESTRUCTURE.md). CSV inspection
+publishes provisional characteristics and a bounded sample while its durable
+full scan/hash runs. Existing Outcome tabs show pending versus completed evidence
+without another mode or approval. Stopped scans retain incomplete status. Large
+inspection does not enable unsupported complete filtering or transformations.
+TIFF, closed GPKG and SHP now use the same progressive characteristics/hash flow.
+Raster Overview adds expandable technical metadata and per-band properties;
+expansion reads saved evidence only. Map opacity has visible 0/100% endpoints and
+a percentage readout. The original endpoint symptom is still unconfirmed;
+mouse/keyboard endpoint checks are covered. Full statistics/histograms remain
+outside this metadata-only slice.
+Overview shows driver metadata without loading all pixels or geometry; Map retains
+its separate display limits. Unknown or cached counts are labeled, never invented.
+GeoJSON retains the existing bounded reader. Multi-inspection and evaluated
+learning remain unfinished. See [resume notes](../context/WORK_RESUME.md).
+
+Closeout follow-up: [exact submission and acceptance](CHECKPOINT28_CLOSEOUT.md)
+adds zero-model supported inspection proposals and automatic bounded 1–4-source
+inspection when Inspect on send is ON. OFF prepares without source content reads
+or execution. Both modes retain durable submission receipts. Outcome's existing
+operation selector switches between batch results; cancellation/history use
+existing controls. Broad requests remain model-driven. Writes never run their
+inspection prefix automatically and still require exact authority. This is not
+general no-model planning, full statistics, learned domain recall or demo readiness.

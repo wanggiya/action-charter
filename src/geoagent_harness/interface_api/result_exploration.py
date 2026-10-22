@@ -224,6 +224,7 @@ def view_context(root, conversation_id, base):
             candidates.append({'step_id': step['step_id'], 'views': ['Table', 'Chart'],
                                'columns': columns[:32], 'row_count': outcome.get('row_count'),**extra})
         elif ((isinstance(spatial, dict) and (spatial.get('status') == 'available' or step.get('skill_id') == 'inspect_vector'))
+              or (step.get('skill_id') == 'inspect_vector' and isinstance(outcome.get('layers'),list) and outcome['layers'])
               or (step.get('skill_id') == 'inspect_raster' and outcome.get('width') and outcome.get('height'))):
             candidates.append({'step_id': step['step_id'], 'views':['Map'], 'crs': spatial.get('crs') if isinstance(spatial, dict) else outcome.get('crs'),**extra})
         if len(candidates) == 3:

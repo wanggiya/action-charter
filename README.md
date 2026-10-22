@@ -10,7 +10,7 @@
 
 Describe a task, inspect the proposed steps, and run supported operations through a governed backend. Models help interpret requests and assess evidence; deterministic software checks scope, permissions and results. The interface and CLI use the same backend contracts.
 
-Narrow single-file metadata inspection requests reject unrelated operations before saving a proposal; broader task coverage remains model-dependent. [Inspection on send](docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds an explicit, default-OFF composer setting: one eligible local CSV, vector or raster inspection can run on send within fixed limits. Other proposals retain Execute; writes retain Allow writes → Authorize → Execute.
+Narrow single-file metadata inspection requests reject unrelated operations before saving a proposal; broader task coverage remains model-dependent. [Inspection on send](docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds an explicit, default-OFF composer setting: eligible local CSV, vector or raster metadata inspections can run on send within fixed batch limits. Other proposals retain Execute; writes retain Allow writes → Authorize → Execute.
 
 Supported domains now include bounded pandas-backed CSV processing and geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
 
@@ -39,7 +39,27 @@ The [post-calculation delivery plan](docs/POST_CALCULATION_DELIVERY_PLAN.md) sep
 
 Execution History lists saved workflow runs by input filename, operation and time at the top. Choose **View outcome** to reopen saved evidence without replacing the current workflow or executing it. Cancellation/recovery controls remain accessible from the same section.
 
+[Discovery consolidation](docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) records the baseline, revised target and delivery. CSV inspection streams preliminary characteristics, full row/missing counts and SHA-256 without a dataframe. TIFF, closed GeoPackage and Shapefile discovery reads driver metadata then streams a package hash without loading pixels or geometry tables. Guards are 1 GiB / 120 seconds per reader; synthetic CSV/TIFF measurements cover 16/64 MiB, not arbitrary real-world scale. GeoJSON, transformations and spatial displays retain separate limits. [Checkpoint 28 acceptance](docs/CHECKPOINT28_CLOSEOUT.md) and [work resume](context/WORK_RESUME.md) distinguish engineering delivery from unfinished learning/private-knowledge and demo gates.
+
+Exact supported Inspect requests now prepare workflows without model calls through
+durable submissions. Inspect on send OFF only prepares; ON permits eligible local
+reads, including 1–4 distinct sources with a 1 GiB aggregate budget. For mixed
+formats use `Inspect sample_orders.csv and sample_dem.tif. Return metadata. No writes.`
+Outcome selects each recorded operation. Broader/ambiguous requests retain Planner;
+writes retain their exact controls. CLI `submit-inspection` shares this coordinator
+(preparation by default; `--execute` for permitted reads). CLI `discover-dataset`
+and MCP `discover_dataset` share the bounded discovery service. Legacy inspector
+contracts remain compatible. Restart/refresh for submission revision `inspection-batch-v5`.
+
 [Inspection expansion](docs/INSPECTION_ON_SEND_EXPANSION.md) supports bounded single-dataset CSV/TSV, GeoJSON, GeoPackage, closed Shapefile and self-contained GeoTIFF inspections on Linux. Multi-step and service inspections remain on Execute.
+
+Raster Outcome Overview now includes readable extent, resolution, data types and
+NoData, with expandable technical metadata: CRS WKT, compression/layout, per-band
+blocks, color interpretation, units, scale/offset, stored tags and band-1 overview
+dimensions. Metadata is bounded and does not compute pixel statistics/histograms.
+Map opacity shows endpoints and its current percentage; the reported endpoint
+fault has not been reproduced in mouse/keyboard checks. See the discovery guide
+for current limits and validation.
 
 [Learning without RL](docs/LEARNING_WITHOUT_RL.md) records the next evaluated reuse/retrieval direction. Existing outcome ranking is experimental; no model training or general learning benefit is claimed.
 

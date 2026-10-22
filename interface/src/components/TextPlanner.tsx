@@ -108,7 +108,7 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     if(activeConversation?.active_task_id&&plan?.plan_sha256!==activeConversation.planner_result?.plan_sha256){setError('Open this conversation’s plan or explicitly use the current workflow before sending.');return;}
     const base = plan; const submittedId = id;
     sendInFlight.current=true;
-    const submission=inspectOnSend&&!continuation?{id:newConversationId(),enabled:true}:undefined;
+    const submission=!continuation?{id:newConversationId(),enabled:inspectOnSend}:undefined;
     if(submission)rememberSubmission(submission.id);
     setSubmissionNotice('');setBusy(true);onTaskBusyChange(true); setError(""); setPendingMessage(text);
     try {
@@ -226,6 +226,7 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
       <small>This chat only; default OFF. Rank current operations from verified checks, without sharing chats or granting authority. Chat memory preference applies across chats in this browser.</small>
     </section>}
     {conversation?.context_usage?.model_request?.stage==='recorded_evidence'&&<small role="status">Recorded evidence answer · no model call or source read</small>}
+    {conversation?.context_usage?.model_request?.stage==='deterministic_inspection'&&<small role="status">Exact inspection workflow · no model call</small>}
     <small className="planner-submit-mode" role="status">{inspectOnSend?'Send and inspect eligible local datasets · other proposals require Execute':'Send creates a proposal · Execute runs it'}</small>
     {pendingSubmission&&!busy&&<button type="button" onClick={()=>void checkSubmission()}>Check last submission · no retry</button>}
     {submissionNotice&&<p className="planner-submission-notice" role="status">{submissionNotice}</p>}

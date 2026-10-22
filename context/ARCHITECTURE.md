@@ -154,3 +154,40 @@ recorded own-chat metadata; the coordinator checks scope/fields and preserves th
 workflow. UI applies one explicit request, never replays it on restoration, and
 uses existing tabs/charts/maps. No separate execution engine, extra agent or
 model-derived plotted values are introduced.
+
+
+## Checkpoint 28 discovery consolidation — 2026-10-22
+
+[Baseline, revised target and delivery](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md).
+The [closeout record](../docs/CHECKPOINT28_CLOSEOUT.md) adds closed exact-request
+proposals to the explicit submission coordinator, bypassing model calls while
+retaining policy and revision-checked conversation persistence. ON/OFF UI sends
+both use receipts; only ON can dispatch eligible bound reads. Batch source/contract
+bindings cover every step, <=4 inputs / <=1 GiB aggregate, with serial scheduling
+through the existing durable coordinator. Model conversation compatibility remains.
+CLI submit-inspection shares that path; CLI/MCP discovery share discovery/service.py.
+No optional method-helper calls are made on the exact route; transcripts still
+persist. Broader requests and advisory Critic work retain their existing roles.
+Spatial discovery adds TIFF/GPKG/SHP metadata adapters: private aliases to opened
+no-follow file descriptors let drivers read characteristics without a full source
+copy, pixel array or geometry frame. The same worker streams each closed component
+and records its manifest/hash after stat/path checks. This is observed consistency,
+not immutable capture or full content validation. `discover-dataset` and interface
+inspection share this worker; legacy spatial CLI/MCP tools retain old behavior.
+Detailed characteristics live in Outcome Overview; bounded Map reads stay explicit.
+Raster technical details are an optional typed additive result: bounded TIFF
+header/tag extraction in the same worker, not a new agent or external gdalinfo
+runtime call. Exact band-1 overview sizes come from overview headers. Metadata
+expansion uses the saved result and never requests statistics or pixel reads.
+Existing source identity, output budgets and old-record readability remain.
+No additional model role, process daemon, dependency or Docker image is introduced.
+The first slice extracts shared no-follow path access into discovery/source.py
+(re-exported by tabular.service for compatibility) and a streaming CSV reader.
+Existing inspect_csv services/CLI/MCP call that reader; automatic and reviewed
+interface inspections use it through the bounded worker. Submission probes expose
+only column/source characteristics to Planner, not sample values or authority.
+Worker metadata arrives over a bounded inherited pipe and is persisted by the
+existing execution observer. Counts/hash complete in the existing durable run;
+no new agent, daemon, container, queue or user mode is introduced. Spatial snapshot
+and small-data transformation/exploration contracts remain separate. Statistical
+inspection, source identity and display scope must not be conflated.

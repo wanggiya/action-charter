@@ -10,6 +10,10 @@ History usability follow-up: Execution History now lists named saved workflow ru
 
 Same-chat inspection follow-up: enforce loaded API `inspection-source-v2` before submission and test vector → raster → display → recorded facts → CSV. This is a reliability correction within checkpoint 28, with unchanged authority and deferred knowledge/RL scope.
 
+## Checkpoint 28 revised consolidation target — 2026-10-22
+
+[Target, baseline and ordered delivery](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md): characteristics-first discovery with progressive verification, shared readers and focused agent context. Streaming CSV is now implemented with provisional metadata and complete streamed identity/counts; spatial discovery, multi-inspection, zero-model routing and measured learning remain gates. Existing bounded features stay compatible. No extra mandatory agents/containers; private domain knowledge remains 29 and cross-chat 30+.
+
 ## Checkpoint 28.1 bounded acquisition pilot — 2026-10-20
 
 [Implementation and acceptance](../docs/CHECKPOINT28_1.md): a default-OFF per-chat switch lets Planner prepare one closed CSV text adapter family. Synthetic/held-out/effect checks precede explicit installation; normal review/authorization/execution follows. Fixtures and one actual-model OFF/ON/changed-input-reuse profile pass; operator acceptance and broader reliability remain explicit. This is generated data-only configuration, not unrestricted Python. Existing adapters/recipes remain first choice. General Python isolation is deferred; proceed to 28.2 only after this pilot is accepted. Then 28.3 visualization, 29 private knowledge and the established demo/package gates remain in order.
@@ -1231,3 +1235,43 @@ Final focused post-fix local-model checks passed selection/filtering/combined ta
 [Delivery and acceptance](../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md): explicit hash-bound vector layers/display reprojection and linked sampled attributes precede bounded raster image rendering and exact pixel inspection. Existing snapshots, shared CLI/API and write boundaries remain. Resource/recovery acceptance and documented limitations precede knowledge checkpoint 29; this does not close learning/private-memory gates or enable cross-chat sharing.
 
 28.3 follow-up: typed Planner spatial settings and backend-formatted recorded-fact explanations are implemented; same-chat inspection binds the latest source before storage. These do not constitute domain learning, new statistics or checkpoint-29 memory. See the spatial-view acceptance guide.
+
+## Characteristics-first spatial discovery — 2026-10-22
+
+The [ordered consolidation plan](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) now includes metadata-only TIFF/GPKG/SHP readers, progressive package hashing and a shared `discover-dataset` CLI. Configured large-source discovery guards do not expand geometry/pixel display or processing. GeoJSON streaming and legacy spatial CLI/MCP migration remain separate work. The [resume record](WORK_RESUME.md) tracks accepted checks and next steps: narrow zero-model routing, bounded multi-inspection, evaluated experience retrieval, then checkpoint-28 closeout. Private knowledge stays 29 and cross-chat sharing 30+; no RL or demo-readiness claim.
+
+### Remaining-order amendment — documentation only, 2026-10-22
+
+First reproduce/fix the reported raster-opacity endpoint issue and expand readable
+inspection metadata toward gdalinfo coverage, keeping expensive statistics explicit.
+Then deliver narrow zero-model inspections, bounded multi-inspection, spatial
+CLI/MCP parity, evaluated optional method/failure retrieval and complete checkpoint-28
+acceptance. [Detailed criteria and roles](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md#revised-remaining-work--operator-agreement-2026-10-22).
+Checkpoint 29 adds private sourced definitions/methods, retrieval and corrections;
+cross-chat sharing stays 30+. Synthetic tests precede broader realistic-data/demo
+work, which should follow evaluated learning/private-knowledge acceptance. No new
+mandatory agent/container or model-weight RL is implied. This amendment records
+planned work only; it does not implement features or authorize Git/publication.
+
+### Raster detail follow-up — 2026-10-22
+
+The first remaining slice now adds bounded technical TIFF metadata and expandable
+Outcome details, with independent temporary-fixture GDAL CLI comparisons. Opacity
+endpoints/current percentage are explicit; the reported fault remains unreproduced
+in endpoint drag/keyboard checks. This does not close checkpoint 28 or deliver full
+statistics scans, zero-model routing, multi-inspection, parity migration or learning.
+Final checks and resume state are recorded in the discovery guide and WORK_RESUME.
+
+## Checkpoint 28 closeout — 2026-10-22
+
+[Engineering acceptance](../docs/CHECKPOINT28_CLOSEOUT.md) completes the agreed
+implementation/validation sequence: characteristics-first readers, technical
+raster metadata, exact zero-model submissions, bounded multi-inspection, shared
+CLI/MCP discovery, cancellation/recovery, results and evaluated optional reuse.
+Final backend/frontend/browser gates passed. Preserve the failed paired model
+trial and separate corrected vector retest; no recommendation benefit is claimed
+and ranking stays OFF by default. This closes checkpoint 28 engineering, not the
+broader learning/private-knowledge/demo gate or known scale/model limitations.
+Next numbered work is checkpoint 29 private sourced knowledge and corrections;
+cross-chat/project sharing stays 30+ and separately decided. No implementation of
+29, model-weight training, Git or publication is implied by this closeout.

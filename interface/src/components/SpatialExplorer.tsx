@@ -37,7 +37,7 @@ export function SpatialExplorer({blocked=false,scope,skill,outcome,value,onValue
    {loaded?.kind==='vector'&&<p>Source CRS {loaded.source_crs??'unknown'} → display {loaded.display_crs??'unavailable'}{loaded.reprojected?' · reprojected for display only':''}. Layer {loaded.layer}.</p>}
    {visible?<PointMap value={loaded?.kind==='vector'?loaded.spatial_preview:outcome.spatial_preview} camera={camera} onCamera={onCamera} selectedRow={selectedRow} onSelectRow={onSelectRow}/>:<p>Layer hidden. Its selected attributes remain available in Table.</p>}
   </>:loaded?.kind==='raster'?<>
-   <label className="raster-opacity">Opacity<input aria-label="Raster opacity" type="range" min="0" max="1" step="0.05" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></label>
+   <label className="raster-opacity"><span>Opacity</span><span className="raster-opacity-end">0%</span><input aria-label="Raster opacity" aria-valuetext={`${Math.round(opacity*100)}% opacity`} type="range" min="0" max="1" step="0.05" value={opacity} onChange={e=>setOpacity(Math.max(0,Math.min(1,e.target.valueAsNumber)))}/><span className="raster-opacity-end">100%</span><output aria-label="Current raster opacity">{Math.round(opacity*100)}%</output></label>
    <RasterImage value={loaded} opacity={opacity} camera={camera} onCamera={onCamera} onPixel={(row,column)=>void load({mode:'pixel',row,column,bands:loaded.bands})}/>
    <p>{loaded.source_width} × {loaded.source_height} source pixels · {loaded.width} × {loaded.height} preview · CRS {loaded.crs??'unknown'}</p>
    <p>{loaded.nodata_preview_pixels} NoData/non-finite preview pixels shown transparent. Click the image to read an exact source pixel.</p>

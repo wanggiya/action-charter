@@ -6,7 +6,7 @@ def main():
     import resource
     import time
     worker_started = time.monotonic()
-    resource.setrlimit(resource.RLIMIT_CPU, (10, 11))
+    resource.setrlimit(resource.RLIMIT_CPU, (90, 91))
     resource.setrlimit(resource.RLIMIT_AS, (2 * 1024**3, 2 * 1024**3))
     resource.setrlimit(resource.RLIMIT_FSIZE, (0, 8 * 1024**2))
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
@@ -14,9 +14,40 @@ def main():
     import json
     import sys
     from pathlib import Path
-    from geoagent_harness.tabular.service import read_bytes, read_frame, _preview, relative_path
+    from geoagent_harness.discovery.source import relative_path
     request = json.loads(sys.stdin.buffer.read(4097))
     path = relative_path(request['path'], 'input')
+    if request['action'] not in {'csv_discover','spatial_discover'}:
+        resource.setrlimit(resource.RLIMIT_CPU,(10,11))
+    if request['action'] in {'csv_probe','csv_discover','spatial_probe','spatial_discover'}:
+        spatial=request['action'].startswith('spatial_')
+        if spatial:
+            from geoagent_harness.discovery.spatial import probe, inspect
+        else:
+            from geoagent_harness.discovery.csv import probe, inspect
+        arguments={} if spatial else {'delimiter':request['delimiter'],'preview_rows':request['preview_rows']}
+        if request['action'].endswith('_probe'):
+            result=probe(Path(request['root']),path,**arguments)
+        else:
+            resource.setrlimit(resource.RLIMIT_CPU,(90,91))
+            def emit(value):
+                fd=request.get('progress_fd')
+                if fd is None:return
+                import os
+                encoded=(json.dumps(value,separators=(',',':'),allow_nan=False)+'\n').encode()
+                if len(encoded)>16000:raise ValueError('Metadata exceeds progress budget')
+                while encoded:
+                    encoded=encoded[os.write(fd,encoded):]
+            result=inspect(Path(request['root']),path,**arguments,
+                           expected_identity=request.get('source_identity'),on_metadata=emit)
+        usage=resource.getrusage(resource.RUSAGE_SELF)
+        result['resource_usage']={'worker_seconds':round(time.monotonic()-worker_started,4),'peak_rss_kib':usage.ru_maxrss}
+        encoded=json.dumps(result,separators=(',',':'),allow_nan=False)
+        if len(encoded.encode())>16000:raise ValueError('Discovery exceeds output budget')
+        print(encoded)
+        return
+
+    from geoagent_harness.tabular.service import read_bytes, read_frame, _preview
     from .inspection_policy import source_skill
     skill = source_skill(path)
     if skill not in ('inspect_csv', 'inspect_vector', 'inspect_raster'):

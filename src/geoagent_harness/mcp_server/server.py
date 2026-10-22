@@ -60,6 +60,11 @@ def create_mcp_server(
         )
 
     @server.tool()
+    def discover_dataset(path:str,delimiter:str|None=None)->dict:
+        """Read bounded local dataset characteristics and hash; never writes data."""
+        return tools.discover_dataset(path,delimiter)
+
+    @server.tool()
     def inspect_vector_dataset(
         path: str,
     ) -> dict:
