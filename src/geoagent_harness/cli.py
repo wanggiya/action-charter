@@ -7739,6 +7739,8 @@ from geoagent_harness.tabular.cli import register as register_tabular_cli
 register_tabular_cli(app)
 from geoagent_harness.discovery.cli import register as register_discovery_cli
 register_discovery_cli(app)
+from geoagent_harness.chat.cli import register as register_chat_cli
+register_chat_cli(app)
 from geoagent_harness.operations.cli import register as register_operations_cli
 register_operations_cli(app)
 from geoagent_harness.interface_api.planning_tasks_cli import register as register_planning_tasks_cli
@@ -7768,6 +7770,9 @@ def write_policy_command(
         typer.echo(f'Error: {exc}',err=True)
         raise typer.Exit(code=2) from exc
 
+
+from geoagent_harness.postgres.cli import install as install_postgres_cli
+install_postgres_cli(app)
 
 if __name__ == "__main__":
     app()

@@ -345,3 +345,16 @@ def test_existing_calculation_without_inspection_keeps_general_structure(project
     response=turn(project,client,'Change the numeric column doubled to amount multiplied by 3 in sample_orders.csv, preserving missing values.',revision=1)
     assert 'requested_step_sequence' not in json.loads(client.requests[0].messages[0].content)
     assert [step['skill'] for step in response['planner_result']['plan']['steps']]==['calculate_csv_columns']
+
+
+def test_quality_request_supplies_typed_nonexecuting_analysis_contract(project):
+    reply={'message':'Quality checks are ready for review.','plan':{'summary':'Inspect table quality','steps':[{
+        'step_id':'step_1','skill':'inspect_csv','purpose':'Check duplicate records and identifiers',
+        'arguments':{'path':'sample_orders.csv','analysis':{'quality_columns':['region'],
+            'duplicate_rows':True,'duplicate_key':['region']}},'requires_approval':False,'validation_required':False}]}}
+    client=Client(reply)
+    result=turn(project,client,'Check sample_orders.csv for duplicate rows and repeated region values. No writes.')
+    system=json.loads(client.requests[0].messages[0].content)
+    assert 'quality_columns' in json.dumps(system['operation_argument_schemas']['inspect_csv'])
+    assert result['planner_result']['plan']['steps'][0]['arguments']['analysis']['duplicate_rows']
+    assert not result['execution_performed'] and not result['approval_performed']

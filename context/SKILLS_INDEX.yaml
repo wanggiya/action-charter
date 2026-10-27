@@ -222,3 +222,71 @@ skills:
   validation_required: true
   entrypoint: geoagent_harness.tabular.service:run_operation
   verifier: geoagent_harness.tabular.service:validate_output
+
+- id: discover_postgres_tables
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgres.service:inspect
+
+- id: inspect_postgres_table
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgres.service:inspect
+
+- id: import_csv_to_postgres
+  version: 0.1.0
+  status: implemented
+  kind: database_load
+  access: database_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.postgres.service:run_operation
+  verifier: geoagent_harness.postgres.service:validate_output
+
+- id: export_postgres_to_csv
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.postgres.service:run_operation
+  verifier: geoagent_harness.postgres.service:validate_output
+
+- id: soft_delete_postgres_rows
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: database_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.postgres.service:run_operation
+  verifier: geoagent_harness.postgres.service:validate_output
+
+- id: restore_postgres_rows
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: database_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.postgres.service:run_operation
+  verifier: geoagent_harness.postgres.service:validate_output
+
+- id: decode_csv_codes
+  version: 0.1.0
+  status: implemented
+  kind: transformation
+  access: artifact_write
+  approval_required: true
+  validation_required: true
+  entrypoint: geoagent_harness.tabular.service:run_operation
+  verifier: geoagent_harness.tabular.service:validate_output

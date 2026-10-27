@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ ! -x "$project_root/.venv/bin/python" ]]; then
+  echo 'Project environment missing. Follow README installation, then start scripts/start_actioncharter.sh.' >&2
+  exit 2
+fi
+export PYTHONPATH="$project_root/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$project_root/.venv/bin/python" -m geoagent_harness.chat.workspace "$@"

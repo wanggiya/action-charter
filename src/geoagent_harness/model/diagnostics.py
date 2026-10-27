@@ -3,12 +3,12 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from .client import ModelClientError
-from .settings import ModelSettingsError, load_model_settings
+from .settings import ModelSettingsError, load_model_settings, selected_model
 
 _SETTINGS = {
     'MODEL_NAME is required': (
         'model_name_missing', 'No model selected in the API process',
-        'Set MODEL_NAME in the terminal that launches ActionCharter, then stop and restart that launcher.'),
+        'Select an available model in Settings, or set MODEL_NAME in the launch terminal and restart the launcher.'),
     'MODEL_BASE_URL must be a valid HTTP or HTTPS URL': (
         'model_endpoint_invalid', 'Model endpoint configuration is invalid',
         'Use an HTTP(S) MODEL_BASE_URL for the process running the API, then restart it.'),
@@ -44,11 +44,11 @@ def inspect_model_configuration(environ: Mapping[str, str] | None = None) -> dic
     """Inspect current API process settings without contacting a model or revealing values."""
     values = os.environ if environ is None else environ
     result = {'schema_version': '1.0', 'status': 'configured',
-              'model_name_set': bool(values.get('MODEL_NAME', '').strip()),
+              'model_name_set': bool(values.get('MODEL_NAME', '').strip() or (selected_model.get() if environ is None else None)),
               'model_base_url_set': bool(values.get('MODEL_BASE_URL', '').strip()),
               'model_called': False, 'connection_tested': False, 'execution_performed': False}
     try:
-        settings = load_model_settings(values)
+        settings = load_model_settings(environ)
     except ModelSettingsError as error:
         result.update(status='configuration_blocked', **model_failure(error))
     else:

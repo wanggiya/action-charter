@@ -1,0 +1,7 @@
+import {z} from 'zod';
+const finite=z.number().finite();
+const numeric=z.object({count:finite,mean:finite.nullable(),minimum:finite.nullable(),maximum:finite.nullable(),standard_deviation:finite.nullable(),invalid_count:finite,
+  quantiles:z.object({q1:finite,median:finite,q3:finite}).nullable(),quantile_status:z.string(),histogram:z.array(z.object({label:z.string(),count:finite})),histogram_status:z.string()});
+const profile=z.object({name:z.string(),observed_type:z.string(),analytical_role:z.string(),classification_basis:z.array(z.string()),classification_confidence:z.string(),missing_count:finite,empty_count:finite,declared_missing_count:finite,candidate_missing_markers:z.record(finite),distinct_count:finite.nullable(),distinct_status:z.string(),numeric:numeric.nullable(),numeric_status:z.string(),categories_status:z.string(),categories:z.array(z.object({value:z.string(),count:finite,description:z.string().nullable()})),frequency:z.object({once_only_values:finite,repeated_values:finite}).nullable()});
+export const datasetSchema=z.object({schema_version:z.literal('dataset-profile-v1'),source:z.string(),source_sha256:z.string(),source_rows:finite,matching_rows:finite,scope:z.string(),profiles:z.array(profile),columns:z.array(z.string()),table:z.record(z.unknown()),groups:z.array(z.record(z.unknown())),runtime:z.record(z.unknown()),artifact:z.record(z.unknown()),query:z.record(z.unknown()),checks:z.record(z.boolean()),limitations:z.array(z.string())});
+export type DatasetResult=z.infer<typeof datasetSchema>;

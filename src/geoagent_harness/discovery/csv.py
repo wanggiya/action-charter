@@ -24,7 +24,7 @@ def identity(info):
 
 
 @contextmanager
-def source(root, path):
+def source(root, path, *, max_bytes=MAX_BYTES):
     from .source import _parent, relative_path, TabularError
     path = relative_path(path, 'input')
     if Path(path).suffix.lower() not in {'.csv', '.tsv'}:
@@ -35,7 +35,7 @@ def source(root, path):
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
             stack.callback(os.close, fd)
             info = os.fstat(fd)
-            if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:
+            if not stat.S_ISREG(info.st_mode) or max_bytes is not None and info.st_size > max_bytes:
                 raise TabularError('CSV discovery requires a regular file of at most 1 GiB')
             yield fd, path, identity(info)
     except OSError as error:
@@ -137,8 +137,8 @@ def metadata(path, file_bytes, names, preview, sampled_rows):
             'warnings':['Preliminary sample; full row count and source SHA-256 are not yet established.']}
 
 
-def probe(root, path, *, delimiter=',', preview_rows=5):
-    with source(root, path) as (fd, path, before):
+def probe(root, path, *, delimiter=',', preview_rows=5, allow_large=False):
+    with source(root, path, max_bytes=None if allow_large else MAX_BYTES) as (fd, path, before):
         reader=Reader(fd, limit=SAMPLE_BYTES, sample=True)
         names, preview, count=None, [], 0
         try:
@@ -164,7 +164,7 @@ def probe(root, path, *, delimiter=',', preview_rows=5):
 
 
 def inspect(root, path, *, delimiter=',', preview_rows=5, expected_identity=None,
-            on_metadata=None, checkpoint=None):
+            on_metadata=None, checkpoint=None, analysis=None):
     if delimiter not in {',','\t'} or not 0<=preview_rows<=20:
         raise ValueError('Invalid CSV inspection parameters')
     preliminary=probe(root,path,delimiter=delimiter,preview_rows=preview_rows)
@@ -181,12 +181,19 @@ def inspect(root, path, *, delimiter=',', preview_rows=5, expected_identity=None
         with text_reader(reader) as text:
             parsed=records(text,delimiter)
             names=header(parsed)
+            if analysis is not None:
+                from geoagent_harness.tabular.analysis import Accumulator
+                analytical = Accumulator(root, names, analysis)
+            else:
+                analytical = None
             missing={name:0 for name in names}
             for row in parsed:
                 if not row:
                     continue
                 row_values(row,names)
                 count+=1
+                if analytical is not None:
+                    analytical.add(row)
                 for name,value in zip(names,row):
                     if value=='':missing[name]+=1
                 if collect_preview:
@@ -198,8 +205,14 @@ def inspect(root, path, *, delimiter=',', preview_rows=5, expected_identity=None
             if after!=before:
                 raise ValueError('CSV source was replaced during verification')
     result=metadata(path,before[2],names,preview,min(count,20))
+    if analytical is not None:
+        result['table_analysis'] = analytical.result(count)
     result.update(row_count=count,missing_counts=missing,preview_truncated=len(preview)<count,
                   source_sha256=reader.sha.hexdigest())
+    if analytical is not None:
+        result['delimiter'] = delimiter
+        from geoagent_harness.tabular.analytical_service import source_reference
+        result['table_reference'] = source_reference(result)
     result['discovery'].update(phase='completed',verification='sha256_complete',
         statistics_scope='complete_parsed_file',bytes_hashed=reader.bytes,
         consistency='opened-file and pathname stat checks; not an immutable snapshot',

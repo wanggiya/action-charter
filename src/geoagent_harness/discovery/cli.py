@@ -5,6 +5,50 @@ import typer
 
 
 def register(app):
+    @app.command('discover-inputs')
+    def discover(directory:str=typer.Argument(),project_root:Path=typer.Option(Path('.'),'--project-root')):
+        from geoagent_harness.tabular.strategy import discover_inputs
+        try:typer.echo(json.dumps(discover_inputs(project_root,directory),indent=2))
+        except ValueError as error:typer.echo(str(error),err=True);raise typer.Exit(2)
+
+    @app.command('assess-table')
+    def assess(path:str=typer.Argument(),operation:str=typer.Option('profile','--operation'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+        from geoagent_harness.tabular.strategy import assess_table
+        try:typer.echo(json.dumps(assess_table(project_root,path,operation),indent=2))
+        except ValueError as error:typer.echo(str(error),err=True);raise typer.Exit(2)
+
+    @app.command('explore-data')
+    def explore(message:str=typer.Argument(),directory:str=typer.Option(...,'--directory'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+        from geoagent_harness.tabular.analyst import run_session
+        try:typer.echo(json.dumps(run_session(project_root,message,directory),indent=2))
+        except ValueError as error:typer.echo(str(error),err=True);raise typer.Exit(2)
+
+    @app.command('profile-dataset')
+    def profile_dataset(path:str=typer.Argument(),project_root:Path=typer.Option(Path('.'),'--project-root'),options:Path|None=typer.Option(None,'--options')):
+        """Comprehensive CSV/TSV profiling through the same sandbox contract as MCP and Planner."""
+        from geoagent_harness.tabular.dataset_service import profile_dataset as profile
+        try:
+            if options and options.stat().st_size>16000:raise ValueError('Options exceed 16 KiB')
+            value=json.loads(options.read_text()) if options else {}
+            typer.echo(json.dumps(profile(project_root,path,value,delimiter='\t' if path.endswith('.tsv') else ','),indent=2,allow_nan=False))
+        except (ValueError,OSError) as error:
+            typer.echo(str(error),err=True);raise typer.Exit(2)
+
+    @app.command('profile-csv')
+    def profile(path: str = typer.Argument(), project_root: Path = typer.Option(Path('.'), '--project-root'),
+                options: Path | None = typer.Option(None, '--options')):
+        """Full-file profiles, quality/duplicate checks and group summaries using closed JSON options; no dataset writes."""
+        from geoagent_harness.tabular.analytical_service import profile_table
+        from geoagent_harness.interface_api.server import InterfaceApiError
+        try:
+            if options and options.stat().st_size > 16000:
+                raise ValueError('Options exceed 16 KiB')
+            value = json.loads(options.read_text()) if options else {}
+            typer.echo(json.dumps(profile_table(project_root, path, value), indent=2, allow_nan=False))
+        except (ValueError, OSError, InterfaceApiError) as error:
+            typer.echo(f'Error: {error}', err=True)
+            raise typer.Exit(2)
+
     @app.command('submit-inspection')
     def submit(message:str=typer.Argument(),project_root:Path=typer.Option(Path('.'),'--project-root'),
                execute:bool=typer.Option(False,'--execute'),conversation_id:str|None=typer.Option(None,'--conversation-id'),

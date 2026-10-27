@@ -8,9 +8,100 @@
 
 **Local AI-assisted data workflows with explicit approval and verifiable results.**
 
+[Planned generalization and consolidation](docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
+records the direction for reusable skills, shared data contracts and simpler agent
+coordination. This is a design record, not a claim that the proposed capabilities exist.
+
+[Manual task agent modes](docs/TASK_AGENT_MODES.md): choose Single agent or Three
+agents in the conversation gear menu. Both share governed execution and saved
+reports; three mode uses sequential Planner/Executor/Critic contexts, single mode
+uses one context with explicitly labeled self-review. Automatic routing is deferred.
+
+[Real diabetes test flow](docs/DIABETES_REAL_TEST_FLOW.md) provides copyable frontend
+requests, measured expected results and the sample → preparation → database → export
+acceptance sequence. The supplied 5,000-row sample is the first rows, not a random sample.
+
+[Governed PostgreSQL workflows](docs/POSTGRES_DATA_WORKFLOW.md) now add ordinary-table
+discovery/inspection, authorized create-only CSV import/export and exact-key soft
+delete/restore. Existing PostGIS skills remain separate. Verified disposable-fixture
+coverage and practical limits are documented; no unrestricted SQL or administration.
+
+Two-field Outcome groups support cross-tab counts, percentages, totals and swapped
+axes, shared with the terminal. [Validation and next data-workflow steps](docs/REAL_DATA_NEXT_TARGETS.md#cross-tab-delivered-slice-and-durable-next-steps--2026-10-26).
+
+[Persistent terminal and workflow history](docs/TERMINAL_AND_CHAT_HISTORY.md): with the
+normal launcher running, use `./actioncharter` for the independent terminal workspace
+(`--plain` for limited terminals). Type messages, select chats, inspect outcomes/history,
+and use explicit governed execution controls. Frontend Workflow history opens saved
+versions read-only; continuing creates a new draft revision without historical authority.
+
+
+Outcome opens across the main graph area; Flow graph returns to the workflow. Recorded
+Columns supports individual field details, category frequencies/percentages and numerical
+statistics where applicable. Terminal `/chart age` and `/chart groups total` show saved
+text charts. See the [real-data target matrix](docs/REAL_DATA_NEXT_TARGETS.md) for the
+next science/engineering acceptance tasks and remaining capabilities.
+
 Describe a task, inspect the proposed steps, and run supported operations through a governed backend. Models help interpret requests and assess evidence; deterministic software checks scope, permissions and results. The interface and CLI use the same backend contracts.
 
 Narrow single-file metadata inspection requests reject unrelated operations before saving a proposal; broader task coverage remains model-dependent. [Inspection on send](docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds an explicit, default-OFF composer setting: eligible local CSV, vector or raster metadata inspections can run on send within fixed batch limits. Other proposals retain Execute; writes retain Allow writes → Authorize → Execute.
+
+[Comprehensive CSV/TSV exploration](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md) now
+profiles every field with observed types, candidate roles, appropriate full-file statistics,
+missing-marker counts and codebook-aware categories. Recorded analytical graphs progress
+left to right; their Outcome opens resizable Overview, Columns, Table, Chart, Groups and
+Checks views. Raw previews remain bounded and separate from complete-file summaries.
+The shared `profile_dataset` MCP tool and `profile-dataset` CLI use the same contract.
+[Interactive selection](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#interactive-selected-columns-and-grouped-percentages--2026-10-25)
+adds age-only or combined-field tables/groups, explicit full-file reads, percentages
+of all matching rows or within a group, and shared saved selections through `chat explore`.
+
+[Frontend/CLI continuity](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#frontend--cli-continuity--2026-10-25):
+with the normal launcher running, use `.venv/bin/python -m geoagent_harness.cli chat list`,
+`chat show ID`, `chat send "message" --chat ID`, and `chat result ID --view columns`.
+Both interfaces share the API's chat, proposal, analysis and model settings. Refresh saved
+chat in Planner to load CLI changes. Recorded views need no model call or rescan.
+
+The default comprehensive analytical runtime is a dedicated Docker worker: selected-file
+read-only mounts, no network/secrets, non-root, private bounded scratch and recorded image
+identity. Build it once with `bash scripts/build_analytical_worker.sh`, then use the existing
+`bash scripts/start_actioncharter.sh` launcher. No write flag is needed for read-only
+exploration. Existing metadata, transformations and specialized duplicate checks retain
+their existing runtimes. Docker absence fails explicitly; there is no silent host fallback.
+See the [delivery and validation guide](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md) for
+exact prompts, resource limits, trusted compatibility mode and remaining work.
+
+[Recorded analytical graphs](docs/ANALYTICAL_GRAPH_AND_INSPECTOR.md) show saved input
+files, actual analytical actions and findings. Click a block for source identity,
+strategy, row coverage and computed statistics in the information panel. Saved chats
+restore this read-only view without repeating analysis; executable plans remain separate.
+
+[Analytical conversation](docs/BOUNDED_ANALYTICAL_LOOP.md) can discover one input
+folder, assess operation-specific limits, request bounded CSV profiles and explain recorded
+findings with saved evidence. Ask “Explore the data in data/input/test …”. Read-only tools
+preserve the workflow; samples remain provenance-unverified. Model failures retain partial
+findings. Sampling writes, statistical fitting and flexible multi-agent deployment remain
+follow-ups, not current capabilities.
+
+Complete supported profile requests use model-free planning. The frontend checks the
+running API's analytical-routing revision before profile submission; restart the launcher
+and refresh after updating. Refresh restores saved work and reconciles submission status;
+it does not retry a failed model call. [Recovery details](docs/TABLE_EXPLORER_ACCEPTANCE.md#profile-timeout-and-refresh-recovery--2026-10-24).
+
+[Columns and Explore](docs/TABLE_EXPLORER_ACCEPTANCE.md) add searchable field quality,
+explicit exact repetition/duplicate checks and interactive full-source grouping with
+distinct counts, numeric summaries, filters and charts. These controls need no model
+call; MCP and CLI use the same typed services. Relationship statistics and adjusted
+models remain planned, and exploratory views are not yet durable saved workflows.
+
+[Full-file analytical inspection](docs/ANALYTICAL_INSPECTION_ACCEPTANCE.md) adds
+sectioned CSV codebooks, complete-source profiles/distinct counts/group summaries,
+verified filtered pages and explicit streaming aggregate exports. Settings can discover
+installed Ollama models and persist a selection for new API requests without restarting.
+Optional bounded execution assistance explains recorded evidence; it grants no execution
+or write authority. The real diabetes fixture passed temporary-project acceptance;
+other CSV transforms retain their existing size limits. See the guide for exact prompts
+and current bounds.
 
 Supported domains now include bounded pandas-backed CSV processing and geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
 
@@ -297,3 +388,15 @@ Planning follow-up: narrow CSV selection/filter coverage checks reject inspectio
 ### Planned domain knowledge acquisition
 
 The [domain knowledge design](docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md) records automatic capture of sourced dataset definitions, domain methods and processing preferences, with corrections and reusable recipes. Private single-chat validation comes first; project knowledge across chats and sanitized portable packages remain later gated work. This is a design, not a claim of reliable domain learning or model training.
+
+[Next: checkpoint 29 private knowledge](docs/CHECKPOINT29_PRIVATE_KNOWLEDGE.md) is planned: sourced same-chat recall, corrections and bounded Planner context using existing agent roles. Cross-chat sharing and model training remain deferred; this plan adds no runtime memory behavior.
+
+[Memory design proposal](docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md): role-specific notes, agent-led curation, scoped shared knowledge and export/recovery. Planned only; users will not need Git or SQLite administration for normal memory use.
+
+[Latest memory A proposal](docs/MEMORY_A_GROWING_SHARED_JSON.md): separate role memories, non-forgetting shared JSON and a distinct knowledge-management agent. Design only; supersedes conflicting earlier A proposals and is not delivered functionality.
+
+[Current design/test priority](docs/MEMORY_OPTIONS_AND_DATA_TEST_HANDOFF.md): memory organization and Critic/knowledge-agent separation remain undecided. Retain older content versions by default. Prepare controlled data tests next to measure current discovery, processing and visualization limits; this is not a large-data readiness claim.
+
+[Proposed analytical inspection](docs/ANALYTICAL_INSPECTION_AND_CODEBOOK_PLAN.md): codebook-aware full-file profiles and aggregates with bounded table views. Planned only. Shared backend services would power API/CLI and selected MCP tools; current preview and transformation limits remain.
+
+[Proposed analytical execution delivery](docs/ANALYTICAL_EXECUTION_DELIVERY_PLAN.md) records runtime model selection, dataframe-style intermediate tables and bounded execution reasoning, with selective agent roles and measured acceptance. Documentation only; current capabilities/limits are unchanged.

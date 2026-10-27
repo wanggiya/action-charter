@@ -1,14 +1,18 @@
+import {TaskAgentReport} from './TaskAgentReport';
+import {ColumnExplorer,GroupExplorer,useTableAnalysis} from './TableExplorer';
+import type {TableAnalysis} from './AnalyticalProfile';
 import {DiscoveryStatus} from './DiscoveryStatus';
+import {AnalyticalProfile,AnalyticalTable,AnalyticalChart,parseAnalysis} from './AnalyticalProfile';
+import {ExecutionAssistance} from './ExecutionAssistance';
 import {SpatialExplorer} from './SpatialExplorer';
 import {loadSpatial,type SpatialResult,type SpatialOptions} from '../lib/spatial-view';
 import {geometryFeatures,geometryCoordinates} from '../lib/geometry-view';
 import {useEffect,useRef,useState} from 'react';
-import {Maximize2,Minimize2,X} from 'lucide-react';
+import {X} from 'lucide-react';
 import {z} from 'zod';
 import type {WorkflowRun} from '../lib/workflow-tools';
 import {runs} from '../lib/workflow-tools';
 import {skillLabel} from '../lib/skill-labels';
-import {PanelResize} from './PanelResize';
 import {DataChart,PointMap,type ChartViewState,type MapCamera} from './RecordedVisualization';
 import {ReadableValidation} from './OperationResult';
 import {OperationFlow} from './OperationFlow';
@@ -18,7 +22,7 @@ import {ResultTable,emptyTableView} from './ResultTable';
 import {VerifiedResultExplorer} from './VerifiedResultExplorer';
 import {exploreResult,defaultExplorationQuery,type ExplorationResult,type ExplorationQuery,type ChartAnalysisSpec,type ResultViewSpec} from '../lib/result-exploration';
 
-export type ResultView='Overview'|'Table'|'Map'|'Chart'|'Checks';
+export type ResultView='Overview'|'Columns'|'Explore'|'Table'|'Map'|'Chart'|'Checks';
 const resultViews:ResultView[]=['Overview','Table','Map','Chart','Checks'];
 const object=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const verifiedSchema=z.object({run_id:z.string(),plan_sha256:z.string(),step_id:z.string(),source:z.string(),source_sha256:z.string(),verified_at_read:z.literal(true),row_count:z.number(),column_count:z.number(),columns:z.array(z.string()).max(32),preview:z.array(z.record(z.unknown())).max(1000),preview_truncated:z.boolean(),columns_truncated:z.boolean(),cells_truncated:z.boolean(),chart_analysis:z.object({columns:z.array(z.string()).max(2),preview:z.array(z.object({category:z.string().nullable(),value:z.number().finite().nullable()})).max(100),row_count:z.number(),source_row_count:z.number(),scope:z.literal('complete_verified_artifact'),group_by:z.string(),value:z.string().nullable(),aggregation:z.string(),missing_values:z.string()}).optional(),execution_performed:z.literal(false),approval_performed:z.literal(false)});
@@ -43,6 +47,12 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
   useEffect(()=>{bodyRef.current?.scrollTo(0,0);},[view]);
   const step=record.steps.find(s=>s.step_id===stepId)!;
   const outcome=object(step.outcome),spatial=object(spatialView?.kind==='vector'?spatialView.spatial_preview:outcome.spatial_preview);
+  const [interactiveAnalysis,setInteractiveAnalysis]=useState<TableAnalysis|null>(null);
+  const analytical=interactiveAnalysis??parseAnalysis(outcome.table_analysis);
+  const analysisReader=useTableAnalysis(record,stepId,setInteractiveAnalysis);
+  const csvAnalysisAvailable=step.skill_id==='inspect_csv'&&['completed','validated_success','reused_completed'].includes(step.status);
+  const availableColumns=Array.isArray(outcome.columns)?outcome.columns.filter((c):c is string=>typeof c==='string'):[];
+  const analyticalViews:ResultView[]=csvAnalysisAvailable?['Overview','Columns','Explore','Table','Chart','Checks']:resultViews;
   const table=Array.isArray(outcome.columns)&&Array.isArray(outcome.preview);
   const discovery=object(outcome.discovery);
   const preliminary=discovery.phase==='verifying';
@@ -96,23 +106,27 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
   },[initialSpec]);
   return <>
     <nav className="results-tabs" aria-label="Result views" role="tablist" onKeyDown={event=>{
-      const index=resultViews.indexOf(view);
-      const next=event.key==='ArrowRight'?(index+1)%resultViews.length:event.key==='ArrowLeft'?(index+resultViews.length-1)%resultViews.length:event.key==='Home'?0:event.key==='End'?resultViews.length-1:null;
+      const index=analyticalViews.indexOf(view);
+      const next=event.key==='ArrowRight'?(index+1)%analyticalViews.length:event.key==='ArrowLeft'?(index+analyticalViews.length-1)%analyticalViews.length:event.key==='Home'?0:event.key==='End'?analyticalViews.length-1:null;
       if(next===null)return;
-      event.preventDefault();setView(resultViews[next]);
+      event.preventDefault();setView(analyticalViews[next]);
       event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]')[next]?.focus();
-    }}>{resultViews.map(tab=><button type="button" key={tab} role="tab" tabIndex={view===tab?0:-1} aria-selected={view===tab} aria-controls={`result-view-${tab}`} id={`result-tab-${tab}`} onClick={()=>setView(tab)}>{tab}</button>)}</nav>
+    }}>{analyticalViews.map(tab=><button type="button" key={tab} role="tab" tabIndex={view===tab?0:-1} aria-selected={view===tab} aria-controls={`result-view-${tab}`} id={`result-tab-${tab}`} onClick={()=>setView(tab)}>{tab}</button>)}</nav>
     <div ref={bodyRef} className="results-body" role="tabpanel" tabIndex={0} id={`result-view-${view}`} aria-labelledby={`result-tab-${view}`}>
       <article className="outcome-step result-active-operation">
-        <header className="result-operation-heading"><div><h3>{view}</h3><span>{skillLabel(step.skill_id)} · {stepId} · {step.status.replaceAll('_',' ')}</span></div>{completed&&<span className="result-source-badge">{preliminary?(verificationStopped?'Verification incomplete':'Verification pending'):spatialView?'Spatial hash verified at read':verified||explored?'CSV hash verified at read':'Recorded snapshot'}</span>}</header>
-        <DiscoveryStatus outcome={outcome} runStatus={record.status} detailed={view==='Overview'}/>
+        <header className="result-operation-heading"><div><h3>{view}</h3><span>{skillLabel(step.skill_id)} · {stepId} · {step.status.replaceAll('_',' ')}</span></div>{completed&&<span className="result-source-badge">{preliminary?(verificationStopped?'Verification incomplete':'Verification pending'):spatialView?'Spatial hash verified at read':verified||explored||interactiveAnalysis?'CSV hash verified at read':'Recorded snapshot'}</span>}</header>
+        {!analytical&&<DiscoveryStatus outcome={outcome} runStatus={record.status} detailed={view==='Overview'}/>}
+        {csvAnalysisAvailable&&view==='Columns'&&<ColumnExplorer analysis={analytical} columns={availableColumns} reader={analysisReader}/>}
+        {csvAnalysisAvailable&&view==='Explore'&&<GroupExplorer analysis={analytical} columns={availableColumns} reader={analysisReader}/>}
+        {analytical&&view==='Overview'&&<AnalyticalProfile analysis={analytical} onTable={()=>setView('Table')}/>}
         {!completed&&<p role="status">This operation has no completed result. Any recorded values may be partial; inspect its status and recovery evidence.</p>}
         {record.finding&&<p className="result-notice">{record.finding}</p>}
         {view==='Overview'&&<><OperationFlow compact stepId={stepId} skill={step.skill_id} arguments={step.arguments} outcome={step.outcome} dependsOn={step.depends_on}/>{step.skill_id==='calculate_csv_columns'&&<CalculationSummary arguments={step.arguments}/>}
           <dl className="result-summary-facts">{['row_count','column_count'].map(key=>outcome[key]!==undefined?<div key={key}><dt>{key.replaceAll('_',' ')}</dt><dd>{outcome[key]===null?'Pending':String(outcome[key])}</dd></div>:null)}{Array.isArray(outcome.layers)&&outcome.layers.map((layer,i)=>{const item=object(layer);return <div key={i}><dt>{String(item.name??'Layer')}</dt><dd>{String(item.feature_count??'?')} features · {String(item.crs??'CRS unknown')}</dd></div>;})}</dl>
           <p>Choose Table, Map or Chart to inspect this operation. Each view identifies its sample limits. Checks contains deterministic validation and separate advisory assessment.</p>
           <details><summary>Recorded metadata</summary><pre>{JSON.stringify(step.outcome,null,2)}</pre></details></>}
-        {view==='Table'&&((completed||preliminary)?(table||points.length?<>{!table&&<p>{spatialView?.kind==='vector'?'Verified display geometry':'Saved geometry'} and bounded attributes only. Longitude/latitude columns apply to points; unsupported/skipped features are not included.</p>}
+        {view==='Table'&&analytical&&completed&&<AnalyticalTable key={stepId} initial={analytical} record={record} stepId={stepId}/>}
+        {view==='Table'&&!analytical&&((completed||preliminary)?(table||points.length?<>{!table&&<p>{spatialView?.kind==='vector'?'Verified display geometry':'Saved geometry'} and bounded attributes only. Longitude/latitude columns apply to points; unsupported/skipped features are not included.</p>}
           {table&&completed&&completeExplorationAvailable&&record.durable&&record.conversation_id&&<div className="verified-preview-controls"><button type="button" disabled={busy} onClick={()=>void loadExploration(defaultExplorationQuery())}>Explore complete CSV</button>{explored&&<button type="button" onClick={()=>{setExplored(null);setExplorationOpen(false);setError('');setSelectedRow(null);}}>Use saved snapshot</button>}</div>}
           {table&&explorationOpen&&<VerifiedResultExplorer data={explored} busy={busy} error={error} onLoad={query=>void loadExploration(query)}/>}
           {table&&completed&&completeExplorationAvailable&&record.durable&&!explorationOpen&&<details className="result-preview-options"><summary>Preview options</summary><div className="verified-preview-controls"><button type="button" disabled={busy} onClick={()=>void load()}>{busy?'Checking artifact…':verified?'Recheck CSV artifact':'Load verified CSV'}</button>{verified&&<button onClick={()=>{setVerified(null);setSelectedRow(null);setTableState(emptyTableView());setError('');}}>Use saved snapshot</button>}<small>Legacy larger preview only. Search and sorting still affect loaded rows. No workflow execution.</small></div></details>}
@@ -121,20 +135,20 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
           <ResultTable key={explored?'explored':verified?'verified':'snapshot'} data={table?data:coordinateTable} rowIds={explored?.row_ids} serverPage={Boolean(explored)} state={tableState} onState={setTableState} selectedRow={selectedRow} onSelectRow={setSelectedRow}/></>:<p>No table snapshot recorded for this operation. Raster, database and other metadata may be available in Overview.</p>):null)}
         {view==='Map'&&error&&<p role="alert">{error} Saved inspection evidence is preserved.</p>}
         {view==='Map'&&!spatialDisplayAvailable?<p>Metadata and package identity are available in Overview. This source exceeds the bounded viewer's file, feature, field or band limits; full geometry/pixel display is unavailable.</p>:view==='Map'&&(completed?(['inspect_vector','inspect_raster'].includes(step.skill_id)?<SpatialExplorer blocked={busy} scope={record.durable&&record.plan_sha256&&record.conversation_id?{run_id:record.run_id,plan_sha256:record.plan_sha256,conversation_id:record.conversation_id,step_id:stepId}:null} skill={step.skill_id} outcome={outcome} value={spatialView} onValue={setSpatialView} selectedRow={selectedRow} onSelectRow={index=>setSelectedRow(index<0?null:index)} camera={mapCamera} onCamera={setMapCamera} />:Array.isArray(outcome.layers)||outcome.spatial_preview?<PointMap value={spatial} camera={mapCamera} onCamera={setMapCamera} selectedRow={selectedRow} onSelectRow={setSelectedRow}/>:<p>No spatial snapshot recorded for this operation. Select a completed vector or raster inspection. CSV and database validation metadata are not map geometries.</p>):null)}
-        {view==='Chart'&&(completed?(table||points.length?<><p>Configure the chart below. The plotted data identifies its sample or complete verified scope.</p><DataChart data={table?data:coordinateTable} analysis={object(explored?.chart_analysis??verified?.chart_analysis)} busy={busy} onAnalyze={table&&record.durable?(spec)=>{if(explored)void loadExploration(explored.query,{...spec,aggregation:spec.aggregation as ChartAnalysisSpec['aggregation']});else void load(spec);}:undefined} options={chartState} onOptions={setChartState} selectedRow={explored?explored.row_ids.indexOf(selectedRow??-1):selectedRow} onSelectRow={index=>setSelectedRow(explored?.row_ids[index]??index)}/>{explored&&<p>Filters apply to {explored.matched_row_count} of {explored.row_count} verified source rows. Aggregates cover all matching rows; unaggregated marks show only the current page sample.</p>}{error&&<p role="alert">{error}</p>}{selectedRow!==null&&(explored?explored.row_ids.indexOf(selectedRow):selectedRow)>=20&&<p>The selected table row lies outside the first 20 chart rows.</p>}</>:<p>No chartable table or geometry-attribute snapshot recorded. Choose an executed CSV or vector operation.</p>):null)}
-        {view==='Checks'&&<><ReadableValidation value={step.validation_outcome}/><details><summary>Validation details</summary><pre>{JSON.stringify(step.validation_outcome,null,2)}</pre></details>{record.durable&&<CriticOutcome run={record.durable}/>}</>}
+        {view==='Chart'&&analytical&&completed&&<AnalyticalChart analysis={analytical}/>}
+        {view==='Chart'&&!analytical&&(completed?(table||points.length?<><p>Configure the chart below. The plotted data identifies its sample or complete verified scope.</p><DataChart data={table?data:coordinateTable} analysis={object(explored?.chart_analysis??verified?.chart_analysis)} busy={busy} onAnalyze={table&&record.durable?(spec)=>{if(explored)void loadExploration(explored.query,{...spec,aggregation:spec.aggregation as ChartAnalysisSpec['aggregation']});else void load(spec);}:undefined} options={chartState} onOptions={setChartState} selectedRow={explored?explored.row_ids.indexOf(selectedRow??-1):selectedRow} onSelectRow={index=>setSelectedRow(explored?.row_ids[index]??index)}/>{explored&&<p>Filters apply to {explored.matched_row_count} of {explored.row_count} verified source rows. Aggregates cover all matching rows; unaggregated marks show only the current page sample.</p>}{error&&<p role="alert">{error}</p>}{selectedRow!==null&&(explored?explored.row_ids.indexOf(selectedRow):selectedRow)>=20&&<p>The selected table row lies outside the first 20 chart rows.</p>}</>:<p>No chartable table or geometry-attribute snapshot recorded. Choose an executed CSV or vector operation.</p>):null)}
+        {view==='Checks'&&<><ReadableValidation value={step.validation_outcome}/><details><summary>Validation details</summary><pre>{JSON.stringify(step.validation_outcome,null,2)}</pre></details>{record.durable&&<><ExecutionAssistance record={record} stepId={stepId}/><CriticOutcome run={record.durable}/></>}</>}
       </article>
       <details className="results-provenance"><summary>Source and run identity</summary><dl><div><dt>File reference</dt><dd>{path}</dd></div><div><dt>Run ID</dt><dd>{record.run_id}</dd></div><div><dt>Plan digest</dt><dd>{record.plan_sha256??'Not recorded'}</dd></div><div><dt>Recorded execution</dt><dd>{record.status}</dd></div></dl><p>Saved snapshots do not establish current file freshness. Viewing/filtering/selecting data does not modify it or grant execution authority.</p></details>
     </div>
   </>;
 }
 
-export function ResultsWorkspace({record,notice,initialStep,initialView='Overview',initialSpec,onViewApplied,onClose}:{record:ResultRecord|null;notice:string;initialStep?:string;initialView?:ResultView;initialSpec?:ResultViewSpec;onViewApplied?:()=>void;onClose:()=>void}) {
-  const [expanded,setExpanded]=useState(false),[chosenStep,setChosenStep]=useState(initialStep??''),[view,setView]=useState<ResultView>(initialView);
+export function ResultsWorkspace({record,notice,initialStep,initialView='Overview',initialSpec,onViewApplied,onClose,onHistory,onCurrent}:{onCurrent?:()=>void;onHistory?:()=>void;record:ResultRecord|null;notice:string;initialStep?:string;initialView?:ResultView;initialSpec?:ResultViewSpec;onViewApplied?:()=>void;onClose:()=>void}) {
+  const [chosenStep,setChosenStep]=useState(initialStep??''),[view,setView]=useState<ResultView>(initialView);
   const step=record?.steps.some(s=>s.step_id===chosenStep)?chosenStep:record?.steps[record.steps.length-1]?.step_id??'';
-  return <aside className={`record-workspace workspace-right-panel workflow-outcome-panel results-workspace ${expanded?'is-expanded':''}`} aria-labelledby="outcome-title">
-    {!expanded&&<PanelResize side="results"/>}
-    <header className="results-workspace-header"><div><small>Recorded data explorer</small><h2 id="outcome-title">Current outcome</h2></div><div><button type="button" aria-label={expanded?'Restore graph beside results':'Expand results'} title={expanded?'Restore graph beside results':'Expand results'} onClick={()=>setExpanded(v=>!v)}>{expanded?<Minimize2 size={17}/>:<Maximize2 size={17}/>}</button><button type="button" aria-label="Close outcome" onClick={onClose}><X size={18}/></button></div></header>
-    {record&&record.steps.length?<><div className="results-operation-picker"><label>Operation result<select aria-label="Operation result" value={step} onChange={e=>setChosenStep(e.target.value)}>{record.steps.map(s=><option key={s.step_id} value={s.step_id}>{s.step_id} · {skillLabel(s.skill_id)} · {s.status}</option>)}</select></label><small>Run {record.run_id.slice(0,12)} · {record.status.replaceAll('_',' ')}</small><small className="results-narrow-note">Close Results to return to the graph.</small></div><ResultViews key={`${record.run_id}:${step}`} record={record} stepId={step} view={view} setView={setView} initialSpec={initialSpec} onViewApplied={onViewApplied}/></>:<p className="results-empty">{notice||'No matching recorded outcome. Execute a reviewed workflow or select an existing run in Execution History.'}</p>}
+  return <aside className="record-workspace workspace-right-panel workflow-outcome-panel results-workspace" aria-labelledby="outcome-title">
+    <header className="results-workspace-header"><div><small>Recorded data explorer</small><h2 id="outcome-title">Current outcome</h2></div><div>{onCurrent&&<button type="button" onClick={onCurrent}>Return to current workflow</button>}{onHistory&&<button type="button" aria-label="Open workflow history" onClick={onHistory}>Workflow history</button>}<button type="button" aria-label="Return to flow graph" onClick={onClose}>Flow graph</button><button type="button" aria-label="Close outcome" onClick={onClose}><X size={18}/></button></div></header>
+    {record&&record.steps.length?<><div className="results-operation-picker"><label>Operation result<select aria-label="Operation result" value={step} onChange={e=>setChosenStep(e.target.value)}>{record.steps.map(s=><option key={s.step_id} value={s.step_id}>{s.step_id} · {skillLabel(s.skill_id)} · {s.status}</option>)}</select></label><small>Run {record.run_id.slice(0,12)} · {record.status.replaceAll('_',' ')}</small><small className="results-narrow-note">Close Results to return to the graph.</small></div><TaskAgentReport run={record.durable??null}/><ResultViews key={`${record.run_id}:${step}`} record={record} stepId={step} view={view} setView={setView} initialSpec={initialSpec} onViewApplied={onViewApplied}/></>:<p className="results-empty">{notice||'No matching recorded outcome. Execute a reviewed workflow or select an existing run in Execution History.'}</p>}
   </aside>;
 }

@@ -1,3 +1,7 @@
+import {ChatWorkflowHistory} from './ChatWorkflowHistory';
+import type {HistoryRecord} from '../lib/chat-history';
+import type {AnalyticalSession} from '../lib/analytical-session';
+import {AnalyticalEvidence} from './AnalyticalEvidence';
 import {CapabilityCandidateCard} from "./CapabilityCandidateCard";
 import { RecipeCandidateCard } from "./RecipeCandidateCard";
 import { CHAT_MEMORY_KEY, loadChatMemory, loadSwitchPreference, saveSwitchPreference } from "../lib/switch-preferences";
@@ -5,7 +9,7 @@ import { PlannerContextDisclosure } from "./PlannerContextDisclosure";
 import { canRestorePlan } from "../lib/saved-plan-recovery";
 import { PanelResize } from "./PanelResize";
 import { useEffect, useRef, useState } from "react";
-import { Bot, Settings, X, Send, Plus, ChevronDown, Search, Check } from "lucide-react";
+import { Bot, Settings, X, Send, Plus, RefreshCw, ChevronDown, Search, Check } from "lucide-react";
 import { loadPlannerSkills, saveGeneratedPlannerPlan, type SavedPlanInventory, type InterfacePlannerResult, type SavedPlannerResult, type PlannerSkillCatalog } from "../lib/interface-api";
 import { skillLabel } from "../lib/skill-labels";
 import { loadPlannerConversations, newConversationId, plannerConversation, capabilityControl, readPlannerSubmission, type PlannerConversation } from "../lib/planner-conversation";
@@ -13,17 +17,19 @@ import { loadPlannerConversations, newConversationId, plannerConversation, capab
 import type {ResultViewSpec} from "../lib/result-exploration";
 import type {WorkflowRun} from "../lib/workflow-tools";
 
-type Props = { onResultView:(spec:ResultViewSpec)=>Promise<void>;onSubmittedRun:(run:WorkflowRun)=>Promise<void>; currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onRestore: (plan: SavedPlanInventory["plans"][number]) => Promise<void>; onScopeChange:()=>void; onTaskBusyChange:(busy:boolean)=>void };
+type Props = { onHistoryOpen:(record:HistoryRecord)=>void;onHistoryCurrent:()=>void;onAnalyticalSession:(session:AnalyticalSession,conversationId:string,revision:number,activate:boolean,planSha:string|null)=>void; onResultView:(spec:ResultViewSpec)=>Promise<void>;onSubmittedRun:(run:WorkflowRun)=>Promise<void>; currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onRestore: (plan: SavedPlanInventory["plans"][number]) => Promise<void>; onScopeChange:()=>void; onTaskBusyChange:(busy:boolean)=>void };
 const storageKey = "actioncharter:planner-conversation:v1";
 function initialId() {
   try { const id = localStorage.getItem(storageKey); if (id && /^[a-f0-9]{32}$/.test(id)) return id; } catch { /* Storage is optional. */ }
   return newConversationId();
 }
-export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved, onRestore, onScopeChange, onTaskBusyChange, onSubmittedRun, onResultView }: Props) {
+export function TextPlanner({ onHistoryOpen,onHistoryCurrent,onAnalyticalSession, currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved, onRestore, onScopeChange, onTaskBusyChange, onSubmittedRun, onResultView }: Props) {
   const [id, setId] = useState(initialId);
+  const [reloadVersion,setReloadVersion]=useState(0);
   const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadPlannerConversations>>>([]);
   const [conversation, setConversation] = useState<PlannerConversation | null>(null);
   const [useHistory, setUseHistory] = useState(()=>loadChatMemory(id));
+  const [agentMode,setAgentMode]=useState<"single"|"three"|null>(null);
   const [settingsOpen,setSettingsOpen]=useState(false);
   const settingsRef=useRef<HTMLElement>(null);
   useEffect(()=>{
@@ -38,7 +44,8 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
   const sendInFlight=useRef(false);
   const [submissionNotice,setSubmissionNotice]=useState('');
   const [pendingSubmission,setPendingSubmission]=useState<string|null>(null);
-  useEffect(()=>{try{setPendingSubmission(sessionStorage.getItem(`actioncharter:pending-inspection:${id}`));}catch{setPendingSubmission(null);}setSubmissionNotice('');},[id]);
+  const [submissionState,setSubmissionState]=useState<{id:string;status:string;runId:string|null}|null>(null);
+  useEffect(()=>{try{setPendingSubmission(sessionStorage.getItem(`actioncharter:pending-inspection:${id}`));}catch{setPendingSubmission(null);}setSubmissionNotice('');setSubmissionState(null);},[id]);
   const rememberSubmission=(value:string|null)=>{setPendingSubmission(value);try{if(value)sessionStorage.setItem(`actioncharter:pending-inspection:${id}`,value);else sessionStorage.removeItem(`actioncharter:pending-inspection:${id}`);}catch{/* Receipt remains in backend history. */}};
   const [draft, setDraft] = useState("");
   const [successfulSelection,setSuccessfulSelection]=useState<string|null>(null);
@@ -68,19 +75,36 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
   conversationRef.current = conversation;
   const currentRef = useRef({ plan, editsPending, id, busy });
   currentRef.current = { plan, editsPending, id, busy };
-  const callbacks = useRef({ onPlan, onSaved, onRestore });
-  callbacks.current = { onPlan, onSaved, onRestore };
+  const callbacks = useRef({ onPlan, onSaved, onRestore, onAnalyticalSession });
+  callbacks.current = { onPlan, onSaved, onRestore, onAnalyticalSession };
+  const checkedSubmission=useRef<string|null>(null);
+  useEffect(()=>{
+    if(!loaded||busy||!pendingSubmission)return;
+    const key=`${id}:${pendingSubmission}`;
+    if(checkedSubmission.current===key)return;
+    checkedSubmission.current=key;let active=true;
+    // Reconcile the receipt only. Never resend, publish a different plan or dispatch.
+    void readPlannerSubmission(pendingSubmission,id).then(receipt=>{
+      if(!active)return;
+      setSubmissionState({id:receipt.submission.submission_id,status:receipt.submission.status,runId:receipt.submission.run_id});
+      setSubmissionNotice(receipt.submission.status==='failed'
+        ?'The last submission failed. Any workflow shown is saved work, not a successful retry. Refreshing does not rerun planning or execution. Check the saved chat and recorded runs before retrying.'
+        :receipt.submission.finding);
+    }).catch(()=>{/* Keep explicit Check last submission available. */});
+    return()=>{active=false;};
+  },[id,pendingSubmission,loaded,busy]);
   useEffect(() => {
     let active = true;
     setLoaded(false);
     try { localStorage.setItem(storageKey, id); } catch { /* Conversation remains usable. */ }
     void plannerConversation("read", id).then(async (state) => {
       if (!active) return;
-      setConversation(state); setSelectedSkills(state.selected_skill_ids);
+      setConversation(state); setSelectedSkills(state.selected_skill_ids);setAgentMode(state.agent_mode??null);
       void loadPlannerConversations().then((items) => { if (active) setSessions(items); }).catch(() => { /* Current conversation still works. */ });
       // The conversation owns its latest validated proposal. Recover it directly;
       // artifact inventory order/global browser bookmarks cannot substitute another chat.
-      if (state.planner_result && canRestorePlan(active, currentRef.current.id === id, Boolean(currentRef.current.plan), currentRef.current.editsPending)) {
+      if (state.planner_result && canRestorePlan(active, currentRef.current.id === id, reloadVersion===0&&Boolean(currentRef.current.plan), currentRef.current.editsPending)) {
+        setSubmissionNotice('Restoring this chat’s saved proposal. No new planning or execution is performed.');
         const expected = currentRef.current.plan?.plan_sha256;
         const stored = await saveGeneratedPlannerPlan(state.planner_result);
         if (active && currentRef.current.id === id && !currentRef.current.editsPending && currentRef.current.plan?.plan_sha256 === expected) {
@@ -88,10 +112,11 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
           callbacks.current.onSaved(stored);
         }
       }
+      if(active&&currentRef.current.id===id&&!currentRef.current.editsPending&&state.analytical_session)callbacks.current.onAnalyticalSession(state.analytical_session,id,state.revision,['analytical_exploration','analytical_history_restore'].includes(state.context_usage?.model_request?.stage??''),state.planner_result?.plan_sha256??null);
       if (active) setLoaded(true);
     }).catch((e: unknown) => { if (active) { setError(e instanceof Error ? e.message : "Conversation recovery failed"); setLoaded(true); } });
     return () => { active = false; };
-  }, [id]);
+  }, [id,reloadVersion]);
   useEffect(() => { if (visible) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [conversation, pendingMessage, visible]);
   const publish = async (result: InterfacePlannerResult) => {
     // Saving must succeed before replacing the current workflow.
@@ -110,11 +135,13 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     sendInFlight.current=true;
     const submission=!continuation?{id:newConversationId(),enabled:inspectOnSend}:undefined;
     if(submission)rememberSubmission(submission.id);
+    setSubmissionState(null);
     setSubmissionNotice('');setBusy(true);onTaskBusyChange(true); setError(""); setPendingMessage(text);
     try {
-      const state = await plannerConversation("turn", id, activeConversation?.revision ?? 0, text, base, scope??selectedSkills, saved?.plan_sha256 === base?.plan_sha256 ? saved?.plan_filename ?? null : null, useHistory,activeConversation?.active_task_id??null,activeConversation?.task_revision??null,"",null,successfulSelection,undefined,submission);
+      const state = await plannerConversation("turn", id, activeConversation?.revision ?? 0, text, base, scope??selectedSkills, saved?.plan_sha256 === base?.plan_sha256 ? saved?.plan_filename ?? null : null, useHistory,activeConversation?.active_task_id??null,activeConversation?.task_revision??null,"",null,successfulSelection,{...(agentMode?{agent_mode:agentMode}:{})},submission);
       if(currentRef.current.id!==submittedId)return;
       setConversation(state); setDraft(""); setSuccessfulSelection(null);
+      if(state.analytical_session&&state.context_usage?.model_request?.stage==='analytical_exploration'&&!currentRef.current.editsPending)callbacks.current.onAnalyticalSession(state.analytical_session,submittedId,state.revision,true,state.planner_result?.plan_sha256??null);
       void loadPlannerConversations().then(setSessions).catch(() => { /* Current transcript is saved. */ });
       if (state.proposal_changed && state.planner_result) {
         if (currentRef.current.id !== submittedId || currentRef.current.editsPending || currentRef.current.plan?.plan_sha256 !== base?.plan_sha256) {
@@ -144,6 +171,7 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     try{
       const receipt=await readPlannerSubmission(pendingSubmission,id);
       if(currentRef.current.id!==identity||currentRef.current.editsPending)return;
+      setSubmissionState({id:receipt.submission.submission_id,status:receipt.submission.status,runId:receipt.submission.run_id});
       setSubmissionNotice(receipt.submission.finding);
       if(receipt.conversation && receipt.conversation.revision>=(conversationRef.current?.revision??0)){
         setConversation(receipt.conversation);
@@ -212,10 +240,13 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
   };
   return <aside hidden={!visible} className="intent-workbench text-planner planner-dialogue" aria-label="Planner agent">
     <PanelResize side="planner"/>
-    <header><h2><Bot size={20}/> Planner agent</h2><div><button aria-label="Conversation settings" aria-expanded={settingsOpen} onClick={()=>setSettingsOpen(value=>!value)}><Settings size={18}/></button><button disabled={busy||editsPending} title="Start a separate conversation with its own saved history" onClick={() => { onScopeChange();setId(newConversationId()); setConversation(null); setSelectedSkills([]); setDraft(""); setError(""); }}><Plus size={15}/> New chat</button><button onClick={onClose} aria-label="Close planner"><X size={18}/></button></div></header>
+    <header><h2><Bot size={20}/> Planner agent</h2><div><button type="button" aria-label="Refresh saved chat" title="Reload this chat and the chat list after CLI work; preserves your draft message" disabled={busy||editsPending||!loaded} onClick={()=>{setError("");setReloadVersion(v=>v+1);}}><RefreshCw size={16}/></button><button aria-label="Conversation settings" aria-expanded={settingsOpen} onClick={()=>setSettingsOpen(value=>!value)}><Settings size={18}/></button><button disabled={busy||editsPending} title="Start a separate conversation with its own saved history" onClick={() => { onScopeChange();setId(newConversationId()); setConversation(null); setSelectedSkills([]); setDraft(""); setError(""); }}><Plus size={15}/> New chat</button><button onClick={onClose} aria-label="Close planner"><X size={18}/></button></div></header>
     {sessions.length > 0 && <select className="planner-session-picker" aria-label="Saved planning conversation" disabled={busy||editsPending} value={sessions.some((session) => session.conversation_id === id) ? id : ""} onChange={(event) => { if (event.target.value) { onScopeChange();setConversation(null);setSelectedSkills([]);setId(event.target.value); setError(""); setDraft(""); } }}><option value="" disabled>Current new conversation</option>{sessions.map((session) => <option key={session.conversation_id} value={session.conversation_id}>{session.summary?.trim() || "Untitled chat"}</option>)}</select>}
+    <ChatWorkflowHistory id={id} revision={conversation?.revision??0} disabled={busy||editsPending||!loaded} onOpen={onHistoryOpen} onCurrent={onHistoryCurrent} onContinued={()=>{onHistoryCurrent();setError('');setReloadVersion(v=>v+1);}}/>
     {settingsOpen&&<section ref={settingsRef} className="planner-settings-popover" aria-label="Conversation settings" onKeyDown={event=>{if(event.key==='Escape')setSettingsOpen(false);}}>
       <header><strong>Conversation settings</strong><button aria-label="Close conversation settings" onClick={()=>setSettingsOpen(false)}><X size={16}/></button></header>
+    <label className="agent-mode-control">Agent mode<select aria-label="Task agent mode" value={agentMode??""} disabled={busy||editsPending||!loaded} onChange={event=>{const mode=event.target.value as "single"|"three";setBusy(true);setError('');void plannerConversation('configure_agent_mode',id,conversation?.revision??0,'',null,[],null,true,null,null,'',null,null,{agent_mode:mode}).then(state=>{setConversation(state);setAgentMode(mode);}).catch(e=>setError(String(e))).finally(()=>setBusy(false));}}><option value="" disabled>Choose mode for this task…</option><option value="single">Single agent</option><option value="three">Three agents · Planner / Executor / Critic</option></select></label>
+    <small>Applies to the next planning turn. Completed work is preserved; active runs keep their mode. Agents run sequentially using the configured model.</small>
     <div className="planner-history-control"><span id="planner-history-label">Chat memory</span><button className="planner-history-switch" type="button" role="switch" aria-labelledby="planner-history-label" aria-checked={useHistory} disabled={busy||!loaded} onClick={() => setUseHistory(value => {const next=!value;saveSwitchPreference(CHAT_MEMORY_KEY,next);return next;})}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div>
     <small>ON includes recent messages and relevant successful methods from this chat. Your latest workflow is always restored. Retrieval adds no model call.</small>
     <div className="planner-history-control"><span id="planner-acquisition-label">Acquire capabilities · optional</span><button className="planner-history-switch" type="button" role="switch" aria-labelledby="planner-acquisition-label" aria-checked={conversation?.acquisition_enabled??false} disabled={busy||!loaded||editsPending} onClick={()=>void toggleAcquisition()}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div>
@@ -225,9 +256,13 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
       <div className="planner-history-control"><span id="planner-recommendations-label">Use outcome recommendations</span><button className="planner-history-switch" type="button" role="switch" aria-labelledby="planner-recommendations-label" aria-checked={conversation?.recommendations_enabled??false} disabled={busy||!loaded||editsPending} onClick={()=>void toggleRecommendations()}><span className="history-switch-track" aria-hidden="true"/><span className="history-switch-thumb" aria-hidden="true"/><span className="history-switch-label history-switch-off" aria-hidden="true">Off</span><span className="history-switch-label history-switch-on" aria-hidden="true">On</span></button></div>
       <small>This chat only; default OFF. Rank current operations from verified checks, without sharing chats or granting authority. Chat memory preference applies across chats in this browser.</small>
     </section>}
+    {conversation?.agent_attempt&&<small role="status">Last agent attempt: {conversation.agent_attempt.mode} · {conversation.agent_attempt.metrics.model_calls} model calls. A failed attempt does not replace the saved workflow.</small>}
+    {conversation?.agent_coordination&&<details className="task-agent-report"><summary>{conversation.agent_coordination.mode==='single'?'Single agent':'Three agents'} · {conversation.agent_coordination.metrics.model_calls} model calls</summary><p>{conversation.agent_coordination.metrics.elapsed_seconds}s · {conversation.agent_coordination.metrics.token_usage_complete?`${conversation.agent_coordination.metrics.prompt_tokens} input + ${conversation.agent_coordination.metrics.completion_tokens} output tokens`:'Token usage not fully reported'}</p>{conversation.agent_coordination.reviews.map((review,i)=><p key={i}>{review.role}: {review.assessment?.summary??review.finding}</p>)}</details>}
+    {conversation?.context_usage?.model_request?.stage==='analytical_exploration'&&<small role="status">Analytical exploration · read-only calculations · workflow unchanged</small>}
+    {['history_restore','analytical_history_restore'].includes(conversation?.context_usage?.model_request?.stage??'')&&<small role="status">Saved version restored as a new draft · no new calculation or execution</small>}
     {conversation?.context_usage?.model_request?.stage==='recorded_evidence'&&<small role="status">Recorded evidence answer · no model call or source read</small>}
     {conversation?.context_usage?.model_request?.stage==='deterministic_inspection'&&<small role="status">Exact inspection workflow · no model call</small>}
-    <small className="planner-submit-mode" role="status">{inspectOnSend?'Send and inspect eligible local datasets · other proposals require Execute':'Send creates a proposal · Execute runs it'}</small>
+    <small className="planner-submit-mode" role="status">{conversation?.context_usage?.model_request?.stage==='analytical_exploration'?'Current response contains analytical findings, not a workflow proposal.':inspectOnSend?'Send and inspect eligible local datasets · other proposals require Execute':'Send creates a proposal · Execute runs it'}</small>
     {pendingSubmission&&!busy&&<button type="button" onClick={()=>void checkSubmission()}>Check last submission · no retry</button>}
     {submissionNotice&&<p className="planner-submission-notice" role="status">{submissionNotice}</p>}
     <details className="planner-chat-context"><summary>Chat history &amp; context</summary><div className="planner-chat-context-body">
@@ -244,12 +279,14 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     <div className="planner-messages" ref={scrollRef} role="log" aria-label="Planning conversation" aria-live="polite">
       {!conversation?.messages.length && <p className="planner-welcome">Describe your task and files. Then ask me to add, remove or change workflow steps. Bare filenames resolve under data/input.</p>}
       {conversation?.messages.map((entry, index) => {
-        const ids = entry.role === "user" ? entry.selected_skill_ids : entry.plan_skill_ids;
+        const analyticalReply=entry.role==='assistant'&&index===conversation.messages.length-1&&conversation.context_usage?.model_request?.stage==='analytical_exploration'&&conversation.analytical_session;
+        const ids = analyticalReply?[...new Set(analyticalReply.journal.map(j=>j.tool))]:entry.role === "user" ? entry.selected_skill_ids : entry.plan_skill_ids;
         const previous = conversation.messages.slice(0, index).reverse().find((item) => item.role === "assistant" && item.plan_skill_ids != null)?.plan_skill_ids ?? [];
-        const added = entry.role === "assistant" && ids ? ids.filter((skill) => !previous.includes(skill)) : [];
-        const removed = entry.role === "assistant" && ids ? previous.filter((skill) => !ids.includes(skill)) : [];
-        return <article className={`planner-message role-${entry.role}`} key={`${id}-${index}`}><small>{entry.role === "user" ? "You" : "Planner"}</small><p>{entry.content}</p><div className="conversation-skill-tags" aria-label={entry.role === "user" ? "Submitted skill selection" : "Workflow skills at this reply"}><small>{entry.role === "user" ? "Selected skills" : "Workflow skills"}</small>{ids == null ? <span className="conversation-skill-tag">Not recorded for this older message</span> : ids.length ? ids.map((skill) => <span className="conversation-skill-tag" title={skill} key={skill}>{skillLabel(skill)}</span>) : <span className="conversation-skill-tag">{entry.role === "user" ? "Automatic" : "No proposal yet"}</span>}{added.map((skill) => <span className="conversation-skill-tag skill-added" key={`added-${skill}`} title={skill}>+ {skillLabel(skill)}</span>)}{removed.map((skill) => <span className="conversation-skill-tag skill-removed" key={`removed-${skill}`} title={skill}>− {skillLabel(skill)}</span>)}</div></article>;
+        const added = !analyticalReply && entry.role === "assistant" && ids ? ids.filter((skill) => !previous.includes(skill)) : [];
+        const removed = !analyticalReply && entry.role === "assistant" && ids ? previous.filter((skill) => !ids.includes(skill)) : [];
+        return <article className={`planner-message role-${entry.role}`} key={`${id}-${index}`}><small>{entry.role === "user" ? "You" : "Planner"}</small><p>{entry.content}</p><div className="conversation-skill-tags" aria-label={analyticalReply?"Analytical tools at this reply":entry.role === "user" ? "Submitted skill selection" : "Workflow skills at this reply"}><small>{analyticalReply?"Analytical tools":entry.role === "user" ? "Selected skills" : "Workflow skills"}</small>{ids == null ? <span className="conversation-skill-tag">Not recorded for this older message</span> : ids.length ? ids.map((skill) => <span className="conversation-skill-tag" title={skill} key={skill}>{skillLabel(skill)}</span>) : <span className="conversation-skill-tag">{entry.role === "user" ? "Automatic" : "No proposal yet"}</span>}{added.map((skill) => <span className="conversation-skill-tag skill-added" key={`added-${skill}`} title={skill}>+ {skillLabel(skill)}</span>)}{removed.map((skill) => <span className="conversation-skill-tag skill-removed" key={`removed-${skill}`} title={skill}>− {skillLabel(skill)}</span>)}</div></article>;
       })}
+      {conversation?.analytical_session&&<AnalyticalEvidence session={conversation.analytical_session}/>}
       {conversation?.capability_candidate&&<CapabilityCandidateCard candidate={conversation.capability_candidate} enabled={conversation.acquisition_enabled} busy={busy||editsPending} onInstall={()=>void continueCapability(true)} onContinue={()=>void continueCapability(false)}/>}
       {conversation?.recipe_candidate&&<RecipeCandidateCard candidate={conversation.recipe_candidate} disabled={busy||editsPending}/>}
       {pendingMessage && <article className="planner-message role-user"><small>You · sending</small><p>{pendingMessage}</p><div className="conversation-skill-tags"><small>Selected skills</small>{selectedSkills.length ? selectedSkills.map((skill) => <span className="conversation-skill-tag" key={skill}>{skillLabel(skill)}</span>) : <span className="conversation-skill-tag">Automatic</span>}</div></article>}
@@ -257,7 +294,7 @@ export function TextPlanner({ currentPlan: plan, currentSaved: saved, visible, e
     </div>
     {conversation?.active_task_id&&plan&&conversation.planner_result?.plan_sha256!==plan.plan_sha256&&<button type="button" disabled={busy||editsPending} onClick={()=>void bindWorkflow()}>Use current workflow in this conversation</button>}
     {conversation?.planner_result && conversation.planner_result.plan_sha256 !== plan?.plan_sha256 && <button disabled={busy || editsPending} onClick={() => { setBusy(true); setError(""); void publish(conversation.planner_result!).catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not open conversation plan")).finally(() => setBusy(false)); }}>Open conversation plan</button>}
-    {error && <div className="intent-error" role="alert"><p>{error}</p><small>{pendingSubmission?'Check the last submission and recorded run before sending again. Dispatch may already have occurred.':'Current workflow preserved. Nothing approved or executed.'}</small><button disabled={busy} onClick={() => { setBusy(true); void plannerConversation("read", id).then((state) => { setConversation(state); setSelectedSkills(state.selected_skill_ids); setError(""); }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Recovery failed")).finally(() => setBusy(false)); }}>Reload conversation</button></div>}
+    {error && <div className="intent-error" role="alert"><p>{error}</p><small>{pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.status==='failed'&&!submissionState.runId?'Submission failed before dispatch. No workflow run was created. Your saved workflow is preserved.':pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.runId?'This submission has a recorded run. Inspect it in Execution History before retrying.':pendingSubmission?'Submission status is not confirmed. Check the last submission and recorded runs before retrying.':'Current workflow preserved. Nothing approved or executed.'}</small><button disabled={busy} onClick={() => { setBusy(true); void plannerConversation("read", id).then((state) => { setConversation(state); setSelectedSkills(state.selected_skill_ids);setAgentMode(state.agent_mode??null); setError(""); }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Recovery failed")).finally(() => setBusy(false)); }}>Reload conversation</button></div>}
     {editsPending && <p className="intent-notice">Validate and save, or discard your graph edits before sending a planner message.</p>}
     {successfulSelection&&<div className="planner-saved-method-choice"><span>Saved workflow selected · this chat</span><button type="button" aria-label="Clear saved workflow selection" disabled={busy} onClick={()=>setSuccessfulSelection(null)}><X size={13}/></button></div>}
     <form className="planner-composer" onSubmit={(event) => { event.preventDefault(); void send(); }}><div className="composer-resize-handle" role="separator" aria-label="Resize message area" aria-orientation="horizontal" aria-valuemin={72} aria-valuemax={320} aria-valuenow={Math.round(composerHeight)} tabIndex={0}

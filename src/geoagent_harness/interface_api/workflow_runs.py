@@ -17,6 +17,7 @@ from threading import RLock, Thread
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from geoagent_harness.model import ModelClientError, ModelSettingsError
 
 from .workflow import WorkflowRequest
 
@@ -26,16 +27,19 @@ TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'validation_faile
 
 from .exploration_contracts import ChartAnalysis, ExplorationQuery
 from .spatial_views import SpatialViewOptions
+from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
 
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview', 'explore', 'spatial_view']
+    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview', 'explore', 'spatial_view', 'table_analysis', 'execution_assistance', 'report']
     run_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     workflow: WorkflowRequest | None = None
     conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
     analysis: ChartAnalysis | None = None
     query: ExplorationQuery | None = None
+    table_options: AnalysisOptions | None = None
+    assistant_question: str | None = Field(default=None, min_length=1, max_length=2000)
     spatial: SpatialViewOptions | None = None
     review_outcome: bool = False
     retry_assessment: bool = False
@@ -180,6 +184,21 @@ def _present_outputs(root, record):
     return outputs
 
 
+def fit_table_preview(value,limit=6000):
+    """Trim displayed rows before discarding useful table identities and quality facts."""
+    if not isinstance(value,dict) or value.get('data_contract')!='table/csv-v1':return value
+    result={**value,'preview':list(value.get('preview') or [])}
+    def size():return len(json.dumps(result).encode())
+    while result['preview'] and size()>limit:
+        result['preview'].pop();result['preview_truncated']=True
+    if size()>limit:
+        # These definitions are already retained in the step arguments and full evidence.
+        for key in ('decode_arguments','calculation_arguments','arguments','text_transform_definition'):
+            result.pop(key,None)
+            if size()<=limit:break
+    return result
+
+
 class _Observer:
     def __init__(self, directory, identity):
         self.directory, self.identity = directory, identity
@@ -207,8 +226,8 @@ class _Observer:
                     else:
                         step['finished_at'] = _now()
                     if outcome is not None:
-                        bounded = _bounded_outcome(outcome)
-                        limit = 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
+                        bounded = _bounded_outcome(fit_table_preview(outcome))
+                        limit = 128000 if isinstance(bounded,dict) and isinstance(bounded.get('table_analysis'),dict) else 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
                         if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
                             from geoagent_harness.skills.inspect_vector.preview import fit_recorded_geometry
                             bounded = fit_recorded_geometry(bounded)
@@ -272,6 +291,25 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspe
     # It is independent of the browser and precedes optional model assessment.
     with _LOCK:
         _retain_record(root, directory, _read(directory, identity))
+    with _LOCK:captured_record=_read(directory,identity)
+    if captured_record.get('agent_coordination'):
+        from geoagent_harness.orchestrator.task_agents import finish_run
+        try:completed=finish_run(root,captured_record)
+        except Exception:completed=None
+        with _LOCK:
+            current=_read(directory,identity)
+            if completed:
+                current['agent_coordination']=completed['coordination'];current['agent_report']=completed['report']
+                review=completed['report']['assessment']
+                assessment=review.get('assessment')
+                current['critic_review']={'status':'complete' if assessment else 'unavailable','evidence_kind':completed['report']['review_kind'],'execution_authority_granted':False,
+                    'assessment':{'deterministic_status':current['status'],'conclusion':'supported' if assessment and assessment['conclusion']=='supported' else 'needs_attention','summary':assessment['summary'],'findings':assessment['findings'],'limitations':assessment['limitations']} if assessment else None}
+                if current['critic_review'].get('assessment') is None:current['critic_review'].pop('assessment',None)
+            else:
+                current['agent_report_status']='unavailable; execution results preserved'
+                current['critic_review']={'status':'unavailable','finding':'Coordinated report unavailable. Execution results are preserved.'}
+            _write(directory,current)
+        return
     if review_outcome:
         from .run_assessment import assess_run
         # Execution is already final/durable and its lease released. Assessment
@@ -304,7 +342,7 @@ def _recovery(root, record):
     from .workflow import EditRequest, validate_edit
     from .server import InterfaceApiError
     result = load_planner_result(path=root / 'plans' / record['plan_filename'], plan_root=root / 'plans').model_copy(deep=True)
-    if any(step.skill in {'export_snakemake_workflow', 'verify_snakemake_export', 'generate_report'} for step in result.plan.steps):
+    if any(step.skill in {'export_snakemake_workflow', 'verify_snakemake_export', 'generate_report', 'soft_delete_postgres_rows', 'restore_postgres_rows'} for step in result.plan.steps):
         raise InterfaceApiError('This workflow needs target-specific recovery review; use Planner to revise it')
     suffix = uuid.uuid4().hex[:12]
     from geoagent_harness.skill_registry import load_skill_registry, SkillAccess
@@ -325,7 +363,7 @@ def _recovery(root, record):
         if 'target_path' in args:
             path = Path(args['target_path'])
             args['target_path'] = str(path.with_name(path.stem + '_retry_' + suffix + path.suffix))
-        if 'target_table' in args:
+        if 'target_table' in args and not (step.skill=='export_postgres_to_csv' and not args.get('source_step')):
             args['target_table'] = str(args['target_table'])[:40] + '_retry_' + suffix
     result.plan.summary = (('Resume remaining read operations: ' if read_only else 'Recovery with fresh targets: ') + result.plan.summary)[:2000]
     return validate_edit(EditRequest(action='validate_plan_edit', planner_result=result), project_root=root)
@@ -336,14 +374,53 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
     from .workflow import prepare_workflow
     root = _trusted_root(project_root)
     directory = _directory(root)
+    if request.action == 'execution_assistance':
+        with _LOCK:
+            record = _read(directory, request.run_id)
+        if (not request.conversation_id or request.conversation_id != record.get('conversation_id')
+                or request.confirmed_plan_sha256 != record['plan_sha256']):
+            raise InterfaceApiError('Execution assistance requires the matching chat and plan')
+        from geoagent_harness.model import load_model_settings
+        try:
+            model_name = load_model_settings().model
+        except ModelSettingsError as error:
+            raise InterfaceApiError('Choose an available model in Settings before requesting execution assistance. Recorded results are preserved.') from error
+        identity = hashlib.sha256(json.dumps({'question':request.assistant_question,'step':request.step_id,
+            'plan':record['plan_sha256'],'status':record['status'],'steps':record['steps'],
+            'model':model_name},sort_keys=True).encode()).hexdigest()
+        previous = record.get('execution_assistance') or {}
+        if previous.get('request_sha256') == identity and not request.retry_assessment:
+            return {**previous, 'cached': True}
+        from .execution_assistance import assist
+        try:
+            response = assist(root,record,request)
+        except (ModelClientError, ModelSettingsError) as error:
+            from geoagent_harness.model.diagnostics import model_failure
+            failure = model_failure(error)
+            raise InterfaceApiError(f"{failure['error']}. {failure['retry_guidance']} Recorded workflow is preserved.") from error
+        except ValueError as error:
+            raise InterfaceApiError(str(error)) from error
+        with _LOCK:
+            latest = _read(directory,request.run_id)
+            latest['execution_assistance', 'report'] = {**response,'request_sha256':identity}
+            _write(directory,latest)
+        return response
     if request.action=='assess':
+        with _LOCK:record=_read(directory,request.run_id)
+        if record.get('agent_coordination'):return record  # Reopening assessment never changes a frozen agent topology or calls another model.
         from .run_assessment import assess_run
         return assess_run(root,request.run_id,retry=request.retry_assessment)
-    if request.action in {'preview', 'explore', 'spatial_view'}:
+    if request.action in {'preview', 'explore', 'spatial_view', 'table_analysis'}:
         # Capture scope under the run lock; CSV I/O must not hold up progress,
         # cooperative cancellation or another read of the execution record.
         with _LOCK:
             record = _read(directory, request.run_id)
+        if request.action == 'table_analysis':
+            from geoagent_harness.tabular.analytical_service import recorded_analysis
+            try:
+                return recorded_analysis(root, record, request)
+            except ValueError as error:
+                raise InterfaceApiError(str(error)) from error
         if request.action == 'spatial_view':
             if request.spatial is None:
                 raise InterfaceApiError('Choose spatial viewing options')
@@ -366,6 +443,9 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
             return {'records': sorted(records, key=lambda r:r['started_at'], reverse=True), 'execution_performed':False}
         if request.action != 'start':
             record = _read(directory, request.run_id)
+            if request.action=='report':
+                if not record.get('agent_report'):raise InterfaceApiError('No coordinated task report is recorded yet')
+                return record['agent_report']
             if request.action == 'cancel' and record['status'] not in TERMINAL:
                 record['cancel_requested'] = True
                 record['status'] = 'cancelling'
@@ -427,13 +507,18 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
                 chat=conversation_record(root,request.conversation_id)
                 if chat and chat.get('planner_result') and plan_sha256(PlannerResult.model_validate(chat['planner_result']).plan)==review['plan_sha256']:
                     record['conversation_id']=request.conversation_id
+                    captured=chat.get('agent_coordination') or {}
+                    if captured.get('plan_sha256')==review['plan_sha256']:
+                        record['agent_mode']=captured['mode'];record['agent_coordination']=captured;record['critic_review']={'status':'queued'}
             _write(directory, record)
         except BaseException:
             os.close(fd)
             raise
     if background:
         try:
-            Thread(target=_worker, args=(root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding), daemon=True).start()
+            from contextvars import copy_context
+            context = copy_context()
+            Thread(target=context.run, args=(_worker,root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding), daemon=True).start()
         except BaseException:
             os.close(fd)
             raise

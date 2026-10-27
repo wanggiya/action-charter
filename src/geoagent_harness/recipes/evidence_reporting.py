@@ -92,6 +92,12 @@ def render_recipe_evidence_report(
         ]
     )
 
+    if evidence.database_snapshots:
+        lines.extend(['## Database snapshots',''])
+        for snapshot in evidence.database_snapshots:
+            lines.extend([f'- `{snapshot.step_id}`: `{snapshot.target_schema}.{snapshot.target_table}` · {snapshot.row_count} rows · {snapshot.affected_rows} affected · committed: {snapshot.committed}',f'  Table SHA-256: `{snapshot.table_sha256}`; connection identity: `{snapshot.connection_sha256}`'])
+        lines.append('')
+
     if evidence.lineage:
         for edge in evidence.lineage:
             lines.append(

@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import os
+from contextvars import ContextVar
 from collections.abc import Mapping
 from dataclasses import dataclass
 from urllib.parse import urlparse
+
+# Set once at the interface request boundary; never mutate process environment.
+selected_model: ContextVar[str | None] = ContextVar('selected_model', default=None)
 
 
 class ModelSettingsError(ValueError):
@@ -36,7 +40,7 @@ def load_model_settings(
         "http://host.docker.internal:11434/v1",
     ).strip().rstrip("/")
 
-    model = values.get("MODEL_NAME", "").strip()
+    model = (selected_model.get() if environ is None else None) or values.get("MODEL_NAME", "").strip()
 
     if not model:
         raise ModelSettingsError("MODEL_NAME is required")

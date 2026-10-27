@@ -1,10 +1,10 @@
 # Current implementation status
 
-[Domain knowledge](../docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md): design only; sharing gated.
+[Agent modes](../docs/TASK_AGENT_MODES.md); [resume](WORK_RESUME.md).
 
-Updated: 2026-10-22
+Updated: 2026-10-26
 
-[28 accepted](../docs/CHECKPOINT28_CLOSEOUT.md): exact inspections, batches, discovery; [resume](WORK_RESUME.md); 29 next.
+[28 accepted](../docs/CHECKPOINT28_CLOSEOUT.md): exact inspections, batches, discovery; [resume](WORK_RESUME.md).
 
 Checkpoint 26 [closeout](../docs/CHECKPOINT26_CLOSEOUT.md) and 27 [acceptance](../docs/CHECKPOINT27_EVALUATION.md) preserve delivered reuse, results, charts/geometry, runtime writes and persistent graph layout. Acceptance limited; packaging after demo; cross-chat 30+.
 

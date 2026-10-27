@@ -26,6 +26,12 @@ from geoagent_harness.mcp_client.settings import (
 
 READ_ONLY_TOOL_ALLOWLIST = frozenset(
     {
+        "profile_table",
+    "profile_dataset",
+    "explore_dataset_view",
+        "discover_inputs",
+        "discover_postgres_tables", "inspect_postgres_table",
+        "assess_table",
         "health_check",
         "discover_dataset",
         "inspect_vector_dataset",

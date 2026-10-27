@@ -59,6 +59,7 @@ workflow = [
 ]
 
 [project.scripts]
+actioncharter = "geoagent_harness.chat.workspace:main"
 geoagent = "geoagent_harness.cli:app"
 geoagent-mcp = "geoagent_harness.mcp_server.server:main"
 

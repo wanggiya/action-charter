@@ -70,6 +70,11 @@ def build_planner_request(
         "The available skill list is an allowlist, not a workflow template. Include only steps needed for the original request. Never add an unrelated load, validation or report step."
     )
     selected = set(available_skills)
+    from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS
+    system_payload['postgres_argument_schemas']={id:model.model_json_schema() for id,model in PG_ARGUMENTS.items() if id in selected}
+    import re
+    if selected & PG_ARGUMENTS.keys() and re.search(r'postgres|database|soft.delete',context_pack.original_request,re.I):
+        system_payload['mandatory_rules'].append('PostgreSQL uses only the configured connection profile and allowed schemas. Use inspect_postgres_table to obtain an exact table_sha256 before exporting or changing markers. CSV import requires explicit source_sha256 or a validated CSV-producing source_step, column mappings/types/null rules, and a fresh table. Export can use a validated import/marker source_step for the same table. Soft delete/restore requires explicit keys, exact affected-row count, existing NOT NULL boolean marker and current snapshot; never invent these facts. All imports, exports and marker changes require approval and validation. No raw SQL, schema creation, append, replace, DROP or automatic retries. Database inspection includes soft-deleted records; state any desired exclusion explicitly. Ask for concrete missing inputs, never claim execution or authority.')
     if "load_vector_to_postgis" in selected:
         system_payload["mandatory_rules"].extend([
             "A load_vector_to_postgis step must follow inspect_vector and be followed by validate_postgis_layer. If the required dependency skills are unavailable, do not invent them.",
@@ -81,6 +86,8 @@ def build_planner_request(
     from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS
     system_payload["tabular_argument_schemas"] = {id: schema.model_json_schema() for id,schema in TABULAR_ARGUMENTS.items() if id in selected}
     system_payload["mandatory_rules"].append("For tabular operations choose exactly one path or source_step; use ancestor CSV outputs for intermediate references, never data/output paths as original inputs. Every transform declares a unique .csv target_path, requires approval and validation. Missing-value strategies, predicates, joins, aggregates and calculate_csv_columns expression trees are typed data, never pandas/Python expressions. calculate_csv_columns requires explicit missing_policy, original numeric columns, fresh output names and finite float64 arithmetic; never generate Python. inspect_csv returns inspection metadata, not a CSV artifact, and must NEVER be used as source_step or right_step. The first transform reads the original data/input path even when it depends_on inspect_csv. Later transforms use the step ID of a CSV-producing transform. vector_attributes_to_csv drops geometry after inspecting the same GeoJSON.")
+    if 'decode_csv_codes' in selected and re.search(r'decode|codebook|mapping|labels?',context_pack.original_request,re.I):
+        system_payload['mandatory_rules'].append('decode_csv_codes reads the supplied sectioned field,description codebook directly, appends FIELD_label columns and preserves source codes/rows. Use explicit columns and unknown_policy=error unless the user chose preserving unmatched codes with empty labels. Do not use a sectioned codebook as a rectangular join_csv input. It is a normal authorized CSV writer, not an inspection or clinical interpretation.')
     system_payload["selected_skill_requirements"] = [
         {"skill": skill.id, "requires_approval": skill.approval_required,
          "validation_required": skill.validation_required}

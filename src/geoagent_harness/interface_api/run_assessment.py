@@ -81,6 +81,10 @@ def assess_run(root,identity,*,model_client=None,retry=False,effort_budget=None)
         record=_read(directory,identity)
         if record['status'] not in TERMINAL:
             raise InterfaceApiError('Critic assessment waits for a completed or stopped run')
+        if record.get('agent_coordination'):
+            # The captured task mode owns its outcome review. Reading/reviewing
+            # it must not introduce an independent Critic in single mode.
+            return record
         source=evidence(record)
         digest=_digest(source)
         previous=record.get('critic_review') or {}

@@ -253,6 +253,7 @@ def build_recipe_run_evidence(
     ] = {}
     lineage: list[LineageEdge] = []
     skill_versions: dict[str, str] = {}
+    database_snapshots=[]
 
     for step in sanitized_result.step_results:
         try:
@@ -276,6 +277,27 @@ def build_recipe_run_evidence(
             )
 
         skill_versions[skill.id] = skill.version
+
+        from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS, WRITE_IDS as PG_WRITES
+        if step.skill_id in PG_ARGUMENTS:
+            value=step.execution.result
+            if step.skill_id in PG_WRITES:
+                from .evidence_schemas import DatabaseSnapshotReference
+                database_snapshots.append(DatabaseSnapshotReference(step_id=step.step_id,**{key:value[key] for key in ('target_schema','target_table','connection_sha256','table_sha256','row_count','affected_rows','committed')}))
+                for source_record in value.get('sources',[]):
+                    area=source_record['area']
+                    if area=='input':
+                        source=_artifact_reference(path_value=source_record['path'],root=input_root,role=ArtifactRole.INPUT,artifact_id=_input_artifact_id(source_record['path']))
+                        artifacts_by_path[(ArtifactRole.INPUT,source.path)]=source
+                    else:
+                        source=artifacts_by_path.get((ArtifactRole.OUTPUT,source_record['path']))
+                        if source is None:raise RecipeEvidenceError('Database import intermediate has no recorded producer artifact')
+                    if source.sha256!=source_record['sha256']:raise RecipeEvidenceError('Database import source changed before evidence persistence')
+                if value.get('output'):
+                    output=_artifact_reference(path_value=value['output']['path'],root=output_root,role=ArtifactRole.OUTPUT,artifact_id=step.execution.output_ids[0],producer_step_id=step.step_id)
+                    if output.sha256!=value['output']['sha256']:raise RecipeEvidenceError('Database export file changed before evidence persistence')
+                    artifacts_by_path[(ArtifactRole.OUTPUT,output.path)]=output
+            continue
 
         from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, WRITE_IDS, is_extension, is_table_write
         if step.skill_id in TABLE_ARGUMENTS or is_extension(step.skill_id):
@@ -609,13 +631,14 @@ def build_recipe_run_evidence(
                 "implemented for a write skill"
             )
 
-    if not artifacts_by_path:
+    if not artifacts_by_path and not database_snapshots:
         raise RecipeEvidenceError(
             "recipe result contains no physical "
             "artifact evidence"
         )
 
     return RecipeRunEvidence(
+        database_snapshots=database_snapshots,
         recipe_id=sanitized_result.recipe_id,
         recipe_sha256=(
             sanitized_result.recipe_sha256

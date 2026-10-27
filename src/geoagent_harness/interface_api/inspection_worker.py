@@ -15,17 +15,26 @@ def main():
     import sys
     from pathlib import Path
     from geoagent_harness.discovery.source import relative_path
-    request = json.loads(sys.stdin.buffer.read(4097))
+    request = json.loads(sys.stdin.buffer.read(16385))
     path = relative_path(request['path'], 'input')
+    if request['action']=='dataset_profile':
+        from geoagent_harness.tabular.dataset_profile import inspect_dataset
+        result=inspect_dataset(Path(request['root']),path,request.get('analysis'),delimiter=request['delimiter'])
+        encoded=json.dumps(result,separators=(',',':'),allow_nan=False)
+        if len(encoded.encode())>1024**2:raise ValueError('Dataset profile exceeds output limit')
+        print(encoded);return
     if request['action'] not in {'csv_discover','spatial_discover'}:
         resource.setrlimit(resource.RLIMIT_CPU,(10,11))
-    if request['action'] in {'csv_probe','csv_discover','spatial_probe','spatial_discover'}:
+    if request['action'] in {'csv_probe','csv_strategy_probe','csv_discover','spatial_probe','spatial_discover'}:
         spatial=request['action'].startswith('spatial_')
         if spatial:
             from geoagent_harness.discovery.spatial import probe, inspect
         else:
             from geoagent_harness.discovery.csv import probe, inspect
         arguments={} if spatial else {'delimiter':request['delimiter'],'preview_rows':request['preview_rows']}
+        if not spatial and request['action'] == 'csv_discover' and request.get('analysis') is not None:
+            arguments['analysis'] = request['analysis']
+        if request['action']=='csv_strategy_probe':arguments['allow_large']=True
         if request['action'].endswith('_probe'):
             result=probe(Path(request['root']),path,**arguments)
         else:
@@ -38,12 +47,17 @@ def main():
                 if len(encoded)>16000:raise ValueError('Metadata exceeds progress budget')
                 while encoded:
                     encoded=encoded[os.write(fd,encoded):]
-            result=inspect(Path(request['root']),path,**arguments,
-                           expected_identity=request.get('source_identity'),on_metadata=emit)
+            from geoagent_harness.tabular.analysis import AnalysisError
+            try:
+                result=inspect(Path(request['root']),path,**arguments,
+                               expected_identity=request.get('source_identity'),on_metadata=emit)
+            except AnalysisError as error:
+                print(json.dumps({'error_code':'table_analysis_rejected','error':str(error)}))
+                return
         usage=resource.getrusage(resource.RUSAGE_SELF)
         result['resource_usage']={'worker_seconds':round(time.monotonic()-worker_started,4),'peak_rss_kib':usage.ru_maxrss}
         encoded=json.dumps(result,separators=(',',':'),allow_nan=False)
-        if len(encoded.encode())>16000:raise ValueError('Discovery exceeds output budget')
+        if len(encoded.encode()) > (128000 if request.get('analysis') is not None else 16000):raise ValueError('Discovery exceeds output budget')
         print(encoded)
         return
 

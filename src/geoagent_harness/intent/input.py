@@ -10,9 +10,11 @@ def check_task_input(*, project_root: Path, input_path: str) -> str:
     from .service import IntentError
     if not isinstance(input_path, str) or not input_path.strip() or len(input_path) > 960:
         raise IntentError('select one input filename or relative path before reasoning')
-    value = input_path.strip()
-    if '/' not in value:
-        value = 'data/input/' + value
+    from geoagent_harness.discovery.source import relative_path
+    try:
+        value = relative_path(input_path.strip(), 'input')
+    except ValueError as error:
+        raise IntentError(str(error)) from error
     parsed = PurePosixPath(value)
     if ('\\' in value or '\x00' in value or parsed.is_absolute() or '..' in parsed.parts
             or len(parsed.parts) < 3 or parsed.parts[:2] != ('data', 'input') or str(parsed) != value):

@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from .packages import installed_packages, package_sha, ProjectionArguments, configuration
 from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, LABELS
 
+from geoagent_harness.postgres.schemas import ARGUMENTS as POSTGRES_ARGUMENTS, LABELS as POSTGRES_LABELS
+
 NAMES = {
  'inspect_vector':'Inspect vector dataset','inspect_raster':'Inspect raster dataset',
  'convert_vector':'Convert vector format','convert_raster':'Convert raster format',
@@ -16,7 +18,7 @@ NAMES = {
  'verify_snakemake_export':'Verify Snakemake package','inspect_postgis_table':'Inspect PostGIS table',
  'compare_postgis_tables':'Compare PostGIS tables','assess_spatial_data_contract':'Check spatial data requirements',
  'inspect_geoserver_layer':'Inspect GeoServer layer','plan_geoserver_publication':'Plan GeoServer publication',
- 'assess_postgis_change':'Assess PostGIS changes','plan_postgis_promotion':'Plan PostGIS promotion', **LABELS,
+ 'assess_postgis_change':'Assess PostGIS changes','plan_postgis_promotion':'Plan PostGIS promotion', **LABELS, **POSTGRES_LABELS,
 }
 
 class Artifact(BaseModel):
@@ -57,7 +59,7 @@ def builtin_argument_models():
       'convert_vector':schemas.ConvertVectorRecipeArguments,'convert_raster':schemas.ConvertRasterRecipeArguments,
       'load_vector_to_postgis':schemas.LoadVectorToPostGISRecipeArguments,'validate_postgis_layer':schemas.ValidatePostGISLayerRecipeArguments,
       'generate_report':schemas.GenerateReportRecipeArguments,'export_snakemake_workflow':ExportArguments,
-      'verify_snakemake_export':VerifyArguments,**TABLE_ARGUMENTS,
+      'verify_snakemake_export':VerifyArguments,**TABLE_ARGUMENTS,**POSTGRES_ARGUMENTS,
     }
 
 def argument_models(root=Path('.')):
@@ -86,6 +88,7 @@ def _legacy_models():
     }
 
 def _result_schema(id):
+    if id in POSTGRES_ARGUMENTS:return {'type':'object','required':['operation','execution_performed'],'properties':{'operation':{'const':id},'execution_performed':{'type':'boolean'}},'description':'Bounded table metadata/snapshot or discovery; write receipts include effects, affected_rows and verification.'}
     if id=='inspect_csv':return TableMetadata.model_json_schema()
     if id in TABLE_ARGUMENTS or id.startswith('ext_'):return TableArtifact.model_json_schema()
     from geoagent_harness.schemas import InspectVectorResult
@@ -127,8 +130,8 @@ def operation_catalog(root, query=''):
         id=skill.id;package=packages.get(id);model=models.get(id)
         parameters=model.model_json_schema() if model else legacy[id][0].model_json_schema() if id in legacy else {'type':'object'}
         table=id in TABLE_ARGUMENTS or package is not None
-        output_kind='csv_artifact' if (table and id!='inspect_csv') else 'inspection_metadata' if id.startswith('inspect_') else 'database_layer' if id=='load_vector_to_postgis' else 'vector_artifact' if id=='convert_vector' else 'raster_artifact' if id=='convert_raster' else 'evidence' if 'snakemake' in id or id=='generate_report' else 'policy_result'
-        runtime_names=['pandas'] if table else ['psycopg'] if 'postgis' in id else ['geopandas','pyogrio'] if 'vector' in id or id=='assess_spatial_data_contract' else ['rasterio'] if 'raster' in id else ['httpx'] if 'geoserver' in id else []
+        output_kind='database_snapshot' if id in POSTGRES_ARGUMENTS and id!='export_postgres_to_csv' else 'database_csv_export' if id=='export_postgres_to_csv' else 'csv_artifact' if (table and id!='inspect_csv') else 'inspection_metadata' if id.startswith('inspect_') else 'database_layer' if id=='load_vector_to_postgis' else 'vector_artifact' if id=='convert_vector' else 'raster_artifact' if id=='convert_raster' else 'evidence' if 'snakemake' in id or id=='generate_report' else 'policy_result'
+        runtime_names=['pandas'] if table else ['psycopg'] if 'postgis' in id or id in POSTGRES_ARGUMENTS else ['geopandas','pyogrio'] if 'vector' in id or id=='assess_spatial_data_contract' else ['rasterio'] if 'raster' in id else ['httpx'] if 'geoserver' in id else []
         requirements=[]
         for name in runtime_names:
             try:version=metadata.version(name)

@@ -137,6 +137,12 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
         record['finding'] = refusal or ('Proposal saved after preliminary metadata discovery. No workflow run executed; use Execute when ready.' if record.get('discovery') else 'Proposal saved. Nothing executed; use Execute when ready.')
         if (response.get('context_usage') or {}).get('result_view'):
             record['finding'] = 'Recorded-result view prepared. The workflow is unchanged; no workflow operation was executed.'
+        if (response.get('context_usage') or {}).get('model_request',{}).get('stage')=='analytical_exploration':
+            state=(response.get('analytical_session') or {}).get('status','partial')
+            record['status']='explored' if state=='completed' else 'exploration_'+state
+            record['finding']='Read-only exploration '+state.replace('_',' ')+'. Evidence is saved; the workflow is unchanged. No data files were written or workflow run dispatched.'
+            with database(root,write=True) as connection:_put(connection,record)
+            return _present(root,record)
         exact_reply=(response.get('context_usage') or {}).get('model_request',{}).get('stage')=='deterministic_inspection'
         if request.inspect_on_send and (response['proposal_changed'] or exact_reply) and response['planner_result']:
             from geoagent_harness.planner.schemas import PlannerResult

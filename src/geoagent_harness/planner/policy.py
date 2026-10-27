@@ -64,6 +64,8 @@ REQUIRED_SKILL_ARGUMENTS = {
 }
 
 from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS, is_table_write, is_extension
+from geoagent_harness.postgres.schemas import ARGUMENTS as POSTGRES_ARGUMENTS, WRITE_IDS as POSTGRES_WRITE_IDS
+WRITE_SKILLS.update(POSTGRES_WRITE_IDS)
 WRITE_SKILLS.update(TABULAR_WRITE_IDS)
 REQUIRED_SKILL_ARGUMENTS.update({id: {'target_path'} for id in TABULAR_WRITE_IDS})
 REQUIRED_SKILL_ARGUMENTS['inspect_csv'] = {'path'}
@@ -89,11 +91,18 @@ def _argument_keys(value: object) -> set[str]:
 
 def normalize_plan_input_filenames(plan: WorkflowPlan) -> None:
     """Resolve model-proposed bare input filenames before policy and hashing."""
+    from geoagent_harness.discovery.source import relative_path
+    def normalize(arguments):
+        for key, value in arguments.items():
+            if key in {'path', 'right_path', 'codebook_path'} and isinstance(value, str):
+                try:
+                    arguments[key] = relative_path(value, 'input')
+                except ValueError:
+                    pass  # Existing deterministic path validation rejects it.
+            elif isinstance(value, dict):
+                normalize(value)
     for step in plan.steps:
-        for key in ("path", "right_path"):
-            value = step.arguments.get(key)
-            if isinstance(value, str) and value and "/" not in value and "\\" not in value and value not in {".", ".."}:
-                step.arguments[key] = "data/input/" + value
+        normalize(step.arguments)
 
 
 def _validate_argument_paths(value: object) -> None:
@@ -130,7 +139,7 @@ def validate_plan_policy(
 
     for step in plan.steps:
         path_arguments = step.arguments
-        if is_table_write(step.skill):
+        if is_table_write(step.skill) or step.skill in POSTGRES_ARGUMENTS:
             # Typed table sources allow null for the unused path/reference arm.
             path_arguments = {key: value for key, value in step.arguments.items()
                               if not (key in {'path', 'right_path'} and value is None)}
@@ -219,6 +228,8 @@ def validate_plan_policy(
         validate_steps(plan.steps, dependencies)
     except ValueError as error:
         raise PlannerPolicyError(str(error)) from error
+    from geoagent_harness.postgres.policy import validate_steps as validate_postgres
+    validate_postgres(plan.steps, dependencies)
     skill_order = [by_id[step_id].skill for step_id in ordered_ids]
 
     if "load_vector_to_postgis" in skill_order:

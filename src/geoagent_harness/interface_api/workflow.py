@@ -28,6 +28,7 @@ from .snakemake_workflow import ExportArguments, VerifyArguments, has_export
 
 from geoagent_harness.operations.registry import argument_models, builtin_argument_models
 ARGUMENTS = builtin_argument_models()
+from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS, READ_IDS as PG_READS
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
@@ -42,6 +43,7 @@ class EditRequest(BaseModel):
 class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     action: Literal['prepare_workflow', 'authorize_workflow', 'execute_workflow']
+    conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
     plan_filename: str = Field(pattern=r'^planner-plan\.[a-f0-9]{64}\.json$')
     confirmed_plan_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
     confirmed_review_sha256: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
@@ -76,7 +78,7 @@ def _check(result, root):
             from geoagent_harness.operations.packages import installed_packages, package_sha
             if typed.package_sha256 != package_sha(installed_packages(root)[step.skill]):
                 raise InterfaceApiError('Installed package digest does not match this proposal')
-        for input_key in ('path', 'right_path'):
+        for input_key in ('path', 'right_path', 'codebook_path'):
             if step.arguments.get(input_key) is None:
                 continue
             try:
@@ -116,7 +118,7 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
         return prepare_export_workflow(request, project_root=root)
     registry, recipe, policy = _check(result, root)
     required = list(dict.fromkeys([*prepared['approval_required_step_ids'], *policy.approval_required_step_ids]))
-    if not policy.write_step_ids and any(s.skill not in {'inspect_vector', 'inspect_raster', 'inspect_csv'} for s in result.plan.steps):
+    if not policy.write_step_ids and any(s.skill not in {'inspect_vector', 'inspect_raster', 'inspect_csv', *PG_READS} for s in result.plan.steps):
         raise InterfaceApiError('Direct read-only execution supports vector, raster and CSV inspection')
     recipes = root / 'workflow-recipes'
     if recipes.is_symlink():
@@ -135,6 +137,9 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
     from geoagent_harness.operations.packages import installed_packages, configuration
     packages = installed_packages(root)
     for step in steps:
+        if step['skill'] in PG_ARGUMENTS:
+            from geoagent_harness.postgres.service import effects
+            step['database_effects']=effects(step['skill'],step['arguments'],load_settings())
         package = packages.get(step['skill'])
         if package:
             step['adapter_configuration'] = configuration(package)
@@ -143,6 +148,14 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
                  approval_required_step_ids=required, write_step_ids=policy.write_step_ids,
                  execution_available=not policy.write_step_ids or effective(load_settings(), root).enable_write_tools,
                  execution_performed=False)
+    if request.conversation_id:
+        from .planning_tasks import conversation_record
+        chat=conversation_record(root,request.conversation_id) or {}
+        coordination=chat.get('agent_coordination') or {}
+        if coordination.get('plan_sha256')==request.confirmed_plan_sha256:
+            basis['agent_mode']=coordination['mode']
+            basis['conversation_id']=request.conversation_id
+            basis['coordination_sha256']=hashlib.sha256(json.dumps(coordination,sort_keys=True).encode()).hexdigest()
     if policy.write_step_ids and snapshot(root):
         state = snapshot(root)
         basis['write_policy'] = {key:state[key] for key in ('session_id','revision','enabled')}
@@ -288,7 +301,7 @@ def _execute_inspections(review, root):
             from geoagent_harness.recipes.control import checkpoint, progress
             checkpoint()
             progress(step['step_id'], step['skill'], 'running')
-            relative = check_task_input(project_root=root, input_path=step['arguments']['path'])
+            relative = '' if step['skill'] in PG_READS else check_task_input(project_root=root, input_path=step['arguments']['path'])
             record['execution_performed'] = True
             from .inspection_policy import active_inspection
             spatial_binding = None
@@ -300,7 +313,11 @@ def _execute_inspections(review, root):
                     pass  # Ordinary Execute retains existing inspector support.
             from .inspection_policy import active_inspection, bounded_read, check_dispatch
             bound = active_inspection.get()
-            if bound:
+            if step['skill'] in PG_READS:
+                from geoagent_harness.postgres.service import inspect as inspect_postgres
+                from geoagent_harness.mcp_server.settings import load_settings
+                result=inspect_postgres(step['skill'],step['arguments'],load_settings().model_copy(update={'project_root':root}))
+            elif bound:
                 check_dispatch(root, review, bound)
                 if 'sources' in bound:
                     bound=next(item for item in bound['sources'] if item['path']==relative)
@@ -318,7 +335,8 @@ def _execute_inspections(review, root):
                 from geoagent_harness.tabular.service import inspect_csv
                 result=bounded_read(root,action='csv_discover',path=relative,
                     delimiter=step['arguments'].get('delimiter',','),preview_rows=step['arguments'].get('preview_rows',5),
-                    checkpoint=checkpoint,on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value))
+                    checkpoint=checkpoint,on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value),
+                    analysis=step['arguments'].get('analysis'))
             elif relative.lower().endswith(('.tif','.tiff','.gpkg','.shp')):
                 result=bounded_read(root,action='spatial_discover',path=relative,checkpoint=checkpoint,
                     on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value))
@@ -387,6 +405,9 @@ def execution_failure_payload(error):
     for cause in chain:
         name = type(cause).__name__
         text = str(cause)
+        if name == 'PostgresError':
+            code, message = 'postgres_operation_rejected', text[:600]
+            break
         if name == 'LoadVectorError':
             if text.startswith('PostGIS credential file is'):
                 code, message = 'postgis_credentials_unavailable', 'PostGIS credential file is missing, unreadable or empty. Check the password-file configuration in the launcher terminal.'

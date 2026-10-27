@@ -1,7 +1,10 @@
 """MCP server exposing a fixed GIS tool allowlist."""
 
 from __future__ import annotations
-from typing import Any
+from geoagent_harness.sandbox.contracts import DatasetOptions
+from geoagent_harness.tabular.dataset_views import DatasetViewRequest
+from typing import Any, Literal
+from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import (
@@ -58,6 +61,41 @@ def create_mcp_server(
         return tools.health_check().model_dump(
             mode="json"
         )
+
+    @server.tool()
+    def discover_postgres_tables(target_schema:str='agent_sandbox')->dict:
+        """Read ordinary table names in an allowed schema. Never writes or authorizes."""
+        return tools.discover_postgres_tables(target_schema)
+
+    @server.tool()
+    def inspect_postgres_table(target_schema:str,target_table:str,preview_rows:int=5)->dict:
+        """Bounded exact all-row snapshot/count/nulls and preview, including soft-deleted records."""
+        return tools.inspect_postgres_table(target_schema,target_table,preview_rows)
+
+    @server.tool()
+    def discover_inputs(directory:str)->dict:
+        """Discover supported files and bounded CSV headers in one input folder; no raw rows, recursion or writes."""
+        return tools.discover_inputs(directory)
+
+    @server.tool()
+    def assess_table(path:str,operation:Literal['profile','quality','group','select_csv_columns','join_csv','calculate_csv_columns','statistical_model']='profile')->dict:
+        """Assess this operation's byte/row strategy; runtime limits remain authoritative, no execution approval."""
+        return tools.assess_table(path,operation)
+
+    @server.tool()
+    def explore_dataset_view(request:DatasetViewRequest)->dict:
+        """Read or calculate a chat-bound selected-column/group view, with exact count percentages. No LLM, writes or workflow dispatch."""
+        return tools.explore_dataset_view(request.model_dump(mode='json'))
+
+    @server.tool()
+    def profile_dataset(path:str,options:DatasetOptions|None=None)->dict:
+        """All-field observed types, candidate roles, numeric distributions and codebook categories; isolated read-only job."""
+        return tools.profile_dataset(path,options.model_dump(mode='json') if options else None)
+
+    @server.tool()
+    def profile_table(path: str, options: AnalysisOptions | None = None) -> dict:
+        """Full-file CSV profiles, quality/duplicate checks and grouped distinct counts; optional codebook, no dataset writes."""
+        return tools.profile_table(path, options.model_dump(mode="json") if options is not None else None)
 
     @server.tool()
     def discover_dataset(path:str,delimiter:str|None=None)->dict:

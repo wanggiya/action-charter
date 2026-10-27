@@ -12,7 +12,13 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 EXPECTED_TOOLS = {
+    "discover_postgres_tables", "inspect_postgres_table",
     "discover_dataset",
+    "profile_table",
+    "profile_dataset",
+    "explore_dataset_view",
+        "discover_inputs",
+        "assess_table",
     "assess_spatial_data_contract",
     "assess_postgis_change",
     "plan_postgis_promotion",

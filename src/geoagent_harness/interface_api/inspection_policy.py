@@ -29,7 +29,7 @@ def source_skill(path):
 
 
 
-def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', preview_rows=5, checkpoint=None, timeout=30, view_options=None, source_identity=None, on_metadata=None):
+def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', preview_rows=5, checkpoint=None, timeout=30, view_options=None, source_identity=None, on_metadata=None, analysis=None, max_seconds=None):
     from .server import InterfaceApiError
     if sys.platform != 'linux':
         raise InterfaceApiError('Inspection on send currently requires the Linux bounded reader; use reviewed Execute')
@@ -41,8 +41,10 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
            'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
     import time
     import os
-    if action in {'csv_discover','spatial_discover'}:
+    if action in {'csv_discover','spatial_discover','dataset_profile'}:
         timeout = 120
+    if max_seconds is not None:
+        timeout = min(timeout, max_seconds)
     progress_read = progress_write = None
     if on_metadata is not None:
         progress_read, progress_write = os.pipe()
@@ -64,8 +66,8 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
                 on_metadata(json.loads(line))
     payload=json.dumps(dict(root=str(root), action=action, path=path, source_sha256=source_sha256,
         source_identity=source_identity, delimiter=delimiter, preview_rows=preview_rows,
-        view_options=view_options, progress_fd=progress_write)).encode()
-    if len(payload)>4096:
+        view_options=view_options, progress_fd=progress_write, analysis=analysis)).encode()
+    if len(payload) > (16000 if analysis is not None else 4096):
         if progress_read is not None:
             os.close(progress_read);os.close(progress_write)
         raise InterfaceApiError('Inspection request exceeds its worker budget')
@@ -92,9 +94,11 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
                     break
                 except subprocess.TimeoutExpired:
                     first = False
-            if process.returncode or len(output) > (500000 if action == 'spatial_view' else 16000):
+            if process.returncode or len(output) > (1024**2 if action=='dataset_profile' else 500000 if action == 'spatial_view' else 128000 if analysis is not None else 16000):
                 raise InterfaceApiError('Dataset discovery failed: source changed, unsupported/invalid input or a discovery budget was exceeded. No data was changed.' if action in {'csv_probe','csv_discover','spatial_probe','spatial_discover'} else 'Bounded inspection failed. Check source changes, validity and the 8 MiB per-file and documented feature/layer/band limits. No dataset was changed.')
             result = json.loads(output)
+            if analysis is not None and result.get('error_code') == 'table_analysis_rejected':
+                raise InterfaceApiError(result['error'])
             if action == 'spatial_view' and result.get('error'):
                 raise InterfaceApiError(result['error'])
             return result
@@ -136,6 +140,8 @@ def eligible(root, result, message, source):
     if not exact or [s.arguments['path'] for s in exact.steps]!=[s['path'] for s in sources]:
         return 'Only an explicit supported metadata inspection batch can inspect on send.'
     steps = result.plan.steps
+    if any(step.arguments.get('analysis') is not None for step in steps):
+        return 'Analytical profiles and codebooks require reviewed Execute; inspect-on-send remains metadata-only.'
     if len(steps) != len(sources):
         return 'The complete proposal must match every submitted inspection; nothing was trimmed.'
     registry = load_skill_registry(root)

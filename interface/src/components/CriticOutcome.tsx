@@ -1,3 +1,4 @@
+import {TaskAgentReport} from "./TaskAgentReport";
 import type { WorkflowRun } from "../lib/workflow-tools";
 import {criticState} from '../lib/critic-graph';
 
@@ -5,7 +6,7 @@ export function CriticOutcome({run}:{run:WorkflowRun|null}){
  if(!run)return null;
  const review=run.critic_review,state=criticState(run);
  return <section className="detail-section critic-outcome" aria-label="Critic outcome assessment">
-   <h3>Critic review · advisory</h3><p className="critic-review-state" role="status">{state.label}</p>
+   <h3>{run.agent_mode==='single'?'Agent self-review · advisory':'Critic review · advisory'}</h3><TaskAgentReport run={run}/><p className="critic-review-state" role="status">{state.label}</p>
    <p>Recorded execution: <strong>{run.status.replaceAll('_',' ')}</strong>. Independent validation is reported with each operation.</p>
    <p className="critic-run-identity">Run <code>{run.run_id}</code> · {new Date(run.started_at).toLocaleString()}</p>
    <small>Model interpretation of recorded observations. It does not change execution status, certify current targets or grant authorization.</small>

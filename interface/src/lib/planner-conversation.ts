@@ -1,3 +1,5 @@
+import {agentMode,coordinationSchema} from './agent-coordination';
+import {analyticalSessionSchema} from './analytical-session';
 import {resultViewSpecSchema} from "./result-exploration";
 import {runSchema} from "./workflow-tools";
 import {capabilityCandidateSchema} from "./capability-candidate";
@@ -9,12 +11,14 @@ import { plannerResultSchema, type InterfacePlannerResult } from "./interface-ap
 export const submissionReceiptSchema = z.object({submission_id:z.string().regex(/^[a-f0-9]{32}$/),conversation_id:z.string().regex(/^[a-f0-9]{32}$/),status:z.string(),finding:z.string(),run_id:z.string().nullable()});
 
 export const conversationSchema = z.object({
+  agent_mode:agentMode.nullable().optional(),agent_coordination:coordinationSchema.nullable().optional(),agent_attempt:coordinationSchema.nullable().optional(),
   submission:submissionReceiptSchema.optional(),
   submitted_run:runSchema.nullable().optional(),
   conversation_id: z.string().regex(/^[a-f0-9]{32}$/),
   revision: z.number().int().nonnegative(),
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(8000), task_id:z.string().regex(/^[a-f0-9]{32}$/).nullable().optional(), conversation_id:z.string().regex(/^[a-f0-9]{32}$/).nullable().optional(), selected_skill_ids: z.array(z.string()).max(64).nullable().optional(), plan_skill_ids: z.array(z.string()).max(64).nullable().optional() })).max(100),
   planner_result: plannerResultSchema.nullable(),
+  analytical_session:analyticalSessionSchema.nullable().optional(),
   recipe_candidate:recipeCandidateSchema.nullable().optional(),
   recommendations_enabled:z.boolean().default(false),
   acquisition_enabled:z.boolean().default(false),
@@ -37,15 +41,17 @@ export const conversationSchema = z.object({
 });
 export type PlannerConversation = z.infer<typeof conversationSchema>;
 export function newConversationId() { return crypto.randomUUID().replaceAll("-", ""); }
-export async function plannerConversation(action: "read" | "turn" | "bind_task_plan" | "configure_acquisition" | "configure_recommendations" | "install_capability", id: string, revision = 0, message = "", base: InterfacePlannerResult | null = null, skills: string[] = [], currentPlanFilename: string | null = null, useHistory = true, taskId:string|null=null, taskRevision:number|null=null, taskTitle="",methodId:string|null=null,successfulMethodId:string|null=null, acquisition?:{recommendations_enabled?:boolean;acquisition_enabled?:boolean;confirmed_candidate_sha256?:string}, submission?:{id:string;enabled:boolean}): Promise<PlannerConversation> {
+export async function plannerConversation(action: "read" | "turn" | "bind_task_plan" | "configure_acquisition" | "configure_recommendations" | "configure_agent_mode" | "install_capability", id: string, revision = 0, message = "", base: InterfacePlannerResult | null = null, skills: string[] = [], currentPlanFilename: string | null = null, useHistory = true, taskId:string|null=null, taskRevision:number|null=null, taskTitle="",methodId:string|null=null,successfulMethodId:string|null=null, acquisition?:{agent_mode?:"single"|"three";recommendations_enabled?:boolean;acquisition_enabled?:boolean;confirmed_candidate_sha256?:string}, submission?:{id:string;enabled:boolean}): Promise<PlannerConversation> {
   if (action === "turn" || action === "configure_acquisition" || action === "install_capability") {
     const health = await fetch("/api/v1/health", {cache:"no-store", credentials:"same-origin"});
     if (!health.ok) throw new Error("Cannot check the running API version. Check the ActionCharter launcher terminal. No planner request was sent.");
-    const runtime = z.object({planner_contract_revision:z.string().optional(),inspection_on_send_revision:z.string().optional()}).safeParse(await health.json());
+    const runtime = z.object({planner_contract_revision:z.string().optional(),inspection_on_send_revision:z.string().optional(),analytical_planning_revision:z.string().optional(),analytical_loop_revision:z.string().optional()}).safeParse(await health.json());
     if (!runtime.success || runtime.data.planner_contract_revision !== "inspection-source-v2") {
       throw new Error("The running API has an older or incompatible Planner version. Stop the terminal running ActionCharter with Ctrl+C, then run bash scripts/start_actioncharter.sh from this checkout. Startup must show Planner contract revision: inspection-source-v2. Refresh this page afterward. No model request was sent; your saved workflow is preserved.");
     }
     if(submission&&runtime.data.inspection_on_send_revision!=='inspection-batch-v5')throw new Error('Restart the ActionCharter launcher and refresh this page before submitting. No submission was sent.');
+    if(action==='turn'&&(/\b(?:explore|analy[sz]e|investigate|assess)\b.*data\/input/si.test(message)||/^\s*(?:continue exploring|explore further|summarize these findings|explain these findings|compare these groups)\b/i.test(message))&&runtime.data.analytical_loop_revision!=='bounded-analyst-v1')throw new Error('Restart the launcher and refresh this page to use the analytical conversation tools. No request was sent.');
+    if(action==='turn'&&/^\s*profile\b/i.test(message)&&runtime.data.analytical_planning_revision!=='table-profile-routing-v2')throw new Error('The running API predates the analytical planning fix. Stop its launcher with Ctrl+C, run bash scripts/start_actioncharter.sh, then refresh this page. No profile or model request was sent; saved work is preserved.');
   }
   const current = base ? { agent_id: base.agent_id, model: base.model, original_request: base.original_request, context_references: base.context_references, plan: base.plan, warnings: base.warnings } : null;
   const turn = { action, conversation_id: id, expected_revision: revision, message, current_plan: current, allowed_skill_ids: skills, current_plan_filename: currentPlanFilename, use_history: useHistory, task_id:taskId, expected_task_revision:taskRevision, task_title:taskTitle,method_id:methodId,successful_method_id:successfulMethodId, ...acquisition };
@@ -76,7 +82,7 @@ export async function loadPlannerConversations() {
   return inventorySchema.parse(await response.json()).conversations;
 }
 
-export const capabilityControl=(action:"configure_acquisition"|"configure_recommendations"|"install_capability",id:string,revision:number,fields:{recommendations_enabled?:boolean;acquisition_enabled?:boolean;confirmed_candidate_sha256?:string})=>plannerConversation(action,id,revision,"",null,[],null,true,null,null,"",null,null,fields);
+export const capabilityControl=(action:"configure_acquisition"|"configure_recommendations"|"configure_agent_mode"|"install_capability",id:string,revision:number,fields:{recommendations_enabled?:boolean;acquisition_enabled?:boolean;confirmed_candidate_sha256?:string})=>plannerConversation(action,id,revision,"",null,[],null,true,null,null,"",null,null,fields);
 
 const submissionEnvelopeSchema = z.object({submission:submissionReceiptSchema,conversation:conversationSchema.nullable(),run:runSchema.nullable()});
 export async function readPlannerSubmission(submissionId:string, conversationId:string) {

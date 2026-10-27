@@ -1146,12 +1146,13 @@ export async function compilePlannerRecipe(stored: SavedPlannerResult, prepared:
 
 const workflowReviewSchema = z.object({
   workflow_kind: z.literal("snakemake_export").optional(),
+  conversation_id:z.string().optional(),agent_mode:z.enum(["single","three"]).optional(),
   export_path: z.string().optional(),
   source_attempt_sha256: z.string().optional(),
   schema_version: z.literal("1.0"), plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   recipe_filename: z.string(), recipe_sha256: z.string().regex(/^[a-f0-9]{64}$/),
   review_sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  steps: z.array(z.object({ step_id: z.string(), skill: z.string(), purpose: z.string(), depends_on: z.array(z.string()).max(20).optional(), arguments: z.record(z.string(), z.unknown()), requires_approval: z.boolean(), validation_required: z.boolean(), adapter_configuration:z.record(z.unknown()).optional(), execution_mode: z.enum(["execute", "reuse_completed"]).optional() })).max(20),
+  steps: z.array(z.object({ step_id: z.string(), skill: z.string(), purpose: z.string(), depends_on: z.array(z.string()).max(20).optional(), arguments: z.record(z.string(), z.unknown()), requires_approval: z.boolean(), validation_required: z.boolean(), database_effects:z.record(z.unknown()).optional(), adapter_configuration:z.record(z.unknown()).optional(), execution_mode: z.enum(["execute", "reuse_completed"]).optional() })).max(20),
   approval_required_step_ids: z.array(z.string()).max(20), write_step_ids: z.array(z.string()).max(20),
   execution_available: z.boolean(), execution_performed: z.literal(false),
 });
@@ -1178,7 +1179,7 @@ export async function validatePlanEdit(result: InterfacePlannerResult) {
   return plannerResultSchema.parse(await workflowPost("/api/v1/plans/validate-edit", { action: "validate_plan_edit", planner_result: { agent_id, model, original_request, context_references, plan, warnings } }));
 }
 export async function prepareCurrentWorkflow(stored: SavedPlannerResult) {
-  return workflowReviewSchema.parse(await workflowPost("/api/v1/workflow/prepare", { action: "prepare_workflow", plan_filename: stored.plan_filename, confirmed_plan_sha256: stored.plan_sha256 }));
+  return workflowReviewSchema.parse(await workflowPost("/api/v1/workflow/prepare", { action: "prepare_workflow", conversation_id:localStorage.getItem("actioncharter:planner-conversation:v1"), plan_filename: stored.plan_filename, confirmed_plan_sha256: stored.plan_sha256 }));
 }
 const workflowAuthorizationSchema = z.object({
   schema_version: z.literal("1.0"), review_sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -1187,10 +1188,10 @@ const workflowAuthorizationSchema = z.object({
 });
 export type WorkflowAuthorization = z.infer<typeof workflowAuthorizationSchema>;
 export async function authorizeCurrentWorkflow(review: WorkflowReview, approver: string, reason: string) {
-  return workflowAuthorizationSchema.parse(await workflowPost("/api/v1/workflow/authorize", { action: "authorize_workflow", plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, approve_required_steps: true, approver, reason }));
+  return workflowAuthorizationSchema.parse(await workflowPost("/api/v1/workflow/authorize", { action: "authorize_workflow", conversation_id:review.conversation_id, plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, approve_required_steps: true, approver, reason }));
 }
 export async function executeCurrentWorkflow(review: WorkflowReview, authorization: WorkflowAuthorization | null): Promise<InspectionRun | RecipeExecutionResult> {
-  const payload = await workflowPost("/api/v1/workflow/execute", { action: "execute_workflow", plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, confirm_execution: true, ...(authorization ? { plan_approval_filename: authorization.plan_approval_filename, recipe_approval_filename: authorization.recipe_approval_filename } : {}) });
+  const payload = await workflowPost("/api/v1/workflow/execute", { action: "execute_workflow", conversation_id:review.conversation_id, plan_filename: review.plan_filename, confirmed_plan_sha256: review.plan_sha256, confirmed_review_sha256: review.review_sha256, confirm_execution: true, ...(authorization ? { plan_approval_filename: authorization.plan_approval_filename, recipe_approval_filename: authorization.recipe_approval_filename } : {}) });
   const inspection = inspectionRunSchema.safeParse(payload);
   return inspection.success ? inspection.data : recipeExecutionSchema.parse(payload);
 }

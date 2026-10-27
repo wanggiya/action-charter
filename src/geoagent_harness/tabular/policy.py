@@ -36,6 +36,9 @@ def validate_steps(steps, dependencies):
                 formats={'.geojson','.json'} if skill(step)=='vector_attributes_to_csv' else {'.csv','.tsv'}
                 if suffix not in formats:
                     raise TabularError(f'{step.step_id}: {skill(step)} requires {" or ".join(sorted(formats))} input; {key} has format {suffix or "(no extension)"}. Use the source requested in this turn, never an incompatible historical input. Nothing executed.')
+        if skill(step)=='decode_csv_codes':
+            relative_path(args.codebook_path,'input')
+            if len(args.columns)!=len(set(args.columns)):raise TabularError('Codebook fields must be unique')
         if is_table_write(skill(step)):
             target=relative_path(args.target_path,'output')
             if not target.endswith('.csv'):raise TabularError('Table output must be .csv')
@@ -44,7 +47,7 @@ def validate_steps(steps, dependencies):
             ref=getattr(args,key,None)
             if ref:
                 if ref not in ancestors(step.step_id):raise TabularError('Intermediate references must name completed ancestor operations')
-                if not is_table_write(skill(known[ref])):raise TabularError(f'{step.step_id}: {key}={ref} references {skill(known[ref])}, which does not create a CSV file. Inspection returns metadata only. Use path for the original data/input file; source_step/right_step may reference CSV-producing transforms only.')
+                if not is_table_write(skill(known[ref])) and skill(known[ref])!='export_postgres_to_csv':raise TabularError(f'{step.step_id}: {key}={ref} references {skill(known[ref])}, which does not create a CSV file. Inspection returns metadata only. Use path for the original data/input file; source_step/right_step may reference CSV-producing transforms only.')
         if skill(step)=='vector_attributes_to_csv':
             if not any(skill(known[p])=='inspect_vector' and known[p].arguments.get('path')==args.path for p in ancestors(step.step_id)):
                 raise TabularError('Vector attributes export must follow inspection of the same source')
@@ -67,7 +70,9 @@ def preflight_calculations(steps, root):
         visiting = visiting | {step_id}
         step = known[step_id]
         args = step.arguments
-        if args.get('path') and step.skill in ARGUMENTS and step.skill != 'vector_attributes_to_csv':
+        if step.skill == 'aggregate_csv':
+            names = [*args['by'], *(item['output_column'] for item in args['aggregations'])]
+        elif args.get('path') and step.skill in ARGUMENTS and step.skill != 'vector_attributes_to_csv':
             names = list(read_frame(read_bytes(root, args['path']), args.get('delimiter', ',')).columns)
         elif args.get('source_step') in known:
             names = columns(args['source_step'], visiting)

@@ -406,7 +406,8 @@ def _bounded_outcome(value: object) -> object:
 
     projected = redact_value(value)
     encoded = json.dumps(projected, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
-    if len(encoded) > MAX_INTERFACE_OUTCOME_BYTES:
+    limit = 128000 if isinstance(projected, dict) and isinstance(projected.get('table_analysis'), dict) else MAX_INTERFACE_OUTCOME_BYTES
+    if len(encoded) > limit:
         return {
             "outcome_available": True,
             "projection_truncated": True,
@@ -2887,6 +2888,7 @@ def _handler(
                 return
             if self.path == "/api/v1/health":
                 from .conversation import PLANNER_CONTRACT_REVISION
+                from .inspection_planning import ANALYTICAL_PLANNING_REVISION
                 execution_enabled = effective_write_settings(load_settings(), project_root).enable_write_tools
                 self._send(HTTPStatus.OK, {
                     "schema_version": "1.0",
@@ -2895,6 +2897,10 @@ def _handler(
                     "planner_contract_revision": PLANNER_CONTRACT_REVISION,
                     "inspection_on_send_revision": "inspection-batch-v5",
                     "result_exploration_revision": "typed-views-v1",
+                    "analytical_table_revision": "table-analysis-v1",
+                    "analytical_planning_revision": ANALYTICAL_PLANNING_REVISION,
+                    "analytical_loop_revision": "bounded-analyst-v1",
+                    "model_selection_revision": "ollama-selection-v1",
                     "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
@@ -2909,7 +2915,16 @@ def _handler(
                 return
             if self.path == "/api/v1/model-status":
                 from geoagent_harness.model.diagnostics import inspect_model_configuration
-                self._send(HTTPStatus.OK, inspect_model_configuration())
+                from geoagent_harness.model.catalog import request_selection
+                with request_selection(project_root):
+                    self._send(HTTPStatus.OK, inspect_model_configuration())
+                return
+            if self.path == '/api/v1/models':
+                from geoagent_harness.model.catalog import catalog, CatalogError
+                try:
+                    self._send(HTTPStatus.OK, catalog(project_root))
+                except (CatalogError, ModelSettingsError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Ollama discovery unavailable. Check the configured endpoint and service. No model call or download occurred.'})
                 return
             task_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context", self.path)
             if self.path == "/api/v1/tasks":
@@ -3100,7 +3115,15 @@ def _handler(
         def do_POST(self) -> None:  # noqa: N802
             if self._reject_origin():
                 return
+            from geoagent_harness.model.catalog import request_selection
+            with request_selection(project_root):
+                self._post_selected()
+
+        def _post_selected(self) -> None:
+            if self._reject_origin():
+                return
             if self.path not in {
+                "/api/v1/models/select",
                 "/api/v1/write-policy",
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/tasks/events",
@@ -3125,6 +3148,8 @@ def _handler(
                 "/api/v1/reusable-recipes",
                 "/api/v1/planner/conversation",
                 "/api/v1/planner/submit",
+                "/api/v1/analysis/view",
+                "/api/v1/chat/history",
                 "/api/v1/method-memory",
                 "/api/v1/operations/scan",
                 "/api/v1/operations/test-package",
@@ -3160,7 +3185,14 @@ def _handler(
                 return
             try:
                 payload = json.loads(self.rfile.read(length))
-                if self.path == '/api/v1/write-policy':
+                if self.path == '/api/v1/models/select':
+                    from geoagent_harness.model.catalog import select, Selection, CatalogError
+                    try:
+                        response = select(project_root, Selection.model_validate(payload))
+                    except CatalogError as error:
+                        self._send(HTTPStatus.CONFLICT, {'error': str(error), 'execution_performed': False})
+                        return
+                elif self.path == '/api/v1/write-policy':
                     response = update_write_policy(project_root, PolicyUpdate.model_validate(payload))
                 elif self.path == "/api/v1/context/retrieve":
                     from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
@@ -3316,6 +3348,12 @@ def _handler(
                 elif self.path == "/api/v1/planner/submit":
                     from .planner_submission import SubmissionRequest, submission_action
                     response = submission_action(SubmissionRequest.model_validate(payload), project_root=project_root)
+                elif self.path == "/api/v1/chat/history":
+                    from .chat_history import HistoryRequest,history_action
+                    response=history_action(HistoryRequest.model_validate(payload),project_root=project_root)
+                elif self.path == "/api/v1/analysis/view":
+                    from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
+                    response=dataset_view(DatasetViewRequest.model_validate(payload),project_root=project_root)
                 elif self.path == "/api/v1/planner/conversation":
                     from .conversation import TurnRequest, conversation_turn
                     response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
@@ -3611,6 +3649,9 @@ def _handler(
                 self._send(HTTPStatus.CONFLICT, {'error': str(exc), 'code': 'write_policy_blocked', 'execution_performed': False})
                 return
             except (SkillRegistryError, OSError, ValueError) as exc:
+                if self.path in {'/api/v1/analysis/view','/api/v1/chat/history'}:
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY,{'error':redact_text(str(exc))[:600],'approval_performed':False,'execution_performed':False})
+                    return
                 if self.path in {'/api/v1/reusable-recipes', '/api/v1/workflow/runs'}:
                     from geoagent_harness.recipe_catalog.composition import RecipePreparationError
                     message = str(exc) if isinstance(exc,RecipePreparationError) else 'Request failed recipe contracts, isolated fixture checks or safe run storage requirements. The saved workflow is preserved; inspect its parameters and retry.'

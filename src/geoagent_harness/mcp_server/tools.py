@@ -58,6 +58,12 @@ from geoagent_harness.geoserver_publication import (
 )
 
 TOOL_ALLOWLIST = [
+    "discover_postgres_tables", "inspect_postgres_table",
+    "discover_inputs",
+    "assess_table",
+    "profile_table",
+    "profile_dataset",
+    "explore_dataset_view",
     "discover_dataset",
     "health_check",
     "inspect_vector_dataset",
@@ -73,6 +79,44 @@ TOOL_ALLOWLIST = [
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def discover_inputs(directory:str,settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.strategy import discover_inputs as discover
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Discovery requires the configured project data/input root')
+    return discover(active.project_root,directory)
+
+
+def assess_table(path:str,operation:str='profile',settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.strategy import assess_table as assess
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Assessment requires the configured project data/input root')
+    return assess(active.project_root,path,operation)
+
+
+def explore_dataset_view(request:dict,settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Views require the project input root')
+    return dataset_view(DatasetViewRequest.model_validate(request),project_root=active.project_root)
+
+
+def profile_dataset(path:str,options:dict|None=None,settings:MCPSettings|None=None)->dict:
+    """All-field typed profiles in the configured isolated runtime; no dataset writes or arbitrary code."""
+    from geoagent_harness.tabular.dataset_service import profile_dataset as profile
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Profiles require the project input root')
+    return profile(active.project_root,path,options)
+
+
+def profile_table(path: str, options: dict | None = None, settings: MCPSettings | None = None) -> dict:
+    """Read full-file summaries, exact quality/duplicate checks and grouped distinct counts through shared bounded services."""
+    from geoagent_harness.tabular.analytical_service import profile_table as profile
+    active = settings or load_settings()
+    if active.input_root.resolve() != (active.project_root / 'data/input').resolve():
+        raise ValueError('Analytical tools require the configured project data/input root')
+    return profile(active.project_root, path, options)
 
 
 def plan_geoserver_publication(
@@ -349,3 +393,12 @@ def validate_postgis_layer(
         expected_geometry_type=expected_geometry_type,
         settings=active,
     )
+
+
+def discover_postgres_tables(target_schema='agent_sandbox',settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('discover_postgres_tables',{'target_schema':target_schema},settings or load_settings())
+
+def inspect_postgres_table(target_schema,target_table,preview_rows=5,settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('inspect_postgres_table',{'target_schema':target_schema,'target_table':target_table,'preview_rows':preview_rows},settings or load_settings())

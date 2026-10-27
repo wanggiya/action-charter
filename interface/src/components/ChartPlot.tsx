@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type KeyboardEvent} from 'react';
-export type PlotValue={value:number;x:number;label:string;index:number;members:number[]};
+export type PlotValue={value:number;x:number;label:string;index:number;members:number[];facts?:[string,string|number][]};
 export const chartTypes=[['bar','Horizontal bar'],['column','Column'],['line','Line'],['area','Area'],['pie','Pie'],['donut','Donut'],['scatter','Scatter'],['histogram','Histogram'],['box','Box plot'],['summary','Summary']] as const;
 const colors=['#60a5fa','#22d3ee','#4ade80','#fbbf24','#fb923c','#c084fc','#f472b6','#a3e635'];
 const tick=(v:number)=>Number(v.toPrecision(4)).toString();
@@ -26,6 +26,7 @@ function PlotMarks({kind,values,x,y,selectedRow,onSelectRow,onInspect}:ChartProp
  const px=(i:number)=>55+(i+.5)/values.length*345,py=(v:number)=>230-(v-min)/(max-min||1)*200;
  const choose=(row:PlotValue)=>{
   const fields:[string,string|number][]=[[x||'Category',kind==='scatter'?row.x:row.label],[y||'Value',row.value]];
+  if(row.facts)fields.push(...row.facts);
   if(kind==='pie'||kind==='donut')fields.push(['Share of plotted total',`${(row.value/values.reduce((sum,v)=>sum+v.value,0)*100).toFixed(1)}%`]);
   if(row.members.length>1)fields.push(['Contributing preview rows',row.members.length]);
   onInspect({title:row.label,fields});onSelectRow?.(row.index);
