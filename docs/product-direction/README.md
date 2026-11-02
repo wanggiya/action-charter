@@ -11,6 +11,7 @@ Read in this order:
 | 1 | [Vision and assessment](VISION_AND_ASSESSMENT.md) | What the product is for, where it stands (2026-11-01), top priorities, structural problems, competitors |
 | 2 | [Editions and interfaces](EDITIONS_AND_INTERFACES.md) | Laptop vs server: one product or two? Professional vs non-professional interface |
 | 3 | [Autonomous server platform design](AUTONOMOUS_PLATFORM_DESIGN.md) | Target architecture for a policy-governed autonomous agent platform, new code structure, migration phases |
+| 4 | [Working method and delivery plan](WORKING_METHOD.md) | How contributors and agents work now (replaces checkpoints), ordered steps with exit criteria and status, task rules |
 
 ## One-paragraph summary for the next AI
 
