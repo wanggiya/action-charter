@@ -4,6 +4,7 @@ from typing import Literal, Annotated
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from .calculations import DerivedColumn, bounded_definition, expression_type
+from .analysis_contracts import AnalysisOptions
 
 Scalar = Annotated[str, Field(max_length=4096)] | int | float | bool
 class Strict(BaseModel):
@@ -13,6 +14,20 @@ class InspectCSV(Strict):
     path: str = Field(min_length=1, max_length=960)
     delimiter: Literal[',', '\t'] = ','
     preview_rows: int = Field(default=5, ge=0, le=20)
+    analysis: AnalysisOptions | None = None
+    @model_validator(mode='after')
+    def source_selection(self):
+        from pathlib import Path
+        options=self.analysis.source_options if self.analysis else None
+        if options is None:return self
+        suffix=Path(self.path).suffix.lower()
+        if suffix=='.xlsx':
+            if options.records_key:raise ValueError('XLSX does not accept records_key')
+        elif suffix in {'.json','.jsonl','.ndjson'}:
+            if options.sheet or options.header_row!=1 or options.cell_range:raise ValueError('JSON records do not accept worksheet options')
+            if suffix!='.json' and options.records_key:raise ValueError('JSON Lines does not accept records_key')
+        else:raise ValueError('source_options require an XLSX/JSON record source')
+        return self
 
 def _source_schema(schema):
     """Expose the same exclusive source choice enforced at runtime to models."""
@@ -37,7 +52,10 @@ class Source(Strict):
             raise ValueError('Choose exactly one path or source_step')
         return self
 
-class SelectColumns(Source):
+class RowSource(Source):
+    streaming: bool = False
+
+class SelectColumns(RowSource):
     columns: list[str] = Field(min_length=1, max_length=100)
 
 class Predicate(Strict):
@@ -53,11 +71,11 @@ class Predicate(Strict):
             raise ValueError('Missing-value predicates have no comparison value')
         return self
 
-class FilterRows(Source):
+class FilterRows(RowSource):
     predicates: list[Predicate] = Field(min_length=1, max_length=20)
     match: Literal['all','any'] = 'all'
 
-class HandleMissing(Source):
+class HandleMissing(RowSource):
     method: Literal['fill','drop_rows']
     fill_values: dict[str, Scalar] = Field(default_factory=dict)
     columns: list[str] = Field(default_factory=list, max_length=100)
@@ -90,6 +108,7 @@ class Aggregation(Strict):
     output_column: str = Field(min_length=1,max_length=200)
 
 class Aggregate(Source):
+    streaming: bool = False
     by: list[str] = Field(min_length=1,max_length=20)
     aggregations: list[Aggregation] = Field(min_length=1,max_length=100)
 
@@ -114,7 +133,12 @@ class CalculateColumns(Source):
                 raise ValueError('Calculation outputs must be numeric; use conditionals for classifications')
         return self
 
-class ExportCSV(Source):
+class DecodeCodes(RowSource):
+    codebook_path:str=Field(min_length=1,max_length=960)
+    columns:list[str]=Field(min_length=1,max_length=16)
+    unknown_policy:Literal['error','preserve']='error'
+
+class ExportCSV(RowSource):
     pass
 
 class VectorAttributes(Strict):
@@ -122,11 +146,11 @@ class VectorAttributes(Strict):
     target_path: str = Field(min_length=1,max_length=960)
 
 ARGUMENTS = {
-    'inspect_csv': InspectCSV, 'select_csv_columns': SelectColumns, 'filter_csv_rows': FilterRows,
+    'decode_csv_codes':DecodeCodes, 'inspect_csv': InspectCSV, 'select_csv_columns': SelectColumns, 'filter_csv_rows': FilterRows,
     'handle_csv_missing': HandleMissing, 'join_csv': JoinTables, 'aggregate_csv': Aggregate,
     'calculate_csv_columns': CalculateColumns, 'export_csv': ExportCSV, 'vector_attributes_to_csv': VectorAttributes,
 }
-LABELS = {'calculate_csv_columns':'Calculate table columns','inspect_csv':'Inspect CSV table','select_csv_columns':'Select table columns','filter_csv_rows':'Filter table rows','handle_csv_missing':'Handle missing table values','join_csv':'Join CSV tables','aggregate_csv':'Group and aggregate table','export_csv':'Export CSV results','vector_attributes_to_csv':'Extract vector attributes as CSV'}
+LABELS = {'decode_csv_codes':'Decode CSV codebook fields','calculate_csv_columns':'Calculate table columns','inspect_csv':'Inspect CSV table','select_csv_columns':'Select table columns','filter_csv_rows':'Filter table rows','handle_csv_missing':'Handle missing table values','join_csv':'Join CSV tables','aggregate_csv':'Group and aggregate table','export_csv':'Export CSV results','vector_attributes_to_csv':'Extract vector attributes as CSV'}
 WRITE_IDS = set(ARGUMENTS) - {'inspect_csv'}
 
 

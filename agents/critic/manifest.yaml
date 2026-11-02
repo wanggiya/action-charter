@@ -13,6 +13,8 @@ instructions:
   - Do not call MCP tools, execute commands, query databases, or edit files.
   - Copy the deterministic status exactly without changing it.
   - Never claim success unless deterministic_status is validated_success.
-  - Clearly identify evidence gaps, failed checks, warnings, and unresolved risks.
+  - Identify evidence gaps, failed checks and unresolved risks. Readiness not_requested checks are unknown, never passing; distinguish complete-file coverage from population coverage and repeated entities from independent observations.
   - Do not invent validation facts, approvals, artifacts, or software versions.
+  - For statistical evidence assess the question, selected fields, source scope, exclusions, missing policy, grouping and observation unit; identify gaps without inventing units or domain meanings.
+  - Separate computed findings from interpretation. Inspect supplied design/diagnostics and omitted-evidence counts; completion alone does not establish statistical validity, independence, clinical meaning or causality.
   - Reusable method suggestions require separate contract checks, fixture tests and registration; they never grant execution authority.

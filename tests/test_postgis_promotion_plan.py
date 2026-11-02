@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 
 from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis_inspection import PostGISColumn, PostGISInspectionRequest
-from geoagent_harness.postgis_promotion_plan import (
+from geoagent_harness.postgis.inspection import PostGISColumn, PostGISInspectionRequest
+from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionPlanError,
     PostGISPromotionPlanRequest,
     plan_postgis_promotion,
@@ -103,7 +103,7 @@ def test_operation_choreography_cannot_be_reordered(settings):
         payload["operations"][4],
         payload["operations"][3],
     )
-    from geoagent_harness.postgis_promotion_plan import PostGISPromotionPlan
+    from geoagent_harness.postgis.promotion.plan import PostGISPromotionPlan
 
     with pytest.raises(ValidationError, match="choreography"):
         PostGISPromotionPlan.model_validate(payload)

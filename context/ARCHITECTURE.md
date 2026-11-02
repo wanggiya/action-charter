@@ -111,7 +111,7 @@ transactions rather than trusting executor claims.
 
 ## Historical Builder generated-extension lifecycle
 
-The current optional data-only path is documented in [checkpoint 28.1](../docs/CHECKPOINT28_1.md); arbitrary generated Python is not enabled by it. The historical Builder cannot promote its own output. Generated candidates pass through:
+The current optional data-only path is documented in [checkpoint 28.1](../docs/development/checkpoints/CHECKPOINT28_1.md); arbitrary generated Python is not enabled by it. The historical Builder cannot promote its own output. Generated candidates pass through:
 
 ```text
 bounded request
@@ -129,13 +129,13 @@ bounded request
 This preserves the same separation between intelligence and authority when the
 system proposes extensions to itself.
 
-28.2 adds `planner.outcome_recommendations`: bounded dispatch-contract-bound check metadata in existing SQLite, chat-private ranking supplied to Planner, and relevance-first recipe tie-breaking. No new agent/container; Critic assessments remain distinct. See [scope and limits](../docs/CHECKPOINT28_2.md).
+28.2 adds `planner.outcome_recommendations`: bounded dispatch-contract-bound check metadata in existing SQLite, chat-private ranking supplied to Planner, and relevance-first recipe tie-breaking. No new agent/container; Critic assessments remain distinct. See [scope and limits](../docs/development/checkpoints/CHECKPOINT28_2.md).
 
 28.2 paired evaluation reuses conversation/review/write-policy/durable-run services in disposable projects, with independent CSV/spatial result checks. The toolbar uses registered access for presentation and freshly prepares authoritative scope before direct read-only execution; writes still require exact approval. Recommendation receipts expose policy and supplied ordering, never inferred model adoption.
 
 ## Explicit inspection submission — 28.2
 
-The [CSV-first submit coordinator](../docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md)
+The [CSV-first submit coordinator](../docs/development/checkpoints/CHECKPOINT28_2_INSPECTION_SUBMIT.md)
 wraps existing conversation validation, immutable plan storage and durable runs.
 A deterministic policy plus fixed bounded reader enforces explicit user intent,
 exact source content, chat revision, contract and no-approval read scope. Additive
@@ -146,7 +146,7 @@ separate proposed work, not execution authority.
 
 ## Typed result exploration — 28.3
 
-[Result exploration](../docs/CHECKPOINT28_3_RESULTS.md) shares the existing verified
+[Result exploration](../docs/development/checkpoints/CHECKPOINT28_3_RESULTS.md) shares the existing verified
 artifact reader between preview and typed full-bounded-file queries. Closed
 filter/sort/page/aggregate contracts produce stable source-row IDs, bounded
 profiles and explicit source/matching scopes. Planner proposes result_view from
@@ -158,8 +158,8 @@ model-derived plotted values are introduced.
 
 ## Checkpoint 28 discovery consolidation — 2026-10-22
 
-[Baseline, revised target and delivery](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md).
-The [closeout record](../docs/CHECKPOINT28_CLOSEOUT.md) adds closed exact-request
+[Baseline, revised target and delivery](../docs/development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md).
+The [closeout record](../docs/development/checkpoints/CHECKPOINT28_CLOSEOUT.md) adds closed exact-request
 proposals to the explicit submission coordinator, bypassing model calls while
 retaining policy and revision-checked conversation persistence. ON/OFF UI sends
 both use receipts; only ON can dispatch eligible bound reads. Batch source/contract

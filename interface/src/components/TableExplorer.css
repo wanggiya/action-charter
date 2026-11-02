@@ -1,0 +1,14 @@
+.table-explorer { display: grid; gap: .8rem; min-width: 0; }
+.table-explorer label { display: grid; gap: .35rem; min-width: 0; font-size: .82rem; }
+.table-explorer input, .table-explorer select { width: 100%; min-width: 0; padding: .55rem; border: 1px solid #49bddd66; border-radius: .4rem; background: #101b26; color: #edf6ff; font: inherit; }
+.table-explorer button:not(.planner-history-switch) { padding: .45rem .65rem; border-radius: .4rem; border: 1px solid #49bddd88; background: linear-gradient(180deg,#3ebcde22,transparent); color: #d9f5ff; font: inherit; cursor: pointer; }
+.table-explorer button[aria-pressed=true] { outline: 2px solid #69d8ed; outline-offset: -2px; background: #2085a43b; }
+.table-explorer button:disabled { opacity: .5; cursor: wait; }
+.analytical-controls { display: grid; grid-template-columns: repeat(auto-fit,minmax(155px,1fr)); gap: .7rem; align-items: end; }
+.analytical-field-list { display: flex; flex-wrap: wrap; gap: .4rem; max-height: 12rem; overflow: auto; padding: .25rem; }
+.table-explorer pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 15rem; overflow: auto; }
+.table-explorer .result-summary-facts { grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); }
+
+.table-explorer p { margin: .2rem 0; }
+.table-explorer .analytical-controls label { margin: 0; }
+.table-explorer .recorded-chart { min-width: 0; }

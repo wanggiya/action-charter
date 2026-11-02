@@ -20,4 +20,4 @@ A new chat defaults acquisition OFF. Ask for the same transformation on another
 compatible CSV; Planner should reuse the installed operation without generating
 another candidate. Installed definitions are project-visible; private transcripts
 and attempt receipts are not shared between chats. No model reliability claim is
-established by this example. [Bounds and acceptance](../../docs/CHECKPOINT28_1.md).
+established by this example. [Bounds and acceptance](../../docs/development/checkpoints/CHECKPOINT28_1.md).

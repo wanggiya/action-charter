@@ -12,6 +12,8 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
 parser.add_argument('--acquisition-fixture',action='store_true')
 parser.add_argument('--planning-task-fixture',action='store_true')
+parser.add_argument('--analytical-fixture',action='store_true')
+parser.add_argument('--statistics-fixture',action='store_true')
 parser.add_argument('--csv-discovery-fixture',action='store_true')
 parser.add_argument('--spatial-view-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
@@ -19,6 +21,9 @@ parser.add_argument('--calculation-fixture',action='store_true')
 parser.add_argument('--write-policy-fixture',action='store_true')
 parser.add_argument('--critic-graph-fixture',action='store_true')
 parser.add_argument('--report-authorization-fixture',action='store_true')
+parser.add_argument('--postgres-authorization-fixture',action='store_true')
+parser.add_argument('--diabetes-decoding-fixture',action='store_true')
+parser.add_argument('--agent-modes-fixture',action='store_true')
 parser.add_argument('--visualization-fixture',action='store_true')
 parser.add_argument('--calculation-deferral-fixture',action='store_true')
 parser.add_argument('--calculation-invalid-json-fixture',action='store_true')
@@ -70,6 +75,14 @@ if args.spatial_view_fixture:
         dataset.descriptions=('Elevation <b>literal</b>',None,None)
         dataset.update_tags(owner='Synthetic spatial fixture')
 (root/'data/output').mkdir(exist_ok=True)
+if args.statistics_fixture:
+    from openpyxl import Workbook
+    rows=[{'record_id':'001','x':1.5,'region':'A'},{'record_id':'002','x':2.5,'region':'A'},{'record_id':'003','x':4.5,'region':'B'}]
+    (root/'data/input/table_fixture.json').write_text(json.dumps(rows))
+    (root/'data/input/table_fixture.jsonl').write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+    book=Workbook();sheet=book.active;sheet.title='Data';sheet.append(list(rows[0]))
+    for row in rows:sheet.append(list(row.values()))
+    book.save(root/'data/input/table_fixture.xlsx')
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
 if args.calculation_omission_fixture:
     # A temporary historical record reproduces the real inspection-only bug.
@@ -86,11 +99,66 @@ if args.calculation_omission_fixture:
     conversation._write(conversation._path(root,historical_id),historical_state)
 class FixtureModel:
     def complete(self,request):
+        system=json.loads(request.messages[0].content)
+        if 'analysis_goal_capabilities' in system:
+            guide=system['result_view_context']['results'][0]['field_guidance']
+            numeric=next(f['name'] for f in guide['field_evidence'] if f['role'] in {'numerical','count'})
+            grouping=next((f['name'] for f in guide['field_evidence'] if f['role'] in {'categorical','ordered_category'}),numeric)
+            goals=[{'title':'Describe observed measurements','question':'How are observed measurements distributed?','method':'describe','fields':[numeric],'rationale':'A measurement candidate is present.','prerequisites':['Review units and the analysis unit.']},
+                   {'title':'Assess prediction feasibility','question':'Could a future model predict a chosen category?','method':'classification_evaluation','fields':list(dict.fromkeys([numeric,grouping])),'target_candidate':grouping,'rationale':'A candidate category would require a defined outcome.','prerequisites':['Define labels before model training.']}]
+            return ModelResult(model='temporary goal fixture',content=json.dumps({'message':'Two proposed analysis goals; no statistics were computed.','plan':None,'source_sha256':guide['source_sha256'],'analysis_goals':goals}))
+        if any('report_scope_fixture' in m.content for m in request.messages):
+            steps=[{'step_id':'step_1','skill':'inspect_csv','purpose':'Read-only data-quality report','arguments':{'path':'data/input/sample_orders.csv','analysis':{'numeric_columns':['amount']}}}]
+            if not any('Remove the unrequested generate_report' in m.content for m in request.messages):
+                steps.append({'step_id':'step_2','skill':'generate_report','purpose':'Extra report','arguments':{}})
+            return ModelResult(model='temporary report fixture',content=json.dumps({'message':'Prepared inspection report.','plan':{'summary':'Inspect and report','steps':steps}}))
+        if any('diagnostics_timeout_fixture' in m.content for m in request.messages):
+            from geoagent_harness.model import ModelClientError
+            raise ModelClientError.timeout()
+        control=json.loads(request.messages[0].content).get('task_coordinator')
+        if args.agent_modes_fixture and control and control['phase']!='planning':
+            evidence=json.loads(request.messages[1].content)['evidence']
+            return ModelResult(model='temporary task role fixture',prompt_tokens=20,completion_tokens=10,content=json.dumps({'conclusion':'ready' if control['phase']=='preflight' else 'supported','summary':'Review supplied evidence only.','findings':[],'evidence_step_ids':[s['step_id'] for s in evidence.get('steps',[])],'limitations':['Fixture, not a model capability evaluation.']}))
+
+        if args.analytical_fixture and json.loads(request.messages[0].content).get('role')=='analytical_reasoning':
+            observed=json.loads(request.messages[-1].content.split('Recorded read-only evidence: ',1)[1])
+            question=json.loads(request.messages[1].content)['question']
+            filename=next((n for n in ['diabetic_sample_5000.csv','diabetic_data.csv'] if n in question),'encounters.csv')
+            source='data/input/test/'+filename
+            if 'simulate a partial analytical' in request.messages[1].content.lower() and any(o['tool']=='assess_table' for o in observed):
+                from geoagent_harness.model import ModelClientError
+                raise ModelClientError.timeout()
+            if not any(o['tool']=='assess_table' for o in observed):action={'action':'assess_table','path':source,'operation':'profile'}
+            elif not any(o['tool']=='profile_table' for o in observed):action={'action':'profile_table','path':source,'options':{'numeric_columns':['time_in_hospital'],'distinct_columns':['patient_nbr']}}
+            else:
+                profile=next(o['result'] for o in observed if o['tool']=='profile_table')
+                mean=next(p['numeric']['mean'] for p in profile['profiles'] if p['name']=='time_in_hospital')
+                action={'action':'answer','message':f"The complete {filename} contains {profile['source_rows']:,} encounters and {profile['distinct_counts']['patient_nbr']:,} distinct patients. Mean time_in_hospital is {mean:.6g}. The neighbouring sample has unverified provenance; I used the explicitly selected source. Next examine missingness and readmission groups."}
+            return ModelResult(model='temporary analytical fixture',content=json.dumps(action))
+
         role=json.loads(request.messages[0].content).get('agent',{}).get('id')
         with (root/'model-calls.jsonl').open('a') as handle:
             handle.write(json.dumps({'role':role or json.loads(request.messages[0].content).get('agent_id')})+'\n')
         context=json.loads(request.messages[0].content).get('result_view_context')
         latest=json.loads(request.messages[1].content).get('latest_message','')
+        if args.statistics_fixture and latest.startswith('Which fields are suitable for statistics based on the recorded inspection'):
+            return ModelResult(model='temporary field-guidance fixture',content=json.dumps({'message':'x and y are candidate measurements for distributions and spread. Confirm their units and your objective before choosing a regression outcome. These suggestions preserve the workflow.','plan':None}))
+        if args.statistics_fixture and latest.startswith('Compute descriptive statistics for "') and 'typed arguments: ' in latest:
+            arguments,_=json.JSONDecoder().raw_decode(latest.split('typed arguments: ',1)[1])
+            proposed={'summary':'Selected descriptive analysis','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Describe the selected measurement and groups','arguments':arguments}]}
+            return ModelResult(model='temporary selected-analysis fixture',content=json.dumps({'message':'Review the selected methods and source; nothing executed.','plan':proposed}))
+        if args.statistics_fixture and any(name in latest for name in ('table_fixture.xlsx','table_fixture.json','table_fixture.jsonl')):
+            name=next(name for name in ('table_fixture.xlsx','table_fixture.jsonl','table_fixture.json') if name in latest)
+            options={'statistics':{'columns':['x'],'by':['region'],'question':'How does x vary by region?'}}
+            if name.endswith('.xlsx'):options['source_options']={'sheet':'Data'}
+            proposed={'summary':'Analyze selected record table','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Describe selected measurement by region','arguments':{'path':'data/input/'+name,'analysis':options}}]}
+            return ModelResult(model='temporary format fixture',content=json.dumps({'message':'Review the selected table and methods.','plan':proposed}))
+        if args.statistics_fixture and any(name in latest for name in ('statistical_fixture.csv','statistical_wide.csv')):
+            statistics={'methods':['describe','pearson','covariance','linear_regression'],'columns':['x','y'],'question':'How does y vary with x?','regression':{'outcome':'y','predictors':['x']}}
+            wide='statistical_wide.csv' in latest
+            if wide:statistics={'methods':['covariance'],'columns':[f'x{i}' for i in range(9)]}
+            proposed={'summary':'Numeric statistical analysis','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Compute declared statistical methods','arguments':{'path':'data/input/'+('statistical_wide.csv' if wide else 'statistical_fixture.csv'),'analysis':{'statistics':statistics}},'requires_approval':False,'validation_required':False}]}
+            return ModelResult(model='temporary statistics fixture',content=json.dumps({'message':'Review numeric methods, then execute.','plan':proposed}))
         if context and latest in {'Show boundaries layer on the map.','Display band 2 as a color ramp.','Explain the current result.'}:
             candidate=context['results'][0]
             spec={'run_id':context['run_id'],'plan_sha256':context['plan_sha256'],'step_id':candidate['step_id'],'view':'Map'}
@@ -143,6 +211,24 @@ class FixtureModel:
             else:
                 value={'conclusion':'supported','findings':[],'limitations':['Synthetic fixtures cover a small scope only.']}
             return ModelResult(model='temporary recipe role fixture',content=json.dumps(value))
+        if args.diabetes_decoding_fixture:
+            from diabetes_test_flow import make_plan
+            from geoagent_harness.mcp_server.settings import load_settings
+            proposed=make_plan(load_settings()).plan.model_dump(mode='json')
+            proposed['steps']=proposed['steps'][:4]
+            proposed['summary']='Prepare the real diabetes sample and verify supplied codebook labels'
+            return ModelResult(model='temporary diabetes proposal fixture',content=json.dumps({'message':'Preparation proposed; original records and code values will be preserved. Nothing approved or executed.','plan':proposed}))
+        if args.postgres_authorization_fixture:
+            import hashlib
+            from geoagent_harness.postgres.service import connection_sha256
+            from geoagent_harness.mcp_server.settings import load_settings
+            if 'soft delete' in latest.lower():
+                skill='soft_delete_postgres_rows'
+                arguments={'target_schema':'agent_sandbox','target_table':'visits','expected_table_sha256':'a'*64,'key_column':'encounter_id','keys':['001'],'deleted_column':'is_deleted','expected_affected_rows':1}
+            else:
+                skill='import_csv_to_postgres'
+                arguments={'connection_sha256':connection_sha256(load_settings()),'target_schema':'agent_sandbox','target_table':'visits','path':'data/input/sample_orders.csv','source_sha256':hashlib.sha256((root/'data/input/sample_orders.csv').read_bytes()).hexdigest(),'columns':[{'source':'order_id','name':'order_id','type':'text','nullable':False},{'source':'amount','name':'amount','type':'numeric'}],'key_columns':['order_id']}
+            return ModelResult(model='temporary PostgreSQL scope fixture',content=json.dumps({'message':'Review the exact database changes beside the graph. Nothing executed.','plan':{'summary':'Review PostgreSQL operation','steps':[{'step_id':'step_1','skill':skill,'purpose':'Prepare a reviewed database operation','arguments':arguments,'requires_approval':True,'validation_required':True}]}}))
         if args.calculation_fixture:
             proposed={'summary':'Calculate doubled amount','steps':[
                 {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
@@ -280,6 +366,13 @@ class FixtureModel:
 from geoagent_harness.capabilities import service as capability_service
 capability_service.SharedModelClient=lambda settings:FixtureModel()
 conversation.SharedModelClient=lambda settings:FixtureModel()
+if args.agent_modes_fixture:
+    import geoagent_harness.orchestrator.task_agents as task_agents
+    task_agents.SharedModelClient=lambda settings:FixtureModel()
+if args.analytical_fixture:
+    os.environ['ACTIONCHARTER_ANALYTICAL_RUNTIME']='docker' if os.environ.get('ACTIONCHARTER_BROWSER_DOCKER')=='1' else 'local'
+    from geoagent_harness.tabular import analyst
+    analyst.SharedModelClient=lambda settings:FixtureModel()
 method_memory.SharedModelClient=lambda settings:FixtureModel()
 method_helper.SharedModelClient=lambda settings:FixtureModel()
 from geoagent_harness.interface_api import run_assessment

@@ -536,3 +536,12 @@ def test_metadata_only_scope_failure_preserves_saved_workflow(project):
     assert restored['revision'] == initial['revision']
     assert restored['planner_result'] == initial['planner_result']
     assert len(client.requests) == 2
+
+
+def test_failed_first_chat_remains_in_inventory_without_copying_prompt_to_telemetry(project):
+    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.model.telemetry import read as diagnostics
+    with pytest.raises(ModelClientError):turn(project,Client(ModelClientError.timeout()),'Inspect metadata; private request content')
+    inventory=conversation_turn(TurnRequest(action='list',conversation_id='0'*32),project_root=project)
+    assert any(item['conversation_id']==ID and 'diagnostics available' in item['summary'] for item in inventory['conversations'])
+    assert 'private request content' not in json.dumps(diagnostics(project,ID))

@@ -1,10 +1,10 @@
 > Cross-chat memory is explicitly deferred until checkpoint 30 or later. [Decision and acceptance](DEFERRED_CROSS_CHAT_MEMORY.md). Current UI uses Saved chat history and Context sent to Planner, not a generated-memory collection.
 
-> Current direction: [one conversation = one task](CHECKPOINT26_CONVERSATIONS.md), with private transcript/plan memory. Topic changes retain context. Cross-chat linking/sharing is disabled; semantic summaries and core memory remain proposed.
+> Current direction: [one conversation = one task](development/checkpoints/CHECKPOINT26_CONVERSATIONS.md), with private transcript/plan memory. Topic changes retain context. Cross-chat linking/sharing is disabled; semantic summaries and core memory remain proposed.
 
 # Conversation memory and proposed summaries
 
-The expanded [project memory architecture](PROJECT_MEMORY_ARCHITECTURE.md) records versioned core/optional memory, curator corrections and methods. The operator authorized incremental work: [26.1 conversation memory](CHECKPOINT26_CONVERSATIONS.md) now keeps each chat private using local SQLite. Other memory features remain design proposals; laptop resource constraints remain.
+The expanded [project memory architecture](PROJECT_MEMORY_ARCHITECTURE.md) records versioned core/optional memory, curator corrections and methods. The operator authorized incremental work: [26.1 conversation memory](development/checkpoints/CHECKPOINT26_CONVERSATIONS.md) now keeps each chat private using local SQLite. Other memory features remain design proposals; laptop resource constraints remain.
 
 ## Existing implementation
 

@@ -70,6 +70,9 @@ _EXPECTED_VERIFIERS = {
 
 from geoagent_harness.tabular.schemas import WRITE_IDS as TABULAR_WRITE_IDS, is_table_write, is_extension
 from geoagent_harness.tabular.service import validate_output as validate_tabular_output, TabularError
+from geoagent_harness.postgres.schemas import WRITE_IDS as PG_WRITES
+from geoagent_harness.postgres.service import validate_output as validate_postgres_output, PostgresError
+_EXPECTED_VERIFIERS.update({id:'geoagent_harness.postgres.service:validate_output' for id in PG_WRITES})
 _EXPECTED_VERIFIERS.update({id: 'geoagent_harness.tabular.service:validate_output' for id in TABULAR_WRITE_IDS})
 
 class RecipeRunError(RuntimeError):
@@ -272,7 +275,7 @@ def _run_approved_recipe(
                 step_id=step_id,
                 registry=registry,
                 settings=settings,
-                **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) else {}),
+                **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) or step.skill_id in PG_WRITES or step.skill_id=='validate_postgres_import' else {}),
             )
         except (RecipeDispatchError, RecipeExecutionPolicyError, WritePolicyError) as exc:
             if progress_callback is not None:
@@ -315,7 +318,9 @@ def _run_approved_recipe(
             )
 
         try:
-            if is_table_write(step.skill_id):
+            if step.skill_id in PG_WRITES:
+                validation = validate_postgres_output(execution.result, settings)
+            elif is_table_write(step.skill_id):
                 validation = validate_tabular_output(execution.result, settings)
             elif step.skill_id == "convert_vector":
                 validation = (
@@ -344,6 +349,7 @@ def _run_approved_recipe(
                     "implemented recipe verifier"
                 )
         except (
+            PostgresError,
             TabularError,
             ConvertRasterValidationError,
             ConvertVectorValidationError,

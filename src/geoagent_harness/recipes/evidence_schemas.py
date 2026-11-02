@@ -12,6 +12,7 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+    model_serializer,
 )
 
 from geoagent_harness.recipes.schemas import (
@@ -104,6 +105,19 @@ class LineageEdge(BaseModel):
     ] = "derived_from"
 
 
+class DatabaseSnapshotReference(BaseModel):
+    """Database resources are not filesystem artifacts; preserve exact run receipts."""
+    model_config=ConfigDict(extra='forbid')
+    step_id:str=Field(pattern=r'^step_[1-9][0-9]*$')
+    target_schema:str
+    target_table:str
+    connection_sha256:str=Field(pattern=r'^[a-f0-9]{64}$')
+    table_sha256:str=Field(pattern=r'^[a-f0-9]{64}$')
+    row_count:int=Field(ge=0)
+    affected_rows:int=Field(ge=0)
+    committed:bool
+
+
 class RecipeRunEvidence(BaseModel):
     """Authoritative evidence for one completed recipe run."""
 
@@ -126,8 +140,10 @@ class RecipeRunEvidence(BaseModel):
 
     run_result: RecipeRunResult
 
+    database_snapshots:list[DatabaseSnapshotReference]=Field(default_factory=list)
+
     artifacts: list[ArtifactReference] = Field(
-        min_length=1
+        min_length=0
     )
     lineage: list[LineageEdge] = Field(
         default_factory=list
@@ -143,6 +159,25 @@ class RecipeRunEvidence(BaseModel):
     recorded_at: datetime
 
     secrets_redacted: Literal[True] = True
+
+    @model_serializer(mode='wrap')
+    def legacy_bytes(self,handler):
+        value=handler(self)
+        if not self.database_snapshots:value.pop('database_snapshots',None)
+        return value
+
+    @model_validator(mode='after')
+    def database_receipts_match(self):
+        if not self.artifacts and not self.database_snapshots:raise ValueError('Evidence requires physical artifacts or exact database snapshots')
+        steps={s.step_id:s for s in self.run_result.step_results}
+        from geoagent_harness.postgres.schemas import WRITE_IDS
+        for receipt in self.database_snapshots:
+            step=steps.get(receipt.step_id)
+            if not step or step.skill_id not in WRITE_IDS:raise ValueError('Database evidence must reference a database operation')
+            recorded=step.execution.result
+            if any(recorded.get(k)!=v for k,v in receipt.model_dump().items() if k!='step_id'):raise ValueError('Database evidence conflicts with recorded operation')
+            if self.final_status=='validated_success' and not (step.validation_result or {}).get('passed'):raise ValueError('Successful database evidence requires passing validation')
+        return self
 
     @field_validator("recorded_at")
     @classmethod

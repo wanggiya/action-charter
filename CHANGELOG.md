@@ -1,3 +1,441 @@
+# Structure cleanup, phase 0 part 1 (2026-11-01)
+
+- Group the 11 `postgis_*` packages under `geoagent_harness.postgis` (`inspection`,
+  `comparison`, `change_assessment`, `promotion.{plan,approval,execution,verification}`,
+  `rollback.{plan,approval,execution,verification}`) and the two `geoserver_*` packages
+  under `geoagent_harness.geoserver` (`inspection`, `publication`). Behaviour, schema IDs,
+  stored records and digests are unchanged; only Python import paths moved. Old import
+  paths such as `geoagent_harness.postgis_inspection` no longer exist.
+- Move the 116 `docs/CHECKPOINT*.md` records to `docs/development/checkpoints/` and
+  rewrite repository links to them.
+- Move the checkpoint history below the marker in `context/CURRENT_STATUS.md` to
+  `docs/development/STATUS_HISTORY.md`. The file was 11 bytes under the 128,000-byte
+  context-file limit; the model-visible overview is unchanged apart from link paths.
+- Add `scripts/real_data_tests/` with a full-file diabetes pipeline test that drives the
+  running app and the reusable PostGIS container (first run passed 9/9 checks on 101,766 rows).
+- Add `AGENTS.md`/`CLAUDE.md` and `docs/product-direction/` (vision, editions and interfaces,
+  autonomous platform design). Design only.
+
+# Inspection-led analysis goals and report metric coverage (2026-10-30)
+
+- Add typed Planner advice over recorded inspection fields/source hashes, persisted per chat.
+- Show concise goal cards with prerequisites, metrics and capability gaps; supported goals
+  continue through normal planning without automatic execution or authorization.
+- Reject numeric inference on identifiers/codes and expose statistical row limits.
+- Add measured/not-calculated statistical coverage to new readiness reports. Classification
+  evaluation, categorical hypothesis tests and causal analysis remain unavailable.
+- Verification: 2,254 backend tests passed, interface validation and isolated browser/API/CLI/PTY
+  passed; actual local-model advice passed in one 67.6-second call. Scientific review and
+  broader real-data acceptance remain open.
+- See [acceptance and limitations](docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+
+# Project reasoning settings and report planning contracts (2026-10-30)
+
+- Add persistent, revision-checked reasoning selection to Model service Settings and
+  backend request context; new requests apply it without environment edits or restart.
+  Active requests remain pinned. Shared-client payload and Settings persistence tested.
+- Separate derived analytical report views from legacy PostGIS evidence-file steps.
+  Ordinary table reports focus on inspection, exclude unrequested generate_report in
+  decoding and reject it in backend coverage before the bounded correction.
+- Bind missing task identity for explicitly requested legacy evidence steps before
+  review; preserve PostGIS validation and normal exact write authorization.
+- Keep background workflow telemetry independent of inherited submission contexts.
+- Verification: 2,248 tests, interface validation and isolated browser/API/CLI/PTY passed.
+- Actual model produced a read-only inspection/report proposal after one correction;
+  broad role-mode/model reliability remains an open gate. No live DB or Git changes.
+
+# Inspection routing and failure diagnostics access (2026-10-30)
+
+- Recognize numerical-summary wording without stripping typed analysis fields; route
+  eligible one-inspector requests, including metadata-only requests, through the
+  existing focused instruction profile rather than general planning instructions.
+- Put View request diagnostics in the failure message; open/scroll the bounded
+  disclosure and make the Planner panel scroll instead of clipping controls.
+- Display the sent reasoning setting separately from provider defaults. No model
+  setting, timeout retry, validation rule or execution authority is silently changed.
+- Actual timeout evidence showed ~211 MiB API RSS and at least ~3.49 GiB available
+  system RAM; model/GPU memory remains unmeasured. RAM exhaustion is not established.
+- Matched focused-prompt test: provider-default reasoning timed out at 120.1 s;
+  explicit none returned a valid proposal in 38.6 s with the same 1,024-token cap.
+  Verification: 2,244 tests, interface validation and isolated browser/CLI/PTY passed.
+- [Scope and recorded acceptance](docs/REQUEST_DIAGNOSTICS.md).
+
+# Durable request telemetry and actionable failures (2026-10-29)
+
+- Persist content-free submission/model-call records before dispatch and after success,
+  timeout, invalid replies or policy failures. Retain safe categories across refresh;
+  distinguish advisory revision requests from deterministic operation rejection.
+- Add bounded per-chat SQLite storage, process-interruption detection, nested-chat
+  isolation, reported token usage and sampled API RSS/CPU/system available memory.
+  Worker/model/GPU memory stays unknown; raw prompts/replies/data/secrets are excluded.
+- Add collapsible Planner diagnostics, sanitized JSON export, terminal `/diagnostics`
+  and CLI/API parity. Failed first chats remain discoverable without copying prompts.
+- Give advisory reviews up to 60 seconds within existing model/coordinator limits;
+  no extra attempt, automatic timeout retry, write authority or accepted invalid plan.
+  Full-source inspection planning reproduction passed; Single-mode workflow reliability
+  remains open after a separate failed bounded-correction experiment.
+- [Scope, evidence and manual validation](docs/REQUEST_DIAGNOSTICS.md).
+
+# Full-source preparation, PostgreSQL preflight and handoff (2026-10-29)
+
+- Qualify bounded streaming selection/filter/null handling/codebook decoding/export
+  and aggregation from validated CSV ancestors; retain existing dataframe limits.
+- Bind eligible streaming strategies before review, preserve explicit false, and
+  validate source identity/complete outputs before create-only publication.
+- Register read-only PostgreSQL mapping preflight across Planner/MCP/CLI; add explicit
+  per-column null policies and repeat full mapping checks before import transactions.
+- Record mapping digest/executed typed CREATE; preserve bounded schema facts in saved
+  runs before trimming preview rows. Add analytical/technical saved reports with
+  frontend Markdown/PDF, CLI/terminal and MCP access without execution replay.
+- Extend full-source disposable database acceptance and JSON/PDF browser coverage.
+  Real-model Single/Three selection passed; advisory reviews timed out. F5 remains
+  partial; this is not one-shot arbitrary workflow/model certification.
+- Verification: 2,230 tests passed, interface validation and isolated JSON/PDF/browser/
+  CLI/PTY journeys passed; full-source saved-run roundtrip matched every projected
+  record in disposable PostgreSQL. Original files and live services unchanged.
+- [Current scope and manual acceptance](docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+
+# Readiness assessment and full-data reporting (2026-10-29)
+
+- Documentation only: record the dependency-ordered full-data preparation, schema
+  preflight, PostgreSQL round trip, analytical/technical handoff and agent-mode acceptance
+  plan, including skill/service ownership and measurable gates. No future capability
+  is marked implemented by this planning record.
+
+- Timeout follow-up: focus single-inspector quality planning on concise relevant rules,
+  retain typed schemas/governance, expose the instruction profile in failure diagnostics,
+  and verify one-call timeout preservation. Actual Ollama latency remains unmeasured.
+
+- Compose typed source-bound readiness evidence from existing analytical/profile results,
+  preserving unknown checks, missing policies, mapping coverage and complete group bases.
+- Add Outcome Report using existing styling and Markdown/PDF export; share evidence via
+  CLI/MCP, CLI --report and saved terminal /report without execution replay.
+- Reuse statistical tables/figures when they fit; declare omissions and retain original
+  results. Share pure group-percentage calculation with interactive views.
+- Update existing Planner/Critic/statistical skill guidance and review evidence; block
+  silent neighbouring-sample substitution in the bounded exploration loop.
+- Reconcile full-file calculations independently; real-model/user and full database
+  acceptance remain separate. No new agent, write authority or dependency installation.
+
+# Shared table-source consolidation (2026-10-29)
+
+- Replace duplicated CSV/record inspection assembly with typed bounded batches and one
+  consumer for counts, preview, analysis, guidance and source evidence.
+- Centralize trusted reader capabilities across registry, relevant Planner metadata and
+  policy; add read-only MCP list_operation_contracts discovery.
+- Add validated table-source-v1 evidence without expanding the v1 digest formula or rewriting old
+  snapshots; normalize default percentile labels across direct/CLI/MCP validation.
+- Add unrelated cross-format/entry-point regression cases; broader consolidation and
+  manual acceptance remain open. No unrestricted library execution or authority added.
+
+# Statistical figures and common table readers (2026-10-29)
+
+- Add recorded grouped-mean figures, selectable correlation heatmaps and local PDF
+  figures; keep numerical tables and adjacent advisory agent assessment distinct.
+- Extend the stable table inspection operation with bounded XLSX and flat JSON/JSONL/
+  NDJSON readers, typed source selection, original hashes and explicit native-preview/
+  string-analysis semantics. No formula evaluation or permanent CSV conversion.
+- Share CLI/MCP/Planner contracts; preserve selected source table during result reads,
+  keep CSV transforms restricted and new-format execution separate from sending.
+- Declare XLSX dependencies and synthetic examples; prior/current manual acceptance pending.
+
+# Analytical recommendations and review evidence (2026-10-28)
+
+- Extend recorded advice with supported analysis opportunities and next-analysis Planner
+  questions that preserve the workflow; update existing statistical skill and role guidance.
+- Add optional statistical question, report definition/computed-finding sections and
+  bounded source/specification/group/missingness evidence for Critic review.
+- Verify actual local-model advice/grouped/Pearson proposals on temporary synthetic data,
+  plus question/report/PDF/terminal history browser acceptance. No new agent or authority.
+
+# Inspection-to-analysis starters (2026-10-28)
+
+- Prepare an explicit descriptive-analysis request from initial inspection, with a
+  numerical field and optional group selection; preserve separate Planner review/Execute.
+- Reuse typed statistical contracts and recorded reports through existing services;
+  exclude incomplete/ambiguous measurements from this shortcut without imputing values.
+- Reconcile the real sample's complete and age-group means, plus unrelated fixture
+  statistics, CLI/MCP results, browser request/Execute/report and terminal history.
+
+# Initial statistical field guidance and Summary rows (2026-10-28)
+
+- Fix vertically squeezed Summary/Regression labels with scoped responsive rows.
+- Add bounded full-scan candidate field guidance to initial CSV inspection and reuse
+  comprehensive profiling rules; keep identifiers, codes and missingness cautions explicit.
+- Show candidate families in Outcome Overview and prepare an optional Planner question;
+  advice-only responses preserve the workflow and never dispatch inspection/statistics.
+- Register read-only MCP recommend_table_fields, CLI table-guidance and terminal
+  /guidance; preserve source hashes, output budgets, old snapshots and worker isolation.
+
+# Statistics pages, PDF reports and covariance matrices (2026-10-28)
+
+- Use page-style statistical navigation, larger typography and readable diagnostic
+  facts; match existing result/material controls and remove inherited report-card styling.
+- Offer Markdown/PDF downloads from the same recorded report, with locally bundled
+  lazy PDF code/fonts, pagination and wide-table continuation. No upload or new execution.
+- Produce structured source/scope, descriptive/percentile, missingness, matrix, model,
+  inference and runtime tables; preserve historical reports and exact filter evidence.
+- Add labeled covariance matrices through the existing workflow/Planner/MCP/CLI family,
+  with explicit ddof and complete-case bounds, independent numerical checks and PDF parsing.
+
+# Exact-scope saved-run recovery (2026-10-27)
+
+- Recover runs by conversation and plan before global inventory display limits; reuse
+  the scoped read in frontend restoration and terminal `/run` without a known run ID.
+- Reconnect polling for active restored runs and retain matching evidence on failed
+  refresh, with visible status. No execution retry or authority restoration.
+- Fix assistance receipt JSON persistence and cached rereading. Test unrelated-receipt
+  saturation, scope isolation, read-only recovery, failure retention and timeout history.
+
+# Adjustable grouped charts, 3D columns and execution-state clarity (2026-10-27)
+
+- Restore a larger Comfortable default with Compact/Large presets, retaining proper
+  percentage denominators and shared grouped rendering.
+- Add optional SVG-projected two-field 3D columns with rotation/elevation, keyboard/
+  click facts and unchanged recorded values; no plotting dependency added.
+- Explain disabled header Execute states and distinguish proposal restoration from
+  execution. Add restore-before-execute/history-state browser acceptance; no authority change.
+
+# Applied result names and grouped percentage charts (2026-10-27)
+
+- Bind displayed table/group titles to applied fields; distinguish draft selections.
+- Share grouped-chart presentation across ordinary/session outcomes, including exact
+  record-count percentage bases, 0–100% percentage axes and a compact chart area.
+- Start the T01 ownership/Builder audit with concrete paths and compatibility gaps;
+  retain existing statistical measures and separate execution boundaries.
+
+# Age-by-gender cross-tab in CSV inspection Outcome (2026-10-27)
+
+- Connect the shared cross-tab renderer to ordinary executed CSV grouping, which
+  previously displayed a flat list; label Explore as Groups with row/column controls.
+- Preserve detailed numeric/distinct measures, charts and recorded two-field groups.
+- Exercise actual real-sample cell reconciliation, full-file totals, percentages and
+  axis swapping in isolated browser journeys; no live database or input changes.
+
+# Statistical, format and deployment requirements — documentation only (2026-10-27)
+
+- Record broader descriptive/inferential/modeling reports, qualified causal analysis,
+  multi-format source adapters and measurable acceptance targets.
+- Clarify Builder role versus lifecycle services, reuse existing generation foundations,
+  and require scoped memory/knowledge readiness before autonomous Linux deployment.
+- No runtime capability, dependency installation or remote-service operation added.
+
+# Analytical inspection prompt scope (2026-10-27)
+
+- Focus explicit read-only CSV profiling on its inspector schema instead of unrelated
+  writer schemas; retain full-file analysis options and existing execution boundaries.
+- Preserve broader mixed-action/current-workflow scope and add actual-request timeout
+  regression. No silent retries or claim that prompt reduction resolves model latency.
+
+# Manual task agent modes (2026-10-26)
+
+- Add per-chat single/three mode selection, bounded sequential role contexts,
+  work-order preflight and recorded outcome review over shared execution services.
+- Bind the captured mode to the owning chat's review; preserve write authorization,
+  deterministic validation, failure evidence and existing unset-mode behavior.
+- Add saved task reports, text/JSON downloads, truthful effort metrics and terminal
+  mode/report controls; reads never silently repeat model calls or execution.
+- Validate both modes with real sample rows in disposable PostgreSQL and isolated
+  browser journeys. Real-model quality and automatic routing remain unproven.
+
+# Real diabetes preparation and acceptance (2026-10-26)
+
+- Add authorized decode_csv_codes for supplied sectioned codebooks, with unknown-code
+  policy, preserved raw codes/encounters, mapping coverage and independent label checks.
+- Retain table identities/counts/coverage by shortening saved row previews before
+  replacing an oversized outcome with an omission notice.
+- Add independent CSV reference, six-operation real-sample database round trip and
+  actual frontend preparation/authorization/history acceptance; originals stay unchanged.
+- Document exact frontend requests/results and first-5,000 sample bias, including
+  entirely unavailable payer codes. Separate real-model planning from adapter evidence.
+
+# Governed PostgreSQL workflow operations (2026-10-26)
+
+- Add typed discover/inspect, create-only CSV import/export and exact-key soft
+  delete/restore operations through the registry, Planner, graph and recipe services.
+- Display configured destinations, effects, snapshot conditions and expandable exact
+  arguments in the existing authorization panel. Add read-only MCP/CLI access.
+- Verify source/table identities, explicit type/null mappings, atomic database writes,
+  semantic export values and one-attempt authority claims; retain failure receipts.
+- Persist database snapshot evidence alongside file artifacts without changing legacy
+  empty-field serialization. Keep PostgreSQL schemas out of unrelated CSV prompts.
+- Exercise readiness inspection/codebook preparation and authorized round trips in a
+  disposable PostgreSQL container; preserve existing PostGIS/live-service boundaries.
+
+# Two-variable cross-tab tables (2026-10-26)
+
+- Render saved two-field groups as rows × columns in Outcome and terminal, with
+  counts, row/column/overall percentages, complete totals and axis swapping.
+- Bound displayed categories without truncating denominator populations; preserve
+  missing categories and distinguish zero counts from undefined percentages.
+- Add terminal `/crosstab` display commands and a two-field `/columns` grouping alias.
+- Preserve the real-data preparation/report/database-round-trip sequence in the
+  handoff; PostgreSQL tabular import/export remains planned, not delivered here.
+
+# Main Outcome page and detailed field inspection (2026-10-26)
+
+- Use the graph area for Outcome with explicit Flow graph return and visible frontend
+  workflow-history access; preserve analytical field/tab selection when switching pages.
+- Add searchable individual field details, category/band frequencies and percentages,
+  appropriate numerical summaries and missingness/definition information.
+- Improve terminal field details and text charts; add saved grouped-percentage charts,
+  chart discovery and F5 access without model calls or source rereads.
+- Record the requested Target | Requirement | Functions/ability to add | Expected outcome
+  matrix for the next realistic science/engineering workflow.
+
+# Persistent terminal workspace and chat workflow history (2026-10-25)
+
+- Add `./actioncharter` and an installable console entry, full-screen and persistent plain
+  modes, shared chats/results/groups/history and explicit governed operator controls.
+- Atomically retain immutable chat-scoped workflow/analysis/view snapshots with content
+  deduplication and digest checks; link existing owned durable execution attempts.
+- Add frontend historical graphs/Outcomes and separate validated Continue action; preserve
+  current work and restore a new draft without copying execution authority.
+- Test frontend/terminal continuity, real PTY operation, snapshots, isolation and recovery.
+
+# Interactive selected-column and grouped outcomes (2026-10-25)
+
+- Add explicit source-bound Table/Groups calculations, one/two selected fields, all-row
+  counts and percentages with overall/within-first-group denominators.
+- Share recorded group tables/charts, clickable count/percentage/denominator details,
+  selected-column pages and saved restoration across Outcome, CLI and typed MCP.
+- Preserve earlier results on failure/source changes; no model call or write authority.
+- Verify exact full/sample diabetes counts and percentages independently in Docker.
+
+# Shared frontend/CLI chats and readable saved results (2026-10-25)
+
+- Add loopback-API `chat list/show/send/receipt/result` commands, revision checks and
+  uncertainty recovery without automatic retry or workflow authorization/dispatch.
+- Read saved Overview/Columns/Table/Chart/Groups/Checks facts with human or JSON output;
+  terminal charts use recorded full-file distributions and views do not rescan.
+- Add protected frontend saved-chat refresh preserving unsent drafts, and match analytical
+  field/chart selectors to existing result controls. Document scope and follow-up analysis.
+
+# Comprehensive inspection / isolated worker (2026-10-25)
+
+- Add all-field observed types, candidate roles, appropriate full-file numeric statistics,
+  bounded exact distributions/distinct counts, codebook coverage and explicit unavailable states.
+- Share typed `profile_dataset` across MCP, CLI and the analytical loop; retain specialized
+  duplicate checks. Keep raw previews out of the model's compact evidence.
+- Run comprehensive calculations in fixed non-root read-only Docker jobs, with selected-file
+  snapshots, no network/secrets, quotas, cancellation cleanup and verified report artifacts.
+- Lay out analytical graphs left to right; open resizable tabbed Outcome with all-field
+  selection, interactive full-source distributions, preview tables and runtime/source checks.
+- Prove boundaries with actual Docker probes; independently compare full/sample diabetes
+  statistics. Preserve original data, authority boundaries, plans and chat scope.
+- Document setup, validation, remaining limitations and Docker/MicroVM distinction.
+
+# Integrated real-data frontend scope — design only (2026-10-25)
+
+- Record comprehensive inspection/calculations, analytical role, typed tools, graph,
+  interactive Outcome and Executor-managed Docker workers as one acceptance target.
+- Clarify Docker scope, dependency order and deferred statistical/MicroVM/group-agent
+  work; supersede standalone infrastructure-only next-step summaries without deleting history.
+- Documentation only; no runtime, data, container, dependency or Git operations.
+
+# Executor sandbox and comprehensive inspection — design only (2026-10-25)
+
+- Record before/after execution structure, Executor ownership of isolated workers,
+  job/artifact contracts, Docker-first pilot and evidence needed to prove boundaries.
+- Preserve automatic numerical/category/identifier profiling, interactive Outcome and
+  left-to-right graph requirements, linked to the full data-science task.
+- No runtime/frontend changes, container builds/startup, dataset operations or tests.
+
+# Analytical graph and inspector — 2026-10-25
+
+- Project saved analytical inputs/actions/findings into the read-only graph and timeline;
+  show source, strategy, coverage, statistics and errors in the existing information panel.
+- Restore chat-specific analytical views without replay and preserve selectable plans;
+  disable Execute/Authorize for analytical evidence views and guard startup scope races.
+- Fix analytical-message provenance and narrowly project affected older own-chat records
+  without editing stored text on read; retain foreign-provenance rejection.
+- Extend isolated browser acceptance through normal-plan switching, partial results,
+  panel reopening and new-chat isolation. No new model calls or live data changes.
+
+# Bounded analytical conversation — 2026-10-25
+
+- Add scoped input discovery, bounded oversized-header probes and operation-specific
+  feasibility assessment through shared services, typed MCP tools and CLI entry points.
+- Add a role-neutral model/tool loop with stage-specific schemas, budgets, verified
+  analytical reads, explicit statistic coverage and preserved partial evidence.
+- Persist session evidence in the owning conversation and show it compactly in chat;
+  restoring it never repeats model calls or data reads. Preserve workflow authority.
+- Record sample uncertainty, real-input strategy acceptance and small-model failures.
+  Sampling writes/statistical fits remain absent; role reassignment, structured agent
+  communication and simulated Linux-server tests follow a successful data journey.
+
+# Confirmed submission status — 2026-10-24
+
+- Distinguish failed-before-dispatch, recorded-run and unconfirmed submission states
+  in Planner error messages using read-only receipt reconciliation.
+- Record the unresolved invalid-columns report and request its exact prompt for
+  routing reproduction; do not claim an unverified model/context cause.
+
+# Analytical routing and timeout recovery — 2026-10-24
+
+- Route complete CSV profile requests without a model through both conversation and
+  submission entry points; retain explicit method-selection semantics and backend gates.
+- Advertise an analytical-routing revision and block profile dispatch to older APIs.
+- Reconcile failed submission receipts on refresh and identify restored saved proposals
+  without resending or executing. Add routing and browser recovery regressions.
+
+# Column quality and grouped exploration — 2026-10-24
+
+- Extend shared full-file profiles with exact once-only/repeated-value metrics, raw and
+  declared missing counts, duplicate-row/key checks and per-group distinct counts.
+- Add bounded state limits with explicit analytical errors, typed MCP options and
+  shared CLI/Planner contracts; no arbitrary code or dependency installation.
+- Add CSV Columns/Explore pages with direct filtering/grouping, selected chart measures,
+  source verification and stale-response protection. Stop waiting cancels the browser
+  request; backend reads remain bounded, and new views are not durably saved.
+- Independently verify real-data quality/group counts in temporary copies; statistical
+  inference, model fitting and broader task completion remain future work.
+
+# Full exploratory-analysis task — design only (2026-10-24)
+
+- Record quality, descriptive, relationship and adjusted-analysis stages, shared
+  service/MCP/agent boundaries, frontend acceptance observations and implementation order.
+- Preserve analytical baseline and earlier scope; no runtime or statistical validation
+  delivered by this documentation update. Memory and model training remain parked.
+
+# Analytical delivery — 2026-10-24
+
+- Add persistent Ollama model discovery/selection for API requests, pinned per request.
+- Add complete-source CSV profiles, sectioned codebook labels/coverage, typed source
+  references, verified filtered pages and explicit streaming grouped CSV exports.
+- Share analytical services across workflow, MCP and CLI; preserve deterministic gates.
+- Add Results profiles/group charts and optional bounded post-run model assistance.
+- Verify real diabetes inputs using independent counters and normal execution in a
+  temporary project; document exact frontend retest and limits. Memory remains parked.
+
+# Workflow-first agent delivery order — documentation only (2026-10-23)
+
+- Preserve complete analytical workflow before independently callable/selectively orchestrated roles. Record model selection as the next proposed slice; permissions remain stable, memory redesign parked. No runtime changes.
+
+# Analytical execution and agent-role assessment — documentation only (2026-10-23)
+
+- Preserve the five-stage model/table/full-data/execution-assistance/frontend plan and compare selective roles, one coordinating loop and dynamic specialists. Correct product assumptions using official sources; no runtime implementation or comparative benchmark delivered.
+
+# Analytical inspection/codebook proposal — documentation only (2026-10-23)
+
+- Record step-4 feedback, full-file analytical profiling and mapping requirements, frontend audit-before-edit promise and proposed bounded execution assistance. Explain actual MCP/shared-service wiring and planned parity. No runtime functionality or tests delivered.
+
+# Memory options parked; data-test preparation next (2026-10-23)
+
+- Clarify mutable content/priority with recoverable older versions, preserve combined/separate curator roles and separate/common memory layouts as undecided alternatives, and record controlled scale-test preparation as the next priority. Documentation only; no tests or runtime changes.
+
+# Memory A direction — documentation only (2026-10-23)
+
+- Record the operator's non-forgetting shared JSON and separate knowledge-management agent requirements for A. Preserve historical designs, compare diagrams and flag superseded assumptions. B unchanged; no runtime implementation.
+
+# Memory architecture clarification — design only (2026-10-23)
+
+- Record role-specific memory, agent-led semantic curation, deterministic scope/version management, domain indexing and minimal export/restore direction. No runtime, cross-chat sharing or model-training behavior added.
+
+# Checkpoint 29 — private knowledge delivery plan (2026-10-22)
+
+- Document dependency-ordered storage, bounded Critic capture, same-chat retrieval/corrections, compact UI/CLI integration and measurable acceptance. Reuse existing agent and SQLite boundaries; cross-chat memory and model training remain deferred. Documentation only; no runtime behavior changed.
+
 # Checkpoint 28 — exact inspections and closeout acceptance (2026-10-22)
 
 - Add zero-model typed proposals for exact supported Inspect submissions; normal UI sends use durable receipts with Inspect on send ON or OFF. OFF prepares only; ON permits bounded read batches of 1–4 sources / 1 GiB aggregate. Preserve no replay, per-step source/contract/chat binding, cancellation and partial results. Default TSV discovery to tab.
@@ -145,7 +583,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Main workflow/recipe and approved MCP paths integrate the policy. Specialized legacy GeoServer/promotion/rollback writes remain fail-closed in managed sessions pending their own binding support; standalone legacy explicit startup mode remains separate.
 - Operator revised the demo gate: generated capabilities (28.1), learning/RL (28.2) and advanced private memory (29) must be implemented and validated before demo or real-data testing. These are unfinished; current evaluation uses synthetic fixtures. No Git/publication/live-service action.
 - Verified 1,783 backend tests, frontend typecheck/build and 23 temporary-fixture browser cases; no live-model/database/service acceptance is implied.
-- See docs/CHECKPOINT27_RUNTIME_WRITES.md for implementation boundaries and manual acceptance.
+- See docs/development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md for implementation boundaries and manual acceptance.
 
 # Record runtime write controls and checkpoint 27 demo gate
 
@@ -158,7 +596,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Show selected-operation formula, input/output paths, bounded table rows and readable independent checks; use shared cards in Outcome and durable history. Keep raw/audit details collapsed.
 - Restore evidence by both chat ID and exact plan digest; explicit history selection binds the run, pending edits remove old evidence, and stale reads cannot replace a newer scope/selection. Guard delayed startup graph loads against replacing a restored chat; bind Critic commentary to the selected run.
 - Report write-tools availability with the existing launcher flag. New CSV transforms retain up to 10 preview rows within the unchanged byte/cell limits; historical previews are preserved. No model call or execution is needed to inspect results.
-- Verified 1,769 backend tests, frontend typecheck/build, 12 calculation browser cases and six recipe/cancel/recovery/restart cases with temporary files and fixture models, plus nine intercepted-API UI cases. Maps/charts, agent evidence evaluation, capability acquisition and optional learning remain future work. See docs/CHECKPOINT27_RECORDED_RESULTS.md.
+- Verified 1,769 backend tests, frontend typecheck/build, 12 calculation browser cases and six recipe/cancel/recovery/restart cases with temporary files and fixture models, plus nine intercepted-API UI cases. Maps/charts, agent evidence evaluation, capability acquisition and optional learning remain future work. See docs/development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md.
 
 # Record post-calculation delivery gates
 
@@ -214,7 +652,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Added bounded read-only search/inspect capabilities to the existing Planner through typed JSON exchanges and shared API/CLI services. Two discovery exchanges plus final generation/one correction cap Planner inference at four calls per turn; direct planning requires no extra discovery calls.
 - Sanitized catalog structures omit registered private literals/descriptions/fixtures. Only parameterized/schema-enum definitions can compose automatically; other structures need current bindings in a normal validated plan. Own-chat evidence/history scope and final contract checks remain enforced.
 - Recipe browsing is optional reference. Secondary discussion shortcuts sit under More actions; manual composition stays in Advanced and is labelled Validate composition and open draft. Replies/receipts identify reported reuse without granting authority or claiming new-data success.
-- Added discovery/fallback/privacy/budget/timeout/contract-change and API/CLI tests, plus ordinary-chat browser discovery and fresh-authority execution. Verified 1,663 backend tests, frontend typecheck/build and 35 browser fixture cases. Local-model quality and remaining checkpoint 27 features are still unverified/pending. See docs/CHECKPOINT27_DISCOVERY.md.
+- Added discovery/fallback/privacy/budget/timeout/contract-change and API/CLI tests, plus ordinary-chat browser discovery and fresh-authority execution. Verified 1,663 backend tests, frontend typecheck/build and 35 browser fixture cases. Local-model quality and remaining checkpoint 27 features are still unverified/pending. See docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md.
 
 # Checkpoint 27.2 — focused recipe browsing and Planner reuse
 
@@ -228,7 +666,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - New durable executions capture operation contracts before dispatch and automatically retain eligible successful method metadata, tags and source evidence. No model call, authoring request or registration is required.
 - Added transactional bounded indexing, semantic grouping with distinct run evidence, current-contract diagnostics, own-chat discovery and fail-soft indexing-only retry. No credentials, raw bindings, transcripts or reusable authority are copied into the index. Optional Critic failure cannot block saving.
 - Reusable recipes shows automatic successful records alongside existing generalized templates, with operation order and recorded-outcome inspection. Existing Advanced controls remain. Shared API/CLI services preserve parity; runtime index is excluded from Docker build contexts.
-- Verified 1,646 backend tests, frontend typecheck/build and 17 browser fixture groups (5 retention plus 12 existing Planner/recovery groups). Planner retrieval/adaptation and later checkpoint 27 work remain planned; old runs without snapshots, synchronous legacy execution and Snakemake export are not auto-indexed. See docs/CHECKPOINT27_RETENTION.md.
+- Verified 1,646 backend tests, frontend typecheck/build and 17 browser fixture groups (5 retention plus 12 existing Planner/recovery groups). Planner retrieval/adaptation and later checkpoint 27 work remain planned; old runs without snapshots, synchronous legacy execution and Snakemake export are not auto-indexed. See docs/development/checkpoints/CHECKPOINT27_RETENTION.md.
 
 # Checkpoint 27 planning record — documentation only
 
@@ -264,7 +702,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Planner owns conversational composition and bounded recipe authoring; legacy Builder imports remain compatible. Normal users need no JSON or manual intermediate output paths. Explicit paths and semantic parameters remain reviewed inputs.
 - Recipe candidates use isolated fixture tests and separate Critic review before optional registration. Current-chat candidates restore without regeneration.
 - Requested outcome assessment runs in the backend after durable execution, caches bounded Critic findings and cannot override deterministic status. Failures preserve execution evidence; explicit assessment retry never repeats operations.
-- Preserved cancellation, conservative recovery, private-chat ownership and exact write authorization. Added natural-language browser acceptance and backend regressions; see docs/CHECKPOINT26_CLOSEOUT.md for verified scope and deferred work.
+- Preserved cancellation, conservative recovery, private-chat ownership and exact write authorization. Added natural-language browser acceptance and backend regressions; see docs/development/checkpoints/CHECKPOINT26_CLOSEOUT.md for verified scope and deferred work.
 
 # Checkpoint 26 — reusable recipe composition and durable runs
 
@@ -273,7 +711,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Main-workflow execution now has durable background runs, cooperative cancellation after active verification, per-step previews, restart interruption detection and safe recovery proposals. Read-only recovery excludes completed steps; write recovery uses fresh targets and fresh authorization, without automatic write reuse/retry.
 - Added shared API/CLI adapters and isolated backend/browser acceptance. Fixed spatial inspection/evidence paths outside the shell working directory, rechecked authorization before later writes, and preserved existing synchronous endpoints. Snakemake export remains synchronous.
 - Verified 1,600 tests, frontend typecheck/build and 22 production-browser fixture groups; local-model quality and live-service acceptance remain unverified.
-- See docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md for acceptance and unfinished checkpoint work. No live-service or Git/publication action performed.
+- See docs/development/checkpoints/CHECKPOINT26_RECIPES_AND_RECOVERY.md for acceptance and unfinished checkpoint work. No live-service or Git/publication action performed.
 
 # Chat history clarity and deferred cross-chat memory
 
@@ -676,6 +1114,27 @@ Explicit reviewed-intent plan storage, exact provenance/scope checks, existing P
 - Added fake-model regression tests and terminal acceptance guide. No frontend or execution authority changes.
 
 # Changelog
+
+## 2026-10-27 — typed table statistics and analytical reports
+
+- Regression omission follow-up: statistics-v2 constrains the proposal's requested
+  method/analysis/regression structure and cluster grouping requirements; providers
+  ignoring the schema still fail deterministic policy. Clarification remains possible.
+  Corrected generic omission advice and preserved table-statistics-v1 result history.
+  Fixed covariance/variance request matching and unused descriptive selectors in
+  regression-only proposals, exposed by a real-model synthetic acceptance run.
+
+- Timeout follow-up: statistics-only requests use focused instructions/examples and
+  relevant recipes instead of the general planning prompt. Preserves history, schemas,
+  allowlist, deterministic policy and no automatic retry; model latency remains unproven.
+
+- Extended existing CSV inspection with descriptive/grouped statistics, Pearson/Spearman
+  matrices and numeric OLS coefficients, standard errors, P-values, confidence intervals,
+  R-squared and diagnostics; explicit missingness/covariance choices and bounded scans.
+- Registered typed MCP tools, Planner method coverage/catalog guidance and shared CLI
+  access; optional scientific dependencies declared. No arbitrary code or new authority.
+- Added recorded Outcome Statistics sections, Markdown download and terminal report
+  reads. [Acceptance and remaining limits](docs/TABLE_STATISTICS_ACCEPTANCE.md).
 
 ## Checkpoint 22B — exact context review and storage
 
@@ -1207,23 +1666,23 @@ Checkpoint 21D layout correction: move history selection/refresh controls outsid
 
 Graph-source header correction (v19): the screenshots identify Refresh graph sources, not Refresh checked context. Replace option-dependent flex wrapping with explicit responsive grid columns and a constrained selector. Metadata occupies a consistent second row; narrow screens use a deliberate single-column header. Validate by refreshing graph sources repeatedly with long saved names at the same window width. Backend work follows this focused correction.
 
-Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21E.md`.
 
-Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/development/checkpoints/CHECKPOINT21F.md`.
 
-Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21G.md`. Recipe/outcome links remain open.
 
-Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/development/checkpoints/CHECKPOINT21H.md`.
 
-Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/development/checkpoints/CHECKPOINT21I.md`.
 
-Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/development/checkpoints/CHECKPOINT21J.md`.
 
-Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/development/checkpoints/CHECKPOINT21K.md`.
 
-Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/development/checkpoints/CHECKPOINT21L.md`.
 
-Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/development/checkpoints/CHECKPOINT21M.md`.
 
 ## Checkpoint 28.2 — outcome recommendation pilot
 

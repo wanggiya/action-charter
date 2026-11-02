@@ -451,8 +451,10 @@ def test_csv_format_error_identifies_step_operation_and_expected_formats():
     from geoagent_harness.planner.schemas import WorkflowPlan
     from geoagent_harness.planner.policy import validate_plan_policy, PlannerPolicyError
     reply=proposal();reply['plan']['steps'][0]['arguments']['path']='data/input/sample_dem.tif'
-    with pytest.raises(PlannerPolicyError,match=r'step_1: inspect_csv requires .csv or .tsv input; path has format .tif'):
+    with pytest.raises(PlannerPolicyError,match=r'step_1: inspect_csv requires .* input; path has format .tif') as error:
         validate_plan_policy(WorkflowPlan.model_validate(reply['plan']),available_skills={'inspect_csv'})
+    for suffix in ('.csv','.tsv','.xlsx','.json','.jsonl','.ndjson'):
+        assert suffix in str(error.value)
 
 
 def test_discovered_columns_ground_planner_without_sending_sample_values(project):

@@ -1,19 +1,19 @@
 # Delivery after bounded calculations
 
 Recorded 2026-10-18. **Ordered delivery plan; 27.4a recorded-result slice implemented.**
-See [delivered behavior and acceptance](CHECKPOINT27_RECORDED_RESULTS.md). Subsequent gates remain open.
+See [delivered behavior and acceptance](development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md). Subsequent gates remain open.
 The current checkpoint 27 snapshot adds successful-workflow retention/discovery,
 bounded calculations and Planner reliability checks. It is not a claim that the
 full interface, learning system or prototype is ready. Preserve the original
-[checkpoint 27 plan](CHECKPOINT27_PLAN.md), [roadmap](../context/PRODUCT_ROADMAP.md)
+[checkpoint 27 plan](development/checkpoints/CHECKPOINT27_PLAN.md), [roadmap](../context/PRODUCT_ROADMAP.md)
 and [calculation design](BOUNDED_CALCULATION_DESIGN.md).
 
-[28.1 pilot delivery](CHECKPOINT28_1.md) now implements optional closed text-adapter acquisition; one synthetic actual-model OFF/ON/reuse profile passed; broader reliability and operator acceptance remain explicit. This does not complete learning/RL, advanced memory, general generated Python or demo readiness.
+[28.1 pilot delivery](development/checkpoints/CHECKPOINT28_1.md) now implements optional closed text-adapter acquisition; one synthetic actual-model OFF/ON/reuse profile passed; broader reliability and operator acceptance remain explicit. This does not complete learning/RL, advanced memory, general generated Python or demo readiness.
 
 ## Updated delivery order and demo gate
 
-Updated 2026-10-19. [27.4a recorded results](CHECKPOINT27_RECORDED_RESULTS.md) and
-[27.7 runtime controls](CHECKPOINT27_RUNTIME_WRITES.md) are implemented slices.
+Updated 2026-10-19. [27.4a recorded results](development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md) and
+[27.7 runtime controls](development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md) are implemented slices.
 Next: 27.3 evidence feedback, remaining 27.4 visualization and synthetic 27.5
 evaluation; then implement/validate 28.1 generated capabilities, 28.2 learning/RL
 and 29 advanced private memory before demo or real-data testing. Preparation
@@ -92,7 +92,7 @@ full failure reporting and never automatically repeat writes.
 
 ## 2026-10-20 delivery update
 
-[27.3/27.4d](CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) implements advisory Critic note
+[27.3/27.4d](development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) implements advisory Critic note
 indexing from existing assessments, ten chart views, explicit complete verified
 CSV summaries, bounded WGS84 boundaries/attributes, collision-aware persistent
 layout and the shared warning write switch. Broader visualization is now an
@@ -102,7 +102,7 @@ measurements are reported separately; no release or parity claim follows.
 
 ## 2026-10-21 delivery clarification
 
-[Bounded inspection submission](CHECKPOINT28_2_INSPECTION_SUBMIT.md) is the current
+[Bounded inspection submission](development/checkpoints/CHECKPOINT28_2_INSPECTION_SUBMIT.md) is the current
 28.2 interaction slice. RL may take longer: [non-RL learning](LEARNING_WITHOUT_RL.md)
 sets out evaluated case reuse, failure feedback and context-aware retrieval as
 nearer-term options. This does not declare the learning gate passed or remove

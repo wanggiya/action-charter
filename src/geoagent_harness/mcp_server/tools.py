@@ -29,35 +29,45 @@ from geoagent_harness.verifier.postgis import (
     PostGISValidationResult,
     validate_postgis_layer as execute_validation,
 )
-from geoagent_harness.postgis_inspection import (
+from geoagent_harness.postgis.inspection import (
     PostGISInspectionRequest,
     PostGISInspectionResult,
     inspect_postgis_table as execute_postgis_inspection,
 )
-from geoagent_harness.postgis_comparison import (
+from geoagent_harness.postgis.comparison import (
     PostGISComparisonRequest,
     PostGISComparisonResult,
     compare_postgis_tables as execute_postgis_comparison,
 )
-from geoagent_harness.postgis_change_assessment import (
+from geoagent_harness.postgis.change_assessment import (
     PostGISChangeAssessment,
     assess_postgis_change as execute_change_assessment,
 )
-from geoagent_harness.postgis_promotion_plan import (
+from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionPlanRequest,
     PostGISPromotionPlanResult,
     plan_postgis_promotion as execute_promotion_planning,
 )
-from geoagent_harness.geoserver_inspection import (
+from geoagent_harness.geoserver.inspection import (
     GeoServerInspectionRequest, GeoServerInspectionResult,
     inspect_geoserver_layer as execute_geoserver_inspection,
 )
-from geoagent_harness.geoserver_publication import (
+from geoagent_harness.geoserver.publication import (
     GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult,
     plan_geoserver_publication as execute_geoserver_publication_planning,
 )
 
 TOOL_ALLOWLIST = [
+    "list_operation_contracts", "workflow_report",
+    "discover_postgres_tables", "inspect_postgres_table", "validate_postgres_import",
+    "discover_inputs",
+    "assess_table",
+    "profile_table",
+    "table_statistics",
+    "recommend_table_fields",
+    "linear_regression",
+    "profile_dataset",
+    "explore_dataset_view",
     "discover_dataset",
     "health_check",
     "inspect_vector_dataset",
@@ -73,6 +83,70 @@ TOOL_ALLOWLIST = [
     "run_approved_vector_postgis_workflow",
     "run_approved_recipe",
 ]
+
+
+def discover_inputs(directory:str,settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.strategy import discover_inputs as discover
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Discovery requires the configured project data/input root')
+    return discover(active.project_root,directory)
+
+
+def assess_table(path:str,operation:str='profile',settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.strategy import assess_table as assess
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Assessment requires the configured project data/input root')
+    return assess(active.project_root,path,operation)
+
+
+def explore_dataset_view(request:dict,settings:MCPSettings|None=None)->dict:
+    from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Views require the project input root')
+    return dataset_view(DatasetViewRequest.model_validate(request),project_root=active.project_root)
+
+
+def profile_dataset(path:str,options:dict|None=None,settings:MCPSettings|None=None)->dict:
+    """All-field typed profiles in the configured isolated runtime; no dataset writes or arbitrary code."""
+    from geoagent_harness.tabular.dataset_service import profile_dataset as profile
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Profiles require the project input root')
+    return profile(active.project_root,path,options)
+
+
+def profile_table(path: str, options: dict | None = None, settings: MCPSettings | None = None) -> dict:
+    """Read full-file summaries, exact quality/duplicate checks and grouped distinct counts through shared bounded services."""
+    from geoagent_harness.tabular.analytical_service import profile_table as profile
+    active = settings or load_settings()
+    if active.input_root.resolve() != (active.project_root / 'data/input').resolve():
+        raise ValueError('Analytical tools require the configured project data/input root')
+    return profile(active.project_root, path, options)
+
+
+def workflow_report(run_id:str,settings=None):
+    from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
+    return run_action(RunRequest(action='report',run_id=run_id),project_root=(settings or load_settings()).project_root)
+
+def list_operation_contracts(query:str='',settings:MCPSettings|None=None)->dict:
+    """Registry discovery only: typed parameters/results/effects; no source reads."""
+    if not isinstance(query,str) or len(query)>160:raise ValueError('Operation search supports up to 160 characters')
+    from geoagent_harness.operations.registry import operation_catalog
+    active=settings or load_settings()
+    return operation_catalog(active.project_root,query)
+
+
+def table_statistics(path: str, specification: dict, missing_values: dict | None = None, settings: MCPSettings | None = None,source_options:dict|None=None) -> dict:
+    """Typed full-file describe/correlation/OLS methods; shared bounded reader, no writes."""
+    from geoagent_harness.tabular.statistics import StatisticsSpec
+    specification=StatisticsSpec.model_validate(specification)
+    return profile_table(path,{'statistics':specification.model_dump(mode='json'),'missing_values':missing_values or {},'source_options':source_options},settings)
+
+
+def recommend_table_fields(path:str,settings:MCPSettings|None=None,source_options:dict|None=None)->dict:
+    from geoagent_harness.tabular.analytical_service import recommend_fields
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Field guidance requires the configured project data/input root')
+    return recommend_fields(active.project_root,path,source_options=source_options)
 
 
 def plan_geoserver_publication(
@@ -349,3 +423,16 @@ def validate_postgis_layer(
         expected_geometry_type=expected_geometry_type,
         settings=active,
     )
+
+
+def validate_postgres_import(arguments,settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('validate_postgres_import',arguments,settings or load_settings())
+
+def discover_postgres_tables(target_schema='agent_sandbox',settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('discover_postgres_tables',{'target_schema':target_schema},settings or load_settings())
+
+def inspect_postgres_table(target_schema,target_table,preview_rows=5,settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('inspect_postgres_table',{'target_schema':target_schema,'target_table':target_table,'preview_rows':preview_rows},settings or load_settings())

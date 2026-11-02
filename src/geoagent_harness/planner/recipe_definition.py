@@ -21,6 +21,8 @@ def planner_recipe_definition(result: PlannerResult, plan_digest: str) -> Workfl
     from geoagent_harness.tabular.schemas import ARGUMENTS, is_extension, is_table_write
     supported_outputs.update({step.skill: ["table_output"] for step in result.plan.steps if is_extension(step.skill)})
     supported_outputs.update({id: ['table_metadata' if id == 'inspect_csv' else 'table_output'] for id in ARGUMENTS})
+    from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS, WRITE_IDS as PG_WRITES
+    supported_outputs.update({id:['postgres_result_'+id] for id in PG_ARGUMENTS})
     unsupported = [step.skill for step in result.plan.steps if step.skill not in supported_outputs]
     if unsupported:
         raise PlannerRecipeDefinitionError("plan contains skills not supported by the governed recipe dispatcher: " + ", ".join(unsupported))
@@ -28,7 +30,7 @@ def planner_recipe_definition(result: PlannerResult, plan_digest: str) -> Workfl
     # The normal writer gate already binds the entire recipe; the plan service
     # separately verifies any stricter plan scope. Preserve those legacy recipes.
     # Evidence-only workflows have no such gate, so retain their plan gates here.
-    has_writer_gate = any(is_table_write(step.skill) or step.skill in {
+    has_writer_gate = any(is_table_write(step.skill) or step.skill in PG_WRITES or step.skill in {
         'convert_vector', 'convert_raster', 'load_vector_to_postgis',
     } for step in result.plan.steps)
     steps = [RecipeStep(
@@ -40,7 +42,7 @@ def planner_recipe_definition(result: PlannerResult, plan_digest: str) -> Workfl
         # Existing transformation recipes retain their canonical bytes/digests.
         additional_approval_required=not has_writer_gate and step.requires_approval and step.skill in {
             'inspect_vector', 'inspect_raster', 'inspect_csv',
-            'validate_postgis_layer', 'generate_report',
+            'validate_postgis_layer', 'generate_report', 'discover_postgres_tables', 'inspect_postgres_table',
         },
         output_ids=[f"table_{step.step_id}"] if is_table_write(step.skill) else supported_outputs[step.skill],
     ) for index, step in enumerate(result.plan.steps)]

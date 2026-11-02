@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.postgis_change_assessment import assess_postgis_change
-from geoagent_harness.postgis_comparison import PostGISComparisonResult
-from geoagent_harness.postgis_inspection import PostGISInspectionResult
-from geoagent_harness.postgis_promotion_approval import (
+from geoagent_harness.postgis.change_assessment import assess_postgis_change
+from geoagent_harness.postgis.comparison import PostGISComparisonResult
+from geoagent_harness.postgis.inspection import PostGISInspectionResult
+from geoagent_harness.postgis.promotion.approval import (
     PostGISPromotionApprovalError,
     PostGISPromotionApprovalStorageError,
     create_postgis_promotion_approval,
@@ -16,7 +16,7 @@ from geoagent_harness.postgis_promotion_approval import (
     load_postgis_promotion_plan_result,
     persist_postgis_promotion_approval,
 )
-from geoagent_harness.postgis_promotion_plan import (
+from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionOperation,
     PostGISPromotionPlan,
     PostGISPromotionPlanResult,

@@ -147,7 +147,7 @@ MAX_INTERFACE_DATA_RESOURCES = 500
 MAX_INTERFACE_CRITIC_EVIDENCE = 200
 INTERFACE_DATA_EXTENSIONS = {
     ".csv", ".geojson", ".gpkg", ".json", ".kml", ".parquet",
-    ".shp", ".tif", ".tiff", ".tsv",
+    ".shp", ".tif", ".tiff", ".tsv", ".xlsx", ".jsonl", ".ndjson",
 }
 
 
@@ -406,7 +406,8 @@ def _bounded_outcome(value: object) -> object:
 
     projected = redact_value(value)
     encoded = json.dumps(projected, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
-    if len(encoded) > MAX_INTERFACE_OUTCOME_BYTES:
+    limit = 128000 if isinstance(projected, dict) and isinstance(projected.get('table_analysis'), dict) else MAX_INTERFACE_OUTCOME_BYTES
+    if len(encoded) > limit:
         return {
             "outcome_available": True,
             "projection_truncated": True,
@@ -2887,6 +2888,7 @@ def _handler(
                 return
             if self.path == "/api/v1/health":
                 from .conversation import PLANNER_CONTRACT_REVISION
+                from .inspection_planning import ANALYTICAL_PLANNING_REVISION
                 execution_enabled = effective_write_settings(load_settings(), project_root).enable_write_tools
                 self._send(HTTPStatus.OK, {
                     "schema_version": "1.0",
@@ -2895,6 +2897,10 @@ def _handler(
                     "planner_contract_revision": PLANNER_CONTRACT_REVISION,
                     "inspection_on_send_revision": "inspection-batch-v5",
                     "result_exploration_revision": "typed-views-v1",
+                    "analytical_table_revision": "table-analysis-v1",
+                    "analytical_planning_revision": ANALYTICAL_PLANNING_REVISION,
+                    "analytical_loop_revision": "bounded-analyst-v1",
+                    "model_selection_revision": "ollama-selection-v1",
                     "planner_correction_limit": 1,
                     "write_authority": "bounded_recipe_and_approval_evidence",
                     "execution_authority": execution_enabled,
@@ -2909,7 +2915,16 @@ def _handler(
                 return
             if self.path == "/api/v1/model-status":
                 from geoagent_harness.model.diagnostics import inspect_model_configuration
-                self._send(HTTPStatus.OK, inspect_model_configuration())
+                from geoagent_harness.model.catalog import request_selection
+                with request_selection(project_root):
+                    self._send(HTTPStatus.OK, inspect_model_configuration())
+                return
+            if self.path == '/api/v1/models':
+                from geoagent_harness.model.catalog import catalog, CatalogError
+                try:
+                    self._send(HTTPStatus.OK, catalog(project_root))
+                except (CatalogError, ModelSettingsError, OSError, ValueError):
+                    self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Ollama discovery unavailable. Check the configured endpoint and service. No model call or download occurred.'})
                 return
             task_match = re.fullmatch(r"/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context", self.path)
             if self.path == "/api/v1/tasks":
@@ -3100,7 +3115,16 @@ def _handler(
         def do_POST(self) -> None:  # noqa: N802
             if self._reject_origin():
                 return
+            from geoagent_harness.model.catalog import request_selection
+            with request_selection(project_root):
+                self._post_selected()
+
+        def _post_selected(self) -> None:
+            if self._reject_origin():
+                return
             if self.path not in {
+                "/api/v1/models/select",
+                "/api/v1/models/reasoning",
                 "/api/v1/write-policy",
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/tasks/events",
@@ -3125,6 +3149,9 @@ def _handler(
                 "/api/v1/reusable-recipes",
                 "/api/v1/planner/conversation",
                 "/api/v1/planner/submit",
+                "/api/v1/planner/diagnostics",
+                "/api/v1/analysis/view",
+                "/api/v1/chat/history",
                 "/api/v1/method-memory",
                 "/api/v1/operations/scan",
                 "/api/v1/operations/test-package",
@@ -3160,7 +3187,19 @@ def _handler(
                 return
             try:
                 payload = json.loads(self.rfile.read(length))
-                if self.path == '/api/v1/write-policy':
+                if self.path == '/api/v1/models/select':
+                    from geoagent_harness.model.catalog import select, Selection, CatalogError
+                    try:
+                        response = select(project_root, Selection.model_validate(payload))
+                    except CatalogError as error:
+                        self._send(HTTPStatus.CONFLICT, {'error': str(error), 'execution_performed': False})
+                        return
+                elif self.path == '/api/v1/models/reasoning':
+                    from geoagent_harness.model.catalog import select_reasoning,ReasoningSelection,CatalogError
+                    try:response=select_reasoning(project_root,ReasoningSelection.model_validate(payload))
+                    except CatalogError as error:
+                        self._send(HTTPStatus.CONFLICT,{'error':str(error),'execution_performed':False});return
+                elif self.path == '/api/v1/write-policy':
                     response = update_write_policy(project_root, PolicyUpdate.model_validate(payload))
                 elif self.path == "/api/v1/context/retrieve":
                     from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
@@ -3313,9 +3352,22 @@ def _handler(
                 elif self.path == "/api/v1/method-memory":
                     from .method_memory import MethodRequest, method_action
                     response = method_action(MethodRequest.model_validate(payload), project_root=project_root)
+                elif self.path == "/api/v1/planner/diagnostics":
+                    from geoagent_harness.model.telemetry import read as read_diagnostics
+                    class DiagnosticRequest(BaseModel):
+                        model_config=ConfigDict(extra='forbid')
+                        conversation_id:str=Field(pattern=r'^[a-f0-9]{32}$')
+                    diagnostic_request=DiagnosticRequest.model_validate(payload)
+                    response=read_diagnostics(project_root,diagnostic_request.conversation_id)
                 elif self.path == "/api/v1/planner/submit":
                     from .planner_submission import SubmissionRequest, submission_action
                     response = submission_action(SubmissionRequest.model_validate(payload), project_root=project_root)
+                elif self.path == "/api/v1/chat/history":
+                    from .chat_history import HistoryRequest,history_action
+                    response=history_action(HistoryRequest.model_validate(payload),project_root=project_root)
+                elif self.path == "/api/v1/analysis/view":
+                    from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
+                    response=dataset_view(DatasetViewRequest.model_validate(payload),project_root=project_root)
                 elif self.path == "/api/v1/planner/conversation":
                     from .conversation import TurnRequest, conversation_turn
                     response = conversation_turn(TurnRequest.model_validate(payload), project_root=project_root)
@@ -3526,6 +3578,7 @@ def _handler(
                 })
                 return
             except PlannerAgentError as exc:
+                from geoagent_harness.model.telemetry import error_code as diagnostic_error_code
                 message = str(exc)
                 if getattr(exc, "reason", None) == "unverified_reuse_claim":
                     error = "planner claimed unverified recipe reuse"
@@ -3555,6 +3608,10 @@ def _handler(
                     error = "planner model returned an invalid plan schema"
                     code = "planner_invalid_schema"
                     finding = "; ".join(exc.findings) or "The model response did not satisfy the required workflow-plan schema."
+                elif diagnostic_error_code(exc)=='planner_review_needs_revision':
+                    error='planner role review requested revision'
+                    code='planner_review_needs_revision'
+                    finding='An advisory role requested changes after the bounded correction. This is separate from deterministic operation validation.'
                 elif "deterministic policy" in message:
                     error = "planner plan was rejected by deterministic policy"
                     code = "planner_policy_rejected"
@@ -3571,7 +3628,7 @@ def _handler(
                     "schema_findings": exc.findings,
                     "correction_attempted": exc.correction_attempted,
                     "planner_diagnostics": getattr(exc, "planner_diagnostics", None),
-                    "retry_guidance": ("The Planner must follow the declared text-capability contract: propose a bounded missing candidate when ON, or use the supplied compatible installed operation. Do not substitute numeric arithmetic. Your workflow is preserved; do not add approval flags or edit stored files." if code == "planner_capability_gap" else "The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted the calculation after one correction. Your saved workflow is preserved. Retry the same calculation request with automatic skill selection or calculate_csv_columns enabled; do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
+                    "retry_guidance": ("The Planner must follow the declared text-capability contract: propose a bounded missing candidate when ON, or use the supplied compatible installed operation. Do not substitute numeric arithmetic. Your workflow is preserved; do not add approval flags or edit stored files." if code == "planner_capability_gap" else "The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted a requested operation after one correction. Your saved workflow is preserved. Inspect the listed missing method or operation and retry with a compatible selected model. No execution happened. Do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "The role review requested changes after one correction. Inspect the supplied finding and current workflow. No authorization instruction can repair this review disagreement; no extra retry or execution happened." if code=="planner_review_needs_revision" else "The proposed workflow did not satisfy registered operation contracts. Review the listed finding and current workflow. Internal task IDs and approval flags are not user authorization instructions; changing permissions cannot repair an invalid plan."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,
@@ -3586,7 +3643,7 @@ def _handler(
                 if self.path in {"/api/v1/planner/conversation", "/api/v1/planner/submit", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
                     if isinstance(exc, ModelClientError):
                         message, code = str(exc), exc.code
-                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
+                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. In Settings → Model service, try Reasoning effort None for a compatible model, fewer selected skills, or a smaller installed model. Saved project reasoning settings apply to new requests without a launcher restart. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
                                     if code == "model_timeout" else "The configured endpoint rejected JSON-schema output. Check its structured-output support. For a compatible endpoint that only supports JSON mode, explicitly set MODEL_RESPONSE_FORMAT=json_object in the launcher environment and restart. No automatic fallback or retry occurred." if code == "model_response_format_rejected" else "Planner reached its call or configured time limit. Review request diagnostics; reduce the scope or adjust trusted launcher settings. Nothing executed." if code == "planner_budget_exhausted" else "Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.")
                     elif isinstance(exc, ModelSettingsError):
                         message, code = "Planner model configuration is invalid or missing", "model_configuration_failed"
@@ -3611,6 +3668,9 @@ def _handler(
                 self._send(HTTPStatus.CONFLICT, {'error': str(exc), 'code': 'write_policy_blocked', 'execution_performed': False})
                 return
             except (SkillRegistryError, OSError, ValueError) as exc:
+                if self.path in {'/api/v1/analysis/view','/api/v1/chat/history'}:
+                    self._send(HTTPStatus.UNPROCESSABLE_ENTITY,{'error':redact_text(str(exc))[:600],'approval_performed':False,'execution_performed':False})
+                    return
                 if self.path in {'/api/v1/reusable-recipes', '/api/v1/workflow/runs'}:
                     from geoagent_harness.recipe_catalog.composition import RecipePreparationError
                     message = str(exc) if isinstance(exc,RecipePreparationError) else 'Request failed recipe contracts, isolated fixture checks or safe run storage requirements. The saved workflow is preserved; inspect its parameters and retry.'

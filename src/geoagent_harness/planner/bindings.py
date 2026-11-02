@@ -9,6 +9,27 @@ def fresh_csv_path():
     return 'data/output/result_' + uuid4().hex + '.csv'
 
 
+def bind_streaming_preparation(plan,root):
+    """Bind qualified mechanical strategy before review; never mutate a saved approval."""
+    from pathlib import Path
+    from geoagent_harness.discovery.csv import source
+    qualified={'select_csv_columns','filter_csv_rows','handle_csv_missing','decode_csv_codes','export_csv','aggregate_csv'}
+    known={s.step_id:s for s in plan.steps};changed=[]
+    for _ in plan.steps:
+        progress=False
+        for step in plan.steps:
+            if step.skill not in qualified or 'streaming' in step.arguments:continue
+            parent=known.get(step.arguments.get('source_step'))
+            large=bool(parent and parent.arguments.get('streaming'))
+            path=step.arguments.get('path')
+            if path and Path(path).suffix.lower() in {'.csv','.tsv'}:
+                with source(root,path) as (_,_,info):large=info[2]>8*1024**2
+            if large:
+                step.arguments['streaming']=True;changed.append(step.step_id);progress=True
+        if not progress:break
+    return changed
+
+
 def allocate_csv_outputs(plan):
     """Only infer the format already fixed by the registered CSV contract."""
     assigned=[]
@@ -106,4 +127,13 @@ def bind_required_gates(plan, registry):
             changed.append(step.step_id)
         step.requires_approval = bool(step.requires_approval or approval)
         step.validation_required = bool(step.validation_required or validation)
+    return changed
+
+
+def bind_report_task(plan,task_id):
+    """Bind existing task identity before review; never invent approval or outputs."""
+    changed=[]
+    for step in plan.steps:
+        if step.skill=='generate_report' and not step.arguments.get('task_id'):
+            step.arguments['task_id']=task_id;changed.append(step.step_id)
     return changed

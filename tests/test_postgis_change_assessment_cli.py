@@ -3,15 +3,15 @@ import json
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
-from geoagent_harness.postgis_change_assessment import (
+from geoagent_harness.postgis.change_assessment import (
     PostGISChangeDisposition,
     assess_postgis_change,
 )
-from geoagent_harness.postgis_comparison import (
+from geoagent_harness.postgis.comparison import (
     PostGISComparisonResult,
     PostGISDifference,
 )
-from geoagent_harness.postgis_inspection import PostGISInspectionResult
+from geoagent_harness.postgis.inspection import PostGISInspectionResult
 
 
 def inspection(table: str) -> PostGISInspectionResult:
@@ -54,8 +54,8 @@ def comparison(
 
 
 def test_cli_compatible_exits_zero(monkeypatch):
-    import geoagent_harness.postgis_change_assessment as assessment_module
-    import geoagent_harness.postgis_comparison as comparison_module
+    import geoagent_harness.postgis.change_assessment as assessment_module
+    import geoagent_harness.postgis.comparison as comparison_module
 
     monkeypatch.setattr(
         comparison_module,
@@ -84,7 +84,7 @@ def test_cli_compatible_exits_zero(monkeypatch):
 
 
 def test_cli_review_required_exits_one(monkeypatch):
-    import geoagent_harness.postgis_comparison as comparison_module
+    import geoagent_harness.postgis.comparison as comparison_module
 
     candidate = inspection("candidate_layer").model_copy(
         update={"row_count": 3}

@@ -8,38 +8,210 @@
 
 **Local AI-assisted data workflows with explicit approval and verifiable results.**
 
+The Planner can propose source-bound analysis goals from a recorded inspection, with
+actual candidate fields, prerequisites and supported/missing methods. Outcome → Overview
+→ **Let Planner propose analysis goals** opens suggestions; **Prepare this goal** plans
+without executing. New reports distinguish computed and uncomputed statistical metrics.
+[Scope, metric limits and validation](docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+
+Requests now keep content-free diagnostics for successes and failures: model/phase,
+time, request size, reported tokens and sampled API RAM/CPU. Open **Request diagnostics**
+in the Planner panel (also directly from a failed request), export sanitized JSON,
+or use terminal `/diagnostics`. Numeric-summary inspections use focused instructions. Unknown
+model/worker/GPU memory remains unknown; opening records never retries execution.
+[Measurements, privacy, limits and validation](docs/REQUEST_DIAGNOSTICS.md).
+Reasoning effort is now selectable in Settings → Model service and saved per project;
+new requests use it without a launcher restart. Inspection reports use Outcome Report,
+without an extra legacy evidence-file operation or internal task-ID entry.
+
+Analytical inspections now produce a source-bound **Data readiness and findings** report:
+field coverage, missingness, requested key/duplicate checks, codebook coverage and group
+percentages. Outcome -> Report exports Markdown/PDF; CLI/MCP share the structured evidence.
+Unknown checks and report omissions are explicit. Full supplied files remain the target;
+sample substitution is blocked in the exploration loop. [Structure and full-data test](docs/READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md).
+Quality-only planning uses concise table-inspection instructions; timeout diagnostics
+identify the active profile. Message size and full-file processing limits are separate.
+
+Qualified CSV preparation now supports full-file streaming (200,000 rows / 64 MiB
+output), typed PostgreSQL mapping preflight, per-column null policies and verified
+create-only import/export. Saved analytical/technical handoffs expose actual schema
+and receipts through Outcome Report, CLI and MCP. Joins/calculations retain their
+separate bounds. Local-model advisory review reliability remains open.
+[Scope and full-data/JSON/PDF validation](docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+
+Table readers now feed one typed, bounded inspection pipeline. A shared catalog drives
+reader discovery/policy and relevant Planner metadata; MCP `list_operation_contracts`
+exposes the same registry. New results retain original source identity in an additive
+descriptor; saved results stay compatible. [Structure, limits and validation](docs/TABLE_SOURCE_CONSOLIDATION.md).
+
+Table inspection/statistics now reads **XLSX, flat JSON, JSON Lines and NDJSON** through
+the existing operation and shared CLI/MCP service. Worksheet/header/range selection is
+explicit; formulas and nested records are not executed or silently flattened. Statistics
+adds recorded grouped-mean figures, correlation heatmaps and local PDF figures, with
+advisory agent assessment beside the results. [Support, limits and combined validation](docs/TABLE_FORMATS_AND_STATISTICAL_FIGURES.md).
+
+Initial CSV inspection now suggests statistical fields and cautions in Outcome →
+Overview. **Ask Planner about these fields** explains recorded candidates while
+preserving the workflow. [Field guidance and validation](docs/INITIAL_FIELD_GUIDANCE.md).
+**Prepare a descriptive analysis** lets you choose a complete numerical candidate and
+optional grouping field, then prepares a Planner request. Review the proposed workflow
+and click Execute; initial hints never silently calculate statistics.
+The Planner can now recommend next analyses from recorded field evidence, while
+reports separate analysis definition and computed findings. Critic guidance reviews
+scope and assumptions. [T05 behavior and validation](docs/T05_ANALYTICAL_ADVICE_AND_REVIEW.md).
+
+CSV agents now have typed descriptive/grouped statistics, Pearson/Spearman matrices
+and numeric OLS (coefficients, standard errors, P-values, intervals and R-squared).
+Shared workflow/MCP/CLI services produce source-linked reports in Outcome → Statistics.
+Statistics has readable page tabs and Markdown/PDF download selection. New reports
+include structured tables and covariance matrices using the same recorded evidence.
+See [pages, exports and validation](docs/STATISTICS_PAGES_AND_REPORTS.md).
+See [setup, limits and exact validation steps](docs/TABLE_STATISTICS_ACCEPTANCE.md).
+This is an initial statistical family, not causal inference or arbitrary Python execution.
+
+CSV inspection Outcome now exposes **Groups** for two-field cross-tabs: choose
+**Rows (vertical)** and **Columns (horizontal)**, then **Run analysis**. Age × gender
+counts and percentages cover all matching records; every cell was reconciled against
+the 5,000-row sample in browser acceptance. See [validation steps](docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27).
+Grouped result titles follow applied fields. Shared group charts show explicit percentage
+denominators on 0–100% axes in a bounded display area; changing display controls adds no model call.
+Choose Compact/Comfortable/Large sizing or optional **3D columns** for two-field groups;
+rotation and exact-value inspection use recorded results. Disabled Execute explains its state.
+Saved-run recovery now matches the exact chat and plan beyond the recent global inventory;
+terminal `/run` can reopen that matching run without an ID. Reads never retry execution.
+
+[Implementation to-do list](docs/IMPLEMENTATION_TODO.md) consolidates the next work,
+dependencies, existing foundations and acceptance gates. It is a plan, not delivered support.
+
+[Planned statistical and format expansion](docs/DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+records broader analytical reporting, document/image/point-cloud adapters, and memory
+before autonomous Linux operation. These are requirements, not current capability claims.
+
+[Planned generalization and consolidation](docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
+records the direction for reusable skills, shared data contracts and simpler agent
+coordination. This is a design record, not a claim that the proposed capabilities exist.
+The [Builder reuse plan](docs/BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md) distinguishes
+existing extension-code generation from proposed task-driven analytical skill acquisition.
+
+[Manual task agent modes](docs/TASK_AGENT_MODES.md): choose Single agent or Three
+agents in the conversation gear menu. Both share governed execution and saved
+reports; three mode uses sequential Planner/Executor/Critic contexts, single mode
+uses one context with explicitly labeled self-review. Automatic routing is deferred.
+
+[Real diabetes test flow](docs/DIABETES_REAL_TEST_FLOW.md) provides copyable frontend
+requests, measured expected results and the sample → preparation → database → export
+acceptance sequence. The supplied 5,000-row sample is the first rows, not a random sample.
+
+[Governed PostgreSQL workflows](docs/POSTGRES_DATA_WORKFLOW.md) now add ordinary-table
+discovery/inspection, authorized create-only CSV import/export and exact-key soft
+delete/restore. Existing PostGIS skills remain separate. Verified disposable-fixture
+coverage and practical limits are documented; no unrestricted SQL or administration.
+
+Two-field Outcome groups support cross-tab counts, percentages, totals and swapped
+axes, shared with the terminal. [Validation and next data-workflow steps](docs/REAL_DATA_NEXT_TARGETS.md#cross-tab-delivered-slice-and-durable-next-steps--2026-10-26).
+
+[Persistent terminal and workflow history](docs/TERMINAL_AND_CHAT_HISTORY.md): with the
+normal launcher running, use `./actioncharter` for the independent terminal workspace
+(`--plain` for limited terminals). Type messages, select chats, inspect outcomes/history,
+and use explicit governed execution controls. Frontend Workflow history opens saved
+versions read-only; continuing creates a new draft revision without historical authority.
+
+
+Outcome opens across the main graph area; Flow graph returns to the workflow. Recorded
+Columns supports individual field details, category frequencies/percentages and numerical
+statistics where applicable. Terminal `/chart age` and `/chart groups total` show saved
+text charts. See the [real-data target matrix](docs/REAL_DATA_NEXT_TARGETS.md) for the
+next science/engineering acceptance tasks and remaining capabilities.
+
 Describe a task, inspect the proposed steps, and run supported operations through a governed backend. Models help interpret requests and assess evidence; deterministic software checks scope, permissions and results. The interface and CLI use the same backend contracts.
 
-Narrow single-file metadata inspection requests reject unrelated operations before saving a proposal; broader task coverage remains model-dependent. [Inspection on send](docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds an explicit, default-OFF composer setting: eligible local CSV, vector or raster metadata inspections can run on send within fixed batch limits. Other proposals retain Execute; writes retain Allow writes → Authorize → Execute.
+Narrow single-file metadata inspection requests reject unrelated operations before saving a proposal; broader task coverage remains model-dependent. [Inspection on send](docs/development/checkpoints/CHECKPOINT28_2_INSPECTION_SUBMIT.md) adds an explicit, default-OFF composer setting: eligible local CSV, vector or raster metadata inspections can run on send within fixed batch limits. Other proposals retain Execute; writes retain Allow writes → Authorize → Execute.
+
+[Comprehensive CSV/TSV exploration](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md) now
+profiles every field with observed types, candidate roles, appropriate full-file statistics,
+missing-marker counts and codebook-aware categories. Recorded analytical graphs progress
+left to right; their Outcome opens resizable Overview, Columns, Table, Chart, Groups and
+Checks views. Raw previews remain bounded and separate from complete-file summaries.
+The shared `profile_dataset` MCP tool and `profile-dataset` CLI use the same contract.
+[Interactive selection](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#interactive-selected-columns-and-grouped-percentages--2026-10-25)
+adds age-only or combined-field tables/groups, explicit full-file reads, percentages
+of all matching rows or within a group, and shared saved selections through `chat explore`.
+
+[Frontend/CLI continuity](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#frontend--cli-continuity--2026-10-25):
+with the normal launcher running, use `.venv/bin/python -m geoagent_harness.cli chat list`,
+`chat show ID`, `chat send "message" --chat ID`, and `chat result ID --view columns`.
+Both interfaces share the API's chat, proposal, analysis and model settings. Refresh saved
+chat in Planner to load CLI changes. Recorded views need no model call or rescan.
+
+The default comprehensive analytical runtime is a dedicated Docker worker: selected-file
+read-only mounts, no network/secrets, non-root, private bounded scratch and recorded image
+identity. Build it once with `bash scripts/build_analytical_worker.sh`, then use the existing
+`bash scripts/start_actioncharter.sh` launcher. No write flag is needed for read-only
+exploration. Existing metadata, transformations and specialized duplicate checks retain
+their existing runtimes. Docker absence fails explicitly; there is no silent host fallback.
+See the [delivery and validation guide](docs/COMPREHENSIVE_INSPECTION_DELIVERY.md) for
+exact prompts, resource limits, trusted compatibility mode and remaining work.
+
+[Recorded analytical graphs](docs/ANALYTICAL_GRAPH_AND_INSPECTOR.md) show saved input
+files, actual analytical actions and findings. Click a block for source identity,
+strategy, row coverage and computed statistics in the information panel. Saved chats
+restore this read-only view without repeating analysis; executable plans remain separate.
+
+[Analytical conversation](docs/BOUNDED_ANALYTICAL_LOOP.md) can discover one input
+folder, assess operation-specific limits, request bounded CSV profiles and explain recorded
+findings with saved evidence. Ask “Explore the data in data/input/test …”. Read-only tools
+preserve the workflow; samples remain provenance-unverified. Model failures retain partial
+findings. Sampling writes, statistical fitting and flexible multi-agent deployment remain
+follow-ups, not current capabilities.
+
+Complete supported profile requests use model-free planning. The frontend checks the
+running API's analytical-routing revision before profile submission; restart the launcher
+and refresh after updating. Refresh restores saved work and reconciles submission status;
+it does not retry a failed model call. [Recovery details](docs/TABLE_EXPLORER_ACCEPTANCE.md#profile-timeout-and-refresh-recovery--2026-10-24).
+
+[Columns and Explore](docs/TABLE_EXPLORER_ACCEPTANCE.md) add searchable field quality,
+explicit exact repetition/duplicate checks and interactive full-source grouping with
+distinct counts, numeric summaries, filters and charts. These controls need no model
+call; MCP and CLI use the same typed services. Relationship statistics and adjusted
+models remain planned, and exploratory views are not yet durable saved workflows.
+
+[Full-file analytical inspection](docs/ANALYTICAL_INSPECTION_ACCEPTANCE.md) adds
+sectioned CSV codebooks, complete-source profiles/distinct counts/group summaries,
+verified filtered pages and explicit streaming aggregate exports. Settings can discover
+installed Ollama models and persist a selection for new API requests without restarting.
+Optional bounded execution assistance explains recorded evidence; it grants no execution
+or write authority. The real diabetes fixture passed temporary-project acceptance;
+other CSV transforms retain their existing size limits. See the guide for exact prompts
+and current bounds.
 
 Supported domains now include bounded pandas-backed CSV processing and geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
 
-[Vector-first spatial exploration](docs/CHECKPOINT28_3_SPATIAL_VIEWS.md) adds explicit source-verified layer selection, display reprojection and linked attributes, followed by bounded raster grayscale/color/RGB/class views with NoData and exact pixel inspection. Planner can select recorded layers/bands/render settings conversationally and request backend-formatted explanations of saved facts. Exact recorded count/dimension questions need no model call or source reread. Viewing does not authorize or execute processing; preview limits remain visible.
+[Vector-first spatial exploration](docs/development/checkpoints/CHECKPOINT28_3_SPATIAL_VIEWS.md) adds explicit source-verified layer selection, display reprojection and linked attributes, followed by bounded raster grayscale/color/RGB/class views with NoData and exact pixel inspection. Planner can select recorded layers/bands/render settings conversationally and request backend-formatted explanations of saved facts. Exact recorded count/dimension questions need no model call or source reread. Viewing does not authorize or execute processing; preview limits remain visible.
 
-[Typed result exploration — 28.3](docs/CHECKPOINT28_3_RESULTS.md) adds complete bounded CSV filtering/sorting/paging, column profiles and filtered chart totals. Planner can propose a scoped recorded-result view without replacing or executing the workflow; normal view reopening uses saved snapshots.
+[Typed result exploration — 28.3](docs/development/checkpoints/CHECKPOINT28_3_RESULTS.md) adds complete bounded CSV filtering/sorting/paging, column profiles and filtered chart totals. Planner can propose a scoped recorded-result view without replacing or executing the workflow; normal view reopening uses saved snapshots.
 
 Selected workflow operations now show their recorded formula, input/output paths,
 bounded table preview and readable validation checks in the information panel.
 Results restore only for the matching chat and plan; drafts show no inherited
-execution evidence. [Recorded-result validation guide](docs/CHECKPOINT27_RECORDED_RESULTS.md).
-[Recorded visualizations](docs/CHECKPOINT27_VISUALIZATION.md) began with bar/scatter and point previews. [Analysis and layout delivery](docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds ten chart views (including pie/donut), explicit hash-verified full-CSV grouping, and bounded WGS84 points, lines, polygons/holes and attributes. Ordinary viewing uses recorded snapshots; analysis requires an explicit read. No tiles or live database queries are implied.
-The [Results workspace](docs/CHECKPOINT27_RESULTS_WORKSPACE.md) opens through Outcome or View output, with connected Overview/Table/Map/Chart/Checks page tabs, a visible resize divider and expansion. Tables search/sort/page loaded rows; point/table selections link. Load verified CSV explicitly checks the recorded artifact hash for a larger bounded preview; ordinary viewing uses saved snapshots.
+execution evidence. [Recorded-result validation guide](docs/development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md).
+[Recorded visualizations](docs/development/checkpoints/CHECKPOINT27_VISUALIZATION.md) began with bar/scatter and point previews. [Analysis and layout delivery](docs/development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds ten chart views (including pie/donut), explicit hash-verified full-CSV grouping, and bounded WGS84 points, lines, polygons/holes and attributes. Ordinary viewing uses recorded snapshots; analysis requires an explicit read. No tiles or live database queries are implied.
+The [Results workspace](docs/development/checkpoints/CHECKPOINT27_RESULTS_WORKSPACE.md) opens through Outcome or View output, with connected Overview/Table/Map/Chart/Checks page tabs, a visible resize divider and expansion. Tables search/sort/page loaded rows; point/table selections link. Load verified CSV explicitly checks the recorded artifact hash for a larger bounded preview; ordinary viewing uses saved snapshots.
 
-[Checkpoint 27 technical acceptance](docs/CHECKPOINT27_EVALUATION.md): 1,825 tests and six correct local-model fixture executions in the final profile. Optional Critic assessment timed out in all six; broader model reliability and the pre-demo capability/learning/memory gates remain explicit limitations.
+[Checkpoint 27 technical acceptance](docs/development/checkpoints/CHECKPOINT27_EVALUATION.md): 1,825 tests and six correct local-model fixture executions in the final profile. Optional Critic assessment timed out in all six; broader model reliability and the pre-demo capability/learning/memory gates remain explicit limitations.
 
 **Status: single-operator alpha.** Existing recipe workflows can execute through the interface. Planner agent now offers exact-scope execution for supported inspection and recipe workflows. The separate Context & intent journey still has integration limits. This is not yet a packaged desktop app or a hardened multi-user service.
 
-[Optional capability acquisition — 28.1 pilot](docs/CHECKPOINT28_1.md) adds a default-OFF per-chat switch. Planner can propose a closed CSV text-cleaning adapter, the backend tests synthetic/held-out cases, and Critic assesses applicability. One explicit install action registers the exact tested definition and asks Planner for a normal workflow. Installation grants no write or execution authority. This is a restricted data-only adapter family, not arbitrary Python generation, RL or general library-function execution. Linux resource-bounded testing currently requires the existing pinned pandas runtime. [Text-normalization example](examples/text-normalization/README.md). The bounded OFF/ON/changed-input-reuse local-model trial passed; this is not general model reliability or demonstrated speedup. See the delivery guide for prior failures, exact bounds and acceptance.
+[Optional capability acquisition — 28.1 pilot](docs/development/checkpoints/CHECKPOINT28_1.md) adds a default-OFF per-chat switch. Planner can propose a closed CSV text-cleaning adapter, the backend tests synthetic/held-out cases, and Critic assesses applicability. One explicit install action registers the exact tested definition and asks Planner for a normal workflow. Installation grants no write or execution authority. This is a restricted data-only adapter family, not arbitrary Python generation, RL or general library-function execution. Linux resource-bounded testing currently requires the existing pinned pandas runtime. [Text-normalization example](examples/text-normalization/README.md). The bounded OFF/ON/changed-input-reuse local-model trial passed; this is not general model reliability or demonstrated speedup. See the delivery guide for prior failures, exact bounds and acceptance.
 
-Planner chat retains its full transcript while sending bounded recent excerpts to the model. Previous-message context can be disabled without deleting history; the current workflow remains explicit context. Conversational Planner requests structural JSON-schema output and keeps full backend validation. Model errors distinguish malformed output, reported token truncation, timeout and configuration failures; [format compatibility and diagnostics](docs/PLANNER_STRUCTURED_OUTPUT.md). Supported Ollama models can optionally use `MODEL_REASONING_EFFORT=none` to test non-thinking generation; it is not a guaranteed timeout fix. Planned input-file nodes and inspector source paths show declared data scope. Existing saved workflow scope recovers on startup without model calls or execution. Planner reuse citations are constrained to supplied or successfully inspected sources; ordinary planning needs no recipe selection. Explicit calculated-column requests receive a narrow missing-operation check with one correction and simple single-column requests use a decoder operation skeleton; summaries alone do not establish calculation support. The information panel lists actual workflow operations and calculation formulas; raw arguments, execution details, evidence and task history expand on demand. Per-chat graph positions persist in this browser and new blocks seek free space. Desktop Planner/information panels resize; outcomes and workflow-source groups expand/collapse without execution. See [conversation context guidance](docs/CHECKPOINT24.md#conversation-context-and-model-diagnostics).
+Planner chat retains its full transcript while sending bounded recent excerpts to the model. Previous-message context can be disabled without deleting history; the current workflow remains explicit context. Conversational Planner requests structural JSON-schema output and keeps full backend validation. Model errors distinguish malformed output, reported token truncation, timeout and configuration failures; [format compatibility and diagnostics](docs/PLANNER_STRUCTURED_OUTPUT.md). Supported Ollama models can optionally use `MODEL_REASONING_EFFORT=none` to test non-thinking generation; it is not a guaranteed timeout fix. Planned input-file nodes and inspector source paths show declared data scope. Existing saved workflow scope recovers on startup without model calls or execution. Planner reuse citations are constrained to supplied or successfully inspected sources; ordinary planning needs no recipe selection. Explicit calculated-column requests receive a narrow missing-operation check with one correction and simple single-column requests use a decoder operation skeleton; summaries alone do not establish calculation support. The information panel lists actual workflow operations and calculation formulas; raw arguments, execution details, evidence and task history expand on demand. Per-chat graph positions persist in this browser and new blocks seek free space. Desktop Planner/information panels resize; outcomes and workflow-source groups expand/collapse without execution. See [conversation context guidance](docs/development/checkpoints/CHECKPOINT24.md#conversation-context-and-model-diagnostics).
 
 Saved history uses chat bubbles. History/context controls collapse together to save room, and a drag handle resizes the message-writing area. Planner labels distinguish **Saved chat history** from **Context sent to Planner**. The single **Chat memory** switch controls recent-message inclusion. OFF keeps the saved transcript and current workflow. Its preference stays the same across chats and refreshes in this browser. Settings’ Include private declarations switch is also remembered. The disclosure separates your next request from the actual last-completed-request receipt. Other conversations are not pooled into chat context. **Cross-chat memory is deferred until checkpoint 30 or later**, after intervening operational/privacy work and a fresh operator decision; see [deferred scope](docs/DEFERRED_CROSS_CHAT_MEMORY.md).
 
-The [post-calculation delivery plan](docs/POST_CALCULATION_DELIVERY_PLAN.md) separates remaining result-panel/evaluation work from proposed bounded capability acquisition, optional learning-policy experiments and private domain knowledge. General generated-code acquisition and RL/model training are not implemented. Planned [capability acquisition](docs/OPTIONAL_CAPABILITY_ACQUISITION_PLAN.md) is optional, OFF by default and task-scoped: use existing operations/recipes first, propose a bounded addition only for a demonstrated gap, and reuse accepted installed versions. This switch would not authorize installation or execution. [Runtime write controls and acceptance](docs/CHECKPOINT27_RUNTIME_WRITES.md) describe the implemented checkpoint 27.7 slice and its limitations. The warning-labelled Allow writes switch beside Authorize/Execute and Settings share session write availability without routine restarts; exact authorization remains required and overwrite stays separate. [Conservative report authorization](docs/CHECKPOINT27_AUTHORIZATION_FIX.md) now retains plan gates for evidence-only recipes; approving still performs no operation. The operator requires generated capabilities, the learning/RL pilot and advanced private memory to be implemented and validated before demo or real-data testing; those gates remain unfinished.
+The [post-calculation delivery plan](docs/POST_CALCULATION_DELIVERY_PLAN.md) separates remaining result-panel/evaluation work from proposed bounded capability acquisition, optional learning-policy experiments and private domain knowledge. General generated-code acquisition and RL/model training are not implemented. Planned [capability acquisition](docs/OPTIONAL_CAPABILITY_ACQUISITION_PLAN.md) is optional, OFF by default and task-scoped: use existing operations/recipes first, propose a bounded addition only for a demonstrated gap, and reuse accepted installed versions. This switch would not authorize installation or execution. [Runtime write controls and acceptance](docs/development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md) describe the implemented checkpoint 27.7 slice and its limitations. The warning-labelled Allow writes switch beside Authorize/Execute and Settings share session write availability without routine restarts; exact authorization remains required and overwrite stays separate. [Conservative report authorization](docs/development/checkpoints/CHECKPOINT27_AUTHORIZATION_FIX.md) now retains plan gates for evidence-only recipes; approving still performs no operation. The operator requires generated capabilities, the learning/RL pilot and advanced private memory to be implemented and validated before demo or real-data testing; those gates remain unfinished.
 
 Execution History lists saved workflow runs by input filename, operation and time at the top. Choose **View outcome** to reopen saved evidence without replacing the current workflow or executing it. Cancellation/recovery controls remain accessible from the same section.
 
-[Discovery consolidation](docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) records the baseline, revised target and delivery. CSV inspection streams preliminary characteristics, full row/missing counts and SHA-256 without a dataframe. TIFF, closed GeoPackage and Shapefile discovery reads driver metadata then streams a package hash without loading pixels or geometry tables. Guards are 1 GiB / 120 seconds per reader; synthetic CSV/TIFF measurements cover 16/64 MiB, not arbitrary real-world scale. GeoJSON, transformations and spatial displays retain separate limits. [Checkpoint 28 acceptance](docs/CHECKPOINT28_CLOSEOUT.md) and [work resume](context/WORK_RESUME.md) distinguish engineering delivery from unfinished learning/private-knowledge and demo gates.
+[Discovery consolidation](docs/development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) records the baseline, revised target and delivery. CSV inspection streams preliminary characteristics, full row/missing counts and SHA-256 without a dataframe. TIFF, closed GeoPackage and Shapefile discovery reads driver metadata then streams a package hash without loading pixels or geometry tables. Guards are 1 GiB / 120 seconds per reader; synthetic CSV/TIFF measurements cover 16/64 MiB, not arbitrary real-world scale. GeoJSON, transformations and spatial displays retain separate limits. [Checkpoint 28 acceptance](docs/development/checkpoints/CHECKPOINT28_CLOSEOUT.md) and [work resume](context/WORK_RESUME.md) distinguish engineering delivery from unfinished learning/private-knowledge and demo gates.
 
 Exact supported Inspect requests now prepare workflows without model calls through
 durable submissions. Inspect on send OFF only prepares; ON permits eligible local
@@ -65,11 +237,11 @@ for current limits and validation.
 
 ## Why ActionCharter?
 
-**Reusable recipes and durable runs:** Describe a task in Planner chat; recipes expand into editable, validated operations. Planner also drafts reusable recipes, isolated fixtures test them, and Critic reviews the candidate before optional registration. Execution engine records durable steps, cancellation and conservative recovery; Critic assesses recorded outcomes without changing deterministic status. No separate Builder is needed for this journey. [Checkpoint 26 closeout and validation](docs/CHECKPOINT26_CLOSEOUT.md). Transactional resume, parallel execution and indexed/cross-chat memory remain deferred.
+**Reusable recipes and durable runs:** Describe a task in Planner chat; recipes expand into editable, validated operations. Planner also drafts reusable recipes, isolated fixtures test them, and Critic reviews the candidate before optional registration. Execution engine records durable steps, cancellation and conservative recovery; Critic assesses recorded outcomes without changing deterministic status. No separate Builder is needed for this journey. [Checkpoint 26 closeout and validation](docs/development/checkpoints/CHECKPOINT26_CLOSEOUT.md). Transactional resume, parallel execution and indexed/cross-chat memory remain deferred.
 
-The graph now shows a secondary [Critic review · advisory](docs/CHECKPOINT27_CRITIC_GRAPH.md) branch for requested recorded assessments. Select it for findings, limitations and run provenance; review status stays separate from execution and deterministic validation. Opening or refreshing it never repeats execution or assessment. During development, editing a plain TypeScript hook reloads the page to avoid stale React hook state; saved chats/workflows restore, while unsaved UI edits may reset.
+The graph now shows a secondary [Critic review · advisory](docs/development/checkpoints/CHECKPOINT27_CRITIC_GRAPH.md) branch for requested recorded assessments. Select it for findings, limitations and run provenance; review status stays separate from execution and deterministic validation. Opening or refreshing it never repeats execution or assessment. During development, editing a plain TypeScript hook reloads the page to avoid stale React hook state; saved chats/workflows restore, while unsaved UI edits may reset.
 
-**Each conversation is one task with private memory.** Keep geospatial and CSV work in the same chat: its transcript and latest validated plan persist when the topic changes. New chat starts separately; opening an older conversation restores that conversation's own state. No task selector or cross-chat memory sharing is required. Local SQLite adds no dependency or background agent. See [conversation acceptance](docs/CHECKPOINT26_CONVERSATIONS.md). Indexed core facts, automatic summaries and corrections remain planned single-conversation work. The normal UI uses saved chat/workflow context only: opening a chat automatically restores its latest validated workflow, without a model call or manual plan selection. An experimental **Automatic method notes** Settings switch enables a separate helper: one bounded request after a changed validated workflow, then cached machine-generated/unvalidated advice for later requests in that chat. It is OFF by default, adds no container/model and requires no manual method-management steps. Opening a chat still makes no model call. [Behavior, limits and frontend acceptance](docs/METHOD_MEMORY_HELPER_DESIGN.md#first-integration--implemented-experimental-scope) distinguish this workflow-only slice from future evidence learning/corrections. Cross-chat sharing remains deferred. See [scope, limitations and manual acceptance](docs/METHOD_MEMORY_PROTOTYPE.md). Memory never grants execution authority. Calculation planning recognizes “multiplied/divided” wording and includes a complete non-executing workflow example. Repeated schema-repair deferrals identify model-output failure without requesting technical authorization rules. Planner schema-repair permission deferrals receive one correction; repeated deferrals report failure without replacing a saved workflow. See [architecture](docs/PROJECT_MEMORY_ARCHITECTURE.md).
+**Each conversation is one task with private memory.** Keep geospatial and CSV work in the same chat: its transcript and latest validated plan persist when the topic changes. New chat starts separately; opening an older conversation restores that conversation's own state. No task selector or cross-chat memory sharing is required. Local SQLite adds no dependency or background agent. See [conversation acceptance](docs/development/checkpoints/CHECKPOINT26_CONVERSATIONS.md). Indexed core facts, automatic summaries and corrections remain planned single-conversation work. The normal UI uses saved chat/workflow context only: opening a chat automatically restores its latest validated workflow, without a model call or manual plan selection. An experimental **Automatic method notes** Settings switch enables a separate helper: one bounded request after a changed validated workflow, then cached machine-generated/unvalidated advice for later requests in that chat. It is OFF by default, adds no container/model and requires no manual method-management steps. Opening a chat still makes no model call. [Behavior, limits and frontend acceptance](docs/METHOD_MEMORY_HELPER_DESIGN.md#first-integration--implemented-experimental-scope) distinguish this workflow-only slice from future evidence learning/corrections. Cross-chat sharing remains deferred. See [scope, limitations and manual acceptance](docs/METHOD_MEMORY_PROTOTYPE.md). Memory never grants execution authority. Calculation planning recognizes “multiplied/divided” wording and includes a complete non-executing workflow example. Repeated schema-repair deferrals identify model-output failure without requesting technical authorization rules. Planner schema-repair permission deferrals receive one correction; repeated deferrals report failure without replacing a saved workflow. See [architecture](docs/PROJECT_MEMORY_ARCHITECTURE.md).
 
 Giving a model access to a powerful tool is easy. The harder problem is proving
 that an AI-assisted operation:
@@ -93,7 +265,7 @@ and independently checkable artifacts.
 |---|---|
 | Describe and clarify a task | Intent reasoning supports fresh requests or explicitly reviewed historical context |
 | Inspect a plan | Typed steps, input scope and policy checks; graph and evidence inspection |
-| Process tabular data | Inspect CSV/TSV, select/filter, fill/drop missing values, join, aggregate and export fresh CSV artifacts with bounded previews and exact approval; [checkpoint 24 examples](docs/CHECKPOINT24.md) |
+| Process tabular data | Inspect CSV/TSV, select/filter, fill/drop missing values, join, aggregate and export fresh CSV artifacts with bounded previews and exact approval; [checkpoint 24 examples](docs/development/checkpoints/CHECKPOINT24.md) |
 | Calculate table columns | Typed arithmetic, comparisons and numeric conditionals; formula controls, explicit missing policy, bounded effort and independently checked fresh CSV outputs. [Behavior and testing](docs/BOUNDED_CALCULATIONS.md) |
 | Combine spatial and tabular data | Inspect GeoJSON and extract flat attributes into validated CSV intermediates; geometry is deliberately omitted |
 | Process spatial data | Registered vector/raster capabilities and governed PostGIS operations |
@@ -101,7 +273,7 @@ and independently checkable artifacts.
 | Inspect results | Evidence, reports, independent checks and Critic assessment |
 | Prepare reproducible workflows | Governed Snakemake export with static validation; export alone does not execute replay |
 | Discover library capabilities | Installed Python package inventory and bounded static function/class/method discovery, searchable in Settings and CLI; candidates grant no authority |
-| Develop extensions | Shared operation contracts, tested data-only CSV adapter packages and the existing Builder lifecycle; [checkpoint 25 guide](docs/CHECKPOINT25.md) |
+| Develop extensions | Shared operation contracts, tested data-only CSV adapter packages and the existing Builder lifecycle; [checkpoint 25 guide](docs/development/checkpoints/CHECKPOINT25.md) |
 
 CLI coverage is broader than the current interface. See [interface/CLI coverage](docs/INTERFACE_CLI_PARITY.md) and [current implementation status](context/CURRENT_STATUS.md).
 
@@ -225,9 +397,9 @@ Templates help create recipe proposals. They neither install skills nor grant ap
 
 ## Checkpoint 27: successful-workflow retention
 
-New durable runs automatically save eligible successful workflows as indexed method records, with no extra model call or registration. In **Reusable recipes**, use **Recipe list** for short summary rows or switch to **Keywords** to filter the list. Select a row for method details and expandable evidence; discussion shortcuts are secondary under More actions. Manual composition stays in Advanced, labelled Validate composition and open draft. Records are scoped to their originating chat; they grant no permission and are separate from generalized templates. Indexing failure preserves execution results and permits indexing-only retry. Legacy synchronous execution/Snakemake export and old runs without contract snapshots are outside this path. [Implementation and validation](docs/CHECKPOINT27_RETENTION.md).
+New durable runs automatically save eligible successful workflows as indexed method records, with no extra model call or registration. In **Reusable recipes**, use **Recipe list** for short summary rows or switch to **Keywords** to filter the list. Select a row for method details and expandable evidence; discussion shortcuts are secondary under More actions. Manual composition stays in Advanced, labelled Validate composition and open draft. Records are scoped to their originating chat; they grant no permission and are separate from generalized templates. Indexing failure preserves execution results and permits indexing-only retry. Legacy synchronous execution/Snakemake export and old runs without contract snapshots are outside this path. [Implementation and validation](docs/development/checkpoints/CHECKPOINT27_RETENTION.md).
 
-[Planner-owned recipe discovery](docs/CHECKPOINT27_DISCOVERY.md) can search/inspect sanitized catalog structures and eligible own-chat examples, then propose an adaptation directly from ordinary conversation. Initial lookup needs no inference; optional discovery permits at most two extra read-only exchanges, with a maximum four Planner calls including final generation/correction. Browsing recipes is never required. CSV prompts carry focused schemas and report safe request/timing diagnostics; actual local-model latency remains unverified. The remaining [checkpoint 27 plan](docs/CHECKPOINT27_PLAN.md) covers optional Critic enrichment, bounded charts/maps and laptop evaluation before prototype/demo preparation. Existing Advanced controls remain available; this adds no cross-chat memory or new agent hierarchy.
+[Planner-owned recipe discovery](docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md) can search/inspect sanitized catalog structures and eligible own-chat examples, then propose an adaptation directly from ordinary conversation. Initial lookup needs no inference; optional discovery permits at most two extra read-only exchanges, with a maximum four Planner calls including final generation/correction. Browsing recipes is never required. CSV prompts carry focused schemas and report safe request/timing diagnostics; actual local-model latency remains unverified. The remaining [checkpoint 27 plan](docs/development/checkpoints/CHECKPOINT27_PLAN.md) covers optional Critic enrichment, bounded charts/maps and laptop evaluation before prototype/demo preparation. Existing Advanced controls remain available; this adds no cross-chat memory or new agent hierarchy.
 
 ## Verify your development environment
 
@@ -286,14 +458,26 @@ Before sending a Planner turn, the frontend checks `/api/v1/health` for `planner
 
 Chart inspection: click a bar, point, pie/donut slice or legend, line/area series, histogram bin, box plot or summary value for plotted-value details. Click elsewhere or press Escape to dismiss. Keyboard Enter/Space is supported. Details use the displayed snapshot/verified analysis and make no model or execution request.
 
-[Checkpoint 28.2 outcome recommendations](docs/CHECKPOINT28_2.md) adds an optional default-OFF own-chat evidence selector. Conversation header gear groups Chat memory, capability preparation and recommendations. Verified current-contract checks can break recipe relevance ties and supply a bounded Planner shortlist; no model training or execution authority. The synthetic selector evaluation is limited; representative model benefit remains unproven.
+[Checkpoint 28.2 outcome recommendations](docs/development/checkpoints/CHECKPOINT28_2.md) adds an optional default-OFF own-chat evidence selector. Conversation header gear groups Chat memory, capability preparation and recommendations. Verified current-contract checks can break recipe relevance ties and supply a bounded Planner shortlist; no model training or execution authority. The synthetic selector evaluation is limited; representative model benefit remains unproven.
 
 Outcome recommendations remain visible while enabled, with guidance for empty evidence. Read-only inspection completion alone has no separate validation check; use a validated transformation and a follow-up request in the same chat to test evidence retrieval.
 
-[28.2 execution and paired evaluation](docs/CHECKPOINT28_2_EVALUATION.md): normal read-only inspections use one Execute click with writes OFF. Writes retain Allow writes → Authorize → Execute, and fresh CSV output paths remain mandatory. A temporary six-case ON/OFF harness measures actual outputs and model cost; recommendation receipts distinguish supplied evidence from model use.
+[28.2 execution and paired evaluation](docs/development/checkpoints/CHECKPOINT28_2_EVALUATION.md): normal read-only inspections use one Execute click with writes OFF. Writes retain Allow writes → Authorize → Execute, and fresh CSV output paths remain mandatory. A temporary six-case ON/OFF harness measures actual outputs and model cost; recommendation receipts distinguish supplied evidence from model use.
 
 Planning follow-up: narrow CSV selection/filter coverage checks reject inspection-only substitutes; simple CSV and vector-to-table requests use typed source/dependency guides with automatic skill selection. Explicit fresh-output requests can refresh inherited occupied CSV proposal paths without changing existing files or granting overwrite authority. The paired model evaluation has not established a ranking benefit; see its delivery notes for failures and oracle limitations.
 
 ### Planned domain knowledge acquisition
 
 The [domain knowledge design](docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md) records automatic capture of sourced dataset definitions, domain methods and processing preferences, with corrections and reusable recipes. Private single-chat validation comes first; project knowledge across chats and sanitized portable packages remain later gated work. This is a design, not a claim of reliable domain learning or model training.
+
+[Next: checkpoint 29 private knowledge](docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md) is planned: sourced same-chat recall, corrections and bounded Planner context using existing agent roles. Cross-chat sharing and model training remain deferred; this plan adds no runtime memory behavior.
+
+[Memory design proposal](docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md): role-specific notes, agent-led curation, scoped shared knowledge and export/recovery. Planned only; users will not need Git or SQLite administration for normal memory use.
+
+[Latest memory A proposal](docs/MEMORY_A_GROWING_SHARED_JSON.md): separate role memories, non-forgetting shared JSON and a distinct knowledge-management agent. Design only; supersedes conflicting earlier A proposals and is not delivered functionality.
+
+[Current design/test priority](docs/MEMORY_OPTIONS_AND_DATA_TEST_HANDOFF.md): memory organization and Critic/knowledge-agent separation remain undecided. Retain older content versions by default. Prepare controlled data tests next to measure current discovery, processing and visualization limits; this is not a large-data readiness claim.
+
+[Proposed analytical inspection](docs/ANALYTICAL_INSPECTION_AND_CODEBOOK_PLAN.md): codebook-aware full-file profiles and aggregates with bounded table views. Planned only. Shared backend services would power API/CLI and selected MCP tools; current preview and transformation limits remain.
+
+[Proposed analytical execution delivery](docs/ANALYTICAL_EXECUTION_DELIVERY_PLAN.md) records runtime model selection, dataframe-style intermediate tables and bounded execution reasoning, with selective agent roles and measured acceptance. Documentation only; current capabilities/limits are unchanged.

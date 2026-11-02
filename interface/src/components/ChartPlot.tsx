@@ -1,9 +1,9 @@
 import {useEffect,useRef,useState,type KeyboardEvent} from 'react';
-export type PlotValue={value:number;x:number;label:string;index:number;members:number[]};
+export type PlotValue={value:number;x:number;label:string;index:number;members:number[];facts?:[string,string|number][]};
 export const chartTypes=[['bar','Horizontal bar'],['column','Column'],['line','Line'],['area','Area'],['pie','Pie'],['donut','Donut'],['scatter','Scatter'],['histogram','Histogram'],['box','Box plot'],['summary','Summary']] as const;
 const colors=['#60a5fa','#22d3ee','#4ade80','#fbbf24','#fb923c','#c084fc','#f472b6','#a3e635'];
 const tick=(v:number)=>Number(v.toPrecision(4)).toString();
-type ChartProps={kind:string;values:PlotValue[];x:string;y:string;selectedRow?:number|null;onSelectRow?:(i:number)=>void};
+type ChartProps={kind:string;values:PlotValue[];x:string;y:string;selectedRow?:number|null;onSelectRow?:(i:number)=>void;valueFormat?:'number'|'percent'};
 type ChartDetail={title:string;fields:[string,string|number][]};
 export function ChartPlot(props:ChartProps){
  const frame=useRef<HTMLDivElement>(null),[detail,setDetail]=useState<ChartDetail|null>(null);
@@ -21,17 +21,19 @@ export function ChartPlot(props:ChartProps){
   {detail&&<section className="chart-value-detail" role="group" aria-label="Chart value details" aria-live="polite"><strong>{detail.title}</strong><dl>{detail.fields.map(([label,value],i)=><div key={i}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><small>Plotted data · click elsewhere or press Escape to dismiss</small></section>}
  </div>;
 }
-function PlotMarks({kind,values,x,y,selectedRow,onSelectRow,onInspect}:ChartProps&{onInspect:(detail:ChartDetail)=>void}){
- const min=Math.min(0,...values.map(v=>v.value)),max=Math.max(0,...values.map(v=>v.value));
+function PlotMarks({kind,values,x,y,selectedRow,onSelectRow,onInspect,valueFormat}:ChartProps&{onInspect:(detail:ChartDetail)=>void}){
+ const format=(v:number)=>valueFormat==='percent'?`${Number(v.toFixed(2))}%`:tick(v);
+ const min=valueFormat==='percent'?0:Math.min(0,...values.map(v=>v.value)),max=valueFormat==='percent'?100:Math.max(0,...values.map(v=>v.value));
  const px=(i:number)=>55+(i+.5)/values.length*345,py=(v:number)=>230-(v-min)/(max-min||1)*200;
  const choose=(row:PlotValue)=>{
-  const fields:[string,string|number][]=[[x||'Category',kind==='scatter'?row.x:row.label],[y||'Value',row.value]];
+  const fields:[string,string|number][]=[[x||'Category',kind==='scatter'?row.x:row.label],[y||'Value',valueFormat==='percent'?format(row.value):row.value]];
+  if(row.facts)fields.push(...row.facts);
   if(kind==='pie'||kind==='donut')fields.push(['Share of plotted total',`${(row.value/values.reduce((sum,v)=>sum+v.value,0)*100).toFixed(1)}%`]);
   if(row.members.length>1)fields.push(['Contributing preview rows',row.members.length]);
   onInspect({title:row.label,fields});onSelectRow?.(row.index);
  };
  const key=(e:KeyboardEvent,row:PlotValue)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose(row);}};
- const props=(row:PlotValue)=>({'data-chart-value':row.value,className:selectedRow!=null&&row.members.includes(selectedRow)?'visual-mark selected':'visual-mark',role:'button' as const,tabIndex:0,'aria-label':`${row.label}: ${row.value}`,onClick:()=>choose(row),onKeyDown:(e:KeyboardEvent)=>key(e,row)});
+ const props=(row:PlotValue)=>({'data-chart-value':row.value,className:selectedRow!=null&&row.members.includes(selectedRow)?'visual-mark selected':'visual-mark',role:'button' as const,tabIndex:0,'aria-label':`${row.label}: ${format(row.value)}`,onClick:()=>choose(row),onKeyDown:(e:KeyboardEvent)=>key(e,row)});
  if(!values.length)return <p>No plottable rows for these axes.</p>;
  if(kind==='summary')return <dl className="chart-summary">{[['Values',values.length],['Sum',values.reduce((a,v)=>a+v.value,0)],['Mean',values.reduce((a,v)=>a+v.value,0)/values.length],['Minimum',Math.min(...values.map(v=>v.value))],['Maximum',Math.max(...values.map(v=>v.value))]].map(([name,value])=><div key={name}><dt>{name}</dt><dd><button type="button" data-chart-value={value} onClick={()=>onInspect({title:String(name),fields:[['Statistic',String(name)],['Value',Number(value)],['Plotted values',values.length]]})}>{tick(Number(value))}</button></dd></div>)}</dl>;
  if(kind==='pie'||kind==='donut'){
@@ -44,7 +46,7 @@ function PlotMarks({kind,values,x,y,selectedRow,onSelectRow,onInspect}:ChartProp
    const d=kind==='pie'?`M215 145 L${sx} ${sy} A115 115 0 ${next-angle>Math.PI?1:0} 1 ${ex} ${ey} Z`:`M${sx} ${sy} A115 115 0 ${next-angle>Math.PI?1:0} 1 ${ex} ${ey} L${ix} ${iy} A65 65 0 ${next-angle>Math.PI?1:0} 0 ${jx} ${jy} Z`;
    angle=next;
    return <g key={i} {...props(row)}><title>{row.label}: {row.value} ({(row.value/total*100).toFixed(1)}%)</title>{row.value===total?<path d={`M215 30 A115 115 0 1 1 215 260 A115 115 0 1 1 215 30 Z${kind==='donut'?' M215 80 A65 65 0 1 0 215 210 A65 65 0 1 0 215 80 Z':''}`} fillRule="evenodd" style={{fill:colors[i%colors.length]}}/>:<path d={d} style={{fill:colors[i%colors.length]}}/>}</g>;
-  })}</svg><div className="chart-legend">{values.map((row,i)=><button key={i} type="button" {...props(row)} style={{'--chart-color':colors[i%colors.length]} as React.CSSProperties}><i/>{row.label}: {tick(row.value)} · {(row.value/total*100).toFixed(1)}%</button>)}</div></>;
+  })}</svg><div className="chart-legend">{values.map((row,i)=><button key={i} type="button" {...props(row)} style={{'--chart-color':colors[i%colors.length]} as React.CSSProperties}><i/>{row.label}: {format(row.value)} · {(row.value/total*100).toFixed(1)}%</button>)}</div></>;
  }
  if(kind==='histogram'){
   const low=Math.min(...values.map(v=>v.value)),high=Math.max(...values.map(v=>v.value));
@@ -61,9 +63,9 @@ function PlotMarks({kind,values,x,y,selectedRow,onSelectRow,onInspect}:ChartProp
  const scale=(v:number)=>145+(v-min)/(max-min||1)*255;
  const minX=Math.min(...values.map(v=>v.x)),maxX=Math.max(...values.map(v=>v.x)),minY=Math.min(...values.map(v=>v.value)),maxY=Math.max(...values.map(v=>v.value));
  return <svg viewBox={`0 0 430 ${kind==='bar'?values.length*28+45:285}`} role="img" aria-label={`${chartTypes.find(([id])=>id===kind)?.[1]??kind} chart: ${y} by ${x}`}>
- {kind==='bar'?<><line className="visualization-axis" x1={scale(0)} x2={scale(0)} y1="10" y2={values.length*28+15}/>{values.map((row,i)=><g key={i} {...props(row)}><title>{row.label}: {row.value}</title><text x="4" y={i*28+26}>{row.label.slice(0,12)}</text><rect x={Math.min(scale(0),scale(row.value))} y={i*28+12} width={Math.max(1,Math.abs(scale(row.value)-scale(0)))} height="18" rx="3"/><text x="405" y={i*28+26} textAnchor="end">{tick(row.value)}</text></g>)}<text x="145" y={values.length*28+35}>{tick(min)}</text><text x="400" y={values.length*28+35} textAnchor="end">{tick(max)}</text></>:<><path className="visualization-axis" d="M45 15V235H410"/>
+ {kind==='bar'?<><line className="visualization-axis" x1={scale(0)} x2={scale(0)} y1="10" y2={values.length*28+15}/>{values.map((row,i)=><g key={i} {...props(row)}><title>{row.label}: {format(row.value)}</title><text x="4" y={i*28+26}>{row.label.slice(0,12)}</text><rect x={Math.min(scale(0),scale(row.value))} y={i*28+12} width={Math.max(1,Math.abs(scale(row.value)-scale(0)))} height="18" rx="3"/><text x="405" y={i*28+26} textAnchor="end">{format(row.value)}</text></g>)}<text x="145" y={values.length*28+35}>{format(min)}</text><text x="400" y={values.length*28+35} textAnchor="end">{format(max)}</text></>:<><path className="visualization-axis" d="M45 15V235H410"/>
  {(kind==='line'||kind==='area')&&<path className={`chart-series ${kind==='area'?'area':''}`} data-chart-series="true" role="button" tabIndex={0} aria-label={`Inspect ${kind} series`} onClick={event=>{const bounds=event.currentTarget.ownerSVGElement!.getBoundingClientRect();const coordinate=(event.clientX-bounds.left)/bounds.width*430;choose(values[Math.max(0,Math.min(values.length-1,Math.round((coordinate-55)/345*values.length-.5)))]);}} onKeyDown={event=>key(event,values[0])} d={`${values.map((v,i)=>`${i?'L':'M'}${px(i)} ${py(v.value)}`).join(' ')}${kind==='area'?` L${px(values.length-1)} ${py(0)} L${px(0)} ${py(0)} Z`:''}`}/>}
- {values.map((row,i)=><g key={i} {...props(row)}><title>{row.label}: {row.value}</title>{kind==='column'?<rect x={px(i)-Math.min(15,150/values.length)} y={Math.min(py(0),py(row.value))} width={Math.min(30,300/values.length)} height={Math.max(1,Math.abs(py(row.value)-py(0)))}/>:<circle cx={kind==='scatter'?55+(row.x-minX)/(maxX-minX||1)*350:px(i)} cy={kind==='scatter'?230-(row.value-minY)/(maxY-minY||1)*210:py(row.value)} r="5"/>}</g>)}
- <text x="50" y="255">{kind==='scatter'?tick(minX):values[0].label.slice(0,16)}</text><text x="405" y="255" textAnchor="end">{kind==='scatter'?tick(maxX):values.at(-1)!.label.slice(0,16)}</text><text x="40" y="25" textAnchor="end">{tick(kind==='scatter'?maxY:max)}</text><text x="40" y="230" textAnchor="end">{tick(kind==='scatter'?minY:min)}</text><text x="230" y="278" textAnchor="middle">{x}</text></>}
+ {values.map((row,i)=><g key={i} {...props(row)}><title>{row.label}: {format(row.value)}</title>{kind==='column'?<rect x={px(i)-Math.min(15,150/values.length)} y={Math.min(py(0),py(row.value))} width={Math.min(30,300/values.length)} height={Math.max(1,Math.abs(py(row.value)-py(0)))}/>:<circle cx={kind==='scatter'?55+(row.x-minX)/(maxX-minX||1)*350:px(i)} cy={kind==='scatter'?230-(row.value-minY)/(maxY-minY||1)*210:py(row.value)} r="5"/>}</g>)}
+ <text x="50" y="255">{kind==='scatter'?tick(minX):values[0].label.slice(0,16)}</text><text x="405" y="255" textAnchor="end">{kind==='scatter'?tick(maxX):values.at(-1)!.label.slice(0,16)}</text><text x="40" y="25" textAnchor="end">{format(kind==='scatter'?maxY:max)}</text><text x="40" y="230" textAnchor="end">{format(kind==='scatter'?minY:min)}</text><text x="230" y="278" textAnchor="middle">{x}</text></>}
  </svg>;
 }

@@ -25,7 +25,7 @@ Do not add tool families merely to make the interface look more capable. The fir
 
 Checkpoint 25 follow-up adds persistent scan browsing and input/operation/result arrows. Checkpoint 26 will also review correlated agent history and source-linked summaries; checkpoint 27 will add bounded output maps/charts and public-fixture demo preparation. These future features are proposals, not current capabilities.
 
-Current operator revision: one conversation is one task with private memory; topics can change within it. Separate task selection and shared cross-chat memory are disabled. Next memory work stays within that conversation; sharing remains discussion only. See docs/CHECKPOINT26_CONVERSATIONS.md.
+Current operator revision: one conversation is one task with private memory; topics can change within it. Separate task selection and shared cross-chat memory are disabled. Next memory work stays within that conversation; sharing remains discussion only. See docs/development/checkpoints/CHECKPOINT26_CONVERSATIONS.md.
 
 2026-10-14: clarify Saved chat history, Include recent chat messages and completed-request context receipts within one conversation. Cross-chat memory is deferred until checkpoint 30 or later; 28 operational/resource work and 29 single-chat retention/privacy are proposed intervening scopes. Sharing requires a fresh operator decision. See docs/DEFERRED_CROSS_CHAT_MEMORY.md.
 

@@ -969,7 +969,7 @@ def inspect_postgis_table_command(
 ) -> None:
     """Inspect bounded metadata for one approved PostGIS table."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_inspection import (
+    from geoagent_harness.postgis.inspection import (
         PostGISInspectionError,
         PostGISInspectionRequest,
         inspect_postgis_table,
@@ -1005,7 +1005,7 @@ def inspect_geoserver_layer_command(
     pretty: Annotated[bool, typer.Option("--pretty", help="Indent the JSON response.")] = False,
 ) -> None:
     """Inspect one bounded GeoServer publication target without mutation."""
-    from geoagent_harness.geoserver_inspection import (
+    from geoagent_harness.geoserver.inspection import (
         GeoServerInspectionError, GeoServerInspectionRequest,
         inspect_geoserver_layer,
     )
@@ -1033,8 +1033,8 @@ def plan_geoserver_publication_command(
     pretty: Annotated[bool, typer.Option("--pretty")] = False,
 ) -> None:
     """Inspect and plan activation of one existing disabled layer."""
-    from geoagent_harness.geoserver_inspection import GeoServerInspectionRequest
-    from geoagent_harness.geoserver_publication import (
+    from geoagent_harness.geoserver.inspection import GeoServerInspectionRequest
+    from geoagent_harness.geoserver.publication import (
         GeoServerPublicationError, GeoServerPublicationPlanRequest,
         plan_geoserver_publication,
     )
@@ -1065,7 +1065,7 @@ def record_geoserver_publication_approval_command(
 ) -> None:
     """Record a human decision bound to one exact publication plan."""
     from datetime import datetime, timedelta, timezone
-    from geoagent_harness.geoserver_publication import (
+    from geoagent_harness.geoserver.publication import (
         GeoServerPublicationError, GeoServerPublicationPlanResult,
         create_geoserver_publication_approval, load_json,
     )
@@ -1093,7 +1093,7 @@ def execute_geoserver_publication_command(
     pretty: Annotated[bool, typer.Option("--pretty")] = False,
 ) -> None:
     """Execute one exact approved GeoServer layer activation."""
-    from geoagent_harness.geoserver_publication import (
+    from geoagent_harness.geoserver.publication import (
         GeoServerPublicationApproval, GeoServerPublicationError,
         GeoServerPublicationPlanResult, execute_geoserver_publication, load_json,
     )
@@ -1121,7 +1121,7 @@ def verify_geoserver_publication_command(
     pretty: Annotated[bool, typer.Option("--pretty")] = False,
 ) -> None:
     """Independently inspect one executed GeoServer publication."""
-    from geoagent_harness.geoserver_publication import (
+    from geoagent_harness.geoserver.publication import (
         GeoServerPublicationError, GeoServerPublicationExecutionResult,
         GeoServerPublicationPlanResult, load_json, verify_geoserver_publication,
     )
@@ -1177,12 +1177,12 @@ def compare_postgis_tables_command(
 ) -> None:
     """Compare two approved PostGIS tables without modification."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_comparison import (
+    from geoagent_harness.postgis.comparison import (
         PostGISComparisonError,
         PostGISComparisonRequest,
         compare_postgis_tables,
     )
-    from geoagent_harness.postgis_inspection import (
+    from geoagent_harness.postgis.inspection import (
         PostGISInspectionError,
         PostGISInspectionRequest,
     )
@@ -1244,15 +1244,15 @@ def assess_postgis_change_command(
 ) -> None:
     """Classify deterministic PostGIS comparison evidence."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_change_assessment import (
+    from geoagent_harness.postgis.change_assessment import (
         assess_postgis_change,
     )
-    from geoagent_harness.postgis_comparison import (
+    from geoagent_harness.postgis.comparison import (
         PostGISComparisonError,
         PostGISComparisonRequest,
         compare_postgis_tables,
     )
-    from geoagent_harness.postgis_inspection import (
+    from geoagent_harness.postgis.inspection import (
         PostGISInspectionError,
         PostGISInspectionRequest,
     )
@@ -1320,12 +1320,12 @@ def plan_postgis_promotion_command(
     from pydantic import ValidationError
 
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_comparison import PostGISComparisonError
-    from geoagent_harness.postgis_inspection import (
+    from geoagent_harness.postgis.comparison import PostGISComparisonError
+    from geoagent_harness.postgis.inspection import (
         PostGISInspectionError,
         PostGISInspectionRequest,
     )
-    from geoagent_harness.postgis_promotion_plan import (
+    from geoagent_harness.postgis.promotion.plan import (
         PostGISPromotionPlanError,
         PostGISPromotionPlanRequest,
         plan_postgis_promotion,
@@ -1397,7 +1397,7 @@ def record_postgis_promotion_approval_command(
     """Persist a human decision for one exact 15D plan digest."""
     from datetime import datetime, timedelta, timezone
 
-    from geoagent_harness.postgis_promotion_approval import (
+    from geoagent_harness.postgis.promotion.approval import (
         PostGISPromotionApprovalError,
         PostGISPromotionApprovalStorageError,
         create_postgis_promotion_approval,
@@ -1458,7 +1458,7 @@ def execute_postgis_promotion_command(
     pretty: Annotated[bool, typer.Option("--pretty")] = False,
 ) -> None:
     """Execute and record one exact approved transactional promotion."""
-    from geoagent_harness.postgis_promotion_execution import (
+    from geoagent_harness.postgis.promotion.execution import (
         PostGISPromotionExecutionError,
         PostGISPromotionExecutionStorageError,
         execute_postgis_promotion,
@@ -1505,7 +1505,7 @@ def verify_postgis_promotion_command(
 ) -> None:
     """Independently inspect and record one completed promotion."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_promotion_verification import (
+    from geoagent_harness.postgis.promotion.verification import (
         PostGISPromotionVerificationError,
         PostGISPromotionVerificationStorageError,
         persist_postgis_promotion_verification,
@@ -1539,7 +1539,7 @@ def plan_postgis_rollback_command(
     pretty: Annotated[bool, typer.Option("--pretty")] = False,
 ) -> None:
     """Create an immutable, non-executing rollback plan."""
-    from geoagent_harness.postgis_rollback_plan import (
+    from geoagent_harness.postgis.rollback.plan import (
         PostGISRollbackPlanError,
         PostGISRollbackPlanStorageError,
         persist_postgis_rollback_plan,
@@ -1579,7 +1579,7 @@ def record_postgis_rollback_approval_command(
 ) -> None:
     """Record one human decision for an exact rollback plan."""
     from datetime import datetime, timedelta, timezone
-    from geoagent_harness.postgis_rollback_approval import (PostGISRollbackApprovalError,PostGISRollbackApprovalStorageError,create_postgis_rollback_approval,persist_postgis_rollback_approval)
+    from geoagent_harness.postgis.rollback.approval import (PostGISRollbackApprovalError,PostGISRollbackApprovalStorageError,create_postgis_rollback_approval,persist_postgis_rollback_approval)
     if valid_for_minutes is not None and valid_for_minutes < 1:
         typer.echo("Error: valid-for-minutes must be positive",err=True); raise typer.Exit(code=2)
     now=datetime.now(timezone.utc); expires_at=now+timedelta(minutes=valid_for_minutes) if valid_for_minutes else None
@@ -1604,7 +1604,7 @@ def execute_postgis_rollback_command(
 ) -> None:
     """Execute one exact approved rollback transaction."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_rollback_execution import (PostGISRollbackExecutionError,PostGISRollbackExecutionStorageError,execute_postgis_rollback,persist_postgis_rollback_execution)
+    from geoagent_harness.postgis.rollback.execution import (PostGISRollbackExecutionError,PostGISRollbackExecutionStorageError,execute_postgis_rollback,persist_postgis_rollback_execution)
     try:
         execution=execute_postgis_rollback(rollback_plan_file=rollback_plan_file,rollback_plan_root=rollback_plan_root,approval_file=approval_file,approval_root=approval_root,settings=load_settings(),confirm_rollback_plan_sha256=confirm_rollback_plan_sha256,confirm_approval_sha256=confirm_approval_sha256)
         result=persist_postgis_rollback_execution(execution,execution_root=execution_root)
@@ -1626,7 +1626,7 @@ def verify_postgis_rollback_command(
 ) -> None:
     """Independently inspect and record one completed rollback."""
     from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.postgis_rollback_verification import (
+    from geoagent_harness.postgis.rollback.verification import (
         PostGISRollbackVerificationError, PostGISRollbackVerificationStorageError,
         persist_postgis_rollback_verification, verify_postgis_rollback,
     )
@@ -7739,6 +7739,8 @@ from geoagent_harness.tabular.cli import register as register_tabular_cli
 register_tabular_cli(app)
 from geoagent_harness.discovery.cli import register as register_discovery_cli
 register_discovery_cli(app)
+from geoagent_harness.chat.cli import register as register_chat_cli
+register_chat_cli(app)
 from geoagent_harness.operations.cli import register as register_operations_cli
 register_operations_cli(app)
 from geoagent_harness.interface_api.planning_tasks_cli import register as register_planning_tasks_cli
@@ -7768,6 +7770,9 @@ def write_policy_command(
         typer.echo(f'Error: {exc}',err=True)
         raise typer.Exit(code=2) from exc
 
+
+from geoagent_harness.postgres.cli import install as install_postgres_cli
+install_postgres_cli(app)
 
 if __name__ == "__main__":
     app()

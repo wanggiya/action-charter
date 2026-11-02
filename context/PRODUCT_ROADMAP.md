@@ -1,6 +1,299 @@
 # ActionCharter Product Roadmap
 
-Updated: 2026-10-22
+2026-11-01 direction (design only, not implemented): [product direction](../docs/product-direction/README.md).
+One core codebase with Personal / Team server / Enterprise deployment profiles; Guided (non-expert)
+and Studio (professional) interface modes over the same backend; long-term policy-governed
+autonomous platform (autonomy levels L0–L4, control/data plane split, evaluated self-evolution).
+Next: Phase 0 consolidation, benchmark suite, one hero journey in Guided mode, Linux packaging.
+
+2026-10-30 T03/T05: [inspection-led analysis goals](../docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md)
+now separate agent-proposed questions/prerequisites from actual typed calculations.
+Source-bound per-chat cards prepare supported goals without executing; new reports
+state statistical coverage. Classification training/evaluation, categorical tests,
+causality and full real-data/model acceptance remain open; no new checkpoint claimed.
+
+
+2026-10-30 F5: persistent reasoning Settings/request snapshots and analytical-report
+contract separation. Derived Outcome reports remain read-only; explicit legacy evidence
+steps retain existing validation/approval. Actual-model report case passed after bounded
+correction; wider reliability remains open. See [diagnostics](../docs/REQUEST_DIAGNOSTICS.md).
+
+2026-10-30 F5 follow-up: focused numeric-summary/metadata inspection routing and
+direct, scrollable failure diagnostics. No model default change or authority change;
+real-model/resource evidence and remaining limits in [diagnostics](../docs/REQUEST_DIAGNOSTICS.md).
+
+2026-10-29 F5 diagnostic slice: [durable request telemetry](../docs/REQUEST_DIAGNOSTICS.md),
+failed-chat recovery, UI/CLI export and safe failure categorization. Focused full-source
+inspection proposal returned; full role-mode reliability remains open. Memory/model
+resource observations are not proof of context overflow or exact attribution.
+
+2026-10-29 continuation of T03/T04/T05/T13:
+[full-data preparation, schema and handoff](../docs/POSTGRES_DATA_WORKFLOW.md#next-implementation-full-data-analytical-and-engineering-handoff--2026-10-29).
+F1 full-file preparation -> F2 typed mapping preflight -> F3 verified fresh-table round
+trip -> F4 analytical/technical documents -> F5 real-model Single/Three acceptance.
+F1–F4 delivered with bounded streaming, shared preflight and saved handoff contracts;
+[current acceptance and remaining gates](../docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+F5 partial: full-file selection executed in Single/Three; advisory review timeouts and
+complete real-model database composition remain open. No new permanent agent.
+
+2026-10-29 T03/T04/T05 [readiness/full-data reporting](../docs/READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md):
+typed source-bound readiness projection, Report Markdown/PDF and CLI/MCP/terminal
+access; shared group bases, explicit unknowns/omissions and bounded agent evidence.
+Quality-only planning now has a focused instruction profile with timeout diagnostics;
+actual-model latency remains a manual acceptance check, not inferred from prompt size.
+Existing roles/skill updated; exploration sample substitution blocked. Full supplied
+file remains the acceptance target. Actual-model/user journey and full-scale service
+transfer/preparation remain open; do not infer them from sample or fixture acceptance.
+
+2026-10-29 T03/T04/T08 [shared table pipeline](../docs/TABLE_SOURCE_CONSOLIDATION.md):
+typed bounded batches and one result consumer replace CSV/record duplication; trusted
+catalog drives registry, policy and relevant Planner metadata; MCP registry discovery
+is read-only. Additive source descriptors preserve the v1 identity formula/old results. Broader
+dataset-profile/task-action consolidation, semantic types and manual acceptance remain
+open; no new permanent agent or automatic library execution.
+
+2026-10-29 T05/T08 [figures and table readers](../docs/TABLE_FORMATS_AND_STATISTICAL_FIGURES.md):
+recorded group means/heatmaps and PDF figures, adjacent advisory assessment; bounded
+XLSX/JSON/JSONL/NDJSON adapters reuse analysis, typed source selection and original file
+identity across workflow/CLI/MCP. CSV transforms remain CSV-only. User manual acceptance
+pending; Parquet and document extraction remain later work, not delivered formats.
+
+2026-10-28 T03/T04/T05 [advice/review/report slice](../docs/T05_ANALYTICAL_ADVICE_AND_REVIEW.md):
+recorded analysis opportunities inform Planner recommendations; existing statistical
+skill and Critic role guidance cover scope/assumptions. Optional question and computed-
+finding report sections share evidence across interfaces. Three actual-model synthetic
+cases pass; broader interpretation, report chart figures and general consolidation stay open.
+
+2026-10-28 T03/T05: [inspection-to-analysis starters](../docs/INITIAL_FIELD_GUIDANCE.md#inspection-to-analysis-follow-up--2026-10-28)
+prepare a typed descriptive request from complete recorded measurement candidates and
+an optional selected group. Planner proposes; explicit Execute uses existing statistics/
+report services. No inferred outcome, exclusion policy or domain knowledge. Real sample
+numerical checks and isolated UI acceptance are recorded in the linked guide.
+
+2026-10-28 T03/T04/T05 follow-up: [initial field guidance](../docs/INITIAL_FIELD_GUIDANCE.md)
+shares existing role rules across inspections, exposes bounded advisory evidence to
+Planner/MCP/CLI and preserves the workflow for advice-only questions. Summary label/
+value rows are responsive. Domain knowledge, inference and memory remain separate work.
+
+2026-10-28 T05/T09: [Statistics pages and reports](../docs/STATISTICS_PAGES_AND_REPORTS.md)
+adds readable page navigation, Markdown/PDF downloads from recorded evidence, structured
+reports and shared covariance matrices. Broader report figures, inference and format/
+document adapters remain open; existing checkpoint history and authority gates retained.
+
+2026-10-27 T05/T09/T10 slice: [typed table statistics](../docs/TABLE_STATISTICS_ACCEPTANCE.md)
+extends the shared verified CSV scan, Planner/MCP/CLI and recorded Outcome/report views.
+Descriptive/grouped statistics, Pearson/Spearman and numeric OLS are implemented;
+broader inference/causality, generated-code reuse, word clouds and format adapters remain open.
+Timeout follow-up reduces statistics-only planning instructions/examples (comparable
+fixture 24,861 → 14,638 prompt bytes); real-model latency remains a validation gate.
+Statistics-v2 adds required-method decoding and fixes covariance/variance matching;
+read-only fixture/browser evidence and real-model acceptance remain distinct checks.
+
+2026-10-27 T02/T03 slice: [exact-scope run recovery](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md#t02-exact-scope-recovery-delivered--2026-10-27)
+shared by frontend and terminal, active-run reconnection, evidence retention on refresh
+failure and persisted assistance receipts. Broader lifecycle/contract audit remains open.
+
+2026-10-27 presentation/T02 slice: grouped-chart sizing presets and optional two-field
+3D columns; explicit disabled-Execute reasons and proposal-restoration wording. Existing
+policy and data services remain shared. See [validation](../docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27);
+broader task recovery/consolidation remains open.
+
+2026-10-27 consolidation started: [T01 analytical/Builder audit slice](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md)
+records inspected ownership/runtime boundaries and remaining gaps. Shared grouped-chart
+presentation fixes applied-field naming, explicit percentage bases and oversized plots.
+This is partial T01/T03 work, not completion of general consolidation or generated-code integration.
+
+2026-10-27 priority delivery: [ordinary inspection age × gender cross-tab](../docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27)
+reuses existing renderer/services in Outcome Groups, with clear vertical/horizontal
+controls and count/percentage/swap. Real-sample browser cell reconciliation passed;
+this does not complete general statistical reporting or the structural TODO.
+
+2026-10-27 execution planning: [consolidated implementation TODO](../docs/IMPLEMENTATION_TODO.md)
+is the dependency/acceptance checklist across consolidation, Builder reuse, analytical
+reports, formats, routing, databases and memory-before-Linux. T01 ownership audit is next;
+no application delivery or new checkpoint completion claimed by this documentation.
+
+2026-10-27 requirements: [broader statistics/formats and Linux sequence](../docs/DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+records analytical reporting, distributions/association/regression/qualified causality,
+table/document/image/raster/point-cloud adapters, Builder reuse and memory before
+autonomous isolated Linux/PostgreSQL/PostGIS operation. Targets only; preserve history.
+
+2026-10-27 design correction: [Builder reuse/integration](../docs/BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md)
+prioritizes audit of existing August/September code-generation and extension lifecycle
+before task-driven Python/skill reuse. No new parallel generator or runtime delivery claimed.
+
+2026-10-27 design only: [generalization/consolidation](../docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
+records user-requested reduction of special cases, shared task/result/operation contracts,
+reusable skills and optional bounded Python, plus Auto/manual role routing. Ordered slices
+extend this roadmap without renumbering history; no structural implementation claimed.
+
+2026-10-26: [manual task agent modes](../docs/TASK_AGENT_MODES.md) deliver opt-in
+single-context versus sequential Planner/Executor/Critic coordination, same governed
+execution and durable comparison reports. Next: real-model same-data comparison,
+then evidence-based routing thresholds; no token-only automatic switching or RL claim.
+
+2026-10-26 real-data acceptance: [diabetes sample flow](../docs/DIABETES_REAL_TEST_FLOW.md)
+adds independently measured expectations, authorized sectioned-codebook decoding,
+real temporary preparation/database/export reconciliation and a frontend acceptance.
+First-5,000 sample bias, 10,000-row preparation bounds and real-model planning reliability
+remain explicit limits; statistical/domain-learning checkpoints are not marked complete.
+
+2026-10-26 engineering slice: [governed PostgreSQL workflows](../docs/POSTGRES_DATA_WORKFLOW.md)
+implements bounded ordinary-table inspection/import/export and marker delete/restore.
+Small-fixture readiness → preparation → database → export acceptance is separate from
+maximum-scale, domain interpretation, advanced statistics and checkpoint 29 knowledge.
+
+2026-10-26: two-field cross-tabs delivered in Outcome/terminal; authorized tabular
+PostgreSQL round trip remains planned. [Acceptance and next order](../docs/REAL_DATA_NEXT_TARGETS.md#cross-tab-delivered-slice-and-durable-next-steps--2026-10-26).
+
+## Outcome page, field details and terminal charts — 2026-10-26
+
+User wants frontend parity with `/columns age`, a large Outcome page covering the graph
+area, direct graph return, visible frontend workflow history and usable terminal charts.
+This delivery changes presentation of saved evidence: main Outcome workspace, searchable
+field details with category counts/percentages and applicable numerical/missingness facts,
+plus discoverable field/group ASCII charts. No new source scan is needed for those views.
+[Next real-data targets](../docs/REAL_DATA_NEXT_TARGETS.md) records Target | Requirement |
+Functions/ability to add | Expected outcome for quality, preparation, comparisons,
+statistics, engineering/recovery and later method knowledge. Those targets are not claims
+of implementation; prioritize the readiness report and descriptive comparisons first.
+
+## Persistent terminal and chat workflow history — implemented, 2026-10-25
+
+[Delivery and combined acceptance](../docs/TERMINAL_AND_CHAT_HISTORY.md): start
+`./actioncharter` for the full-screen/persistent plain terminal, sharing the running API's
+chats/model/settings. Workflow history records immutable workflow/analysis/view snapshots
+and linked runs; opens historical read-only graphs/Outcome without replacing current
+work. Continue creates a new validated draft revision, restoring selected views without
+copying authority. Explicit terminal review/availability/authorization/Execute use the
+shared backend; normal messages never dispatch workflow execution. Prior overwritten
+history cannot be recreated. SQLite snapshots deduplicate payloads, remain bounded and
+scoped per chat. No new dependencies/agent framework or data/service/Git mutation.
+
+## Interactive analytical selection — 2026-10-25
+
+[Outcome/CLI grouping and selected-column views](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#interactive-selected-columns-and-grouped-percentages--2026-10-25)
+now use an explicit source-bound shared read: Table age alone/age+readmitted; Groups
+one/two fields, counts, percentages of all rows or within the first group, table/chart
+and denominator details. Last table and grouping saved separately per chat; views do
+not rescan, Apply does. MCP `explore_dataset_view`, CLI `chat explore`/`chat result`
+share the service. No LLM calls, original-data writes, authority or chat-proposal changes.
+Real full/sample independent Docker checks passed; richer statistics, historical-workflow
+navigation and persistent terminal UI remain subsequent work. Preserve prior designs.
+
+## Frontend/CLI continuity — implemented slice, 2026-10-25
+
+User requires both interfaces to continue the same project/chat. [Commands, semantics
+and acceptance](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#frontend--cli-continuity--2026-10-25):
+`chat list/show/send/receipt/result` use the running loopback API and its model settings,
+shared chat/proposal state and submission receipts. Six readable recorded-result views
+plus JSON do not rescan. Refresh saved chat reloads frontend state and list without
+clearing an unsent draft; unsaved graph edits block refresh. No auto-retry, write enable,
+authorization or workflow dispatch; explicit exploration still runs bounded reads.
+Chart selectors match existing result controls. Browser-local presentation/drafts are
+not synchronized. Statistical relationships and full health-task acceptance remain open.
+
+## Next acceptance journey — post-inspection data science and engineering
+
+2026-10-25, documentation only: [post-inspection professional workflow and acceptance
+criteria](../docs/DIABETES_EXPLORATORY_ANALYSIS_TASK.md) records grain/provenance →
+quality report → explicit analysis specification → validated preparation → full-source
+group comparisons → supported relationships/uncertainty → reproducible results/pipeline.
+Prediction is a later separate objective. First audit/reuse existing tools; next proposed
+product work is matching Chart controls to the existing UI, improving group exploration,
+and readable CLI views over the same scoped saved results (no rescan merely to view).
+Keep denominators, repeated patients, code definitions and missingness explicit. Planner,
+shared services/MCP and Critic have complementary duties; no new mandatory agent chain.
+No implementation/data processing authorized by this documentation request; do not infer
+new statistical capabilities, clinical validity, learned knowledge or write authority.
+
+## Implemented 2026-10-25 — comprehensive inspection and Docker runtime
+
+[Delivery, boundaries and validation](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md):
+all-field CSV/TSV type/role profiles, full matching-file numerical summaries and category
+counts, MCP/CLI shared service, recorded interactive Outcome and left-to-right analytical
+graph. Default comprehensive jobs use a fixed Docker worker; legacy specialized duplicate
+checks remain bounded local services. Actual Docker isolation/cancellation/concurrency and
+full 101,766-row / 5,000-row comparisons passed. User frontend retest remains; statistical
+relationships, approved sampling, domain memory/RL and flexible-role server tests are open.
+Earlier design-only handoffs below are preserved history, superseded for implemented scope.
+
+Updated: 2026-10-26
+
+## Latest agreed delivery — complete real-data inspection journey
+
+[Integrated scope and acceptance](../docs/REAL_DATA_FRONTEND_DELIVERY_PLAN.md) joins
+comprehensive typed calculations, agent tool use, MCP/API/CLI parity, left-to-right graph,
+interactive Outcome and Executor-managed Docker/workspace isolation. The Docker pilot
+is included, not the whole deliverable; UI-only profiling also cannot satisfy completion.
+Read its dependency order before the earlier sandbox-first summary below. Plan recorded
+only; MicroVM and statistical modelling follow this inspection/exploration foundation.
+
+## Proposed next slice — Executor-managed Docker worker and typed inspection
+
+[Sandbox/workspace plan](../docs/EXECUTOR_SANDBOX_WORKSPACE_PLAN.md) records current
+versus proposed structure, job/artifact contracts, per-job isolation and negative tests.
+Next: inspect existing paths/images/runtime, pilot one CSV profile in a restricted Docker
+worker through current services, then prove isolation and result parity. MicroVM later.
+[Comprehensive inspection/Outcome](../docs/COMPREHENSIVE_DATASET_INSPECTION_PLAN.md)
+preserves numerical/category/identifier typing, automatic full-field profiles, left-to-right
+graph and interactive Outcome requirements. Both documents are proposals; no sandbox or
+complete profiler delivered. Keep the real-data task and its statistical stages open.
+
+
+## Latest integration — analytical evidence in graph and inspector
+
+[Saved analytical actions](../docs/ANALYTICAL_GRAPH_AND_INSPECTOR.md) now appear in the
+graph, timeline and information panel with scope-safe restoration and retained normal
+plans. Retest the existing real-data chat without rerunning it; sampling writes,
+statistical stages and flexible-role/server evaluation remain the next delivery areas.
+
+## Latest slice — bounded analytical conversation, 2026-10-25
+
+[Read-only analytical loop](../docs/BOUNDED_ANALYTICAL_LOOP.md): shared discovery,
+operation feasibility, typed tool/model actions and saved chat evidence implemented.
+Retest the real data before sampling writes/statistical stages. Flexible role assignment,
+structured inter-agent communication and simulated Linux-server tests follow one reliable
+journey; no new scheduler/container or authority from role assignment is delivered.
+
+## Current priority — real-data frontend retest
+
+[Columns/Explore](../docs/TABLE_EXPLORER_ACCEPTANCE.md) first slice is implemented:
+exact quality/duplicate checks and interactive grouped distinct/numeric summaries, with
+shared typed tools. Retest the real file, then add validated spread/quantiles, association
+and uncertainty methods, and one adjusted model. Full statistical task is still open.
+
+Latest scope: [complete exploratory-analysis task](../docs/DIABETES_EXPLORATORY_ANALYSIS_TASK.md)
+extends quality/exploration through descriptive statistics, relationships, uncertainty
+and one interpretable adjusted model. Deliver shared bounded tools and a compact UI,
+then validate direct versus conversational journeys. Plan only; statistical capability
+and clinical validity are not established by the existing profile/export acceptance.
+
+Retest feedback now defines the [quality/exploration follow-up](../docs/TABLE_QUALITY_AND_EXPLORATION_PLAN.md):
+shared quality/group contracts, focused typed MCP tools, compact direct controls and
+Planner access, then independent diabetes acceptance. Design recorded only; this adds
+new general capabilities rather than training the model or hardcoding clinical rules.
+
+[Analytical delivery](../docs/ANALYTICAL_INSPECTION_ACCEPTANCE.md) is implemented:
+Ollama selection, typed source queries, complete profiles/codebooks, full-file grouped
+exports and bounded post-run reasoning. Independent real diabetes acceptance and isolated
+browser journeys passed. Retest the real files in the interface using the guide before
+expanding clinical scope or scale claims. Broader transforms/lazy intermediates and
+adaptive mid-run execution remain open; memory alternatives remain parked.
+
+Preserve the [delivery order](../docs/ANALYTICAL_EXECUTION_DELIVERY_PLAN.md): demonstrate
+the real analytical process first, then independently callable roles and selective
+orchestration justified by same-model/task evidence. No checkpoint-29 closeout claim.
+
+## Checkpoint 29 — preserved working proposal
+
+Latest A direction: [non-forgetting shared JSON and separate knowledge agent](../docs/MEMORY_A_GROWING_SHARED_JSON.md). Supersedes conflicting Critic-only/shared-pruning proposals for A; B unchanged. Architecture comparison now has multiple differing factors; no implementation authorized.
+
+**Design not settled (2026-10-23):** checkpoint-29 memory slices remain a working proposal. Resolve the [open decisions](../docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md#decision-status--unresolved-2026-10-23) before treating mechanisms, budgets or delivery boundaries as approved. Documentation only.
+
+2026-10-23 design clarification: [role memory, agent-led curation, sharing and recovery](../docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md). Plan explicit scope/role/source indices, domain labels and minimal export/restore; no arbitrary sharing ratios, mandatory user Git/SQLite setup or cross-chat implementation.
+
+[Ordered scope and acceptance](../docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md): 29.1 private typed storage → 29.2 bounded Critic capture → 29.3 scoped retrieval/corrections → 29.4 compact UI and shared CLI → 29.5 synthetic and paired acceptance. Reuse existing Planner/Critic and SQLite services; no new mandatory agent/container, cross-chat retrieval or model training. Planned only; checkpoint 28 remains accepted with its recorded limits.
 
 Planner reliability follow-up: schema-repair permission deferrals now use one correction attempt and preserve saved workflows on failure. Calculation follow-up recognizes multiplied/divided/new-column wording, supplies complete non-executing examples and distinguishes repeated repair deferrals from missing user scope. The correction budget and backend checks are unchanged. Conversational Planner now requests a portable decoder schema and distinguishes malformed JSON from reported output truncation; required proposal gates bind upward from registry contracts and backend policy remains authoritative. One local CSV planning smoke passed; broader evaluation remains open. [Protocol and diagnostics](../docs/PLANNER_STRUCTURED_OUTPUT.md). A historical plan claimed calculated columns but contained only inspect_csv. New explicit calculated-column requests check operation presence before storage, use focused instructions/typed source decoding and a narrow single-column skeleton and receive one correction on omission; old records remain unchanged. Reuse provenance now constrains generated IDs to supplied/inspected sources and refreshes after discovery; unverified claims still reject. These are narrow regression guards, not checkpoint completion.
 
@@ -12,19 +305,19 @@ Same-chat inspection follow-up: enforce loaded API `inspection-source-v2` before
 
 ## Checkpoint 28 revised consolidation target — 2026-10-22
 
-[Target, baseline and ordered delivery](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md): characteristics-first discovery with progressive verification, shared readers and focused agent context. Streaming CSV is now implemented with provisional metadata and complete streamed identity/counts; spatial discovery, multi-inspection, zero-model routing and measured learning remain gates. Existing bounded features stay compatible. No extra mandatory agents/containers; private domain knowledge remains 29 and cross-chat 30+.
+[Target, baseline and ordered delivery](../docs/development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md): characteristics-first discovery with progressive verification, shared readers and focused agent context. Streaming CSV is now implemented with provisional metadata and complete streamed identity/counts; spatial discovery, multi-inspection, zero-model routing and measured learning remain gates. Existing bounded features stay compatible. No extra mandatory agents/containers; private domain knowledge remains 29 and cross-chat 30+.
 
 ## Checkpoint 28.1 bounded acquisition pilot — 2026-10-20
 
-[Implementation and acceptance](../docs/CHECKPOINT28_1.md): a default-OFF per-chat switch lets Planner prepare one closed CSV text adapter family. Synthetic/held-out/effect checks precede explicit installation; normal review/authorization/execution follows. Fixtures and one actual-model OFF/ON/changed-input-reuse profile pass; operator acceptance and broader reliability remain explicit. This is generated data-only configuration, not unrestricted Python. Existing adapters/recipes remain first choice. General Python isolation is deferred; proceed to 28.2 only after this pilot is accepted. Then 28.3 visualization, 29 private knowledge and the established demo/package gates remain in order.
+[Implementation and acceptance](../docs/development/checkpoints/CHECKPOINT28_1.md): a default-OFF per-chat switch lets Planner prepare one closed CSV text adapter family. Synthetic/held-out/effect checks precede explicit installation; normal review/authorization/execution follows. Fixtures and one actual-model OFF/ON/changed-input-reuse profile pass; operator acceptance and broader reliability remain explicit. This is generated data-only configuration, not unrestricted Python. Existing adapters/recipes remain first choice. General Python isolation is deferred; proceed to 28.2 only after this pilot is accepted. Then 28.3 visualization, 29 private knowledge and the established demo/package gates remain in order.
 
 ## Post-calculation delivery clarification
 
-[Ordered plan and acceptance gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md): 27.4a recorded-result usability; 27.3/27.5 agent evidence feedback and evaluation; proposed 28.1 bounded capability acquisition then 28.2 optional learning-policy evaluation; 29 private domain knowledge/corrections; existing 30+ cross-chat decision gate. 27.4a is now implemented for recorded operation cards, bounded tables and readable checks with chat/plan/run binding; [acceptance and limits](../docs/CHECKPOINT27_RECORDED_RESULTS.md). [27.4b visualizations](../docs/CHECKPOINT27_VISUALIZATION.md) deliver bounded bars/scatter and offline WGS84 point snapshots. Broader geometry/layer support and subsequent capabilities remain open. Preserve the existing operational/privacy checkpoint scope and finish each acceptance gate before starting its dependent work.
+[Ordered plan and acceptance gates](../docs/POST_CALCULATION_DELIVERY_PLAN.md): 27.4a recorded-result usability; 27.3/27.5 agent evidence feedback and evaluation; proposed 28.1 bounded capability acquisition then 28.2 optional learning-policy evaluation; 29 private domain knowledge/corrections; existing 30+ cross-chat decision gate. 27.4a is now implemented for recorded operation cards, bounded tables and readable checks with chat/plan/run binding; [acceptance and limits](../docs/development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md). [27.4b visualizations](../docs/development/checkpoints/CHECKPOINT27_VISUALIZATION.md) deliver bounded bars/scatter and offline WGS84 point snapshots. Broader geometry/layer support and subsequent capabilities remain open. Preserve the existing operational/privacy checkpoint scope and finish each acceptance gate before starting its dependent work.
 
 ## Runtime writes and pre-demo gate — planned
 
-[Design](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md) and [27.7 delivery](../docs/CHECKPOINT27_RUNTIME_WRITES.md): next finish 27.3 evidence feedback, remaining 27.4 visualization and synthetic 27.5 evaluation. Then implement/validate 28.1 capabilities, 28.2 learning/RL and 29 advanced private memory before demo/real-data acceptance; 27.6 packaging follows.
+[Design](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md) and [27.7 delivery](../docs/development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md): next finish 27.3 evidence feedback, remaining 27.4 visualization and synthetic 27.5 evaluation. Then implement/validate 28.1 capabilities, 28.2 learning/RL and 29 advanced private memory before demo/real-data acceptance; 27.6 packaging follows.
 Preserve historical numbering. 27.7 runtime write controls are delivered for the main workflow/recipe paths;
 Settings availability must remain separate from exact authorization/execution,
 with session/revision enforcement and explicit administrative restrictions.
@@ -43,22 +336,22 @@ Evaluate saved effort against a fixed baseline, including failures. The bounded 
 
 ## Immediate priority
 
-Checkpoints 23–25 established the conversational interface, bounded tabular operations and governed extension contracts. Checkpoint 26 delivered bounded sequential execution, private-chat restoration, recipe composition and conservative recovery; see [closeout and limits](../docs/CHECKPOINT26_CLOSEOUT.md). The next implementation scope is **checkpoint 27**, below. Historical checkpoint proposals remain preserved. No release publication is authorized.
+Checkpoints 23–25 established the conversational interface, bounded tabular operations and governed extension contracts. Checkpoint 26 delivered bounded sequential execution, private-chat restoration, recipe composition and conservative recovery; see [closeout and limits](../docs/development/checkpoints/CHECKPOINT26_CLOSEOUT.md). The next implementation scope is **checkpoint 27**, below. Historical checkpoint proposals remain preserved. No release publication is authorized.
 
 ## Checkpoint 27 — technical acceptance; operator validation next
 
-[Technical acceptance report](../docs/CHECKPOINT27_EVALUATION.md): 1,825 backend tests, 54 browser cases and six correct final-profile local-model executions. Earlier failures remain recorded; optional Critic timed out in the final profile. This is not a general reliability or release-readiness claim. 27.6 remains deferred until after the agreed pre-demo gates and selected-data acceptance.
+[Technical acceptance report](../docs/development/checkpoints/CHECKPOINT27_EVALUATION.md): 1,825 backend tests, 54 browser cases and six correct final-profile local-model executions. Earlier failures remain recorded; optional Critic timed out in the final profile. This is not a general reliability or release-readiness claim. 27.6 remains deferred until after the agreed pre-demo gates and selected-data acceptance.
 
-[Detailed plan, human/agent/service responsibilities and measurable acceptance](../docs/CHECKPOINT27_PLAN.md).
+[Detailed plan, human/agent/service responsibilities and measurable acceptance](../docs/development/checkpoints/CHECKPOINT27_PLAN.md).
 
-1. **27.1 Automatic successful-workflow records — delivered:** new durable runs save/index/deduplicate eligible successes without a model call or registration ceremony. Own-chat discovery, separate source evidence and fail-soft indexing preserve privacy/authority. [Delivery and acceptance](../docs/CHECKPOINT27_RETENTION.md).
-2. **27.2 Planner discovery/adaptation — delivered:** the existing Planner has bounded read-only catalog search/inspect and own-chat examples; ordinary chat handles reuse, with reference-only Recipe list/Keywords and manual composition in Advanced. Sanitized shared structures exclude private fixed literals. Fresh authority remains required. [Acceptance and limits](../docs/CHECKPOINT27_DISCOVERY.md).
-3. **27.3 Optional Critic enrichment — delivered:** [Advisory graph visibility](../docs/CHECKPOINT27_CRITIC_GRAPH.md) is delivered; [Evidence-bound advisory method notes](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) now reuse existing assessments; immutable baseline identity/tags and own-chat visibility remain intact. Failure does not block baseline saving/reuse. Generalization remains optional Advanced work.
-4. **27.4 Outcome visualization:** [27.4c Results workspace](../docs/CHECKPOINT27_RESULTS_WORKSPACE.md) adds single-view tabs, resizing/expansion, linked selections and explicit verified CSV reads. recorded tables plus [27.4b bars/scatter and WGS84 point snapshots](../docs/CHECKPOINT27_VISUALIZATION.md) are delivered. [27.4d analysis/layout](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds ten chart views, verified full-CSV grouping, first-layer WGS84 lines/polygons/attributes and persistent collision-aware placement. Bounds and run identity remain explicit; broader rendering is 28.3 and evaluation remains separate.
+1. **27.1 Automatic successful-workflow records — delivered:** new durable runs save/index/deduplicate eligible successes without a model call or registration ceremony. Own-chat discovery, separate source evidence and fail-soft indexing preserve privacy/authority. [Delivery and acceptance](../docs/development/checkpoints/CHECKPOINT27_RETENTION.md).
+2. **27.2 Planner discovery/adaptation — delivered:** the existing Planner has bounded read-only catalog search/inspect and own-chat examples; ordinary chat handles reuse, with reference-only Recipe list/Keywords and manual composition in Advanced. Sanitized shared structures exclude private fixed literals. Fresh authority remains required. [Acceptance and limits](../docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md).
+3. **27.3 Optional Critic enrichment — delivered:** [Advisory graph visibility](../docs/development/checkpoints/CHECKPOINT27_CRITIC_GRAPH.md) is delivered; [Evidence-bound advisory method notes](../docs/development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) now reuse existing assessments; immutable baseline identity/tags and own-chat visibility remain intact. Failure does not block baseline saving/reuse. Generalization remains optional Advanced work.
+4. **27.4 Outcome visualization:** [27.4c Results workspace](../docs/development/checkpoints/CHECKPOINT27_RESULTS_WORKSPACE.md) adds single-view tabs, resizing/expansion, linked selections and explicit verified CSV reads. recorded tables plus [27.4b bars/scatter and WGS84 point snapshots](../docs/development/checkpoints/CHECKPOINT27_VISUALIZATION.md) are delivered. [27.4d analysis/layout](../docs/development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md) adds ten chart views, verified full-CSV grouping, first-layer WGS84 lines/polygons/attributes and persistent collision-aware placement. Bounds and run identity remain explicit; broader rendering is 28.3 and evaluation remains separate.
 5. **27.5 Laptop/model evaluation:** spatial, tabular and combined journeys, including retention/reuse, measured failures, time, interventions and correctness.
 6. **27.6 Prototype/demo preparation:** existing launcher, installation/platform checks, function-based examples and public-data demo/release materials. Implement a versioned installable package after data/demo acceptance, with clean-install/restart and user-data preservation checks; package format is undecided. No publication.
 
-7. **27.7 Runtime write availability — implemented slice:** backend-enforced Settings switch, session/revision-bound authorization, direct-entry-point/CLI enforcement and disable/restart behavior. [Design and measurable gates](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md). [Evidence-only authorization fix](../docs/CHECKPOINT27_AUTHORIZATION_FIX.md) preserves conservative plan gates in recipes. Overwrite remains a separate follow-up.
+7. **27.7 Runtime write availability — implemented slice:** backend-enforced Settings switch, session/revision-bound authorization, direct-entry-point/CLI enforcement and disable/restart behavior. [Design and measurable gates](../docs/RUNTIME_WRITE_CONTROL_DESIGN.md). [Evidence-only authorization fix](../docs/development/checkpoints/CHECKPOINT27_AUTHORIZATION_FIX.md) preserves conservative plan gates in recipes. Overwrite remains a separate follow-up.
 
 27.2 depends on 27.1; 27.3 enriches but does not gate either. Finish evaluation before claiming prototype readiness. Normal human work is intent/clarification, review, exact authorization and result judgment; agents interpret, while services persist/index/validate/execute. 27.1–27.4 and the 27.7 toolbar follow-up have bounded implementations; actual-model evidence and the operator acceptance gate remain separate. Legacy runs without contract snapshots are not backfilled. No new agent hierarchy or cross-chat memory is implied.
 
@@ -81,7 +374,7 @@ completion requirement or bypass the checkpoint-30 cross-chat decision gate.
 | **26.8 — recovery and intermediate inspection** | 26.6/26.7: inspect step previews/partial targets; resume remaining reads or prepare fresh write targets, requiring fresh authority. | Implemented conservative recovery proposals and bounded previews. Verified write-intermediate reuse and transactional resume remain open. |
 | **26.9 — operational acceptance** | Complete API/CLI/browser journeys including failure, cancellation, refresh/restart, registration and recovery; report laptop model limitations. | 1,618 backend tests and 27 browser fixture groups pass; local-model evaluation moves to 27, broader recovery remains deferred. |
 
-[Current closeout, acceptance and limits](../docs/CHECKPOINT26_CLOSEOUT.md). Checkpoint 26 closes the bounded sequential orchestration, private-chat context and reusable-recipe delivery. Earlier 26.2–26.5 indexed memory/curation proposals remain preserved as design history and move to checkpoints 28–29 after laptop evaluation; they are not completed features. Verified write-intermediate reuse and transactional resume are later operation-specific work, not prerequisites for the delivered conservative recovery. Checkpoint 27 is next: laptop evaluation, outcome visualization and prototype/release preparation. Cross-chat memory remains checkpoint 30 or later with a fresh decision.
+[Current closeout, acceptance and limits](../docs/development/checkpoints/CHECKPOINT26_CLOSEOUT.md). Checkpoint 26 closes the bounded sequential orchestration, private-chat context and reusable-recipe delivery. Earlier 26.2–26.5 indexed memory/curation proposals remain preserved as design history and move to checkpoints 28–29 after laptop evaluation; they are not completed features. Verified write-intermediate reuse and transactional resume are later operation-specific work, not prerequisites for the delivered conservative recovery. Checkpoint 27 is next: laptop evaluation, outcome visualization and prototype/release preparation. Cross-chat memory remains checkpoint 30 or later with a fresh decision.
 
 ## Dependency-ordered checkpoints 24–27
 
@@ -104,7 +397,7 @@ Then add saved dashboards/export and appropriate raster/large-data support.
 Acceptance uses fixed fixtures, correct totals/geometry, explicit scope and measured
 laptop resource limits. Select the supported subset needed for the chosen demo;
 no Tableau/Google parity or arbitrary-format claim is implied. See the
-[ordered visualization expansion](../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md).
+[ordered visualization expansion](../docs/development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md).
 Advanced private domain memory remains 29, cross-chat remains 30+, demo/real-data
 acceptance follows the agreed gates, and 27.6 installable-package work follows that
 acceptance. Nothing is published by this roadmap.
@@ -1096,57 +1389,57 @@ Checkpoint 20 recorded artifact graph: verified recipe evidence now exposes boun
 
 Checkpoint 21D implemented: reopen independently checked saved task histories without restoring workflow scope or authority. Remaining Checkpoint 21 work includes verified artifact relationships and recovery boundaries before reviewed intent in Checkpoint 22.
 
-Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21E.md`.
 
-Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/development/checkpoints/CHECKPOINT21F.md`.
 
-Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21G.md`. Recipe/outcome links remain open.
 
-Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/development/checkpoints/CHECKPOINT21H.md`.
 
-Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/development/checkpoints/CHECKPOINT21I.md`.
 
-Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/development/checkpoints/CHECKPOINT21J.md`.
 
-Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/development/checkpoints/CHECKPOINT21K.md`.
 
-Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/development/checkpoints/CHECKPOINT21L.md`.
 
-Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/development/checkpoints/CHECKPOINT21M.md`.
 
-Checkpoint 22A implemented for validation: explicitly scoped keyword retrieval from checked task histories. Next are exact context review/storage and bounded Intent Agent reasoning/clarification. No automatic memory or frontend conversation redesign is claimed. See `docs/CHECKPOINT22.md`.
+Checkpoint 22A implemented for validation: explicitly scoped keyword retrieval from checked task histories. Next are exact context review/storage and bounded Intent Agent reasoning/clarification. No automatic memory or frontend conversation redesign is claimed. See `docs/development/checkpoints/CHECKPOINT22.md`.
 
-Checkpoint 22B implemented for validation: explicit context review/storage and stale-source rejection on reopening. Next is bounded Intent reasoning/clarification. Context review is not approval of work. See `docs/CHECKPOINT22B.md`.
+Checkpoint 22B implemented for validation: explicit context review/storage and stale-source rejection on reopening. Next is bounded Intent reasoning/clarification. Context review is not approval of work. See `docs/development/checkpoints/CHECKPOINT22B.md`.
 
 
 ## Checkpoint 22C — Intent reasoning
 
-CLI `reason-task-intent` now consumes a rechecked context review and proposes intent or clarification without creating a plan or granting authority. Context is checked again after inference. See `docs/CHECKPOINT22C.md` for validation. API/UI integration and reviewed Intent-to-Planner handoff remain next.
+CLI `reason-task-intent` now consumes a rechecked context review and proposes intent or clarification without creating a plan or granting authority. Context is checked again after inference. See `docs/development/checkpoints/CHECKPOINT22C.md` for validation. API/UI integration and reviewed Intent-to-Planner handoff remain next.
 
 
 ## Checkpoint 22D — Intent clarification API
 
-Explicit clarification answers are available through `reason-task-intent --clarification` and `POST /api/v1/intent/reason`. Each stateless call checks reviewed history, proposes intent or questions and grants no work authority. Current-task prompt improved after live model feedback. See `docs/CHECKPOINT22D.md`; UI and reviewed Planner handoff follow.
+Explicit clarification answers are available through `reason-task-intent --clarification` and `POST /api/v1/intent/reason`. Each stateless call checks reviewed history, proposes intent or questions and grants no work authority. Current-task prompt improved after live model feedback. See `docs/development/checkpoints/CHECKPOINT22D.md`; UI and reviewed Planner handoff follow.
 
 
 ## Checkpoint 22E — resolved Intent review
 
-Intent may make one fresh re-evaluation when supplied answers leave a clarification response. Unresolved output stays blocked. CLI proposal inspection and explicit digest review now store resolved reasoning under ignored `reviewed-intents/`; reopening rechecks sources and record bytes. This grants no work authority. See `docs/CHECKPOINT22E.md`. Actual Planner handoff and review API/UI follow.
+Intent may make one fresh re-evaluation when supplied answers leave a clarification response. Unresolved output stays blocked. CLI proposal inspection and explicit digest review now store resolved reasoning under ignored `reviewed-intents/`; reopening rechecks sources and record bytes. This grants no work authority. See `docs/development/checkpoints/CHECKPOINT22E.md`. Actual Planner handoff and review API/UI follow.
 
 
 ## Checkpoint 22F — reviewed Planner handoff
 
-CLI `plan-reviewed-intent` now produces an unsaved plan from a rechecked intent review, initially bounded to one exact `inspect_vector` input and metadata output scope. It rejects broader capabilities and never executes or infers approval. See `docs/CHECKPOINT22F.md`. Review/handoff API, conversation UI and broader supported envelopes follow.
+CLI `plan-reviewed-intent` now produces an unsaved plan from a rechecked intent review, initially bounded to one exact `inspect_vector` input and metadata output scope. It rejects broader capabilities and never executes or infers approval. See `docs/development/checkpoints/CHECKPOINT22F.md`. Review/handoff API, conversation UI and broader supported envelopes follow.
 
 
 ## Checkpoint 22G — Intent review/handoff API
 
-The local API now supports checked proposal inspection, exact resolved-intent review, rechecked reopening and bounded Planner handoff through the same CLI services. No work approval or execution is granted. See `docs/CHECKPOINT22G.md`; conversation UI beside the graph follows.
+The local API now supports checked proposal inspection, exact resolved-intent review, rechecked reopening and bounded Planner handoff through the same CLI services. No work approval or execution is granted. See `docs/development/checkpoints/CHECKPOINT22G.md`; conversation UI beside the graph follows.
 
 
 ## Checkpoint 22H — Context & intent interface
 
-The new **Context & intent** panel uses explicitly selected history, checked review storage, structured reasoning and the bounded Planner handoff. It sits beside the graph on wide screens and above it on narrow screens. No plan is saved or executed. See `docs/CHECKPOINT22H.md` for the full frontend test flow. Saved-review recovery and integration with the existing governed run flow follow.
+The new **Context & intent** panel uses explicitly selected history, checked review storage, structured reasoning and the bounded Planner handoff. It sits beside the graph on wide screens and above it on narrow screens. No plan is saved or executed. See `docs/development/checkpoints/CHECKPOINT22H.md` for the full frontend test flow. Saved-review recovery and integration with the existing governed run flow follow.
 
 
 ## Checkpoint 22I implementation
@@ -1186,15 +1479,15 @@ Bounded vector/raster metadata handoff implemented with shared scope checks and 
 
 27: bounded output visualization (tables/charts/vector maps, with raster support clearly scoped), then public-data demo and laptop/PC installation/evaluation/release materials. [Acceptance and demo direction](../docs/OUTPUT_VISUALIZATION_DIRECTION.md). No publication is authorized.
 
-Checkpoint 26.1 delivery/acceptance: [private conversation memory](../docs/CHECKPOINT26_CONVERSATIONS.md). It uses existing durable state without claiming completion of cancellation, retry/resume or the whole checkpoint.
+Checkpoint 26.1 delivery/acceptance: [private conversation memory](../docs/development/checkpoints/CHECKPOINT26_CONVERSATIONS.md). It uses existing durable state without claiming completion of cancellation, retry/resume or the whole checkpoint.
 
-Operator revision: [current conversation model](../docs/CHECKPOINT26_CONVERSATIONS.md) supersedes separate task controls and cross-chat continuation. Each chat retains its own context across topic changes. Cross-conversation memory is deferred for discussion, not implementation; 26.2–26.4 should first work within one conversation.
+Operator revision: [current conversation model](../docs/development/checkpoints/CHECKPOINT26_CONVERSATIONS.md) supersedes separate task controls and cross-chat continuation. Each chat retains its own context across topic changes. Cross-conversation memory is deferred for discussion, not implementation; 26.2–26.4 should first work within one conversation.
 
 ### 28.2 implementation slice
 
-[Delivery and remaining evaluation](../docs/CHECKPOINT28_2.md): optional own-chat verified-check ranking and conversation settings gear implemented. Offline selector cases compare a fixed baseline; representative end-to-end model improvement is still unverified. Keep optional OFF and finish that acceptance gate before declaring the broader learning requirement complete. Then 28.3 and 29 retain their order.
+[Delivery and remaining evaluation](../docs/development/checkpoints/CHECKPOINT28_2.md): optional own-chat verified-check ranking and conversation settings gear implemented. Offline selector cases compare a fixed baseline; representative end-to-end model improvement is still unverified. Keep optional OFF and finish that acceptance gate before declaring the broader learning requirement complete. Then 28.3 and 29 retain their order.
 
-28.2 follow-up: [execution interaction and paired evaluation](../docs/CHECKPOINT28_2_EVALUATION.md) implement direct read-only Execute, separate write gates and six paired temporary cases. Ranking stays optional OFF until its predeclared model-benefit threshold is demonstrated. 28.3/29 and the demo gates are not silently advanced.
+28.2 follow-up: [execution interaction and paired evaluation](../docs/development/checkpoints/CHECKPOINT28_2_EVALUATION.md) implement direct read-only Execute, separate write gates and six paired temporary cases. Ranking stays optional OFF until its predeclared model-benefit threshold is demonstrated. 28.3/29 and the demo gates are not silently advanced.
 
 Measured 28.2 status: the initial local-model comparison did not demonstrate benefit (OFF 3/6, ON 2/6). Intermediate request/source and oracle defects are preserved in the evaluation notes. Coverage/source/fresh-output fixes improve deterministic handling but do not justify a general learning claim or default enablement.
 
@@ -1212,7 +1505,7 @@ Final focused post-fix local-model checks passed selection/filtering/combined ta
 
 ### 28.2 bounded inspection submission delivered — 2026-10-21
 
-[Delivery](../docs/CHECKPOINT28_2_INSPECTION_SUBMIT.md): explicit default-OFF Linux CSV inspection on send, ordinary stricter table limits, source/contract/revision binding, durable receipt/run identity and frontend/CLI parity. This supersedes the earlier design-only status of that slice, not broader 28.2 acceptance. [Learning without RL](../docs/LEARNING_WITHOUT_RL.md) prioritizes measured case reuse, failure feedback and context-aware retrieval before adaptive policies or training. Those alternatives remain proposed; external-harness research stays deferred.
+[Delivery](../docs/development/checkpoints/CHECKPOINT28_2_INSPECTION_SUBMIT.md): explicit default-OFF Linux CSV inspection on send, ordinary stricter table limits, source/contract/revision binding, durable receipt/run identity and frontend/CLI parity. This supersedes the earlier design-only status of that slice, not broader 28.2 acceptance. [Learning without RL](../docs/LEARNING_WITHOUT_RL.md) prioritizes measured case reuse, failure feedback and context-aware retrieval before adaptive policies or training. Those alternatives remain proposed; external-harness research stays deferred.
 
 ### Operator clarification — inspection is format-independent (2026-10-21)
 
@@ -1220,7 +1513,7 @@ Final focused post-fix local-model checks passed selection/filtering/combined ta
 
 ### 28.3 first result-exploration slice — 2026-10-21
 
-[Delivery and acceptance](../docs/CHECKPOINT28_3_RESULTS.md): shared typed result queries, complete bounded CSV filters/sort/paging and source profiles, filtered chart totals, stable table/chart identities, map displayed extent/type summary and Planner result_view proposals. Preserve old previews/workflows and exact write controls. No added agent or dependency. This is not full 28.3 completion or closure of the outstanding 28.2 format-independent inspection/learning gates; richer spatial/raster exploration, grounded explanations and measured scale remain.
+[Delivery and acceptance](../docs/development/checkpoints/CHECKPOINT28_3_RESULTS.md): shared typed result queries, complete bounded CSV filters/sort/paging and source profiles, filtered chart totals, stable table/chart identities, map displayed extent/type summary and Planner result_view proposals. Preserve old previews/workflows and exact write controls. No added agent or dependency. This is not full 28.3 completion or closure of the outstanding 28.2 format-independent inspection/learning gates; richer spatial/raster exploration, grounded explanations and measured scale remain.
 
 ## Domain knowledge acquisition direction — recorded 2026-10-21
 
@@ -1232,13 +1525,13 @@ Final focused post-fix local-model checks passed selection/filtering/combined ta
 
 ## 28.3 vector-first spatial views
 
-[Delivery and acceptance](../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md): explicit hash-bound vector layers/display reprojection and linked sampled attributes precede bounded raster image rendering and exact pixel inspection. Existing snapshots, shared CLI/API and write boundaries remain. Resource/recovery acceptance and documented limitations precede knowledge checkpoint 29; this does not close learning/private-memory gates or enable cross-chat sharing.
+[Delivery and acceptance](../docs/development/checkpoints/CHECKPOINT28_3_SPATIAL_VIEWS.md): explicit hash-bound vector layers/display reprojection and linked sampled attributes precede bounded raster image rendering and exact pixel inspection. Existing snapshots, shared CLI/API and write boundaries remain. Resource/recovery acceptance and documented limitations precede knowledge checkpoint 29; this does not close learning/private-memory gates or enable cross-chat sharing.
 
 28.3 follow-up: typed Planner spatial settings and backend-formatted recorded-fact explanations are implemented; same-chat inspection binds the latest source before storage. These do not constitute domain learning, new statistics or checkpoint-29 memory. See the spatial-view acceptance guide.
 
 ## Characteristics-first spatial discovery — 2026-10-22
 
-The [ordered consolidation plan](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) now includes metadata-only TIFF/GPKG/SHP readers, progressive package hashing and a shared `discover-dataset` CLI. Configured large-source discovery guards do not expand geometry/pixel display or processing. GeoJSON streaming and legacy spatial CLI/MCP migration remain separate work. The [resume record](WORK_RESUME.md) tracks accepted checks and next steps: narrow zero-model routing, bounded multi-inspection, evaluated experience retrieval, then checkpoint-28 closeout. Private knowledge stays 29 and cross-chat sharing 30+; no RL or demo-readiness claim.
+The [ordered consolidation plan](../docs/development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) now includes metadata-only TIFF/GPKG/SHP readers, progressive package hashing and a shared `discover-dataset` CLI. Configured large-source discovery guards do not expand geometry/pixel display or processing. GeoJSON streaming and legacy spatial CLI/MCP migration remain separate work. The [resume record](WORK_RESUME.md) tracks accepted checks and next steps: narrow zero-model routing, bounded multi-inspection, evaluated experience retrieval, then checkpoint-28 closeout. Private knowledge stays 29 and cross-chat sharing 30+; no RL or demo-readiness claim.
 
 ### Remaining-order amendment — documentation only, 2026-10-22
 
@@ -1246,7 +1539,7 @@ First reproduce/fix the reported raster-opacity endpoint issue and expand readab
 inspection metadata toward gdalinfo coverage, keeping expensive statistics explicit.
 Then deliver narrow zero-model inspections, bounded multi-inspection, spatial
 CLI/MCP parity, evaluated optional method/failure retrieval and complete checkpoint-28
-acceptance. [Detailed criteria and roles](../docs/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md#revised-remaining-work--operator-agreement-2026-10-22).
+acceptance. [Detailed criteria and roles](../docs/development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md#revised-remaining-work--operator-agreement-2026-10-22).
 Checkpoint 29 adds private sourced definitions/methods, retrieval and corrections;
 cross-chat sharing stays 30+. Synthetic tests precede broader realistic-data/demo
 work, which should follow evaluated learning/private-knowledge acceptance. No new
@@ -1264,7 +1557,7 @@ Final checks and resume state are recorded in the discovery guide and WORK_RESUM
 
 ## Checkpoint 28 closeout — 2026-10-22
 
-[Engineering acceptance](../docs/CHECKPOINT28_CLOSEOUT.md) completes the agreed
+[Engineering acceptance](../docs/development/checkpoints/CHECKPOINT28_CLOSEOUT.md) completes the agreed
 implementation/validation sequence: characteristics-first readers, technical
 raster metadata, exact zero-model submissions, bounded multi-inspection, shared
 CLI/MCP discovery, cancellation/recovery, results and evaluated optional reuse.

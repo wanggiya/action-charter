@@ -101,6 +101,20 @@ def _get(connection, table, identity):
     value = json.loads(row[0])
     if not isinstance(value, dict) or value.get('task_id' if table in {'tasks','memories'} else 'conversation_id') != identity:
         raise _error('Planning task record identity changed')
+    if table == 'memories' and ((value.get('context_usage') or {}).get('model_request') or {}).get('stage') == 'analytical_exploration':
+        # One early analytical writer omitted provenance on its final user/assistant
+        # pair. Repair only this known shape, corroborated by the same chat record.
+        # Reading projects metadata in memory; it never edits history on disk.
+        messages=value.get('messages',[])
+        pair=messages[-2:]
+        if (value.get('conversation_ids') == [identity] and len(pair)==2
+                and [m.get('role') for m in pair]==['user','assistant']
+                and all(m.get('task_id') is None and m.get('conversation_id') is None for m in pair)
+                and all(m.get('task_id')==identity and m.get('conversation_id')==identity for m in messages[:-2])):
+            own=_get(connection,'conversations',identity)
+            if (own and own.get('analytical_session') and own.get('revision')==value.get('revision')
+                    and own.get('messages')==messages):
+                value['messages']=[*messages[:-2],*[dict(m,task_id=identity,conversation_id=identity) for m in pair]]
     if table in {'tasks','memories'}:
         from .conversation import PlanningTaskState
         value = PlanningTaskState.model_validate(value).model_dump(mode='json')
@@ -182,7 +196,7 @@ def change_task(root, state, *, action, task_id=None, title=''):
     return state
 
 
-def write_turn(root, state, *, expected_revision, expected_task_revision):
+def write_turn(root, state, *, expected_revision, expected_task_revision, restored_view=None):
     """Save only this chat's transcript/plan; never read another chat's memory."""
     state.update(active_task_id=state['conversation_id'], linked_task_ids=[state['conversation_id']], task_revision=state['revision'])
     with database(root, write=True) as connection:
@@ -190,5 +204,13 @@ def write_turn(root, state, *, expected_revision, expected_task_revision):
         memory = _get(connection, 'memories', state['conversation_id'])
         if (latest and latest['revision'] != expected_revision) or (memory and memory['revision'] != expected_task_revision):
             raise _error('Conversation changed; reload before sending')
+        from .chat_history import archive
+        archive(connection,latest)
         _put(connection, 'memories', state['conversation_id'], _memory(state))
         _put(connection, 'conversations', state['conversation_id'], state)
+        archive(connection,state)
+        if restored_view is not None:
+            view={**restored_view,'revision':state['revision'],'conversation_id':state['conversation_id']}
+            connection.execute('CREATE TABLE IF NOT EXISTS dataset_views_v1 (id TEXT PRIMARY KEY,value TEXT NOT NULL)')
+            connection.execute('INSERT INTO dataset_views_v1 VALUES (?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value',(state['conversation_id']+':'+view['view'],json.dumps(view,separators=(',',':'))))
+            archive(connection,state,kind='view',view=view)

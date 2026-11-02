@@ -126,9 +126,9 @@ def test_cli_controls_same_session_and_legacy_decision_cannot_enter(project):
     ('skills.convert_vector.service','convert_vector'),
     ('skills.load_vector_to_postgis.service','load_vector_to_postgis'),
     ('skill_adapters.raster_conversion','convert_raster'),
-    ('geoserver_publication.service','execute_geoserver_publication'),
-    ('postgis_promotion_execution.service','execute_postgis_promotion'),
-    ('postgis_rollback_execution.service','execute_postgis_rollback'),
+    ('geoserver.publication.service','execute_geoserver_publication'),
+    ('postgis.promotion.execution.service','execute_postgis_promotion'),
+    ('postgis.rollback.execution.service','execute_postgis_rollback'),
 ])
 def test_managed_direct_mutators_reject_without_session_authority(project,module,function):
     import importlib

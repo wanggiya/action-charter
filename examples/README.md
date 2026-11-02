@@ -1,5 +1,9 @@
 # Examples by function
 
+New [flat record tables](table_formats/README.md) provide equivalent JSON/JSON Lines
+fixtures for XLSX/record-adapter and statistical figure acceptance; XLSX is generated
+in temporary automated tests rather than bundled as a binary archive.
+
 Choose by outcome below. Checkpoint directories remain in place for historical compatibility.
 
 | Function | Example | What it demonstrates |
@@ -19,6 +23,6 @@ A plan JSON is a workflow definition, not an adapter package: do not upload it t
 Use fresh output paths. Review the exact proposal before authorizing and executing.
 Examples use repository sample data; do not substitute private data for a public demo.
 
-The recipe-composition example is a request for the reusable-recipes service, not a Planner plan or operation package. See [recipe and recovery acceptance](../docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md).
+The recipe-composition example is a request for the reusable-recipes service, not a Planner plan or operation package. See [recipe and recovery acceptance](../docs/development/checkpoints/CHECKPOINT26_RECIPES_AND_RECOVERY.md).
 
 - [Acquire/reuse CSV text normalization](text-normalization/README.md): optional bounded text adapter preparation, synthetic verification, explicit install and separately authorized execution.

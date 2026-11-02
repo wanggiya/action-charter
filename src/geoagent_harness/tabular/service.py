@@ -84,7 +84,7 @@ def _numeric(series):
     if any(not math.isfinite(float(x)) for x in numeric.dropna()): raise TabularError('Numeric values must be finite')
     return numeric
 
-def _source(root, args, completed, right=False):
+def source_binding(root, args, completed, right=False):
     path=getattr(args,'right_path' if right else 'path',None)
     source_step=getattr(args,'right_step' if right else 'source_step',None)
     area='input';expected=None
@@ -98,6 +98,11 @@ def _source(root, args, completed, right=False):
         path=output['path'];expected=output['sha256'];area='output'
     path=relative_path(path,area)
     if Path(path).suffix.lower() not in {'.csv','.tsv'}: raise TabularError('Tabular input must be CSV or TSV')
+    return {'path':path,'area':area,'sha256':expected,'source_step':source_step}
+
+def _source(root, args, completed, right=False):
+    binding=source_binding(root,args,completed,right)
+    path,area,expected,source_step=(binding[k] for k in ('path','area','sha256','source_step'))
     data=read_bytes(root,path,area)
     digest=hashlib.sha256(data).hexdigest()
     if expected and digest!=expected: raise TabularError('Intermediate output digest changed after validation')
@@ -180,14 +185,16 @@ def _publish(root,value,data):
         except OSError as error:raise TabularError('Output directory is unavailable or unsafe') from error
     return value
 
-def inspect_csv(path,settings,delimiter=',',preview_rows=5):
-    args=ARGUMENTS['inspect_csv'](path=path,delimiter=delimiter,preview_rows=preview_rows)
+def inspect_csv(path,settings,delimiter=',',preview_rows=5,analysis=None):
+    args=ARGUMENTS['inspect_csv'](path=path,delimiter=delimiter,preview_rows=preview_rows,analysis=analysis)
     root=Path(settings.project_root).resolve();path=relative_path(args.path,'input')
-    from geoagent_harness.discovery.csv import inspect
+    from .inspection import inspect_table as inspect
     from geoagent_harness.recipes.control import checkpoint
     try:
-        return inspect(root,path,delimiter=args.delimiter,preview_rows=args.preview_rows,checkpoint=checkpoint)
+        return inspect(root,path,delimiter=args.delimiter,preview_rows=args.preview_rows,checkpoint=checkpoint,
+                       analysis=args.analysis.model_dump(mode='json') if args.analysis is not None else None)
     except (ValueError, UnicodeError, csv.Error, StopIteration) as error:
+        if Path(path).suffix.lower() in {'.xlsx','.json','.jsonl','.ndjson'}:raise TabularError(str(error)) from error
         raise TabularError('CSV inspection failed: invalid, changed or over-budget input') from error
 
 from geoagent_harness.write_policy import guarded
@@ -197,7 +204,39 @@ def run_operation(skill,arguments,settings,completed_results=None):
     if skill not in WRITE_IDS:raise TabularError('Unsupported tabular write operation')
     if not settings.enable_write_tools:raise TabularError('Write tools are disabled')
     args=ARGUMENTS[skill].model_validate(arguments);root=Path(settings.project_root).resolve();sources=[]
-    if skill=='vector_attributes_to_csv':
+    if skill in {'select_csv_columns','filter_csv_rows','handle_csv_missing','decode_csv_codes','export_csv'} and args.streaming:
+        from .streaming import run
+        return run(skill,args,settings,completed_results or {})
+    streaming = None
+    decoding = {}
+    if skill=='aggregate_csv' and args.streaming and args.source_step:
+        from .streaming import aggregate
+        frame,sources,streaming=aggregate(root,args,completed_results or {})
+    elif skill == 'aggregate_csv' and args.streaming:
+        if args.source_step or not args.path:
+            raise TabularError('Full-file aggregate requires an explicit input source path')
+        from .analytical_service import profile_table
+        numeric = list(dict.fromkeys(a.column for a in args.aggregations if a.function != 'count'))
+        counts = list(dict.fromkeys(a.column for a in args.aggregations if a.function == 'count'))
+        inspected = profile_table(root, args.path, {'group_by': args.by, 'numeric_columns': numeric,
+                                   'count_columns': counts}, delimiter=args.delimiter)
+        analysis = inspected['table_analysis']
+        if any(p.get('numeric') and p['numeric']['invalid_count'] for p in analysis['profiles']):
+            raise TabularError('Numeric aggregation contains non-numeric values')
+        rows = []
+        for group in analysis['groups']:
+            row = {n: group[n] or pd.NA for n in args.by}
+            for a in args.aggregations:
+                row[a.output_column] = group[f'{a.column}_{a.function}']
+            rows.append(row)
+        outputs = [a.output_column for a in args.aggregations]
+        if len(set(outputs)) != len(outputs) or set(outputs).intersection(args.by):
+            raise TabularError('Aggregation output names must be unique and distinct from group keys')
+        frame = _guard(pd.DataFrame(rows, columns=args.by + outputs).astype('string'))
+        sources = [{'path': inspected['source'], 'sha256': inspected['source_sha256'], 'area':'input','source_step':None}]
+        streaming = {'source_row_count': inspected['row_count'], 'scope':'complete_parsed_file',
+                     'table_reference': inspected['table_reference'], 'group_count_reconciles': analysis['checks']['group_count_reconciles']}
+    elif skill=='vector_attributes_to_csv':
         path=relative_path(args.path,'input')
         if Path(path).suffix.lower() not in {'.geojson','.json'}:raise TabularError('Vector table bridge supports bounded GeoJSON only')
         data=read_bytes(root,path)
@@ -217,7 +256,18 @@ def run_operation(skill,arguments,settings,completed_results=None):
         frame,source=_source(root,args,completed_results or {});sources.append(source)
         right=None
         if skill=='join_csv':right,source=_source(root,args,completed_results or {},True);sources.append(source)
-        frame=_guard(_transform(skill,args,frame,right))
+        if skill=='decode_csv_codes':
+            from .analysis import codebook,AnalysisError
+            from .decoding import decode,verify
+            try:book=codebook(root,args.codebook_path)
+            except AnalysisError as error:raise TabularError(str(error)) from error
+            original=frame
+            frame,coverage=decode(frame,args,book)
+            frame=_guard(frame)
+            if not verify(original,frame,args,book):raise TabularError('Codebook decoding verification failed before publication')
+            sources.append({'path':book['path'],'sha256':book['sha256'],'area':'input','source_step':None})
+            decoding={'decode_arguments':args.model_dump(mode='json',exclude_none=True),'codebook_coverage':coverage}
+        else:frame=_guard(_transform(skill,args,frame,right))
     data=_csv_bytes(frame)
     # Validate the serialized contract before publication, including cell bounds.
     published_frame=read_frame(data)
@@ -229,12 +279,39 @@ def run_operation(skill,arguments,settings,completed_results=None):
             raise TabularError('Independent calculation verification failed before publication')
         calculation = {'calculation_arguments': args.model_dump(mode='json', exclude_none=True)}
     path=_publish(root,args.target_path,data)
-    return {**calculation,'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame,10),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
+    return {**decoding,**calculation, **({'streaming_aggregation':streaming} if streaming else {}),'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame,10),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
 
 def validate_output(result,settings):
+    if result.get('streaming_preparation'):
+        from .streaming import validate
+        return validate(result,settings)
     root=Path(settings.project_root).resolve()
     data=read_bytes(root,result['output']['path'],'output');frame=read_frame(data)
-    checks={'output_sha256':hashlib.sha256(data).hexdigest()==result['output']['sha256'],'row_count':len(frame)==result['row_count'],'columns':list(frame.columns)==result['columns'],'source_identity':all(hashlib.sha256(read_bytes(root,s['path'],s['area'])).hexdigest()==s['sha256'] for s in result['sources'])}
+    def source_digest(s):
+        if result.get('streaming_aggregation'):
+            from geoagent_harness.discovery.csv import source, Reader, identity
+            with source(root,s['path'],area=s['area']) as (fd,_,before):
+                reader = Reader(fd,limit=1024**3)
+                buffer = bytearray(65536)
+                while reader.readinto(buffer):
+                    pass
+                if identity(os.fstat(fd)) != before:
+                    raise TabularError('Aggregation source changed during verification')
+                with source(root,s['path'],area=s['area']) as (_,_,after):
+                    if after != before:
+                        raise TabularError('Aggregation source was replaced')
+                return reader.sha.hexdigest()
+        return hashlib.sha256(read_bytes(root,s['path'],s['area'])).hexdigest()
+    checks={'output_sha256':hashlib.sha256(data).hexdigest()==result['output']['sha256'],'row_count':len(frame)==result['row_count'],'columns':list(frame.columns)==result['columns'],'source_identity':all(source_digest(s)==s['sha256'] for s in result['sources'])}
+    if result.get('operation')=='decode_csv_codes':
+        from .analysis import codebook
+        from .decoding import verify
+        args=ARGUMENTS['decode_csv_codes'].model_validate(result['decode_arguments'])
+        source=result['sources'][0]
+        original=read_frame(read_bytes(root,source['path'],source['area']),',' if args.source_step else args.delimiter)
+        book=codebook(root,args.codebook_path)
+        checks['codebook_identity']=book['sha256']==result['sources'][1]['sha256']
+        checks['decoded_labels_and_preserved_rows']=verify(original,frame,args,book)
     if 'text_transform_definition' in result:
         from geoagent_harness.operations.packages import installed_packages,package_sha
         from geoagent_harness.capabilities.text import verify_frame

@@ -4,7 +4,7 @@ This directory holds development state and structured project knowledge. It is u
 
 | File | Purpose |
 |---|---|
-| CURRENT_STATUS.md | Current overview, gaps and detailed checkpoint history |
+| CURRENT_STATUS.md | Current overview and gaps (history: docs/development/STATUS_HISTORY.md) |
 | PROJECT_SUMMARY.md | Stable project purpose and component overview |
 | ARCHITECTURE.md / RUNTIME_BOUNDARIES.md | Responsibilities and isolation boundaries |
 | PRODUCT_ROADMAP.md | Future priorities, including development checkpoint labels |
@@ -12,6 +12,6 @@ This directory holds development state and structured project knowledge. It is u
 | SKILLS_INDEX.yaml | Capability metadata used alongside trusted definitions |
 | DATASET_CATALOG.json | Catalogued datasets for bounded context |
 
-The model is not assumed to read everything here. Registered code, typed schemas and policies remain authoritative. Context entries and historical text cannot approve execution. Keep a concise current overview above the history marker in CURRENT_STATUS; retain checkpoint descriptions below it for human reference.
+The model is not assumed to read everything here. Registered code, typed schemas and policies remain authoritative. Context entries and historical text cannot approve execution. Keep a concise current overview above the history marker in CURRENT_STATUS; add checkpoint history to docs/development/STATUS_HISTORY.md. Context files have a 128,000-byte load limit.
 
 For setup and procedures use [docs](../docs/README.md); for document update rules use [documentation responsibilities](../docs/DOCUMENTATION_GUIDE.md).

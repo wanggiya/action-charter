@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.geoserver_inspection import (
+from geoagent_harness.geoserver.inspection import (
     GeoServerInspectionError, GeoServerInspectionRequest, inspect_geoserver_layer,
 )
 from geoagent_harness.mcp_server.settings import MCPSettings

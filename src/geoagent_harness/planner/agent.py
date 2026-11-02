@@ -51,7 +51,7 @@ class PlannerAgentError(RuntimeError):
 
 def _schema_findings(error: ValidationError) -> list[str]:
     """Describe trusted field locations/types, never model values or context."""
-    safe_fields = {'capability_request', 'definition', 'source_column', 'gap_reason', 'old', 'new',
+    safe_fields = {'analysis_goals', 'source_sha256', 'title', 'question', 'fields', 'rationale', 'prerequisites', 'target_candidate', 'capability_request', 'definition', 'source_column', 'gap_reason', 'old', 'new',
                    'schema_version', 'status', 'summary', 'steps', 'assumptions',
                    'risks', 'execution_performed', 'validation_performed',
                    'step_id', 'skill', 'purpose', 'arguments', 'requires_approval',
@@ -67,6 +67,8 @@ def _schema_findings(error: ValidationError) -> list[str]:
                     'too_short': 'contains too few items or characters',
                     'too_long': 'contains too many items or characters',
                     'string_pattern_mismatch': 'must match the required naming pattern',
+                    'string_too_long': 'exceeds the declared maximum text length',
+                    'string_too_short': 'is shorter than the declared minimum text length',
                     'value_error': 'does not satisfy the declared field rules'}
     findings = []
     for item in error.errors(include_input=False, include_context=False, include_url=False)[:6]:

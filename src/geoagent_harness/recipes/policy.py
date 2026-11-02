@@ -163,6 +163,9 @@ def validate_recipe_policy(
     from geoagent_harness.tabular.policy import validate_steps
     validate_steps(recipe.steps, {step.step_id: step.depends_on for step in recipe.steps})
 
+    from geoagent_harness.postgres.policy import validate_steps as validate_postgres
+    validate_postgres(recipe.steps, {step.step_id: step.depends_on for step in recipe.steps})
+
     return RecipeValidation(
         recipe_id=recipe.recipe_id,
         recipe_sha256=recipe_sha256(recipe),

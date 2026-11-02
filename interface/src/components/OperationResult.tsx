@@ -1,3 +1,4 @@
+import {DatabaseEffects} from './DatabaseEffects';
 import {useState} from 'react';
 import {CheckCircle2, XCircle, CircleHelp} from 'lucide-react';
 import {skillLabel} from '../lib/skill-labels';
@@ -46,9 +47,12 @@ export function OperationResult({planned,run,stepId,notice}:{planned?:Planned;ru
     {run&&step&&<p className="recorded-run-label">Run {run.run_id.slice(0,12)} · {run.status.replaceAll('_',' ')} · {new Date(run.started_at).toLocaleString()}{run.finished_at&&<> · finished {new Date(run.finished_at).toLocaleString()}</>}</p>}
     {!recorded&&notice&&<p className="result-notice">{notice}</p>}
     {recorded&&!finished&&<p className="result-notice">{step?.status==='queued'?'This step has not started.':step?.status==='running'?'This step is running; results are not final.':'This step did not complete successfully. Any recorded values may be partial; inspect before recovery.'}</p>}
+    <DatabaseEffects skill={skill} arguments={args} effects={recorded?{...object(outcome.effects),connection:outcome.connection}:undefined}/>
+    {recorded&&skill.includes('postgres')&&<dl className="result-facts">{['affected_rows','committed','table_sha256','recovery'].map(key=>outcome[key]!==undefined?<div key={key}><dt>{key.replaceAll('_',' ')}</dt><dd>{String(outcome[key])}</dd></div>:null)}</dl>}
     {skill==='calculate_csv_columns'&&<CalculationSummary arguments={args}/>}
     <OperationFlow compact stepId={stepId} skill={skill} arguments={args} outcome={step?.outcome} dependsOn={step?.depends_on}/>
     {recorded&&<dl className="result-facts">{['row_count','feature_count','crs'].flatMap(key=>outcome[key]!==undefined&&typeof outcome[key]!=='object'?[<div key={key}><dt>{key.replaceAll('_',' ')}</dt><dd>{String(outcome[key])}</dd></div>]:[])}</dl>}
+    {recorded&&skill==='decode_csv_codes'&&<section aria-label="Codebook mapping coverage"><h4>Codebook mapping coverage</h4><dl className="result-facts">{Object.entries(object(outcome.codebook_coverage)).map(([field,value])=>{const c=object(value);return <div key={field}><dt>{field}</dt><dd>{String(c.matched_rows)} mapped · {String(c.unmatched_rows)} unmapped · original codes retained</dd></div>;})}</dl></section>}
     {preview&&<><h4>Recorded data preview</h4>{focus.length>0&&<button type="button" className="result-column-toggle" aria-pressed={allColumns} onClick={()=>setAllColumns(value=>!value)}>{allColumns?'Show calculation columns':'Show all columns'}</button>}<TablePreview value={outcome} columns={!allColumns&&focus.length?focus:undefined}/><small className="result-notice">Saved preview from this run. Current file contents have not been rechecked.</small></>}
     {recorded&&!preview&&<p className="result-notice">{outcome.preview_omitted?'Result preview exceeded the storage budget; inspect durable evidence.':step?.outcome==null?'No result recorded for this step.':'No table preview recorded for this operation.'}</p>}
     {finished&&run&&<RecordedVisualization key={`${run.run_id}:${stepId}`} outcome={step?.outcome} runId={run.run_id} stepId={stepId}/>}

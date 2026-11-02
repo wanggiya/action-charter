@@ -1,11 +1,11 @@
 # Runtime write controls and checkpoint 27 demo gate
 
 Recorded 2026-10-18; updated 2026-10-19. **Design history with an implemented 27.7 slice.**
-See [current behavior, limitations and acceptance](CHECKPOINT27_RUNTIME_WRITES.md).
+See [current behavior, limitations and acceptance](development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md).
 This document itself does not enable writes or authorize work. Overwrite remains
 a separate follow-up.
 
-Preserve the [checkpoint 27 plan](CHECKPOINT27_PLAN.md),
+Preserve the [checkpoint 27 plan](development/checkpoints/CHECKPOINT27_PLAN.md),
 [ordered delivery plan](POST_CALCULATION_DELIVERY_PLAN.md) and historical
 acceptance records. Add 27.7 without renumbering previously recorded slices.
 

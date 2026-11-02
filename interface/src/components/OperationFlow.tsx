@@ -4,9 +4,13 @@ type Props={stepId:string;skill:string;arguments?:Record<string,unknown>;depends
 export function OperationFlow({stepId,skill,arguments:args={},dependsOn,outcome,compact=false}:Props){
  const result=outcome&&typeof outcome==='object'?outcome as Record<string,unknown>:{};
  const inputs=['path','right_path','source_step','right_step'].flatMap(key=>typeof args[key]==='string'&&args[key]?[`${key.replaceAll('_',' ')}: ${args[key]}`]:[]);
+ const analysis=args.analysis&&typeof args.analysis==='object'?args.analysis as Record<string,unknown>:{};
+ if(typeof analysis.codebook_path==='string')inputs.push(`Codebook: ${analysis.codebook_path}`);
  const recordedSources=Array.isArray(result.sources)?result.sources.flatMap(source=>source&&typeof source==='object'&&typeof source.path==='string'?[source.path]:[]):[];
+ const database=skill.includes('postgres')&&typeof args.target_schema==='string'?`Configured PostgreSQL · ${args.target_schema}${args.target_table?'.'+String(args.target_table):''}`:null;
+ if(database&&skill!=='import_csv_to_postgres')inputs.unshift(database);
  const artifact=result.output&&typeof result.output==='object'?result.output as Record<string,unknown>:{};
- const output=typeof artifact.path==='string'?artifact.path:typeof args.target_path==='string'?args.target_path:typeof result.target_path==='string'?result.target_path:null;
+ const output=typeof artifact.path==='string'?artifact.path:typeof args.target_path==='string'?args.target_path:typeof result.target_path==='string'?result.target_path:database&&['import_csv_to_postgres','soft_delete_postgres_rows','restore_postgres_rows'].includes(skill)?database:null;
  if(compact){
   const sources=inputs.length?inputs:recordedSources.length?recordedSources:[typeof result.source==='string'?result.source:typeof result.source_path==='string'?result.source_path:'See bound input details'];
   const short=(path:string)=>path.split('/').at(-1)??path;

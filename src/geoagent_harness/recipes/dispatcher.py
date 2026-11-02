@@ -101,6 +101,10 @@ from geoagent_harness.tabular.schemas import ARGUMENTS as TABULAR_ARGUMENTS, WRI
 from geoagent_harness.tabular.service import run_operation as run_tabular, inspect_csv, TabularError
 _EXPECTED_ENTRYPOINTS.update({id: 'geoagent_harness.tabular.service:' + ('inspect_csv' if id == 'inspect_csv' else 'run_operation') for id in TABULAR_ARGUMENTS})
 
+from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS, READ_IDS as PG_READS
+from geoagent_harness.postgres.service import inspect as inspect_postgres, run_operation as run_postgres, PostgresError
+_EXPECTED_ENTRYPOINTS.update({id:'geoagent_harness.postgres.service:'+('inspect' if id in PG_READS else 'run_operation') for id in PG_ARGUMENTS})
+
 class RecipeDispatchError(RuntimeError):
     """Raised when a recipe step cannot be safely dispatched."""
 
@@ -227,7 +231,16 @@ def _dispatch_recipe_step(
         )
 
     try:
-        if is_extension(step.skill_id):
+        if step.skill_id in PG_ARGUMENTS:
+            if step.skill_id not in PG_READS:
+                from geoagent_harness.postgres.service import claim_authority
+                claim_authority(settings,envelope.approval_id,step_id)
+            value=(inspect_postgres(step.skill_id,step.arguments,settings,completed_results) if step.skill_id=='validate_postgres_import' else inspect_postgres(step.skill_id,step.arguments,settings)) if step.skill_id in PG_READS else run_postgres(step.skill_id,step.arguments,settings,completed_results)
+            if step.skill_id=='validate_postgres_import' and not value['passed']:
+                raise PostgresError('Import mapping validation failed: '+str(value['column_findings'])[:1500])
+            status='completed' if step.skill_id in PG_READS else 'completed_pending_validation'
+            validation_performed=False
+        elif is_extension(step.skill_id):
             from geoagent_harness.operations.packages import execute_projection
             value = execute_projection(step.skill_id, step.arguments, settings, completed_results)
             status = 'completed_pending_validation'
@@ -395,6 +408,7 @@ def _dispatch_recipe_step(
             f"{step.skill_id!r} are invalid"
         ) from exc
     except (
+        PostgresError,
         TabularError,
         ConvertRasterError,
         ConvertVectorError,

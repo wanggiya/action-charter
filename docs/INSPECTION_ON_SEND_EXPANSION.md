@@ -1,4 +1,4 @@
-> 2026-10-22 CSV update: [streaming discovery delivery](CHECKPOINT28_DISCOVERY_RESTRUCTURE.md)
+> 2026-10-22 CSV update: [streaming discovery delivery](development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md)
 > supersedes the 8 MiB/10,000-row **inspection** limit for CSV only. Spatial,
 > transformation and complete-exploration limits below remain unchanged.
 
@@ -205,12 +205,12 @@ revision is `spatial-discovery-v4`; the Planner source-binding revision remains
 `inspection-source-v2`. Restart the launcher and refresh after updating. Discovery
 guards are distinct from old display/processing limits, and unavailable driver
 counts are not computed or represented as zero. See the [current delivery and
-acceptance](CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) for exact scope; historical test
+acceptance](development/checkpoints/CHECKPOINT28_DISCOVERY_RESTRUCTURE.md) for exact scope; historical test
 counts above describe their original delivery rather than current acceptance.
 
 Final expansion: the submission revision is now `inspection-batch-v5`, superseding
 the spatial-only revision above. Exact compatible metadata requests use no model;
 ON supports up to four distinct inputs / 1 GiB aggregate through the same durable
-coordinator. OFF prepares only. [Closeout](CHECKPOINT28_CLOSEOUT.md) records grammar,
+coordinator. OFF prepares only. [Closeout](development/checkpoints/CHECKPOINT28_CLOSEOUT.md) records grammar,
 per-reader/batch limits, CLI/MCP parity, cancellation/no-replay tests and manual
 acceptance. Legacy service-read approvals remain; this is local-file inspection.

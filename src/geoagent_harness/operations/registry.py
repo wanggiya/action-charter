@@ -7,6 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .packages import installed_packages, package_sha, ProjectionArguments, configuration
 from geoagent_harness.tabular.schemas import ARGUMENTS as TABLE_ARGUMENTS, LABELS
+from geoagent_harness.tabular.source_contracts import TABLE_SUFFIXES, table_format_catalog
+from geoagent_harness.tabular.analysis_contracts import TableSourceDescriptor
+from geoagent_harness.tabular.readiness import ReadinessAssessment
+
+from geoagent_harness.postgres.schemas import ARGUMENTS as POSTGRES_ARGUMENTS, LABELS as POSTGRES_LABELS
 
 NAMES = {
  'inspect_vector':'Inspect vector dataset','inspect_raster':'Inspect raster dataset',
@@ -16,7 +21,7 @@ NAMES = {
  'verify_snakemake_export':'Verify Snakemake package','inspect_postgis_table':'Inspect PostGIS table',
  'compare_postgis_tables':'Compare PostGIS tables','assess_spatial_data_contract':'Check spatial data requirements',
  'inspect_geoserver_layer':'Inspect GeoServer layer','plan_geoserver_publication':'Plan GeoServer publication',
- 'assess_postgis_change':'Assess PostGIS changes','plan_postgis_promotion':'Plan PostGIS promotion', **LABELS,
+ 'assess_postgis_change':'Assess PostGIS changes','plan_postgis_promotion':'Plan PostGIS promotion', **LABELS, **POSTGRES_LABELS,
 }
 
 class Artifact(BaseModel):
@@ -36,14 +41,17 @@ class TableMetadata(BaseModel):
     row_count:int=Field(ge=0,le=1024**3)
     column_count:int=Field(ge=1,le=100)
     columns:list[str]=Field(min_length=1,max_length=100)
-    preview:list[dict[str,str|None]]=Field(max_length=20)
+    preview:list[dict[str,str|int|float|bool|None]]=Field(max_length=20)
     missing_counts:dict[str,int]
-    column_types:dict[str,Literal['string']]
+    column_types:dict[str,str]
     preview_truncated:bool
+    table_source:TableSourceDescriptor|None=None
+    readiness_assessment:ReadinessAssessment|None=None
+    readiness_status:str|None=None
 
 class TableArtifact(TableMetadata):
     # Processing bounds do not grow with metadata-only inspection capability.
-    row_count:int=Field(ge=0,le=10000)
+    row_count:int=Field(ge=0,le=200000)
     data_contract:Literal['table/csv-v1']
     output:Artifact
     sources:list[TableSource]
@@ -57,20 +65,20 @@ def builtin_argument_models():
       'convert_vector':schemas.ConvertVectorRecipeArguments,'convert_raster':schemas.ConvertRasterRecipeArguments,
       'load_vector_to_postgis':schemas.LoadVectorToPostGISRecipeArguments,'validate_postgis_layer':schemas.ValidatePostGISLayerRecipeArguments,
       'generate_report':schemas.GenerateReportRecipeArguments,'export_snakemake_workflow':ExportArguments,
-      'verify_snakemake_export':VerifyArguments,**TABLE_ARGUMENTS,
+      'verify_snakemake_export':VerifyArguments,**TABLE_ARGUMENTS,**POSTGRES_ARGUMENTS,
     }
 
 def argument_models(root=Path('.')):
     return {**builtin_argument_models(),**{id:ProjectionArguments for id in installed_packages(root)}}
 
 def _legacy_models():
-    from geoagent_harness.postgis_inspection.schemas import PostGISInspectionRequest, PostGISInspectionResult
-    from geoagent_harness.postgis_comparison.schemas import PostGISComparisonRequest, PostGISComparisonResult
-    from geoagent_harness.geoserver_inspection.schemas import GeoServerInspectionRequest, GeoServerInspectionResult
-    from geoagent_harness.geoserver_publication.schemas import GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult
-    from geoagent_harness.postgis_promotion_plan.schemas import PostGISPromotionPlanRequest, PostGISPromotionPlanResult
+    from geoagent_harness.postgis.inspection.schemas import PostGISInspectionRequest, PostGISInspectionResult
+    from geoagent_harness.postgis.comparison.schemas import PostGISComparisonRequest, PostGISComparisonResult
+    from geoagent_harness.geoserver.inspection.schemas import GeoServerInspectionRequest, GeoServerInspectionResult
+    from geoagent_harness.geoserver.publication.schemas import GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult
+    from geoagent_harness.postgis.promotion.plan.schemas import PostGISPromotionPlanRequest, PostGISPromotionPlanResult
     from geoagent_harness.spatial_contracts.schemas import VectorSpatialDataContract, SpatialDataContractAssessment
-    from geoagent_harness.postgis_change_assessment.schemas import PostGISChangeAssessment
+    from geoagent_harness.postgis.change_assessment.schemas import PostGISChangeAssessment
     class SpatialAssessmentInput(BaseModel):
         model_config=ConfigDict(extra='forbid')
         path:str=Field(max_length=960)
@@ -86,6 +94,7 @@ def _legacy_models():
     }
 
 def _result_schema(id):
+    if id in POSTGRES_ARGUMENTS:return {'type':'object','required':['operation','execution_performed'],'properties':{'operation':{'const':id},'execution_performed':{'type':'boolean'}},'description':'Bounded table metadata/snapshot or discovery; write receipts include effects, affected_rows and verification.'}
     if id=='inspect_csv':return TableMetadata.model_json_schema()
     if id in TABLE_ARGUMENTS or id.startswith('ext_'):return TableArtifact.model_json_schema()
     from geoagent_harness.schemas import InspectVectorResult
@@ -127,8 +136,8 @@ def operation_catalog(root, query=''):
         id=skill.id;package=packages.get(id);model=models.get(id)
         parameters=model.model_json_schema() if model else legacy[id][0].model_json_schema() if id in legacy else {'type':'object'}
         table=id in TABLE_ARGUMENTS or package is not None
-        output_kind='csv_artifact' if (table and id!='inspect_csv') else 'inspection_metadata' if id.startswith('inspect_') else 'database_layer' if id=='load_vector_to_postgis' else 'vector_artifact' if id=='convert_vector' else 'raster_artifact' if id=='convert_raster' else 'evidence' if 'snakemake' in id or id=='generate_report' else 'policy_result'
-        runtime_names=['pandas'] if table else ['psycopg'] if 'postgis' in id else ['geopandas','pyogrio'] if 'vector' in id or id=='assess_spatial_data_contract' else ['rasterio'] if 'raster' in id else ['httpx'] if 'geoserver' in id else []
+        output_kind='mapping_preflight' if id=='validate_postgres_import' else 'database_snapshot' if id in POSTGRES_ARGUMENTS and id!='export_postgres_to_csv' else 'database_csv_export' if id=='export_postgres_to_csv' else 'csv_artifact' if (table and id!='inspect_csv') else 'inspection_metadata' if id.startswith('inspect_') else 'database_layer' if id=='load_vector_to_postgis' else 'vector_artifact' if id=='convert_vector' else 'raster_artifact' if id=='convert_raster' else 'evidence' if 'snakemake' in id or id=='generate_report' else 'policy_result'
+        runtime_names=['pandas'] if table else ['psycopg'] if 'postgis' in id or id in POSTGRES_ARGUMENTS else ['geopandas','pyogrio'] if 'vector' in id or id=='assess_spatial_data_contract' else ['rasterio'] if 'raster' in id else ['httpx'] if 'geoserver' in id else []
         requirements=[]
         for name in runtime_names:
             try:version=metadata.version(name)
@@ -155,8 +164,17 @@ def operation_catalog(root, query=''):
           'validation_contract':{'verifier':skill.verifier,'read_only_checks':'typed adapter/runtime policy','result_preview':'bounded metadata and evidence; CSV rows limited to 20/4KB'},
           'adapter_configuration':configuration(package) if package else None,
           'package_sha256':package_sha(package) if package else None,'default_arguments':defaults,'origin':'installed_adapter' if package else 'builtin'})
+    for operation in result:
+        if operation['id']=='inspect_csv':
+            operation['supported_source_formats']=[suffix[1:] for suffix in TABLE_SUFFIXES]
+            operation['table_source_contract']=table_format_catalog()
+            operation['inputs']=[{'parameter':'path','contract':'explicit_local_table_source'}]
+            operation['analysis_capabilities']=['field_guidance','analysis_recommendations','describe','percentiles','standard deviation','variance','pearson','spearman','covariance matrix','linear_regression','coefficient','p_value','r_squared','analytical_report']
+            operation['optional_runtime_requirements']=[{'distribution':name,'profile':'statistics'} for name in ('scipy','statsmodels')]
+            source_requirements={(r['distribution'],r['requirement']) for f in operation['table_source_contract']['formats'] for r in f['runtime_requirements']}
+            operation['optional_runtime_requirements']+=[{'distribution':name,'requirement':version,'profile':'table-formats'} for name,version in sorted(source_requirements)]
     query=query.strip().lower()
-    return {'schema_version':'1.0','operations':[item for item in result if query in (item['id']+' '+item['name']).lower()],'operation_count':len(result),'approval_performed':False,'execution_performed':False}
+    return {'schema_version':'1.0','operations':[item for item in result if query in (item['id']+' '+item['name']+' '+' '.join(item.get('analysis_capabilities',[]))+' '+' '.join(item.get('supported_source_formats',[]))).lower()],'operation_count':len(result),'approval_performed':False,'execution_performed':False}
 
 
 def planning_dependencies(selected, root=Path('.')):

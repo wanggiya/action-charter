@@ -159,6 +159,7 @@ import assert from 'node:assert/strict';
 async function load(file,exports,hookState){
  let source=await readFile(file,'utf8');
  source=source.replace(/^import .* from "react";/m,'');
+ source=source.replace(/from "lucide-react"/g,'from '+JSON.stringify(import.meta.resolve('lucide-react')));
  const compiled=await transformWithEsbuild(source,'view.tsx',{loader:'tsx',jsx:'transform',jsxFactory:'React.createElement'});
  const prefix=`import React from ${JSON.stringify(import.meta.resolve('react'))}; const {Children,isValidElement}=React; const useRef=()=>({current:null}); const useEffect=()=>{}; const useState=()=>[${hookState},()=>{}];\n`;
  return import('data:text/javascript;base64,'+Buffer.from(prefix+compiled.code).toString('base64'));

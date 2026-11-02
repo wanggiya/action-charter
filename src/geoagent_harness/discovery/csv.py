@@ -10,7 +10,9 @@ from pathlib import Path
 import stat
 import time
 
-MAX_BYTES = 1024**3
+from geoagent_harness.tabular.source_contracts import CSV_MAX_BYTES, table_format, TableRow
+
+MAX_BYTES = CSV_MAX_BYTES
 SAMPLE_BYTES = 256 * 1024
 MAX_SECONDS = 120
 
@@ -24,9 +26,9 @@ def identity(info):
 
 
 @contextmanager
-def source(root, path):
+def source(root, path, *, max_bytes=MAX_BYTES, area='input'):
     from .source import _parent, relative_path, TabularError
-    path = relative_path(path, 'input')
+    path = relative_path(path, area)
     if Path(path).suffix.lower() not in {'.csv', '.tsv'}:
         raise TabularError('CSV discovery requires .csv or .tsv')
     try:
@@ -35,7 +37,7 @@ def source(root, path):
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
             stack.callback(os.close, fd)
             info = os.fstat(fd)
-            if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_BYTES:
+            if not stat.S_ISREG(info.st_mode) or max_bytes is not None and info.st_size > max_bytes:
                 raise TabularError('CSV discovery requires a regular file of at most 1 GiB')
             yield fd, path, identity(info)
     except OSError as error:
@@ -137,8 +139,8 @@ def metadata(path, file_bytes, names, preview, sampled_rows):
             'warnings':['Preliminary sample; full row count and source SHA-256 are not yet established.']}
 
 
-def probe(root, path, *, delimiter=',', preview_rows=5):
-    with source(root, path) as (fd, path, before):
+def probe(root, path, *, delimiter=',', preview_rows=5, allow_large=False):
+    with source(root, path, max_bytes=None if allow_large else MAX_BYTES) as (fd, path, before):
         reader=Reader(fd, limit=SAMPLE_BYTES, sample=True)
         names, preview, count=None, [], 0
         try:
@@ -164,7 +166,12 @@ def probe(root, path, *, delimiter=',', preview_rows=5):
 
 
 def inspect(root, path, *, delimiter=',', preview_rows=5, expected_identity=None,
-            on_metadata=None, checkpoint=None):
+            on_metadata=None, checkpoint=None, analysis=None):
+    if table_format(path).native_values:
+        from geoagent_harness.tabular.table_sources import inspect as inspect_records
+        return inspect_records(root,path,delimiter=delimiter,preview_rows=preview_rows,expected_identity=expected_identity,on_metadata=on_metadata,checkpoint=checkpoint,analysis=analysis)
+    if (analysis or {}).get('source_options') is not None:
+        raise ValueError('source_options apply only to XLSX/JSON record sources')
     if delimiter not in {',','\t'} or not 0<=preview_rows<=20:
         raise ValueError('Invalid CSV inspection parameters')
     preliminary=probe(root,path,delimiter=delimiter,preview_rows=preview_rows)
@@ -176,35 +183,23 @@ def inspect(root, path, *, delimiter=',', preview_rows=5, expected_identity=None
         if before!=preliminary['source_identity']:
             raise ValueError('CSV source changed before verification')
         reader=Reader(fd,limit=MAX_BYTES,checkpoint=checkpoint)
-        count, preview=0, []
-        collect_preview=True
         with text_reader(reader) as text:
             parsed=records(text,delimiter)
             names=header(parsed)
-            missing={name:0 for name in names}
-            for row in parsed:
-                if not row:
-                    continue
-                row_values(row,names)
-                count+=1
-                for name,value in zip(names,row):
-                    if value=='':missing[name]+=1
-                if collect_preview:
-                    collect_preview=append_preview(preview,names,row,preview_rows)
+            from geoagent_harness.tabular.inspection import TableInspection
+            session=TableInspection(root,path,names,analysis=analysis,preview_rows=preview_rows)
+            def typed_rows():
+                for row in parsed:
+                    if not row:
+                        continue
+                    row_values(row,names)
+                    values=tuple(row)
+                    yield TableRow(values,values,('string',)*len(names))
+            session.consume(typed_rows(),checkpoint=checkpoint)
         if identity(os.fstat(fd))!=before or reader.bytes!=before[2]:
             raise ValueError('CSV source changed during verification')
         # Detect pathname replacement as well as mutation of the open file.
         with source(root,path) as (_,_,after):
             if after!=before:
                 raise ValueError('CSV source was replaced during verification')
-    result=metadata(path,before[2],names,preview,min(count,20))
-    result.update(row_count=count,missing_counts=missing,preview_truncated=len(preview)<count,
-                  source_sha256=reader.sha.hexdigest())
-    result['discovery'].update(phase='completed',verification='sha256_complete',
-        statistics_scope='complete_parsed_file',bytes_hashed=reader.bytes,
-        consistency='opened-file and pathname stat checks; not an immutable snapshot',
-        encoding='UTF-8 (validated for complete content)')
-    result['warnings']=['Values remain strings; empty fields are missing; literal NA/NULL are preserved.',
-                        'Preview is bounded to 20 columns, requested rows and 4 KiB.',
-                        'Complete CSV exploration and transformations retain their separate limits.']
-    return result
+    return session.finish(sha256=reader.sha.hexdigest(),file_bytes=before[2],delimiter=delimiter)

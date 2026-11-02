@@ -51,7 +51,7 @@ try{
  await page.getByText(/The running API has an older or incompatible Planner version/).waitFor();
  assert.equal(calls.filter(call=>call.path==='/api/v1/planner/conversation'&&call.action==='turn').length,turnsBeforeLegacy);
  await page.unroute('**/api/v1/health');
- assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'inspection-source-v2');
+ assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'statistics-v2');
  cases.push('Legacy API is detected before a planner POST; current health reports the loaded Planner contract');
  await generate('Inspect sample_orders.csv. Calculate doubled as amount multiplied by 2, preserve original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.');
  const inspector=page.locator('#workflow-information');
@@ -153,23 +153,14 @@ try{
  assert.equal(await readFile(resolve(root,'model-calls.jsonl'),'utf8'),beforeModels);
  cases.push('Unavailable Map explains the missing geometry; Checks separates deterministic results from Critic; view changes add zero model calls');
  await page.setViewportSize({width:1000,height:900});
- const divider=results.getByRole('separator',{name:'Resize results panel',exact:true});
- await divider.waitFor({state:'visible'});
- const beforeWidth=(await results.boundingBox()).width;
- const grip=await divider.boundingBox();await page.mouse.move(grip.x+5,grip.y+150);await page.mouse.down();await page.mouse.move(grip.x-100,grip.y+150,{steps:8});await page.mouse.up();
- assert((await results.boundingBox()).width>beforeWidth+60);
- const grownWidth=(await results.boundingBox()).width;
- await divider.focus();await page.keyboard.press('ArrowRight');
- assert((await results.boundingBox()).width<grownWidth);
- await results.locator('.results-body').evaluate(el=>el.scrollTop=el.scrollHeight);
- assert(await divider.isVisible());
- await results.getByRole('button',{name:'Expand results',exact:true}).click();
  assert.equal(await page.locator('.flow-stage').isVisible(),false);
  assert((await results.boundingBox()).width>900);
  await results.screenshot({path:'/tmp/actioncharter-results-checks.png'});
- await results.getByRole('button',{name:'Restore graph beside results',exact:true}).click();
+ await results.getByRole('button',{name:'Return to flow graph',exact:true}).click();
  assert(await page.locator('.flow-stage').isVisible());
- cases.push('At 1000 CSS pixels the divider works with pointer/keyboard, stays outside scrolling content, and expansion/restoration preserves the graph');
+ await page.getByRole('button',{name:'Outcome',exact:true}).click();
+ await results.waitFor();
+ cases.push('Outcome occupies the graph area; Flow graph returns without regenerating results');
  await page.setViewportSize({width:1600,height:1000});
  await results.getByRole('tab',{name:'Table',exact:true}).click();
  const output=(await readdir(resolve(root,'data/output')))[0];
@@ -186,7 +177,8 @@ try{
  await page.getByRole('button',{name:'Planner agent',exact:true}).click();
  await page.getByRole('button',{name:'New chat',exact:true}).click();release();
  await page.unroute('**/api/v1/workflow/runs',delayed);
- assert.equal(await results.count(),0);
+ assert.equal(await results.isVisible(),false);
+ await page.waitForFunction(()=>!document.querySelector('.outcome-page-slot .result-data-table'));
  cases.push('A delayed verified preview cannot populate another chat or automatically open Results');
  await writeFile(resolve(root,'vector-visualization'),'fixture only');
  const vectorPath=resolve(root,'data/input/sample_points.geojson');
@@ -213,9 +205,9 @@ try{
  await results.getByRole('tab',{name:'Map',exact:true}).click();
  assert.equal(await results.locator('svg>g').getAttribute('transform'),zoomed);
  await results.getByRole('button',{name:'Fit extent',exact:true}).click();
+ await results.locator('svg circle').first().scrollIntoViewIfNeeded();
  const circle=await results.locator('svg circle').first().boundingBox();await page.mouse.click(circle.x+circle.width/2,circle.y+circle.height/2);
  assert((await results.locator('.selected-feature').textContent()).includes('Selected feature 1'));
- await results.getByRole('button',{name:'Expand results',exact:true}).click();
  await results.screenshot({path:'/tmp/actioncharter-results-map.png'});
  await results.getByRole('button',{name:'Close outcome',exact:true}).click();
  await operations.getByRole('button',{name:/Inspect vector dataset/}).click();
@@ -241,7 +233,7 @@ try{
  const outcomeBounds=await outcomeNode.boundingBox();
  await page.mouse.move(outcomeBounds.x+outcomeBounds.width/2,outcomeBounds.y+outcomeBounds.height/2);
  await page.mouse.down();await page.mouse.move(outcomeBounds.x+outcomeBounds.width/2+35,outcomeBounds.y+outcomeBounds.height/2+45,{steps:10});await page.mouse.up();
- assert.equal(await results.count(),0,'Dragging an outcome block must not open its page');
+ assert.equal(await results.isVisible(),false,'Dragging an outcome block must not open its page');
  const movedOutcome=await outcomeNode.evaluate(n=>({x:n.style.left,y:n.style.top}));
 
  await page.reload();

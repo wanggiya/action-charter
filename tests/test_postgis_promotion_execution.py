@@ -7,12 +7,12 @@ import pytest
 from tests.test_postgis_promotion_approval import NOW, plan_result
 
 from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis_promotion_approval import (
+from geoagent_harness.postgis.promotion.approval import (
     create_postgis_promotion_approval,
     persist_postgis_promotion_approval,
     postgis_promotion_approval_sha256,
 )
-from geoagent_harness.postgis_promotion_execution import (
+from geoagent_harness.postgis.promotion.execution import (
     PostGISPromotionExecutionError,
     execute_postgis_promotion,
     load_postgis_promotion_execution,

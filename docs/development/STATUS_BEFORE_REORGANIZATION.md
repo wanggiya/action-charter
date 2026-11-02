@@ -12,19 +12,19 @@ Reviewed-intent inspection plans can now be explicitly confirmed and stored thro
 
 Context & intent offers Store reviewed plan and Continue in Plan. The latter reopens the saved artifact and separate approval review scope. Conservative approval flags remain unchanged; old denied histories are not automatically assigned as the new task. CLI save-reviewed-intent-plan uses the same service.
 
-See docs/CHECKPOINT22I.md for exact frontend and CLI validation. Old unsaved handoffs must be regenerated. Saved context/intent recovery is now available through a bounded source-checked inventory. The interface restores reviewed context or resolved intent without inference, with date/name sorting and stale-review blocking. Intent envelopes now cover explicitly selected vector or raster metadata inspection.
+See docs/development/checkpoints/CHECKPOINT22I.md for exact frontend and CLI validation. Old unsaved handoffs must be regenerated. Saved context/intent recovery is now available through a bounded source-checked inventory. The interface restores reviewed context or resolved intent without inference, with date/name sorting and stale-review blocking. Intent envelopes now cover explicitly selected vector or raster metadata inspection.
 
-See docs/CHECKPOINT22J.md for recovery and CLI inventory.
+See docs/development/checkpoints/CHECKPOINT22J.md for recovery and CLI inventory.
 
-The interface now keeps one current stage expanded and advances after successful context review, intent review and plan storage. Recovery opens the correct next stage; upstream edits reset local downstream state. Displayed review/storage labels now reflect the actual state. Errors remain on the current stage and bring feedback into view. See docs/CHECKPOINT22K.md for acceptance. No backend authority changes.
+The interface now keeps one current stage expanded and advances after successful context review, intent review and plan storage. Recovery opens the correct next stage; upstream edits reset local downstream state. Displayed review/storage labels now reflect the actual state. Errors remain on the current stage and bring feedback into view. See docs/development/checkpoints/CHECKPOINT22K.md for acceptance. No backend authority changes.
 
-Fresh tasks now explicitly choose Start without history and enter Intent reasoning without retrieval/context-review prerequisites. Null filename/digest and empty citations are enforced; no fake history is stored. Intent review, handoff, storage and recovery support this path. The graph omits unused history. See docs/CHECKPOINT22L.md.
+Fresh tasks now explicitly choose Start without history and enter Intent reasoning without retrieval/context-review prerequisites. Null filename/digest and empty citations are enforced; no fake history is stored. Intent review, handoff, storage and recovery support this path. The graph omits unused history. See docs/development/checkpoints/CHECKPOINT22L.md.
 
-The reviewed-intent bridge now accepts exactly one inspect_vector or inspect_raster capability, with shared output/input checks at planning and storage. The interface selects the capability explicitly; no dataset inspection occurs during planning. See docs/CHECKPOINT22M.md.
+The reviewed-intent bridge now accepts exactly one inspect_vector or inspect_raster capability, with shared output/input checks at planning and storage. The interface selects the capability explicitly; no dataset inspection occurs during planning. See docs/development/checkpoints/CHECKPOINT22M.md.
 
-22N integration matrix now checks 12 vector/raster, fresh/historical, approved/denied/no-approval-required joins through real registry/storage/decision/recipe services. Fixture models do not prove live inference. Saved-plan request display now shows the reviewed objective while preserving stored structured provenance. See docs/CHECKPOINT22N.md.
+22N integration matrix now checks 12 vector/raster, fresh/historical, approved/denied/no-approval-required joins through real registry/storage/decision/recipe services. Fixture models do not prove live inference. Saved-plan request display now shows the reviewed objective while preserving stored structured provenance. See docs/development/checkpoints/CHECKPOINT22N.md.
 
-22O documentation closeout is complete. Implementation and offline checks are complete; local operator acceptance and PR merge remain operator actions. Checkpoint 23 plan is docs/CHECKPOINT23_PLAN.md, targeted for an accepted demonstration by October 4 evening, America/New_York.
+22O documentation closeout is complete. Implementation and offline checks are complete; local operator acceptance and PR merge remain operator actions. Checkpoint 23 plan is docs/development/checkpoints/CHECKPOINT23_PLAN.md, targeted for an accepted demonstration by October 4 evening, America/New_York.
 
 Known boundary: a no-approval-required inspection plan cannot yet pass through the legacy approval-dependent plan-to-recipe compiler. Do not create artificial approval to bypass this. Checkpoint 23 must provide a checked read-only continuation. Input paths typed in Intent are not automatically selected in the file picker; Checkpoint 23 will make the actual selected input explicit.
 
@@ -2173,7 +2173,7 @@ draft-editing, and trace-selection entry points. Run opens the stored recipe
 chooser if there is no active recipe; the existing explicit approval and
 execution boundaries still apply. This is a navigation and layout step, not a
 new execution capability. Full WSL2 interaction and continuous-journey
-acceptance were subsequently reported by the operator; see `docs/CHECKPOINT19.md`.
+acceptance were subsequently reported by the operator; see `docs/development/checkpoints/CHECKPOINT19.md`.
 
 The next navigation correction routes Review graph to the current validated
 plan and routes Run to an unfinished plan before showing recipe inventory.
@@ -2211,7 +2211,7 @@ decision against the exact loaded plan, required steps, decision, and current
 expiry. The UI identifies verified versus blocked records in the saved-plan
 list and exposes the reason. This read-only projection does not authorize or
 execute anything. Recipe, run, Critic, and release relationships are not yet
-projected; see `docs/CHECKPOINT20.md`.
+projected; see `docs/development/checkpoints/CHECKPOINT20.md`.
 
 Checkpoint 20 recipe authority slice: saved recipe inventory rechecks recorded recipe decisions against canonical digest, required approval scope, decision, and expiry. The browser presents verified or blocked links read-only. Full execution and evidence relationships remain future work.
 Checkpoint 20 execution authority slice: new durable interface attempts record exact approval identity; the run browser checks the stored recipe and decision at the recorded start time. Legacy attempts without that identity remain unlinked. Run result, validation evidence, Critic, and release graph relationships remain open.
@@ -2227,13 +2227,13 @@ Checkpoint 20 graph labels: local plan/recipe/run projections have distinct sour
 Checkpoint 20 viewport fix: graph header growth no longer clips the timeline; the selector explains that Current workflow requires an open recipe and keeps a current unsaved plan selectable.
 Checkpoint 20 responsive header: wide screens place Plan, Flow graph, Run, and Check outcome inside the top bar; narrow screens retain the second row. The redundant local-workspace line is removed.
 
-Checkpoint 20 completion: saved Planner definitions link to recipe definitions only through exact canonical reconstruction, and durable-run graphs show trace/report, Critic and release blocks only after bounded independent evidence checks. Output artifacts show recorded digests, not a fresh physical-file verification. See `docs/CHECKPOINT20.md`.
+Checkpoint 20 completion: saved Planner definitions link to recipe definitions only through exact canonical reconstruction, and durable-run graphs show trace/report, Critic and release blocks only after bounded independent evidence checks. Output artifacts show recorded digests, not a fresh physical-file verification. See `docs/development/checkpoints/CHECKPOINT20.md`.
 
-Checkpoint 21A begins governed task history: a bounded canonical hash chain stores explicit task events, and a deterministic redacted context view cites original event digests. CLI recording and inspection are available; automatic interface correlation and model use are not yet integrated. See `docs/CHECKPOINT21.md`.
+Checkpoint 21A begins governed task history: a bounded canonical hash chain stores explicit task events, and a deterministic redacted context view cites original event digests. CLI recording and inspection are available; automatic interface correlation and model use are not yet integrated. See `docs/development/checkpoints/CHECKPOINT21.md`.
 
 Checkpoint 21B adds an explicit loopback task-event API and read-only, independently rechecked task context endpoint. A history decision does not authorize work. Actual interface action correlation and a visible task pane remain open.
 
-Checkpoint 21C: new Planner sessions record a bounded task event sequence, the graph inspector previews checked task context, and exact task-derived recipe runs add result/failure notes. The task ID persists in session storage, while old artifacts remain unassigned. History notes do not grant approval. See `docs/CHECKPOINT21.md`.
+Checkpoint 21C: new Planner sessions record a bounded task event sequence, the graph inspector previews checked task context, and exact task-derived recipe runs add result/failure notes. The task ID persists in session storage, while old artifacts remain unassigned. History notes do not grant approval. See `docs/development/checkpoints/CHECKPOINT21.md`.
 
 Checkpoint 21 interface correction and roadmap review: a missing task-history endpoint now blocks planning with an actionable error instead of silently continuing without a task ID. The next order is task identity (21), reviewed context and intent (22), task-centered agent UI (23), tabular tools (24), capability discovery (25), and comparative release evaluation (26). See `context/AGENT_INTERFACE_SEQUENCE.md`.
 
@@ -2245,28 +2245,28 @@ Checkpoint 21D layout correction: move history selection/refresh controls outsid
 
 Graph-source header correction (v19): the screenshots identify Refresh graph sources, not Refresh checked context. Replace option-dependent flex wrapping with explicit responsive grid columns and a constrained selector. Metadata occupies a consistent second row; narrow screens use a deliberate single-column header. Validate by refreshing graph sources repeatedly with long saved names at the same window width. Backend work follows this focused correction.
 
-Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21E.md`.
 
-Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/development/checkpoints/CHECKPOINT21F.md`.
 
-Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21G.md`. Recipe/outcome links remain open.
 
-Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/development/checkpoints/CHECKPOINT21H.md`.
 
-Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/development/checkpoints/CHECKPOINT21I.md`.
 
-Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/development/checkpoints/CHECKPOINT21J.md`.
 
-Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/development/checkpoints/CHECKPOINT21K.md`.
 
-Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/development/checkpoints/CHECKPOINT21L.md`.
 
-Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/development/checkpoints/CHECKPOINT21M.md`.
 
 
 ## Checkpoint 22C — Intent reasoning
 
-CLI `reason-task-intent` now consumes a rechecked context review and proposes intent or clarification without creating a plan or granting authority. Context is checked again after inference. See `docs/CHECKPOINT22C.md` for validation. API/UI integration and reviewed Intent-to-Planner handoff remain next.
+CLI `reason-task-intent` now consumes a rechecked context review and proposes intent or clarification without creating a plan or granting authority. Context is checked again after inference. See `docs/development/checkpoints/CHECKPOINT22C.md` for validation. API/UI integration and reviewed Intent-to-Planner handoff remain next.
 
 22E local validation: 52 focused Intent/context/API tests and the full Python suite passed (exit 0), along with CLI help and compilation. Live model quality and operator acceptance remain to be checked.
 

@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import os
+from contextvars import ContextVar
 from collections.abc import Mapping
 from dataclasses import dataclass
 from urllib.parse import urlparse
+
+# Set once at the interface request boundary; never mutate process environment.
+selected_model: ContextVar[str | None] = ContextVar('selected_model', default=None)
+selected_reasoning: ContextVar[str | None] = ContextVar('selected_reasoning', default=None)
 
 
 class ModelSettingsError(ValueError):
@@ -36,7 +41,7 @@ def load_model_settings(
         "http://host.docker.internal:11434/v1",
     ).strip().rstrip("/")
 
-    model = values.get("MODEL_NAME", "").strip()
+    model = (selected_model.get() if environ is None else None) or values.get("MODEL_NAME", "").strip()
 
     if not model:
         raise ModelSettingsError("MODEL_NAME is required")
@@ -80,6 +85,8 @@ def load_model_settings(
         )
 
     reasoning = values.get("MODEL_REASONING_EFFORT", "").strip() or None
+    override=selected_reasoning.get() if environ is None else None
+    if override and override!='environment':reasoning=None if override=='provider' else override
     if reasoning not in {None, "none", "low", "medium", "high"}:
         raise ModelSettingsError("MODEL_REASONING_EFFORT must be none, low, medium or high")
     response_format = values.get("MODEL_RESPONSE_FORMAT", "json_schema").strip()

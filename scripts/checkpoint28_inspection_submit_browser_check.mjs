@@ -54,7 +54,7 @@ try{
  const plannerPosts=()=>calls.filter(call=>call.method==='POST'&&['turn','submit'].includes(call.action)&&['/api/v1/planner/submit','/api/v1/planner/conversation'].includes(call.path)).length;
  const postsBefore=plannerPosts();stalePlanner=true;
  await send(message);
- await page.getByText(/Startup must show Planner contract revision: inspection-source-v2/).waitFor();
+ await page.getByText(/Startup must show Planner contract revision: statistics-v2/).waitFor();
  assert.equal(plannerPosts(),postsBefore);assert.equal(await countRuns(),0);
  stalePlanner=false;
  cases.push('Old Planner contract blocks submission before model calls or execution');

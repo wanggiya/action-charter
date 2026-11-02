@@ -1,17 +1,865 @@
 # Work resume — checkpoint 28 accepted
 
-Updated: 2026-10-22. Handoff only; never execution authority.
+2026-11-01 direction: read [docs/product-direction/](../docs/product-direction/README.md)
+first. It records product vision, assessment, editions/interfaces and the autonomous
+platform design. Design only; no code changed by that discussion.
+2026-11-01 cleanup (branch cleanup/phase0-structure): postgis_*/geoserver_* packages
+are now grouped under geoagent_harness.postgis / .geoserver; checkpoint docs moved to
+docs/development/checkpoints/. Still open in Phase 0: runtime-state root out of the
+repo root, shared task-actions layer, App.tsx split.
+
+2026-10-30 latest: inspection-led typed analysis goals and report metric coverage.
+User chose agent-proposed goals. Planner advises over recorded fields/source; backend
+rejects wrong sources/unknown fields/identifier inference. Per-chat goal cards expose
+prerequisites/capability gaps, and Prepare uses normal planning without execution.
+New readiness reports state calculated/uncomputed metrics; no invented precision or
+P-values, no classifier/categorical-test/causal operation added. See
+[implementation and validation](../docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+Local qwen3.5:9b advice test passed in one call: 67.6067 s, 2,212 prompt /
+463 completion tokens, reasoning none, 1,200 output cap. It used saved aggregate
+metadata/header-only temporary inputs; this is not fresh-source clinical acceptance.
+A generated title remained imprecise, so contract acceptance is not scientific endorsement.
+Earlier model failures identified long rationales and numeric methods on category codes;
+length-aware structured decoding, role-constrained fields and safe field-specific
+correction diagnostics now enforce those boundaries. Focused tests and isolated
+browser/API/CLI/PTY pass; interface validation passes. Final permitted make test:
+2,254 passed, 13 existing spatial warnings (564.92 s). Focused role-guard tests
+pass after decoder tightening. No live data, model preferences or Git mutations.
+
+
+## Active delivery — 2026-10-29
+
+2026-10-30 latest: Settings → Model service now saves reasoning effort per project
+without restart, backend pins request settings and shared client sends actual choice.
+Ordinary quality/statistical report requests use inspection + derived Outcome Report;
+legacy generate_report requires PostGIS validation and is excluded for unrequested
+analytical reports. Explicit legacy reports bind missing task identity before review,
+with validation/authority unchanged. Background telemetry independent of parent scope.
+Real qwen3.5 report request returned inspect_csv after one correction (66.7773s +
+37.1815s), no execution. Do not claim universal/one-shot model reliability. Current
+acceptance/limits and operator steps: REQUEST_DIAGNOSTICS.md. Final checks: 2248
+tests passed (13 existing spatial warnings), interface validation and isolated
+browser/API/CLI/PTY passed. No live DB, environment/secrets edits or Git mutations.
+
+2026-10-30 follow-up: real failed request recorded 22,605 bytes/120.0765 s, model
+qwen3.5:9b, reasoning unset, output cap 1024; API peak ~211 MiB and system available
+minimum ~3.49 GiB. No proof of model OOM. Numeric-summary wording now keeps analysis;
+eligible inspect-only requests use the focused profile. Failure message links directly
+to scrollable diagnostics; sent reasoning/default is visible. No hidden config change
+or automatic retry. Matched focused-prompt comparison: unset reasoning timed out
+at120.1398s; explicit none returned inspect_csv in38.5694s (2827/230 tokens), with
+1024 output cap. Recommend explicit operator override, no silent model config change.
+Checks: make test 2244 passed (13 existing spatial warnings), interface validation
+and isolated browser/API/CLI/PTY passed. Current measurements: REQUEST_DIAGNOSTICS.md.
+
+[Latest request diagnostics](../docs/REQUEST_DIAGNOSTICS.md): content-free per-chat turn/
+model-call SQLite records, phase/role, tokens/timing/resource sampling, failure retention,
+UI export, CLI/terminal parity and failed first-chat discovery implemented. Existing
+model/configuration diagnostics preserved separately. Full-file inspect reproduction
+returned one inspect_csv proposal (52.872s, 2835 input/252 output tokens); no execution.
+Review cap now 60s bounded by existing model/180s coordinator limits; Single full-source
+selection experiment still failed after one policy correction, so do not claim F5
+closed or local-model reliability solved. Worker/model/GPU RAM remains unknown.
+Earlier lost failures cannot be reconstructed. Verification: 2,237 full-suite tests,
+interface validation and browser/CLI/PTY diagnostics/export/refresh passed; final
+telemetry/conversation inventory checks 53 passed. No live data, secrets or Git actions.
+
+[Full-data contracts, manual steps and remaining gates](../docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+F1 qualified streaming row-local preparation/ancestor aggregation; F2 typed read-only
+PostgreSQL mapping preflight/per-column nulls; F3 disposable full-source roundtrip;
+F4 saved analytical/technical handoff across UI/CLI/MCP implemented. Preflight repeats
+before import; no authority from context, no live database changes, no Git actions.
+Final checks: make test 2,230 passed (13 existing spatial warnings); interface
+validation and isolated browser/CLI/PTY including JSON/PDF/handoff passed. Complete
+saved-run full-source DB roundtrip reconciled every projected value; final terminal
+report history fix passed 18 focused tests; strategy/discovery 27. No live changes.
+F5 partial: actual qwen3.5:9b Single/Three planned and executed full-file selection with
+all 101,766 records matching; advisory reviews unavailable at the existing 15s budget.
+Do not claim complete seven-step real-model reliability or independent Critic success.
+See acceptance guide for limits and JSON versus PDF-export support. Existing pandas
+joins/calculations stay bounded. Current documents preserve the original plan below.
+
+## Original planning record — 2026-10-29
+
+[Canonical full-data delivery plan](../docs/POSTGRES_DATA_WORKFLOW.md#next-implementation-full-data-analytical-and-engineering-handoff--2026-10-29).
+User wants the complete full-source analytical/engineering journey, registered agent
+skills, PostgreSQL with a justified table design and analytical + technical documents.
+Dependency order F1 full-file selection/filter/null/codebook preparation -> F2 typed
+mapping/schema preflight -> F3 create-only disposable DB import/inspect/export -> F4
+source-linked analytical report and actual-schema technical handoff -> F5 real-model
+Single/Three comparison, UI/CLI/history/recovery acceptance. Blend T03/T04/T05/T13.
+Current DB cap 200k rows/64 MiB does not enlarge 10k-row/8 MiB pandas preparation.
+Planner/skills choose/propose/interpret; shared services enforce typed execution and
+validation; Critic assesses evidence only; registry/MCP/CLI/UI expose the same contracts.
+No new permanent agent, arbitrary SQL or permission from conversation/preflight. Keep
+sample preliminary; full 101,766-row source is the target. Live DB writes require
+explicit permission. At the time of this planning record only documents changed; implementation started with F1
+call-path/limit audit, not a claim that future skills already work.
+
+## Readiness assessment/full-data slice — 2026-10-29
+
+Timeout follow-up: quality-only inspect_csv planning now uses the shared bounded
+table-inspection-focused-v1 instruction profile instead of ~10 KB of general rules.
+Typed schemas/validators and saved-plan authority remain unchanged. Isolated fixture
+11,218 message bytes / 3,870 decoder bytes; no actual-model latency claim. Diagnostics
+include prompt_profile and the interface shows it on failure. Timeout preservation/
+one-call regression added. See linked guide for restart/retry instructions; full CSV
+size is distinct from planning context and timeout does not establish context overflow.
+Timeout follow-up verification: make test **2,219 passed** (13 existing spatial
+warnings), focused planner regressions, interface validation and complete isolated
+browser/terminal acceptance passed with zero page errors. Actual model latency remains
+unverified; no data execution, model/config switch or automatic retry was added.
+
+[Implementation, scope and manual acceptance](../docs/READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md).
+Existing analytical/profile services attach typed readiness-assessment-v1 without new
+source reads/model calls: scope/hash, missingness, explicit unknown key/duplicate checks,
+mapping coverage, fields and bounded group findings. Pure group percentages now shared
+with existing views; complete denominators precede display limits. Outcome Report and
+Markdown/PDF reuse existing presentation; compatible statistics/figures included within
+budget, omissions explicit, original evidence retained. CLI/MCP share the contract;
+inspect-table --report is a fresh read, saved chat /report is not. Existing Planner,
+Critic and statistics skill updated; bounded review projection used in Single/Three
+roles. Exploration rejects unselected sample substitution after model output.
+Full-file read-only reference check passed for 101,766 rows/71,518 patients/30 age-
+readmission groups and mean stay 4.395986871843248, quality/mappings/missingness; original
+hashes unchanged. Local-model/user acceptance, domain interpretation and full-scale
+authorized PostgreSQL/preparation acceptance remain open. Do not substitute the sample
+or claim all T03/T04/T05 complete. No Git/live DB changes or new permanent agent.
+Final make test **2,218 passed** (13 existing spatial warnings), interface validation,
+75 focused source/report regressions and complete isolated browser/terminal journey
+(zero page errors) passed; final report-copy tests passed separately. Full-file check
+also reconciled all 50 fields and 42 admission/readmission groups. Readiness report
+display truncation/statistical appendix omissions are explicit; original complete
+groups/statistical evidence retained. No actual-model evaluation repeated in this slice.
+
+## Shared table-source consolidation — 2026-10-29
+
+[Structure, compatibility and repeatability](../docs/TABLE_SOURCE_CONSOLIDATION.md).
+CSV/TSV and XLSX/flat-record parsers now emit typed bounded batches to TableInspection,
+which owns common preview/counters/guidance/analysis/result assembly. Trusted format
+catalog drives suffix policies, registry and relevant Planner reader metadata. New
+read-only MCP list_operation_contracts exposes the same registry. Additive validated
+table-source-v1 records original identity, selection, sparse observed types/nulls and
+explicit analytical string view; old snapshots/digest inputs unchanged. Default
+percentile labels now survive CLI/MCP revalidation identically. No new dependency,
+agent, Git mutation, image build or live service/database change. Comprehensive Docker
+dataset-profile protocol and task-action/request consolidation remain separate work.
+User manual acceptance pending. Final make test **2,209 passed** (13 existing spatial
+warnings); interface validation, isolated browser/terminal journey (zero page errors)
+and minimal worker imports without site packages passed. No model evaluation repeated
+for this slice; revised catalog prompt behavior needs manual validation.
+
+## Statistical figures and table-format readers — 2026-10-29
+
+[Combined implementation/validation](../docs/TABLE_FORMATS_AND_STATISTICAL_FIGURES.md).
+User manual acceptance of this and previous slices is pending. T05 adds pure recorded
+group-mean SVG figures (selected measurement, counts/no CI), coefficient heatmaps with
+selection/clear, Report/PDF figures and existing advisory Critic/self-review alongside
+Statistics. Caps/omissions explicit; full report tables preserved. No model/source call
+on figure or assessment viewing. PDF charts are generated locally from closed escaped
+SVG, not user SVG/URLs; tall figures scale to fit landscape pages.
+T08 extends stable inspect_csv via a bounded record adapter using existing Accumulator:
+XLSX selected sheet/header or cell_range, JSON record arrays/wrapper key, JSONL/NDJSON.
+Original hashes/query selection preserved. Native preview/types and separate null/empty
+counts; analytics uses explicit string view. Formulas/errors/macros/external links,
+nested/new/duplicate JSON keys and unsafe paths reject. New formats require Execute,
+never inspect-on-send; CSV transforms remain CSV-only. Reopened/grouped views inherit
+the exact source selection; changing it requires a new inspection. CLI inspect-table,
+MCP existing tools and relevant Planner schema/skill guidance use the shared contracts.
+Declared table-formats/dev deps installed without cache: openpyxl 3.1.5, defusedxml
+0.7.1, et-xmlfile 2.0.0. No Docker image rebuild, arbitrary code, Git/publication or live
+DB changes. New synthetic text examples under examples/table_formats; XLSX generated
+only in temporary tests. Initial browser passed JSON/JSONL/XLSX, figures, PDF and
+advisory/history journeys; final verification below after completion. First full suite
+had one stale CSV/TSV-only error-message expectation; updated to assert all six formats
+while retaining TIFF rejection. Explicit range/scope follow-up tested separately.
+Next format candidates: Parquet then T11 text/documents; see open limits in guide.
+Actual local-model checks found omitted selectors, stale fields/source and misleading
+free prose. Added generic explicit-source/selector/statistical-argument decoding and
+independent pre-storage coverage checks, plus strict complete-descriptive proposal mode
+when source/fields/design are supplied. No post-generation argument rewriting. New
+suffixes also added to existing source-existence reference detection. Final qwen3.5:9b
+XLSX and JSONL proposals passed once each (~60/62 seconds); source/fields/means verified
+on synthetic temporary data. Free prose remained stale, so bound descriptions now use
+validated-argument confirmations and retain sanitized original wording in diagnostics.
+Final make test **2,204 passed** (13 existing spatial warnings), focused selector/field/
+receipt tests and interface validation passed. Complete isolated browser passed with
+zero page errors; new-format executions, PDF/figures, advisory/history/terminal paths
+verified. Final figure field-cap caption update was built/typechecked afterward.
+Visual review caught inherited global SVG fills; generated figures now preserve their
+own encoded colors instead of recoloring background/cells through generic result CSS.
+
+## T05 recommendations and review/report evidence — 2026-10-28
+
+[Implementation, real-model evidence and manual steps](../docs/T05_ANALYTICAL_ADVICE_AND_REVIEW.md).
+Extended existing field-guidance service with bounded registered analysis opportunities;
+next-analysis questions use recorded advice-only mode with strict null plan/no actions.
+Updated statistical skill and runtime Planner/Critic/coordinator guidance. Statistical
+question is optional untrusted context; report adds definition/computed-finding sections,
+Summary shows question. Shared Critic projection retains source/specification/counts/
+grouping and explicit omissions within its budget. No raw preview rows or report mutation.
+Final make test 2,186 passed (13 existing spatial warnings); focused prompt/evidence,
+frontend validation and complete isolated browser passed (zero page errors). Existing
+17 KB calculation-prompt budget retained by shortening overlapping manifest wording.
+Actual installed qwen3.5:9b reasoning=none passed advice, grouped description and Pearson
+in one call each (~33/40/45 seconds), synthetic temporary project only. Exact selected
+fields and independent numerical answers checked; model proposals were not workflow-
+dispatched. Actual Critic-model quality not evaluated. Remaining T05 chart-export and
+interpretation/consolidation gaps documented; do not mark whole checklist complete.
+No installs, Git/publication, live database/service changes or new permanent agent.
+
+## Inspection-to-analysis follow-up — 2026-10-28
+
+Followed T03/T05 in IMPLEMENTATION_TODO. Shared field guidance now adds at most eight
+closed descriptive starter specs, standard-library-only for fixed worker compatibility.
+Only complete nonconstant numeric measurement candidates within statistical magnitude/
+row limits qualify; ambiguous codes, markers, missingness and filtered profiles need
+explicit specifications. Existing response budgets trim explanations, not source scans.
+Shared Outcome component offers optional measurement/group selections and prepares a
+normal Planner request. No automatic send, calculation, exclusion, write or authority.
+Browser verifies one-step proposal, separate Execute, recorded groups/report and CLI
+history reopening. Real diabetic sample: 5,000 rows, ten age groups, mean 4.6592,
+sample variance 9.647384836967394; every group mean independently checked with stdlib
+statistics. Actual-model response quality still needs user validation. See
+[manual steps/limits](../docs/INITIAL_FIELD_GUIDANCE.md#inspection-to-analysis-follow-up--2026-10-28).
+No Git, dependency installation or live database changes.
+Verification: make test 2,182 passed (13 existing spatial warnings), interface validation
+passed (existing bundle advisory), complete isolated analytical browser journey passed
+with zero page errors. No actual-model generation was included in this follow-up.
+
+## Initial field guidance and Summary rows — 2026-10-28
+
+[Implementation/validation](../docs/INITIAL_FIELD_GUIDANCE.md). Fixed Summary/Regression
+Facts: shared dd width:100% + flex was collapsing dt; scoped full-width grids now keep
+horizontal labels and stack values at <=520px panel width. Tabs scroll when narrow.
+New standard-library field_guidance shares the existing comprehensive role classifier,
+uses fixed counters during ordinary full CSV verification, and emits source-bound
+advisory measurement/grouping/identifier/review shortlists. Cardinality/response bounds
+explicit; no sample inference, dataframe or additional model pass for initial hints.
+Comprehensive local/Docker result enrichment shares the builder; future worker build
+copies the module; old fixed worker profile outputs are supported. No image rebuild.
+MCP recommend_table_fields, CLI table-guidance and terminal /guidance registered; agent
+recorded context includes bounded aggregate evidence. Advice-only conversation schemas
+allow message+null plan; attempted action changes reject and inspection-on-send does
+not replay. Existing compose-message event prepares the optional question, never sends.
+UI uses shared FieldGuidance in ordinary/comprehensive Overview. Old snapshots unchanged.
+Full tests/browser evidence recorded below after completion. Real 5,000-row scan returned
+50 fields and expected families (explanations fit the existing metadata output budget).
+Actual local-model advice not evaluated: Ollama /api/ps had no loaded models. No Git,
+live database/service mutation, extra dependencies or cross-chat memory changes.
+Verification: full 2,179 passed before final narrow codebook/source binding changes;
+final guidance/conversation/calculation 95 passed, profile/discovery/terminal follow-ups
+passed. Interface validation and final isolated browser passed, including wide/narrow
+Summary screenshots and source-hash-bound question with no dispatch. Old current-plan
+review prompt budget preserved by keeping the manifest instruction short. No model
+load was forced. Temporary screenshots /tmp/actioncharter-statistics-summary-{wide,narrow}.png.
+
+## Statistics pages and Markdown/PDF reports — 2026-10-28
+
+[Acceptance, architecture and remaining scope](../docs/STATISTICS_PAGES_AND_REPORTS.md).
+StatisticsPanel now uses existing result-page tabs, larger typography, readable
+diagnostics and a format selector. StatisticalReport/report-document project the same
+recorded Markdown into page/PDF without HTML/remote resources. report-pdf lazily loads
+pdfmake and bundled fonts, paginates and partitions wide tables without dropping data.
+New backend reports have structured evidence/numeric tables; old snapshots retain their
+original text. Added optional covariance method through existing inspect_csv/MCP/CLI,
+Planner coverage/grammar/catalog and Matrices view; explicit ddof/missingness/counts.
+Report source filters retained. PDF dev validation uses pypdf (declared dev extra);
+frontend dependency/lock files declare pdfmake/types. Installs used no browser cache.
+First PDF browser check independently parsed four pages and matched source/P-values/
+matrix/limitations. Visual review caught and fixed white native select + inherited
+cyan article styling. Final material/wide-matrix acceptance is recorded below.
+Final full suite 2,174 passed; focused 25 passed; interface validation passed. Browser
+pages/material/download/restoration and independently parsed four-page PDF passed;
+nine-column continuation retained all fields/final value. Real 5,000-row covariance
+matched pandas and descriptive variances. No actual-model covariance evaluation.
+No Git, release or live-service mutation. Continue T03/T04/T06 and formats/documents
+as separate coherent slices; do not mark T05/T09 wholly complete.
+
+## Typed statistical family — 2026-10-27
+
+Regression-omission follow-up: statistics-v2 constrains the single-inspector proposal
+branch to actual requested methods/regression and explicit covariance requirements;
+typed variables remain model-generated and all backend checks remain. plan=null
+still permits concrete semantic clarification. Prunes unused decoder definitions;
+generic omission guidance no longer always recommends calculate_csv_columns. The
+full isolated browser journey and interface validation passed. Local qwen3.5:9b
+synthetic acceptance is being recorded below after validation, not assumed from fixtures.
+The real-model probe exposed a second bug: covariance matched unbounded variance,
+adding describe; the model then treated patient cluster IDs as numeric columns.
+Word-boundary matching fixes the requirement; regression-only grammar removes unused
+columns/by/percentiles/ddof selectors. Variables still come from the model. Full suite
+2,169 passed before this final narrow correction; focused statistics/scope checks passed.
+Final actual-model checks passed with qwen3.5:9b, reasoning_effort=none, max_tokens=1024:
+synthetic ~55s; exact diabetic sample request ~69s, 5,000 rows/4,260 clusters/R² .3190629671.
+Temporary copy/read-only service only; no workflow dispatch, authority or data writes.
+Final focused 20 passed. Browser statistics-v2 and interface validation passed. Test
+logs /tmp/actioncharter-statistics-{model-check-final,real-model-check}.log; no downloads.
+
+Timeout follow-up: user saw 26.6 KB/120.1s/one-schema statistics-v1 generation timeout.
+Measured a comparable fresh request at 24,861 prompt bytes: mandatory rules alone
+11,095 JSON bytes. focus_statistics_instructions now applies only to statistics-only
+inspect_csv scope with acquisition OFF; replaces irrelevant instructions/examples,
+filters recipes, keeps operation allowlist, schema validation, deferred IDs and history.
+Fresh request tests cap prompt at 16 KB. Do not claim actual Ollama latency is verified.
+Restart instructions and regression-only retry are in the acceptance document.
+Follow-up checks: 19 statistics/scope cases and interface validation passed. Full suite
+had 2,167 passes and one deferred-ID regression from an earlier in-memory prompt version;
+the field was restored and the failed test rerun through make test PYTEST_ADDOPTS=--lf.
+
+[Implementation, limits and copyable acceptance](../docs/TABLE_STATISTICS_ACCEPTANCE.md).
+Existing inspect_csv.analysis.statistics feeds StatisticsAccumulator from the verified
+scan; shared MCP table_statistics/linear_regression, CLI table-statistics and terminal
+/statistics read support. Planner schema coverage requires actual declared methods;
+unused definitions pruned for ordinary inspections. Runtime contract statistics-v2:
+restart launcher. Outcome Statistics reads immutable run evidence, not interactive
+group state. Optional statistics/dev dependencies declare SciPy/statsmodels; installed
+in this development venv with approved no-cache pip. Minimal Docker profile worker is
+unchanged. Known-answer/real-5,000-row checks and isolated browser journey passed;
+full backend verification passed 2,168 tests. Interface validation, isolated browser
+and focused Planner/MCP checks passed; details in the acceptance document.
+Do not stage/commit/push or touch live services. T01/T03 consolidation remains partial;
+T06 generated analytical code, T08 formats, T11 documents/word clouds remain open.
+
+## Exact-scope recovery and durable assistance — 2026-10-27
+
+Concrete T02 bug: usePlanRun looked only at last 50 global receipts, then filtered by
+chat/plan. New workflow/runs latest action requires exact conversation+plan, scans
+bounded metadata before choosing, and leaves unrelated receipts untouched. Frontend
+uses it, preserves matching evidence on refresh failure and polls restored active runs.
+Terminal /run with no known ID uses the same scoped service; never auto-starts/cancels.
+Unreadable/budget failures mean unavailable evidence, not an empty history. Global list
+and historical scan caps remain explicit limits. Fixed execution_assistance tuple-key
+persistence typo; cached receipt rereads no longer require another helper invocation.
+Browser passed recovery behind 55 unrelated fixtures, pending->completed read-only
+reconnection, retained evidence through a simulated 503, controlled timeout preservation,
+history and terminal journeys. No real model-quality/remote-worker reliability claim.
+[Audit/acceptance](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md#t02-exact-scope-recovery-delivered--2026-10-27).
+Preserve all existing changes; no staging/Git/dependency/live-data changes authorized.
+Verification: full make test 2,150 passed before terminal convenience addition;
+subsequent focused recovery/assistance/history/CLI suite 22 passed including new
+terminal isolation cases. Interface validation and full isolated browser journey passed.
+
+## Adjustable charts, optional 3D and T02 state clarity — 2026-10-27
+
+User found the compact grouped chart too small. GroupedChart now defaults Comfortable
+with Compact/Large presets and shared 2D/percentage behavior. Optional 3D columns for
+two grouping fields uses SVG projection, rotation/elevation controls and exact clickable
+facts; height is count or percentage, not a third selected variable. No new dependency.
+T02 slice: one executionBlockReason presentation helper mirrors existing header gates,
+provides disabled reasons via tooltip/description/graph status, and saved-proposal restore
+notice distinguishes restoration from execution. Backend authority is unchanged.
+Browser acceptance now tests refresh before Execute (no invented Outcome/run), history
+read-only reasons, resizing and 3D values/rotation. Full timeout/recovery and T01/T03
+consolidation remain open. Preserve existing uncommitted changes; no Git/live DB actions.
+Full make test: 2,145 passed. Frontend validation and isolated browser journeys passed;
+real-sample 3D marks independently reconcile every observed age/gender group to 5,000.
+
+## Group title/chart correction and T01 start — 2026-10-27
+
+User reports stale table naming and oversized/unsuitable percentage charts. Titles now
+show applied group/table fields; drafts keep old results with an explicit apply notice.
+Shared GroupedChart replaces duplicated ordinary/session group-percentage presentation,
+with count/overall/within-primary denominators, 0–100% axes and bounded 680px/360px area.
+Preserve extra numeric/distinct plots and source/authority contracts.
+[Actual T01 call paths/decisions](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md): distinct
+analysis schemas/runtimes are not interchangeable; legacy Builder executor runs pytest
+in a declared no-network container, but its boundary differs from fixed analytical worker.
+Audit/compatibility inventory continues; no new code generation, installation, T02 fix
+or broad consolidation claimed. Preserve all pre-existing documentation and code changes.
+Verified: make test 2,145 passed; frontend typecheck/build passed; analytical browser
+checks applied titles, 25% overall versus 50% within-primary, 0–100% axes and chart bounds,
+plus frontend/terminal/history journeys. Real-sample browser cell reconciliation passed.
+No live services/input mutations, dependency installations or Git operations.
+
+## Age × gender table in ordinary CSV Outcome — implemented, 2026-10-27
+
+User prioritizes the visible cross-field table before structural work. Found renderer
+only connected to DatasetViewExplorer; ordinary GroupExplorer displayed flat records.
+Reuse DatasetCrossTab there and in recorded two-field Overview groups; label ordinary
+Explore tab Groups and both explorers' selectors Rows (vertical)/Columns (horizontal).
+Keep other summaries in Detailed measures and chart mode. Existing services perform
+explicit source-verified full-file reads, not preview aggregation or LLM calls.
+Real 5,000-row browser acceptance reconciles every age/gender cell independently;
+20,000-row journey checks count/percentage/swap and existing terminal/history behavior.
+Frontend validation passed. No original input/live database or Git mutations.
+Final verification: make test 2,145 passed; make interface-validate passed; final-build
+20,000-row analytical/CLI/history and real 5,000-row browser journeys passed with no
+page errors. Additional measures/filters and numeric coverage are collapsed so the
+cross-table is easier to reach. Browser profiles and test projects are isolated.
+[Exact frontend steps](../docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27).
+
+## Consolidated next-work checklist — documentation only, 2026-10-27
+
+[Implementation TODO](../docs/IMPLEMENTATION_TODO.md) consolidates the overlapping
+plans. Start T01 actual ownership/Builder audit; diagnose restored graph/Execute T02;
+extract shared contracts/registry T03–T04; deliver descriptive analytical report T05
+and audited Builder-to-qualified-method reuse T06. Auto/manual routing, common formats,
+association/regression, document/word-cloud and image/point-cloud branches have explicit
+dependencies and acceptance. T14 scoped memory must pass before T15 autonomous Linux.
+Do not require every future format before controlled data tests. Existing implementations
+are distinguished from open tasks; final memory organization/curator role remain open.
+Only docs changed; application work/tests/Git/live services were not performed here.
+
+## Expanded science/formats and memory-before-Linux — docs only, 2026-10-27
+
+[Requirements and acceptance](../docs/DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md).
+User wants substantive statistics (percentiles, SD/variance, correlations/matrices,
+regression coefficients/P-values/R-squared, justified causal methods), not only initial
+inspection or engineering receipts. Request JSON/PDF/Markdown/XLSX/DOC, PDF-to-Markdown
+when useful, ordinary/geospatial images/rasters, LAS/point clouds and depth data.
+Use shared adapters/method families and audit existing statistics before adding code.
+Record corrected Builder role graph, qualified reports and service transfer; remote/
+simulated Linux autonomous work with PostgreSQL/PostGIS comes AFTER scoped memory,
+correction/recall and reusable-method foundations. Learning != automatic weight training.
+All are recorded targets, not implemented by this change. Only documentation changed.
+
+## Reuse existing Builder — documentation only, 2026-10-27
+
+[Audit and integration plan](../docs/BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md).
+User correctly recalls existing Python generation: Builder contracts/model boundary
+2026-08-28, activation 09-01, exact-file verification 09-02. Earlier discussion overstated
+the absence of generation. Legacy path proposes candidate Python + explicit developer
+lifecycle; missing is normal-chat gap -> isolated analytical execution -> qualified skill
+reuse. Audit/reuse schemas/materialization/tests/installer/worker, not another parallel
+system or compulsory Builder agent. Do not wire source activation directly into chat.
+Only docs changed; no application code, tests, installs, Git or live-service operations.
+
+## Composition and agent structure clarification — documentation only, 2026-10-27
+
+[Concrete operations and project graphs](../docs/COMPOSITION_IMPLEMENTATION_AND_AGENT_STRUCTURE.md).
+User asks whether composition is just replacing age with another field. Existing
+aggregate_csv is parameterized by actual column names, metrics and source/dependencies;
+not age-specific and not arbitrary pandas execution. Record schemas/registry/dispatcher/
+service ownership, one-context versus role-context tradeoffs and optional code path.
+Only documentation changed; no runtime implementation, tests, staging or Git operations.
+
+## Generalization direction — documentation only, 2026-10-27
+
+[Consolidation plan](../docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md) records the
+user's concern about backend/special-case growth. Preserve typed operations, recipes
+and templates; they are not obsolete and workflow composition is not code generation.
+Next implementation must first trace shared responsibilities/state restoration, then
+consolidate task actions, contracts, registry-driven composition and acceptance fixtures.
+Keep agents responsible for method choice; optional bounded Python fills genuine gaps.
+Record Auto/manual routing with Planner recommendations and coordinator limits, common
+format/report/database goals, compatibility invariants and measurable acceptance.
+No application code, tests, dependencies, Git or live services changed for this request.
+
+
+## Inspection planning timeout — 2026-10-27
+
+User's real sample read-only inspection hit Planner generation timeout: 31.4 KB,
+ten schemas, 120.1 seconds. Focus initial descriptive schemas to inspect_csv only
+for explicit read-only analytical requests; keep analysis/full-file statistics and
+existing allowlist/authority. Mixed requests/current writer workflows remain broad.
+No automatic retry or increased timeout. Regression exercises actual request with
+injected timeout and confirms one call, one schema, analysis retained, no approval.
+Restart required; installed Ollama acceptance remains pending. See task-mode document.
+Verified: full make test 2,145 passed with local socket access; interface validation
+passed. Restricted sandbox HTTP-test failures were socket permission errors.
+
+## Manual task modes — 2026-10-26
+
+[Implementation, limits and exact validation](../docs/TASK_AGENT_MODES.md).
+Conversation gear selects Single/Three; unset legacy chats are preserved. One model
+called sequentially, separate role journals in Three, primary self-review in Single.
+Shared governed services, own-chat review binding, frozen run mode, recorded reports
+and measured effort; no auto switching, new agent containers, training or live writes.
+Real 5,000-row disposable PostgreSQL and browser mode comparisons passed using model
+fixtures; installed-model acceptance remains manual. Full backend suite: 2,141 passed,
+with final report guard covered by focused tests. No Git mutations.
+
+## Real diabetes acceptance — 2026-10-26
+
+[Exact frontend flow and reference](../docs/DIABETES_REAL_TEST_FLOW.md): actual input
+paths under data/input/test; sample 5,000 rows/50 fields, 4,260 patients, 506 repeated
+patients, zero duplicate encounters/entire rows; mean days 4.6592; readmitted counts
+555 / 1,967 / 2,478 for <30 / >30 / NO. Sample is exactly the first 5,000 full-source
+rows, not proven representative; payer_code is entirely ?. Added governed
+decode_csv_codes for the supplied sectioned mapping file, preserving raw codes/rows
+and verifying each label. Real temporary PostgreSQL round trip passed every projected
+value: selection 13 columns → decoding 16 → database/export 17 with explicit marker.
+Browser found/fixed silent loss of mapping facts at the saved-preview byte limit; trim
+preview rows first, retain counts/coverage. Original sources and live services unchanged.
+Verified: 2,130 full-suite tests plus 3 independent-reference tests; interface validation,
+real 5,000-row disposable database round trip and real-data browser preparation passed.
+Manual real-model frontend planning remains a distinct acceptance; automated proposals
+are fixtures/operator-authored. No clinical inference, imputation, row exclusions or Git.
+
+## Governed PostgreSQL operations — 2026-10-26
+
+[Delivery, limits and manual validation](../docs/POSTGRES_DATA_WORKFLOW.md). Six typed
+operations now cover allowed-schema discovery/inspection, fresh-table import, fresh CSV
+export, and exact-key boolean marker delete/restore. Existing registry/Planner/graph,
+recipe authorization/execution/verification, MCP and CLI share services. Database-only
+evidence persists snapshots; approved DB steps have one-attempt claims. No arbitrary
+SQL, append/replace, schema creation or live-service change. Disposable real PostgreSQL
+acceptance includes readiness inspection, verified codebook join, intermediate import/
+export, snapshot/hash/null/type checks, rollback and cancellation. Browser review tests
+use an unreachable DB and prove authorization alone never executes. Full-source pandas
+preparation limits and domain interpretation remain explicit follow-ups; start with the
+5,000-row sample. Verified: 2,120 backend tests, interface validation, disposable PostgreSQL acceptance,
+database authorization browser checks and complete frontend/CLI/PTY regression passed.
+Optional fresh-import deletion marker also passed focused/runtime checks.
+No Git mutation/publication or dependency download performed.
+
+## Cross-tabs delivered; database round trip planned — 2026-10-26
+
+[Real-data targets](../docs/REAL_DATA_NEXT_TARGETS.md#two-variable-cross-tabs-and-postgresql-round-trip--2026-10-26)
+now records row/column two-field tables, named percentage bases and frontend/terminal
+parity, plus authorized ordinary-tabular PostgreSQL import/query/export and reconciliation.
+Unload means export, not delete. Cross-tab presentation is delivered in frontend/terminal using saved groups; no
+database operation or new executable tool implemented. Next milestone combines preparation/codebook joins, readiness reporting
+and a disposable-database round trip, preserving the existing authorization boundary.
+
+## Outcome page, field details and terminal charts — 2026-10-26
+
+User wants frontend parity with `/columns age`, a large Outcome page covering the graph
+area, direct graph return, visible frontend workflow history and usable terminal charts.
+This delivery changes presentation of saved evidence: main Outcome workspace, searchable
+field details with category counts/percentages and applicable numerical/missingness facts,
+plus discoverable field/group ASCII charts. No new source scan is needed for those views. Verified: 2,109 backend tests, frontend
+validation, combined browser/real-PTY charts and legacy table/chart/map regression passed.
+[Next real-data targets](../docs/REAL_DATA_NEXT_TARGETS.md) records Target | Requirement |
+Functions/ability to add | Expected outcome for quality, preparation, comparisons,
+statistics, engineering/recovery and later method knowledge. Those targets are not claims
+of implementation; prioritize the readiness report and descriptive comparisons first.
+
+## Persistent terminal and chat workflow history — implemented, 2026-10-25
+
+[Delivery and combined acceptance](../docs/TERMINAL_AND_CHAT_HISTORY.md): start
+`./actioncharter` for the full-screen/persistent plain terminal, sharing the running API's
+chats/model/settings. Workflow history records immutable workflow/analysis/view snapshots
+and linked runs; opens historical read-only graphs/Outcome without replacing current
+work. Continue creates a new validated draft revision, restoring selected views without
+copying authority. Explicit terminal review/availability/authorization/Execute use the
+shared backend; normal messages never dispatch workflow execution. Prior overwritten
+history cannot be recreated. SQLite snapshots deduplicate payloads, remain bounded and
+scoped per chat. Verified: 2,108 backend tests; frontend validation; combined browser
+and real-PTY acceptance (read-only sample execution, outcomes/history, restore/continue).
+No new dependencies/agent framework or original-data/live-service/Git mutation.
+
+## Interactive analytical selection — 2026-10-25
+
+[Outcome/CLI grouping and selected-column views](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#interactive-selected-columns-and-grouped-percentages--2026-10-25)
+now use an explicit source-bound shared read: Table age alone/age+readmitted; Groups
+one/two fields, counts, percentages of all rows or within the first group, table/chart
+and denominator details. Last table and grouping saved separately per chat; views do
+not rescan, Apply does. MCP `explore_dataset_view`, CLI `chat explore`/`chat result`
+share the service. No LLM calls, original-data writes, authority or chat-proposal changes.
+Verification: 2,101 full-suite tests, 15 focused tests, frontend validation and actual-Docker
+browser/CLI group-percentage journey passed. Full/sample comparisons verified 10 age
+groups and 30 age/readmitted pairs each; original sources unchanged. Worker image rebuilt.
+Real full/sample independent Docker checks passed; richer statistics, historical-workflow
+navigation and persistent terminal UI remain subsequent work. Preserve prior designs.
+
+## Frontend/CLI continuity — implemented slice, 2026-10-25
+
+User requires both interfaces to continue the same project/chat. [Commands, semantics
+and acceptance](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md#frontend--cli-continuity--2026-10-25):
+`chat list/show/send/receipt/result` use the running loopback API and its model settings,
+shared chat/proposal state and submission receipts. Six readable recorded-result views
+plus JSON do not rescan. Refresh saved chat reloads frontend state and list without
+clearing an unsent draft; unsaved graph edits block refresh. No auto-retry, write enable,
+authorization or workflow dispatch; explicit exploration still runs bounded reads.
+Verification: 2,097 backend tests passed; frontend validation and bidirectional/CLI-new-chat
+browser journey passed. New code is `src/geoagent_harness/chat/`; no new dependencies.
+Chart selectors match existing result controls. Browser-local presentation/drafts are
+not synchronized. Statistical relationships and full health-task acceptance remain open.
+
+## Next user-facing task — quality to useful analysis
+
+2026-10-25, documentation only: [post-inspection professional workflow and acceptance
+criteria](../docs/DIABETES_EXPLORATORY_ANALYSIS_TASK.md) records grain/provenance →
+quality report → explicit analysis specification → validated preparation → full-source
+group comparisons → supported relationships/uncertainty → reproducible results/pipeline.
+Prediction is a later separate objective. First audit/reuse existing tools; next proposed
+product work is matching Chart controls to the existing UI, improving group exploration,
+and readable CLI views over the same scoped saved results (no rescan merely to view).
+Keep denominators, repeated patients, code definitions and missingness explicit. Planner,
+shared services/MCP and Critic have complementary duties; no new mandatory agent chain.
+No implementation/data processing authorized by this documentation request; do not infer
+new statistical capabilities, clinical validity, learned knowledge or write authority.
+
+## Implemented 2026-10-25 — comprehensive inspection and Docker runtime
+
+[Delivery, boundaries and validation](../docs/COMPREHENSIVE_INSPECTION_DELIVERY.md):
+all-field CSV/TSV type/role profiles, full matching-file numerical summaries and category
+counts, MCP/CLI shared service, recorded interactive Outcome and left-to-right analytical
+graph. Default comprehensive jobs use a fixed Docker worker; legacy specialized duplicate
+checks remain bounded local services. Actual Docker isolation/cancellation/concurrency and
+full 101,766-row / 5,000-row comparisons passed. User frontend retest remains; statistical
+relationships, approved sampling, domain memory/RL and flexible-role server tests are open.
+Verification commands/results are in the delivery guide: full suite 2,092 passed,
+19 focused tests passed, frontend validation and actual-Docker real-data browser passed. Worker image was built from
+cached Python, no dependencies downloaded. Actual local-model full-source journey took
+86.5 seconds; latency remains a limit. Real-file browser journey used actual Docker and
+a model fixture; no browser-cache access. New shared service/worker code is under
+`tabular/dataset_*` and `sandbox/`, UI under `DatasetOutcome.tsx`. Existing user changes
+remain. No Git staging/commit/push or live database/service mutation.
+Earlier design-only handoffs below are preserved history, superseded for implemented scope.
+
+## Latest agreed scope — integrated real-data frontend delivery
+
+2026-10-25: user asks whether the delivery includes Executor containers and requests a
+resume record. Yes: [integrated delivery plan](../docs/REAL_DATA_FRONTEND_DELIVERY_PLAN.md)
+is the latest scope/order authority. Complete type-aware all-field inspection, appropriate
+calculations, shared MCP/API/CLI capabilities, the tool-driven analytical role, mostly
+left-to-right graph, interactive Outcome and an Executor-managed Docker profiling worker
+with private scratch/artifact handling and proven isolation. These are one coherent
+real-data frontend delivery; neither a standalone Docker pilot nor UI-only metadata
+satisfies it. Earlier sandbox-first or analytics-only summaries below are historical.
+Next implementation starts with actual coverage/runtime/UI audit and typed profile/job/
+artifact contracts, then shared profiler plus minimal Docker path, isolation/parity,
+agent-loop integration, Outcome/graph and full/sample real-data browser acceptance.
+No extra worker agent or mandatory LLM Executor container; reuse services. MicroVM,
+all-operation migration, relationship inference/adjusted models, flexible-role groups and
+server evaluation remain subsequent work. Sampling writes require a registered operation
+and normal authority; no permission bypass from scratch. Memory/RL/release remain separate.
+This turn changed documents only: no runtime/frontend code, data, tests, model calls,
+container builds/startup, dependency installation or Git mutation.
+
+
+## Latest design handoff — Executor sandboxes and comprehensive inspection
+
+2026-10-25: latest request is documentation and next-step explanation only. Read
+[Executor sandbox/workspace plan](../docs/EXECUTOR_SANDBOX_WORKSPACE_PLAN.md) and
+[typed inspection/Outcome backlog](../docs/COMPREHENSIVE_DATASET_INSPECTION_PLAN.md).
+Worker lifecycle belongs to Executor responsibility, implemented by reusable services;
+a calculation worker is a container/MicroVM runtime, not an additional reasoning agent.
+Reuse execution/validation services. Existing local analytical subprocesses are not
+per-job Docker sandboxes; Compose containers do not make the local launcher path isolated.
+Proposed Docker first, fresh job environment, selected read-only inputs/private scratch,
+no worker network/secrets/socket, hard quotas and verified output/artifact contracts.
+Manager stays trusted; models cannot configure arbitrary mounts/commands/permissions.
+MicroVM is a later runtime adapter; no new scheduler/agent framework now.
+Next coding slice: audit paths/images/runtime and define job/artifact contracts, pilot
+one CSV profile through Docker, then isolation and result-parity acceptance before
+claiming containment. Preserve comprehensive automatic type-aware profiling, left-to-right
+graph and interactive Outcome as the linked functional backlog, not already completed.
+Sampling writes still need a registered operation plus normal authorization. Flexible
+roles/groups/structured handoffs and simulated Linux-server evaluation follow one working
+full journey; memory/RL remain separate. This turn changed docs only: no container build,
+startup, data processing, dependency install, runtime/frontend code or Git mutation.
+
+
+## Latest implementation — analytical graph and inspector, 2026-10-25
+
+User reports analytical chat works but graph/info do not show actions. Read
+[graph/inspector handoff](../docs/ANALYTICAL_GRAPH_AND_INSPECTOR.md).
+Saved session now projects discovered inputs, actual action journal and findings into
+an automatically selected read-only graph. Node clicks populate information with paths,
+strategy, source hashes, coverage, computed profiles/checks and separate advisory text.
+Timeline shows recorded actions. Existing plans remain selectable; analytical view
+cannot Execute/Authorize. Restore uses saved facts, not model/source replay; new chat
+clears them. Startup scope guard prevents unrelated restoration overriding this view.
+Extended browser test exposed missing provenance IDs on old analytical message pairs;
+new writes are fixed and a narrowly corroborated read projection supports affected old
+sessions without editing text on read. Foreign provenance remains rejected. Targeted
+28 analytical/privacy tests and complete/partial browser journeys passed. Final make
+test: 2,086 passed (13 existing Rasterio warnings); interface validation passed. No Git/live-service changes.
+The user's actual saved profile was inspected read-only: 101,766 rows, 71,518 distinct
+patients, time_in_hospital mean 4.39598687184326, min 1/max 14; hash and query are saved.
+User can reopen that chat after launcher restart/refresh without regenerating analysis.
+
+
+## Latest implementation — bounded analytical role loop, 2026-10-25
+
+Read [analytical loop and role/server handoff](../docs/BOUNDED_ANALYTICAL_LOOP.md).
+User authorizes discovery/assessment/tool-driven explanation first, then flexible
+roles/agents, better communication and isolated Linux-server testing after the data
+journey works. Roles are responsibilities; shared services remain authority boundaries.
+Implemented scoped directory discovery, operation-specific assessment, MCP/CLI tools,
+stage-specific analytical action loop and persisted evidence/partial results in chat.
+Conversation adapter keeps the workflow unchanged; explicit exploration can perform
+read-only tools without Execute. Saved evidence restores without new model/source calls.
+Input test folder was empty; originals were not moved. Temporary real-input acceptance
+passed 101,766 source / 5,000 sample rows: streaming profile eligible on the full file,
+existing dataframe calculation needs an alternative, sample byte eligibility passes
+with runtime row checks still required. Schemas match; provenance remains unverified.
+Final validation: full make test 2,083 passed (13 existing Rasterio warnings); final
+focused 40 passed, analytical-session 11 passed; interface validation and isolated
+browser journey passed with zero page errors. Actual synthetic qwen3:4b-instruct trial
+passed 5,000 rows / 2,500 distinct patients / mean 3 in 3 model + 3 tool calls (~21.1s,
+7.6 KiB peak prompt). Repro script scripts/analytical_loop_model_evaluation.py. This
+single trial does not establish general model reliability.
+Synthetic/fake-client/browser paths passed; earlier small-model trials exposed argument
+omissions, repeated assessments, unsupported units/sample claims and timeout. See guide
+and final validation entry for current evidence; do not claim universal model reliability.
+Sample creation/authorization adapter, statistical models, arbitrary natural-language
+continuations, live journal streaming and conversation-loop cancellation are not added.
+Next: retest with user files, then complete sample-write proposal and statistical stages;
+only after successful data journey design role scheduler/structured communication and
+isolated server evaluation. Memory/RL remain separate. No Git/live-service/dependency work.
+
+
+## Latest report — invalid `columns` field, routing reproduction pending
+
+2026-10-24: operator reports another model schema rejection (41.1 KiB / 12 schemas /
+planner correction). Latest two receipts were inspected read-only: failed, run_id=null.
+Failed prompt content is not stored; requested exact submitted message via clarification.
+Do not claim original routing cause known or repeat model/context-size speculation.
+Frontend now uses confirmed receipt status: failed with no run says failure before
+dispatch, recorded run directs to History, unconfirmed transport status stays uncertain.
+No backend routing change in this update. Full exact-profile baseline remains tested,
+but reproducing the newly reported request requires its text. Continue that investigation
+when supplied; do not treat the error-message fix as a complete routing fix.
+Frontend validation and isolated browser confirmation passed with zero page errors.
+No data, dependency, Git or live-service changes.
+
+
+## Latest fix — analytical routing and restored-state clarity
+
+2026-10-24: reported profile timeout/refresh confusion investigated without modifying
+user records/data. Stored exact profile had zero model calls; a later failed receipt
+had no run. Refresh restored saved work, not a successful retry. Cannot prove failed
+call wording/settings or context overflow from these records.
+Complete profiles now route deterministically through direct conversation and submit;
+new health analytical_planning_revision=table-profile-routing-v2 prevents sending a
+profile to an older running API. Explicit selected-method requests remain separate.
+Frontend reads pending receipts without resend and labels failed/restored state.
+Read [recovery instructions](../docs/TABLE_EXPLORER_ACCEPTANCE.md#profile-timeout-and-refresh-recovery--2026-10-24).
+Targeted 41 routing/inspection/quality tests and isolated old-API/timeout/refresh browser
+journey passed; frontend validation passed. Final make test: 2,074 passed, 13 existing
+Rasterio warnings.
+No live-data, dependency or Git changes. Resume the real-data task after launcher restart
+and browser refresh, expecting Exact inspection workflow · no model call.
+
+
+## Current handoff — Columns/Explore implemented, 2026-10-24
+
+User authorized implementation of the first coherent analytical slice. Read
+[delivered controls and exact retest](../docs/TABLE_EXPLORER_ACCEPTANCE.md) first, then
+[full task](../docs/DIABETES_EXPLORATORY_ANALYSIS_TASK.md). Backend now supports bounded
+exact quality_columns, duplicate_rows, composite duplicate_key and per-group distinct
+counts. MCP profile_table advertises typed AnalysisOptions; workflow/CLI share services.
+CSV Results has searchable Columns and explicit Run analysis in Explore; source and
+codebook checks are preserved. Plain completed CSV inspections can request these views.
+No model call for controls; Planner quality schema/proposal integration is fixture-tested,
+not a new actual-model reliability evaluation. Real-data temporary acceptance passed:
+101,766 rows, 71,518 patients (54,745 once-only / 16,773 repeated), zero duplicate rows,
+unique encounter key; declared '?' counts weight 98,569 / race 2,273 / payer 40,256.
+Final checks: make test 2,070 passed (13 existing Rasterio warnings); interface validation
+passed; isolated browser passed with zero page errors, including budget-error recovery.
+No new dependencies installed. Inventory pandas 3.0.5 / NumPy 1.26.4; SciPy/statsmodels/
+scikit-learn absent. Statistical methods, durable exploration saving, automatic promotion
+to workflows and backend cancellation of these synchronous reads remain undelivered.
+Next: user frontend retest, then spread/quantiles with explicit methods and independently
+validated association/uncertainty tools before one adjusted model. Memory remains parked.
+No Git mutations or live-data changes. Earlier proposal-only notes below are history.
+
+## Latest task expansion — full exploration, documentation only
+
+2026-10-24: user requests a durable complete-task design including statistics,
+relationships, frontend/structural observations and the next implementation order.
+Read [full task and resume instructions](../docs/DIABETES_EXPLORATORY_ANALYSIS_TASK.md)
+before earlier quality-only plans. Endpoint is quality → descriptive statistics →
+relationships/uncertainty → one interpretable adjusted analysis → reproducible report.
+Next coding session audits current tools/dependencies/UI, then adds shared primitives,
+typed MCP/API/CLI access, audited Columns/Explore UI, Planner integration, association
+methods and one bounded model-fit operation, with independent acceptance per slice.
+Repeated patients, missing policies, statistical assumptions and diagnostics are gates.
+Package/documentation search is optional and cannot auto-install or expose arbitrary
+functions. No new agent, RL or memory redesign required. This turn changes documents
+only; no datasets processed, model calls, frontend/runtime edits, tests or Git mutations.
+
+## Latest direction — quality and interactive exploration, documentation only
+
+2026-10-24: user requests recording the next design and explaining the first test
+task. Read [table quality/exploration plan](../docs/TABLE_QUALITY_AND_EXPLORATION_PLAN.md).
+Next proposed implementation: shared exact quality/group contracts → focused MCP/API/CLI
+exposure → audit/propose frontend Columns/Explore controls → Planner integration →
+independent real-diabetes acceptance. Distinguish distinct, once-only and repeated values;
+count encounters and distinct patients separately. Preserve missing/codebook policies.
+These are new general features prompted by data testing, not model training or current
+completed functionality. No runtime/frontend changes or data/model calls in this update.
+Memory remains parked; no Git mutations. Older delivered analytical baseline follows.
+
+## Current handoff — analytical implementation, 2026-10-24
+
+Latest user authorized implementation until real diabetes retesting is possible.
+Read [acceptance and exact prompts](../docs/ANALYTICAL_INSPECTION_ACCEPTANCE.md).
+Implemented runtime Ollama selection, typed source references, codebook-aware complete
+profiles, explicit full-file aggregate export, shared MCP/CLI access, bounded post-run
+LLM assistance and Results profiles/table/groups. Real-file temporary acceptance passed
+101,766 encounters / 71,518 patients / 30 groups with validated_success; original data
+and live services untouched. Full tests: 2,064 passed; final focused 124 passed; interface validation passed;
+isolated browser journey passed.
+Actual small-model assistance passed a synthetic numeric-summary trial after decoder
+and argument fixes; no claim of general model reliability. Use existing launcher, then
+frontend prompts in the acceptance guide. General lazy intermediates and automatic
+mid-run adaptation are not delivered. Other transforms retain older size limits.
+Memory designs remain parked. No Git mutations or dependency installations performed.
+Older proposal-only entries below describe previous turns, not current runtime status.
+
+
+Updated: 2026-10-23. Handoff only; never execution authority.
+
+## Latest sequence — complete process before role flexibility
+
+Read [delivery-order clarification](../docs/ANALYTICAL_EXECUTION_DELIVERY_PLAN.md)
+first. Record current plan: finish real diabetes analytical journey with existing roles;
+then make roles independently callable and selectively orchestrated; evaluate combined
+versus separate roles before unrestricted flexibility. Independent roles still use
+shared validation/permission services. No obligatory multi-agent chain for simple reads.
+Next proposed implementation slice is the Ollama Settings selector: audit/present minimal
+UI, backend discovery/runtime settings, request-pinned model selection and tests.
+Then typed table references, codebooks/full-data services, bounded execution reasoning,
+frontend audit/agreed improvements and end-to-end health-data acceptance. Memory parked.
+Latest request is documentation and next-step explanation only; no coding, frontend
+edits, model requests, data operations or Git work performed in this turn.
+
+## Latest five-stage plan — documentation only
+
+Read [analytical execution delivery](../docs/ANALYTICAL_EXECUTION_DELIVERY_PLAN.md)
+first: Ollama discovery/runtime selection -> typed table/intermediate references ->
+codebook-aware full-data operations -> bounded execution-time LLM reasoning -> frontend
+audit/proposal then agreed implementation and real task acceptance. User asks to record
+and assess architecture, not start coding. Keep one user entry and selectively invoked
+roles rather than obligatory multi-call chains. Codex supports subagents; ZeroClaw has
+named identities/specialist delegation, so do not call them single-agent-only/roleless.
+Proposed comparisons need same-model/task evidence; no benchmark superiority claimed.
+Memory choices remain parked; Critic/knowledge-agent separation is not decided here.
+
+## Latest step-4 feedback and MCP explanation — read first
+
+[Analytical inspection/codebook plan](../docs/ANALYTICAL_INSPECTION_AND_CODEBOOK_PLAN.md)
+is the latest actionable proposal. User stopped before step 5: path recognition,
+IDS_mapping.csv interpretation, full-file profiles/aggregation and useful table views
+need improvement. No runtime/frontend changes before agreement. First audit actual
+paths/readers/codebook and reproduce UI before presenting/implementing frontend edits.
+Backend owns shared analytical logic; MCP is its typed tool adapter, not a data/memory
+store. Existing discover_dataset delegates to shared discovery workers; approved MCP
+recipes can persist evidence through runner services. Latest turn documents only;
+no data inspection/execution, model call, tests, Git or live-service mutation performed.
+
+## Latest instruction — memory options parked; prepare data testing
+
+Read [the current decision/data-test handoff](../docs/MEMORY_OPTIONS_AND_DATA_TEST_HANDOFF.md)
+first. User clarifies that content/priority change while old versions remain recoverable
+by default, not immutable never-delete storage. Preserve separate/common memories and
+combined Critic-curator/separate knowledge-agent alternatives; no final role/architecture
+choice. A+separate-agent is a recorded prior proposal, not an implementation mandate.
+Next priority is controlled data-test preparation using current capabilities; do not
+keep expanding memory instead. Metadata, processing and visualization limits differ.
+This turn is documentation only; no tests/data downloads/runtime or Git work performed.
+Prior broader pre-demo learning gates are not claimed complete by the order change.
+
+## Latest design direction — read before older notes
+
+2026-10-23: [revised memory A](../docs/MEMORY_A_GROWING_SHARED_JSON.md) is the latest operator direction. Separate Planner/Critic memories feed a shared JSON that must not forget and may update content/priority. A separate knowledge-management agent works on shared memory and produces/revises domain knowledge and graph links. This supersedes Critic-only curation, temporary shared-board forgetting and backend-only A/B assumptions for A. B remains unchanged. No choice of A versus B, JSON transaction schema, runtime implementation or cross-chat expansion is approved. Documentation/comparison only; no code or Git actions.
 
 ## Latest state and user instruction
 
 The user asked to continue until checkpoint 28 is completed. The agreed engineering
-implementation and acceptance are now complete. Read docs/CHECKPOINT28_CLOSEOUT.md
+implementation and acceptance are now complete. Read docs/development/checkpoints/CHECKPOINT28_CLOSEOUT.md
 for the final matrix, manual acceptance, raw-report paths and limitations. It
 supersedes earlier open-stage notes without deleting checkpoint history.
 
 Preserve all uncommitted changes. Do not stage/commit/push/merge/publish/release,
 modify live PostGIS/GeoServer data, install dependencies or use shared browser
-caches. Leave the pre-existing untracked docs/CHECKPOINT25_MANUAL_GIT.md untouched.
+caches. Leave the pre-existing untracked docs/development/checkpoints/CHECKPOINT25_MANUAL_GIT.md untouched.
 No such action was performed during this work.
 
 ## What is implemented
@@ -80,7 +928,8 @@ actual targets and fresh exact authority. Reports/notes do not grant approval.
 
 Checkpoint 29: private sourced domain definitions/methods, applicability, bounded
 retrieval, corrections/supersession and provenance in one conversation. Design:
-docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md. No checkpoint-29 implementation was
+docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md defines the ordered implementation and
+acceptance, extending docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md. No checkpoint-29 implementation was
 started here. Cross-chat/project sharing stays 30+ and separately decided.
 
 Engineering closeout is not demo readiness or a cleared learning/private-memory
@@ -88,3 +937,105 @@ gate. Domain knowledge, general learned benefit/RL, unrestricted code generation
 streaming large GeoJSON, full statistics, broad real-data scale and hardened
 multi-user/desktop packaging remain explicit future work. Start with synthetic
 knowledge acceptance before broader realistic-data/demo preparation.
+
+## Latest design discussion — learning process
+
+The operator requests a human-learning analogy before committing to a stack. See
+[the domain learning design](../docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md) learning-process clarification: explain,
+predict, practise, check, diagnose, revise and test transfer. Summaries/retrieval
+alone do not establish learning. Recorded documentation only; no runtime or
+cross-chat scope change. Map the checkpoint-29 slices to this loop before coding.
+
+### Resume this discussion in the next Codex session
+
+Read this handoff, docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md and the final
+learning-process clarification in docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md
+before proposing work. Inspect git status and any applicable AGENTS.md; preserve
+existing changes and the user-owned docs/development/checkpoints/CHECKPOINT25_MANUAL_GIT.md.
+
+The user's central objection is that previous answers listed desired capabilities
+and infrastructure without specifying a learning method. Do not answer this by
+merely proposing another memory table, summarizer, agent or postponed checkpoint.
+Start with a worked example and explain how a conditional lesson is formed,
+challenged, practised, corrected and transferred. Human learning is a design analogy,
+not a claim of equivalent cognition or measured agent improvement.
+
+Next design deliverable: map each learning function to its concrete input, output,
+source of feedback, stop/failure condition and owner. Walk through one synthetic
+rainfall example, an incompatible case and an unseen compatible case. Explain how
+this modifies the existing checkpoint-29 slices before implementation. Prefer the
+existing Planner/Critic roles and shared services; no separate Builder is required.
+
+A reusable method needs rationale, applicability, parameters, checks and exceptions.
+Summarization/recall alone is insufficient. Knowledge acquisition, executable
+capability acquisition and policy/model learning are different mechanisms. Record
+capability gaps honestly; do not promote an unexecutable procedure into a tool.
+Cross-chat project knowledge and adaptive/RL method selection have been discussed,
+but no scope expansion or implementation is authorized by this documentation request.
+Do not treat model agreement, successful execution or fixed ranking as proof of
+correct domain reasoning or learned benefit. Keep uncertainty and failed examples.
+
+Latest user request: preserve this discussion in documents so another Codex session
+can continue. Documentation only. No code, dependency, live-service or Git changes
+are requested. User handles Git and publication; historical context never grants
+execution authority.
+
+## Latest memory design — 2026-10-23
+
+Read docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md before further design. The user
+wants role-specific Planner/Critic memories and agent-led semantic checking, backed
+by reliable service-managed records. Use structured contributions, a bounded curator
+role (initially Critic), explicit permissions/applicability/status indices and shared
+references. Tier, evidence status and access scope are separate; retrieval counts
+never prove correctness or broaden sharing. Domains/keywords aid discovery and are
+not unique record IDs or permission labels. Propose automatic local persistence and
+minimal versioned export/restore without requiring user Git or SQLite administration;
+private backup and sanitized portable sharing are distinct. Reconcile these designs
+with checkpoint 29 and the worked learning exercise before code. Documentation only;
+no cross-chat scope expansion, runtime, Git or live-service actions authorized here.
+
+## Latest operator clarification — memory design is not settled
+
+2026-10-23: the user explicitly says the discussed memory parts remain unsettled.
+Read the open-decision table near the start of
+[the role-memory proposal](../docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md).
+Earlier imperative wording in design notes is a proposed direction, not approval
+of the curator role, separate stores/views, tier rules, sharing defaults, numeric
+budgets, domain vocabulary, storage/backup policy or export format/delivery scope.
+The desire to export knowledge is recorded; the implementation remains undecided.
+Continue with worked scenarios and tradeoffs to resolve choices before coding.
+Latest instruction authorizes documentation only; no code or Git actions.
+
+## Latest alternatives and ratio clarification — 2026-10-23
+
+The role-memory design now records scenario A (separate role/shared files plus journal
+and recovery) versus B (one transactional store with role views and file exports).
+Both use existing Planner/Critic memory functions, source-linked domain records and
+graph edges; neither requires new memory subagents. Project paths/tables are proposals,
+not delivered code. No choice is settled. Existing same-chat restrictions remain.
+The ratio explicitly discussed was agent reasoning versus service responsibility;
+no numeric split was selected. Context-tier budgets, ranking weights and sharing
+permissions are separate questions; none has an approved ratio/formula. Read the final
+sections of docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md before continuing. Latest
+instruction authorizes document updates and explanation only, not runtime or Git work.
+
+## Latest request — isolated A/B memory trials and knowledge portability
+
+2026-10-23 documentation only: see the final curation/experimental-comparison section
+of docs/ROLE_MEMORY_AND_KNOWLEDGE_MANAGEMENT.md. User proposes testing separated A/B
+memory implementations with a switch that need not ship. Recommended design: one
+interface, file/transactional adapters, test-only selector, isolated states/caches and
+identical tasks/settings; no two branches, dual writes or new memory agents required.
+Existing Critic optionally proposes source-linked lessons, corrections and practice
+cases; per-claim evidence status matters. User wants acquired knowledge exportable to
+a clean platform. Record a versioned selected package with provenance/graph edges,
+conditional methods and synthetic checks. This is external knowledge transfer, not
+Ollama training or automatic installation of executables; other platforms need a
+compatible importer. Both architecture and timing remain unsettled; cross-chat gates
+remain. No runtime switch, Git branch, package, model call or live change was requested.
+
+Latest request recorded: compare former diagrams with revised A. See docs/MEMORY_A_GROWING_SHARED_JSON.md for explicit graphs, change table, proposed version-preserving updates and unresolved questions. A growing store is not an ever-growing prompt; source history is retained while retrieval is bounded. No-forgetting shared retention must not silently turn into pruning or be replaced by SQLite.
+
+## Concrete health data-science assignment prepared — 2026-10-23
+
+See [readmission assignment](../docs/HEALTH_DATA_SCIENCE_READMISSION_TASK.md). Task: auditable retrospective recorded early-readmission cohort and subgroup analysis, not just CSV inspection and not a clinical deployment. Original UCI data is not present/downloaded. Next: acquire user/source files, verify codebook/cohort, define an independent oracle, then execute a bounded workflow and expose full-file gaps. Numeric-only calculation inputs, source-specific missing codes and 8 MiB/10,000-row transforms need explicit assessment. Memory remains parked; no analysis, model call, Git or live-service change performed.
