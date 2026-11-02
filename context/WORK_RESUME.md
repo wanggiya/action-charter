@@ -3,6 +3,10 @@
 2026-11-01 direction: read [docs/product-direction/](../docs/product-direction/README.md)
 first. It records product vision, assessment, editions/interfaces and the autonomous
 platform design. Design only; no code changed by that discussion.
+2026-11-01 cleanup (branch cleanup/phase0-structure): postgis_*/geoserver_* packages
+are now grouped under geoagent_harness.postgis / .geoserver; checkpoint docs moved to
+docs/development/checkpoints/. Still open in Phase 0: runtime-state root out of the
+repo root, shared task-actions layer, App.tsx split.
 
 2026-10-30 latest: inspection-led typed analysis goals and report metric coverage.
 User chose agent-proposed goals. Planner advises over recorded fields/source; backend
@@ -849,13 +853,13 @@ Prior broader pre-demo learning gates are not claimed complete by the order chan
 ## Latest state and user instruction
 
 The user asked to continue until checkpoint 28 is completed. The agreed engineering
-implementation and acceptance are now complete. Read docs/CHECKPOINT28_CLOSEOUT.md
+implementation and acceptance are now complete. Read docs/development/checkpoints/CHECKPOINT28_CLOSEOUT.md
 for the final matrix, manual acceptance, raw-report paths and limitations. It
 supersedes earlier open-stage notes without deleting checkpoint history.
 
 Preserve all uncommitted changes. Do not stage/commit/push/merge/publish/release,
 modify live PostGIS/GeoServer data, install dependencies or use shared browser
-caches. Leave the pre-existing untracked docs/CHECKPOINT25_MANUAL_GIT.md untouched.
+caches. Leave the pre-existing untracked docs/development/checkpoints/CHECKPOINT25_MANUAL_GIT.md untouched.
 No such action was performed during this work.
 
 ## What is implemented
@@ -924,7 +928,7 @@ actual targets and fresh exact authority. Reports/notes do not grant approval.
 
 Checkpoint 29: private sourced domain definitions/methods, applicability, bounded
 retrieval, corrections/supersession and provenance in one conversation. Design:
-docs/CHECKPOINT29_PRIVATE_KNOWLEDGE.md defines the ordered implementation and
+docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md defines the ordered implementation and
 acceptance, extending docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md. No checkpoint-29 implementation was
 started here. Cross-chat/project sharing stays 30+ and separately decided.
 
@@ -944,10 +948,10 @@ cross-chat scope change. Map the checkpoint-29 slices to this loop before coding
 
 ### Resume this discussion in the next Codex session
 
-Read this handoff, docs/CHECKPOINT29_PRIVATE_KNOWLEDGE.md and the final
+Read this handoff, docs/development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md and the final
 learning-process clarification in docs/DOMAIN_KNOWLEDGE_ACQUISITION_DESIGN.md
 before proposing work. Inspect git status and any applicable AGENTS.md; preserve
-existing changes and the user-owned docs/CHECKPOINT25_MANUAL_GIT.md.
+existing changes and the user-owned docs/development/checkpoints/CHECKPOINT25_MANUAL_GIT.md.
 
 The user's central objection is that previous answers listed desired capabilities
 and infrastructure without specifying a learning method. Do not answer this by

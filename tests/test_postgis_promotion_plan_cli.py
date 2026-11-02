@@ -3,13 +3,13 @@ import json
 from typer.testing import CliRunner
 
 from geoagent_harness.cli import app
-from geoagent_harness.postgis_promotion_plan import (
+from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionPlanError,
 )
 
 
 def test_cli_emits_non_executing_plan(monkeypatch):
-    import geoagent_harness.postgis_promotion_plan as module
+    import geoagent_harness.postgis.promotion.plan as module
     class Result:
         plan_sha256 = "a" * 64
 
@@ -35,7 +35,7 @@ def test_cli_emits_non_executing_plan(monkeypatch):
 
 
 def test_cli_planning_failure_exits_two(monkeypatch):
-    import geoagent_harness.postgis_promotion_plan as module
+    import geoagent_harness.postgis.promotion.plan as module
 
     def fail(**kwargs):
         raise PostGISPromotionPlanError("not compatible")

@@ -11,7 +11,7 @@ class FakeResult:
 
 
 def test_cli_executes_and_persists(monkeypatch):
-    import geoagent_harness.postgis_promotion_execution as module
+    import geoagent_harness.postgis.promotion.execution as module
 
     monkeypatch.setattr(module, "execute_postgis_promotion", lambda **kwargs: object())
     monkeypatch.setattr(module, "persist_postgis_promotion_execution", lambda *args, **kwargs: FakeResult())

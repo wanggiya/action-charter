@@ -158,7 +158,7 @@ actioncharter/
 ├── deploy/               ← docker/, compose.yaml (+ helm, offline bundle)
 ├── benchmarks/
 ├── tests/
-└── docs/                 (README, architecture, user/ops guides; history/ for checkpoints)
+└── docs/                 (README, architecture, user/ops guides; development/checkpoints/ for history)
 ```
 
 Do not move everything at once. Follow the consolidation method in

@@ -1,7 +1,7 @@
 # Proposed 28.2 follow-up — bounded inspection on send
 
 Status: original design, 2026-10-21. The bounded Linux CSV-first slice is now
-implemented; see [delivery and acceptance](CHECKPOINT28_2_INSPECTION_SUBMIT.md).
+implemented; see [delivery and acceptance](development/checkpoints/CHECKPOINT28_2_INSPECTION_SUBMIT.md).
 The original proposal below is retained; its proposed 64 MiB source limit was
 not adopted. Other slices and defaults remain subject to acceptance.
 The user confirmed the latest inspection-only regression test worked. That is

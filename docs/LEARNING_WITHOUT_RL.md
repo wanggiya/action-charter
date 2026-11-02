@@ -97,7 +97,7 @@ six-case local-model comparison, OFF and ON each completed 10/12 attempts with
 14 calls; both failed the same vector task twice. A focused schema correction
 then passed the four vector retests (2/2 per side, one call/task). Preserve the
 original failure report and do not merge different code versions into a new
-24/24 result. [Exact metrics and limitations](CHECKPOINT28_CLOSEOUT.md).
+24/24 result. [Exact metrics and limitations](development/checkpoints/CHECKPOINT28_CLOSEOUT.md).
 
 No recommendation reliability/call-count benefit is established: keep ranking
 optional/OFF. The comparison retains successful-method retrieval in both sides;

@@ -10,11 +10,11 @@
 
 # Project memory architecture — recorded proposal
 
-Recorded: 2026-10-13. Incremental implementation is authorized. The operator then revised 26.1 to [one conversation, one task with private memory](CHECKPOINT26_CONVERSATIONS.md). The earlier task-sharing proposal is preserved below as historical design; it is not current behavior. Core facts, summaries, corrections and methods remain future work within one conversation. Laptop resource constraints remain.
+Recorded: 2026-10-13. Incremental implementation is authorized. The operator then revised 26.1 to [one conversation, one task with private memory](development/checkpoints/CHECKPOINT26_CONVERSATIONS.md). The earlier task-sharing proposal is preserved below as historical design; it is not current behavior. Core facts, summaries, corrections and methods remain future work within one conversation. Laptop resource constraints remain.
 
 ## Operator revision — current implementation
 
-The operator subsequently simplified the design: **one conversation = one task with private memory**, even when its topic changes between geospatial and CSV work. [Current 26.1 behavior](CHECKPOINT26_CONVERSATIONS.md) removes separate task selection and cross-chat linking. Core facts, summaries, corrections and methods should be developed within that conversation first. Cross-conversation sharing is deferred for discussion; prefer explicit source-linked project knowledge if it is later requested. The earlier many-to-many/project-memory proposal below is historical direction, not implemented shared memory.
+The operator subsequently simplified the design: **one conversation = one task with private memory**, even when its topic changes between geospatial and CSV work. [Current 26.1 behavior](development/checkpoints/CHECKPOINT26_CONVERSATIONS.md) removes separate task selection and cross-chat linking. Core facts, summaries, corrections and methods should be developed within that conversation first. Cross-conversation sharing is deferred for discussion; prefer explicit source-linked project knowledge if it is later requested. The earlier many-to-many/project-memory proposal below is historical direction, not implemented shared memory.
 
 ## Goal and current boundary
 

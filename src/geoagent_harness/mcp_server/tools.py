@@ -29,30 +29,30 @@ from geoagent_harness.verifier.postgis import (
     PostGISValidationResult,
     validate_postgis_layer as execute_validation,
 )
-from geoagent_harness.postgis_inspection import (
+from geoagent_harness.postgis.inspection import (
     PostGISInspectionRequest,
     PostGISInspectionResult,
     inspect_postgis_table as execute_postgis_inspection,
 )
-from geoagent_harness.postgis_comparison import (
+from geoagent_harness.postgis.comparison import (
     PostGISComparisonRequest,
     PostGISComparisonResult,
     compare_postgis_tables as execute_postgis_comparison,
 )
-from geoagent_harness.postgis_change_assessment import (
+from geoagent_harness.postgis.change_assessment import (
     PostGISChangeAssessment,
     assess_postgis_change as execute_change_assessment,
 )
-from geoagent_harness.postgis_promotion_plan import (
+from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionPlanRequest,
     PostGISPromotionPlanResult,
     plan_postgis_promotion as execute_promotion_planning,
 )
-from geoagent_harness.geoserver_inspection import (
+from geoagent_harness.geoserver.inspection import (
     GeoServerInspectionRequest, GeoServerInspectionResult,
     inspect_geoserver_layer as execute_geoserver_inspection,
 )
-from geoagent_harness.geoserver_publication import (
+from geoagent_harness.geoserver.publication import (
     GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult,
     plan_geoserver_publication as execute_geoserver_publication_planning,
 )

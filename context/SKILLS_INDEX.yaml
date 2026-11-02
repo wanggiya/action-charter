@@ -23,7 +23,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.postgis_inspection.service:inspect_postgis_table
+  entrypoint: geoagent_harness.postgis.inspection.service:inspect_postgis_table
 - id: compare_postgis_tables
   version: 0.1.0
   status: implemented
@@ -31,7 +31,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.postgis_comparison.service:compare_postgis_tables
+  entrypoint: geoagent_harness.postgis.comparison.service:compare_postgis_tables
 - id: inspect_geoserver_layer
   version: 0.1.0
   status: implemented
@@ -39,7 +39,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.geoserver_inspection.service:inspect_geoserver_layer
+  entrypoint: geoagent_harness.geoserver.inspection.service:inspect_geoserver_layer
 - id: plan_geoserver_publication
   version: 0.1.0
   status: implemented
@@ -47,7 +47,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.geoserver_publication.service:plan_geoserver_publication
+  entrypoint: geoagent_harness.geoserver.publication.service:plan_geoserver_publication
 - id: assess_postgis_change
   version: 0.1.0
   status: implemented
@@ -55,7 +55,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.postgis_change_assessment.service:assess_postgis_change
+  entrypoint: geoagent_harness.postgis.change_assessment.service:assess_postgis_change
 - id: plan_postgis_promotion
   version: 0.1.0
   status: implemented
@@ -63,7 +63,7 @@ skills:
   access: read_only
   approval_required: false
   validation_required: false
-  entrypoint: geoagent_harness.postgis_promotion_plan.service:plan_postgis_promotion
+  entrypoint: geoagent_harness.postgis.promotion.plan.service:plan_postgis_promotion
 - id: convert_vector
   version: 0.1.0
   status: implemented

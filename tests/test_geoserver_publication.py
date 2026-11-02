@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.geoserver_inspection import GeoServerInspectionRequest
-from geoagent_harness.geoserver_publication import (
+from geoagent_harness.geoserver.inspection import GeoServerInspectionRequest
+from geoagent_harness.geoserver.publication import (
     GeoServerPublicationError,
     GeoServerPublicationPlanRequest,
     create_geoserver_publication_approval,

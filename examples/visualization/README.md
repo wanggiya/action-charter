@@ -21,6 +21,6 @@ amount by region into another fresh CSV. These are writes: enable Allow writes,
 review, Authorize and Execute. Each output must be fresh. Expected totals are
 North 30, South 20, Road 0 and Station 5. CSV export intentionally drops geometry.
 
-[Contracts, limitations and acceptance](../../docs/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md).
+[Contracts, limitations and acceptance](../../docs/development/checkpoints/CHECKPOINT27_ANALYSIS_AND_LAYOUT.md).
 
-For newer hash-bound inspections, Map → Load verified vector supports the larger bounded sample and display reprojection. Raster Results support explicit grayscale/color/RGB/class previews and exact pixel inspection; [current guide](../../docs/CHECKPOINT28_3_SPATIAL_VIEWS.md) explains limits and validation.
+For newer hash-bound inspections, Map → Load verified vector supports the larger bounded sample and display reprojection. Raster Results support explicit grayscale/color/RGB/class previews and exact pixel inspection; [current guide](../../docs/development/checkpoints/CHECKPOINT28_3_SPATIAL_VIEWS.md) explains limits and validation.

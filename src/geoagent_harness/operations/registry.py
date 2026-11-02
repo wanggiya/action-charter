@@ -72,13 +72,13 @@ def argument_models(root=Path('.')):
     return {**builtin_argument_models(),**{id:ProjectionArguments for id in installed_packages(root)}}
 
 def _legacy_models():
-    from geoagent_harness.postgis_inspection.schemas import PostGISInspectionRequest, PostGISInspectionResult
-    from geoagent_harness.postgis_comparison.schemas import PostGISComparisonRequest, PostGISComparisonResult
-    from geoagent_harness.geoserver_inspection.schemas import GeoServerInspectionRequest, GeoServerInspectionResult
-    from geoagent_harness.geoserver_publication.schemas import GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult
-    from geoagent_harness.postgis_promotion_plan.schemas import PostGISPromotionPlanRequest, PostGISPromotionPlanResult
+    from geoagent_harness.postgis.inspection.schemas import PostGISInspectionRequest, PostGISInspectionResult
+    from geoagent_harness.postgis.comparison.schemas import PostGISComparisonRequest, PostGISComparisonResult
+    from geoagent_harness.geoserver.inspection.schemas import GeoServerInspectionRequest, GeoServerInspectionResult
+    from geoagent_harness.geoserver.publication.schemas import GeoServerPublicationPlanRequest, GeoServerPublicationPlanResult
+    from geoagent_harness.postgis.promotion.plan.schemas import PostGISPromotionPlanRequest, PostGISPromotionPlanResult
     from geoagent_harness.spatial_contracts.schemas import VectorSpatialDataContract, SpatialDataContractAssessment
-    from geoagent_harness.postgis_change_assessment.schemas import PostGISChangeAssessment
+    from geoagent_harness.postgis.change_assessment.schemas import PostGISChangeAssessment
     class SpatialAssessmentInput(BaseModel):
         model_config=ConfigDict(extra='forbid')
         path:str=Field(max_length=960)

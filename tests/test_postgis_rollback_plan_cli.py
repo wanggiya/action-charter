@@ -11,7 +11,7 @@ class FakeStorageResult:
 
 
 def test_cli_plans_and_persists_without_database_mutation(monkeypatch):
-    import geoagent_harness.postgis_rollback_plan as module
+    import geoagent_harness.postgis.rollback.plan as module
 
     monkeypatch.setattr(module, "plan_postgis_rollback", lambda **kwargs: object())
     monkeypatch.setattr(

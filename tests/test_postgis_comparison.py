@@ -4,12 +4,12 @@ import pytest
 from pydantic import ValidationError
 
 from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis_comparison import (
+from geoagent_harness.postgis.comparison import (
     PostGISComparisonError,
     PostGISComparisonRequest,
     compare_postgis_tables,
 )
-from geoagent_harness.postgis_inspection import (
+from geoagent_harness.postgis.inspection import (
     PostGISColumn,
     PostGISInspectionRequest,
 )

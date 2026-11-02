@@ -1,3 +1,21 @@
+# Structure cleanup, phase 0 part 1 (2026-11-01)
+
+- Group the 11 `postgis_*` packages under `geoagent_harness.postgis` (`inspection`,
+  `comparison`, `change_assessment`, `promotion.{plan,approval,execution,verification}`,
+  `rollback.{plan,approval,execution,verification}`) and the two `geoserver_*` packages
+  under `geoagent_harness.geoserver` (`inspection`, `publication`). Behaviour, schema IDs,
+  stored records and digests are unchanged; only Python import paths moved. Old import
+  paths such as `geoagent_harness.postgis_inspection` no longer exist.
+- Move the 116 `docs/CHECKPOINT*.md` records to `docs/development/checkpoints/` and
+  rewrite repository links to them.
+- Move the checkpoint history below the marker in `context/CURRENT_STATUS.md` to
+  `docs/development/STATUS_HISTORY.md`. The file was 11 bytes under the 128,000-byte
+  context-file limit; the model-visible overview is unchanged apart from link paths.
+- Add `scripts/real_data_tests/` with a full-file diabetes pipeline test that drives the
+  running app and the reusable PostGIS container (first run passed 9/9 checks on 101,766 rows).
+- Add `AGENTS.md`/`CLAUDE.md` and `docs/product-direction/` (vision, editions and interfaces,
+  autonomous platform design). Design only.
+
 # Inspection-led analysis goals and report metric coverage (2026-10-30)
 
 - Add typed Planner advice over recorded inspection fields/source hashes, persisted per chat.
@@ -565,7 +583,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Main workflow/recipe and approved MCP paths integrate the policy. Specialized legacy GeoServer/promotion/rollback writes remain fail-closed in managed sessions pending their own binding support; standalone legacy explicit startup mode remains separate.
 - Operator revised the demo gate: generated capabilities (28.1), learning/RL (28.2) and advanced private memory (29) must be implemented and validated before demo or real-data testing. These are unfinished; current evaluation uses synthetic fixtures. No Git/publication/live-service action.
 - Verified 1,783 backend tests, frontend typecheck/build and 23 temporary-fixture browser cases; no live-model/database/service acceptance is implied.
-- See docs/CHECKPOINT27_RUNTIME_WRITES.md for implementation boundaries and manual acceptance.
+- See docs/development/checkpoints/CHECKPOINT27_RUNTIME_WRITES.md for implementation boundaries and manual acceptance.
 
 # Record runtime write controls and checkpoint 27 demo gate
 
@@ -578,7 +596,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Show selected-operation formula, input/output paths, bounded table rows and readable independent checks; use shared cards in Outcome and durable history. Keep raw/audit details collapsed.
 - Restore evidence by both chat ID and exact plan digest; explicit history selection binds the run, pending edits remove old evidence, and stale reads cannot replace a newer scope/selection. Guard delayed startup graph loads against replacing a restored chat; bind Critic commentary to the selected run.
 - Report write-tools availability with the existing launcher flag. New CSV transforms retain up to 10 preview rows within the unchanged byte/cell limits; historical previews are preserved. No model call or execution is needed to inspect results.
-- Verified 1,769 backend tests, frontend typecheck/build, 12 calculation browser cases and six recipe/cancel/recovery/restart cases with temporary files and fixture models, plus nine intercepted-API UI cases. Maps/charts, agent evidence evaluation, capability acquisition and optional learning remain future work. See docs/CHECKPOINT27_RECORDED_RESULTS.md.
+- Verified 1,769 backend tests, frontend typecheck/build, 12 calculation browser cases and six recipe/cancel/recovery/restart cases with temporary files and fixture models, plus nine intercepted-API UI cases. Maps/charts, agent evidence evaluation, capability acquisition and optional learning remain future work. See docs/development/checkpoints/CHECKPOINT27_RECORDED_RESULTS.md.
 
 # Record post-calculation delivery gates
 
@@ -634,7 +652,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Added bounded read-only search/inspect capabilities to the existing Planner through typed JSON exchanges and shared API/CLI services. Two discovery exchanges plus final generation/one correction cap Planner inference at four calls per turn; direct planning requires no extra discovery calls.
 - Sanitized catalog structures omit registered private literals/descriptions/fixtures. Only parameterized/schema-enum definitions can compose automatically; other structures need current bindings in a normal validated plan. Own-chat evidence/history scope and final contract checks remain enforced.
 - Recipe browsing is optional reference. Secondary discussion shortcuts sit under More actions; manual composition stays in Advanced and is labelled Validate composition and open draft. Replies/receipts identify reported reuse without granting authority or claiming new-data success.
-- Added discovery/fallback/privacy/budget/timeout/contract-change and API/CLI tests, plus ordinary-chat browser discovery and fresh-authority execution. Verified 1,663 backend tests, frontend typecheck/build and 35 browser fixture cases. Local-model quality and remaining checkpoint 27 features are still unverified/pending. See docs/CHECKPOINT27_DISCOVERY.md.
+- Added discovery/fallback/privacy/budget/timeout/contract-change and API/CLI tests, plus ordinary-chat browser discovery and fresh-authority execution. Verified 1,663 backend tests, frontend typecheck/build and 35 browser fixture cases. Local-model quality and remaining checkpoint 27 features are still unverified/pending. See docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md.
 
 # Checkpoint 27.2 — focused recipe browsing and Planner reuse
 
@@ -648,7 +666,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - New durable executions capture operation contracts before dispatch and automatically retain eligible successful method metadata, tags and source evidence. No model call, authoring request or registration is required.
 - Added transactional bounded indexing, semantic grouping with distinct run evidence, current-contract diagnostics, own-chat discovery and fail-soft indexing-only retry. No credentials, raw bindings, transcripts or reusable authority are copied into the index. Optional Critic failure cannot block saving.
 - Reusable recipes shows automatic successful records alongside existing generalized templates, with operation order and recorded-outcome inspection. Existing Advanced controls remain. Shared API/CLI services preserve parity; runtime index is excluded from Docker build contexts.
-- Verified 1,646 backend tests, frontend typecheck/build and 17 browser fixture groups (5 retention plus 12 existing Planner/recovery groups). Planner retrieval/adaptation and later checkpoint 27 work remain planned; old runs without snapshots, synchronous legacy execution and Snakemake export are not auto-indexed. See docs/CHECKPOINT27_RETENTION.md.
+- Verified 1,646 backend tests, frontend typecheck/build and 17 browser fixture groups (5 retention plus 12 existing Planner/recovery groups). Planner retrieval/adaptation and later checkpoint 27 work remain planned; old runs without snapshots, synchronous legacy execution and Snakemake export are not auto-indexed. See docs/development/checkpoints/CHECKPOINT27_RETENTION.md.
 
 # Checkpoint 27 planning record — documentation only
 
@@ -684,7 +702,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Planner owns conversational composition and bounded recipe authoring; legacy Builder imports remain compatible. Normal users need no JSON or manual intermediate output paths. Explicit paths and semantic parameters remain reviewed inputs.
 - Recipe candidates use isolated fixture tests and separate Critic review before optional registration. Current-chat candidates restore without regeneration.
 - Requested outcome assessment runs in the backend after durable execution, caches bounded Critic findings and cannot override deterministic status. Failures preserve execution evidence; explicit assessment retry never repeats operations.
-- Preserved cancellation, conservative recovery, private-chat ownership and exact write authorization. Added natural-language browser acceptance and backend regressions; see docs/CHECKPOINT26_CLOSEOUT.md for verified scope and deferred work.
+- Preserved cancellation, conservative recovery, private-chat ownership and exact write authorization. Added natural-language browser acceptance and backend regressions; see docs/development/checkpoints/CHECKPOINT26_CLOSEOUT.md for verified scope and deferred work.
 
 # Checkpoint 26 — reusable recipe composition and durable runs
 
@@ -693,7 +711,7 @@ Planner follow-up: CSV requests that explicitly exclude PostgreSQL/PostGIS no lo
 - Main-workflow execution now has durable background runs, cooperative cancellation after active verification, per-step previews, restart interruption detection and safe recovery proposals. Read-only recovery excludes completed steps; write recovery uses fresh targets and fresh authorization, without automatic write reuse/retry.
 - Added shared API/CLI adapters and isolated backend/browser acceptance. Fixed spatial inspection/evidence paths outside the shell working directory, rechecked authorization before later writes, and preserved existing synchronous endpoints. Snakemake export remains synchronous.
 - Verified 1,600 tests, frontend typecheck/build and 22 production-browser fixture groups; local-model quality and live-service acceptance remain unverified.
-- See docs/CHECKPOINT26_RECIPES_AND_RECOVERY.md for acceptance and unfinished checkpoint work. No live-service or Git/publication action performed.
+- See docs/development/checkpoints/CHECKPOINT26_RECIPES_AND_RECOVERY.md for acceptance and unfinished checkpoint work. No live-service or Git/publication action performed.
 
 # Chat history clarity and deferred cross-chat memory
 
@@ -1648,23 +1666,23 @@ Checkpoint 21D layout correction: move history selection/refresh controls outsid
 
 Graph-source header correction (v19): the screenshots identify Refresh graph sources, not Refresh checked context. Replace option-dependent flex wrapping with explicit responsive grid columns and a constrained selector. Metadata occupies a consistent second row; narrow screens use a deliberate single-column header. Validate by refreshing graph sources repeatedly with long saved names at the same window width. Backend work follows this focused correction.
 
-Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/CHECKPOINT21E.md`.
+Checkpoint 21E: explicit task artifact references can be independently checked against bounded current evidence bytes through a read-only API. This verifies file identity only, not semantic relationships or authority. Five history tests passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21E.md`.
 
-Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/CHECKPOINT21F.md`.
+Checkpoint 21F adds read-only recorded plan/approval relationship inspection with authoritative schemas and existing approval verification. Six focused task tests passed; no execution authority is granted. Automatic reference attachment and recipe/outcome checks remain open. See `docs/development/checkpoints/CHECKPOINT21F.md`.
 
-Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/CHECKPOINT21G.md`. Recipe/outcome links remain open.
+Checkpoint 21G links actual plan saves and approval/denial records to the active task with file-byte references. Completed artifact operations survive visible history failures. Seven focused task tests and frontend build passed locally; full WSL suite pending. See `docs/development/checkpoints/CHECKPOINT21G.md`. Recipe/outcome links remain open.
 
-Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/CHECKPOINT21H.md`.
+Checkpoint 21H corrects selected-skill Planner prompts, removes unconditional unrelated PostGIS instructions, includes conversion arguments, and allows one fully revalidated policy correction. 54 focused tests passed; full WSL suite and live-model check pending. See `docs/development/checkpoints/CHECKPOINT21H.md`.
 
-Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/CHECKPOINT21I.md`.
+Checkpoint 21I records an exact task reference after storing a reviewed Planner-derived recipe and surfaces history failures without undoing storage. 23 focused tests and frontend build passed locally; full API suite pending. Recipe semantic relationships and outcomes remain open. See `docs/development/checkpoints/CHECKPOINT21I.md`.
 
-Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/CHECKPOINT21J.md`.
+Checkpoint 21J checks full recipe definitions against their recorded source plans using the same backend mapping as compilation. 24 focused tests passed; full API suite pending. Outcome links remain open. Task-history discoverability is explicitly deferred to task-centered UI redesign. See `docs/development/checkpoints/CHECKPOINT21J.md`.
 
-Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/CHECKPOINT21K.md`.
+Checkpoint 21K links task-derived completed run result/evidence references and checks exact recorded outcome relationships without revalidating live outputs or granting authority. 25 focused tests and frontend build passed locally; full WSL suite pending. Interrupted attempts and recovery acceptance remain open. See `docs/development/checkpoints/CHECKPOINT21K.md`.
 
-Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/CHECKPOINT21L.md`.
+Checkpoint 21L records completed-run recipe approval references, verifies their current recipe policy/scope/expiry relationships, and separates historical identity from current permission. 26 focused tests and frontend build passed locally; full WSL API suite and recovery acceptance remain. See `docs/development/checkpoints/CHECKPOINT21L.md`.
 
-Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/CHECKPOINT21M.md`.
+Checkpoint 21M adds attempt/recovery task notes and a closeout acceptance checklist. 27 focused tests passed locally; full WSL API suite and deliberate end-to-end recovery acceptance remain pending. Advanced relationship graph direction is documented. Checkpoint 21 implementation is delivered for acceptance, not yet declared complete. See `docs/development/checkpoints/CHECKPOINT21M.md`.
 
 ## Checkpoint 28.2 — outcome recommendation pilot
 

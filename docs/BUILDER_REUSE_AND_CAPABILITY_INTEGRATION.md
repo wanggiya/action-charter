@@ -26,7 +26,7 @@ permanent Builder reasoning agent is unnecessary for ordinary planning/recipe au
 | Test evidence | `builder/testing.py`, `builder/test_evidence.py` | Binds successful isolated test receipts to exact candidates; evidence assessment is not itself the code executor |
 | Promotion and activation | `builder/promotion.py`, `builder/activation.py` and related plans/reviews | Existing explicit extension lifecycle; not automatic runtime installation or task execution |
 | Post-activation verification | `builder/post_activation_verification.py` | Checks exact activated bytes/evidence without executing them; not proof of analytical correctness |
-| Closed text acquisition | `capabilities/`, `docs/CHECKPOINT28_1.md` | Planner-led finite transformation definitions with tests/installation; no arbitrary Python |
+| Closed text acquisition | `capabilities/`, `docs/development/checkpoints/CHECKPOINT28_1.md` | Planner-led finite transformation definitions with tests/installation; no arbitrary Python |
 | Analytical worker | `sandbox/` | Existing worker boundary for supported tasks; arbitrary generated Python requires a separate boundary assessment |
 
 Paths above are under `src/geoagent_harness/` unless otherwise indicated. These are

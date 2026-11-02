@@ -73,7 +73,7 @@ def test_allowlist_contains_no_delete_tool() -> None:
 
 
 def test_bounded_postgis_inspection_is_read_only() -> None:
-    from geoagent_harness.postgis_inspection import service
+    from geoagent_harness.postgis.inspection import service
 
     source = inspect.getsource(service).lower()
     assert "sql.identifier" in source
@@ -88,7 +88,7 @@ def test_bounded_postgis_inspection_is_read_only() -> None:
 
 
 def test_bounded_geoserver_inspection_is_get_only() -> None:
-    from geoagent_harness.geoserver_inspection import service
+    from geoagent_harness.geoserver.inspection import service
 
     source = inspect.getsource(service).lower()
     assert "client.get" in source
@@ -100,7 +100,7 @@ def test_bounded_geoserver_inspection_is_get_only() -> None:
 
 
 def test_geoserver_publication_planning_is_the_only_mcp_publication_tool() -> None:
-    from geoagent_harness.geoserver_publication import service
+    from geoagent_harness.geoserver.publication import service
 
     assert "plan_geoserver_publication" in tools.TOOL_ALLOWLIST
     assert "execute_geoserver_publication" not in tools.TOOL_ALLOWLIST
@@ -110,7 +110,7 @@ def test_geoserver_publication_planning_is_the_only_mcp_publication_tool() -> No
 
 
 def test_postgis_comparison_reuses_inspection_boundary() -> None:
-    from geoagent_harness.postgis_comparison import service
+    from geoagent_harness.postgis.comparison import service
 
     source = inspect.getsource(service).lower()
     assert "inspect_postgis_table" in source
@@ -121,7 +121,7 @@ def test_postgis_comparison_reuses_inspection_boundary() -> None:
 
 
 def test_change_assessment_is_pure_fixed_policy() -> None:
-    from geoagent_harness.postgis_change_assessment import service
+    from geoagent_harness.postgis.change_assessment import service
 
     source = inspect.getsource(service).lower()
     assert "psycopg" not in source
@@ -132,7 +132,7 @@ def test_change_assessment_is_pure_fixed_policy() -> None:
 
 
 def test_promotion_planning_has_no_write_or_sql_boundary() -> None:
-    from geoagent_harness.postgis_promotion_plan import service
+    from geoagent_harness.postgis.promotion.plan import service
 
     source = inspect.getsource(service).lower()
     assert "execute(" not in source

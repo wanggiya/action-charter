@@ -5,16 +5,16 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.postgis_promotion_execution import (
+from geoagent_harness.postgis.promotion.execution import (
     PostGISPromotionExecutionResult,
     persist_postgis_promotion_execution,
     postgis_promotion_execution_sha256,
 )
-from geoagent_harness.postgis_promotion_verification import (
+from geoagent_harness.postgis.promotion.verification import (
     PostGISPromotionVerificationResult,
     persist_postgis_promotion_verification,
 )
-from geoagent_harness.postgis_rollback_plan import (
+from geoagent_harness.postgis.rollback.plan import (
     PostGISRollbackPlan,
     PostGISRollbackPlanError,
     PostGISRollbackPlanStorageError,

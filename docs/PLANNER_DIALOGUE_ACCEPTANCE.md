@@ -142,7 +142,7 @@ Use [main-workflow Snakemake block acceptance](WORKFLOW_SNAKEMAKE_BLOCKS.md) for
 
 ## Final drag/information/priority pass
 
-Use existing records for appearance checks. Drag a current-plan block at multiple zoom levels in both orientations: its attached wires/labels should follow continuously, release should preserve the final position, and pointer cancellation should restore the original presentation. Layout changes must preserve approval/digests. Check inspector facts such as source attempt/reused against the right card content edge without identifier capitalization. Add keeps yellow Export/orange Verify Snakemake choices above its scrolling general operations. Complete [checkpoint review gates](CHECKPOINT23_REVIEW.md) before requesting commit/push.
+Use existing records for appearance checks. Drag a current-plan block at multiple zoom levels in both orientations: its attached wires/labels should follow continuously, release should preserve the final position, and pointer cancellation should restore the original presentation. Layout changes must preserve approval/digests. Check inspector facts such as source attempt/reused against the right card content edge without identifier capitalization. Add keeps yellow Export/orange Verify Snakemake choices above its scrolling general operations. Complete [checkpoint review gates](development/checkpoints/CHECKPOINT23_REVIEW.md) before requesting commit/push.
 
 ## Clarified final information layout
 

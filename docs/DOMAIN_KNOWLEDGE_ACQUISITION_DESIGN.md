@@ -43,7 +43,7 @@ knowledge packages, general code generation and new MCP creation remain later wo
 
 ## Ordered implementation plan
 
-[Checkpoint 29 delivery plan](CHECKPOINT29_PRIVATE_KNOWLEDGE.md) specifies storage,
+[Checkpoint 29 delivery plan](development/checkpoints/CHECKPOINT29_PRIVATE_KNOWLEDGE.md) specifies storage,
 capture, retrieval/correction, UI/CLI and acceptance slices. Documentation only;
 no new memory behavior is delivered by recording this plan.
 
