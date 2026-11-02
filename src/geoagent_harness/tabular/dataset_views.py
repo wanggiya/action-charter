@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field,model_validator
 from geoagent_harness.interface_api.planning_tasks import database,_get
 from .dataset_service import profile_dataset
+from .grouping import percentages
 
 class DatasetViewRequest(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -21,14 +22,6 @@ class DatasetViewRequest(BaseModel):
     def fields(self):
         if self.action=='calculate' and (not self.columns or len(set(self.columns))!=len(self.columns)):raise ValueError('Choose one or two different fields')
         return self
-
-
-def percentages(groups,keys,matched):
-    totals={}
-    for row in groups:totals[row[keys[0]]]=totals.get(row[keys[0]],0)+row['row_count']
-    return [{**{k:r[k] for k in keys},'row_count':r['row_count'],'total_denominator':matched,'primary_denominator':totals[r[keys[0]]],
-        'percentage_total':100*r['row_count']/matched if matched else None,
-        'percentage_within_primary':100*r['row_count']/totals[r[keys[0]]] if totals[r[keys[0]]] else None} for r in groups]
 
 
 def _bound(root,request):

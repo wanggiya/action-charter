@@ -74,6 +74,8 @@ class Accumulator:
         self.groups = {}
         self.page = []
         self.matched = 0
+        from .statistics import StatisticsAccumulator
+        self.statistics = StatisticsAccumulator(o.statistics,names,o.missing_values) if o.statistics else None
         self.coverage = {name: {'matched_rows': 0, 'unmatched_rows': 0, 'unknown_codes': Counter()} for name in (self.mappings['sections'] if self.mappings else {}) if name in names}
 
     def missing(self, name, value):
@@ -105,6 +107,7 @@ class Accumulator:
         if any(values[f.column] != f.value for f in self.options.filters):
             return
         self.matched += 1
+        if self.statistics:self.statistics.add(values)
         o = self.options
         if o.offset < self.matched <= o.offset + o.limit:
             self.page.append({name: values[name][:160] or None for name in self.page_columns})
@@ -220,7 +223,7 @@ class Accumulator:
                    **{f'{n}_{metric}': stats[index] if stats[0] else None for n, stats in v['numeric'].items()
                       for metric, index in [('mean',1),('sum',2),('min',3),('max',4)]}}
                   for key, v in sorted(self.groups.items())]
-        return {'schema_version': 'table-analysis-v1', 'scope': 'complete_parsed_file', 'source_row_count': total,
+        result = {'schema_version': 'table-analysis-v1', 'scope': 'complete_parsed_file', 'source_row_count': total,
             'matched_row_count': self.matched, 'available_columns': self.names, 'columns': self.columns, 'columns_omitted': [n for n in self.names if n not in self.columns],
             'quality': {'scope': 'matching_rows',
                 'columns': {n: self.frequency_summary(c) for n, c in self.quality.items()},
@@ -243,3 +246,7 @@ class Accumulator:
                 'Numeric columns are explicitly requested; values are not inferred to be measurements.',
                 'Category counts cover matching full-file rows; display shows at most 12 categories per column.',
                 'Unknown-code examples are capped at 20; unmatched_rows counts all unmatched values.']}
+        if self.statistics:
+            result['statistics']=self.statistics.result()
+            result['statistics']['filters']=[f.model_dump(mode='json') for f in self.options.filters]
+        return result

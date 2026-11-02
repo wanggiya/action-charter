@@ -3,6 +3,21 @@
 Recorded 2026-10-27. Design and documentation only; no structural changes implemented
 by this document. Preserve earlier checkpoint history and working capabilities.
 
+Use the [consolidated implementation TODO](IMPLEMENTATION_TODO.md) for task order,
+dependencies and acceptance; this document retains the architectural rationale.
+
+[Expanded analytical/format requirements](DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+include substantive statistics/model reports and memory before autonomous Linux deployment.
+
+[Composition and whole-project structure](COMPOSITION_IMPLEMENTATION_AND_AGENT_STRUCTURE.md)
+records the concrete operation locations, parameterized examples, current/proposed
+graphs and single-versus-role-context tradeoffs from the follow-up discussion.
+
+[Builder reuse plan](BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md) corrects the earlier
+impression that implementation generation starts from zero: August/September Builder
+already generates candidate source and has a lifecycle. Audit/reuse it before building
+a task-driven code-to-skill path; do not automatically activate source from chat.
+
 ## What the user wants
 
 - An agent-driven data-science/engineering platform, not an expanding collection of

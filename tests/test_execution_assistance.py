@@ -69,3 +69,20 @@ def test_failed_step_can_receive_advice_but_not_be_reexecuted(recorded):
     assert answer['suggested_action']=='propose_revision' and answer['tool_calls']==0
     with pytest.raises(ValueError,match='unavailable'):
         assist(root,record,request,model_client=Client([{'message':'read','action':'read_profile'}]))
+
+
+def test_run_api_persists_assistance_and_reopen_uses_receipt(recorded,monkeypatch):
+    from geoagent_harness.interface_api import workflow_runs,execution_assistance
+    root,record,request=recorded
+    directory=workflow_runs._directory(root);workflow_runs._write(directory,record)
+    calls=[]
+    def answer(*args):
+        calls.append(True)
+        return {'message':'Recorded advice only.','execution_performed':False,'approval_performed':False}
+    monkeypatch.setattr(execution_assistance,'assist',answer)
+    first=workflow_runs.run_action(request,project_root=root)
+    second=workflow_runs.run_action(request,project_root=root)
+    stored=json.loads((directory/(record['run_id']+'.json')).read_text())
+    assert stored['execution_assistance']['message']==first['message']
+    assert second['cached'] and len(calls)==1
+    assert stored['status']=='completed' and stored['steps']==record['steps']

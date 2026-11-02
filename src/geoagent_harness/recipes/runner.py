@@ -275,7 +275,7 @@ def _run_approved_recipe(
                 step_id=step_id,
                 registry=registry,
                 settings=settings,
-                **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) or step.skill_id in PG_WRITES else {}),
+                **({"completed_results": {item.step_id: item for item in step_results}} if is_table_write(step.skill_id) or step.skill_id in PG_WRITES or step.skill_id=='validate_postgres_import' else {}),
             )
         except (RecipeDispatchError, RecipeExecutionPolicyError, WritePolicyError) as exc:
             if progress_callback is not None:

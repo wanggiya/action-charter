@@ -4,7 +4,7 @@ import type {AnalyticalRecord} from '../lib/analytical-graph';
 import type {DatasetResult} from '../lib/dataset-result';
 import {ResultTable} from './ResultTable';
 import {DatasetCrossTab} from './DatasetCrossTab';
-import {ChartPlot} from './ChartPlot';
+import {GroupedChart} from './GroupedChart';
 const scalar=z.union([z.string(),z.number().finite(),z.null()]);
 const viewSchema=z.object({conversation_id:z.string(),revision:z.number(),source_sha256:z.string(),profile_sha256:z.string(),view:z.enum(['table','groups']),columns:z.array(z.string()),group_by:z.array(z.string()),source_rows:z.number(),matching_rows:z.number(),groups:z.array(z.record(scalar)),table:z.object({columns:z.array(z.string()),preview:z.array(z.record(scalar)),row_count:z.number(),offset:z.number().optional(),limit:z.number().optional()}),verified_at_read:z.boolean().optional()});
 type SavedView=z.infer<typeof viewSchema>;
@@ -21,7 +21,7 @@ export function DatasetViewExplorer({record,dataset:r,mode,readOnly=false,archiv
  const initial=archived.success&&archived.data.view===mode?archived.data:mode==='groups'?initialGroups(r,record.conversationId,record.chatRevision??record.revision):readOnly?originalTable:null;
  const candidates=r.profiles.filter(p=>mode==='table'||p.analytical_role!=='identifier').map(p=>p.name);
  const [primary,setPrimary]=useState(initial?.columns[0]??(candidates.includes('age')?'age':candidates[0]??'')),[split,setSplit]=useState(initial?.columns[1]??'');
- const [result,setResult]=useState<SavedView|null>(initial),[busy,setBusy]=useState(false),[loading,setLoading]=useState(!readOnly),[error,setError]=useState(''),[basis,setBasis]=useState('total'),[presentation,setPresentation]=useState('table'),[kind,setKind]=useState('bar'),[measure,setMeasure]=useState('percentage');
+ const [result,setResult]=useState<SavedView|null>(initial),[busy,setBusy]=useState(false),[loading,setLoading]=useState(!readOnly),[error,setError]=useState(''),[basis,setBasis]=useState('total'),[presentation,setPresentation]=useState('table');
  const [page,setPage]=useState(0),[selected,setSelected]=useState<number|null>(null);
  const active=useRef<AbortController|null>(null),sequence=useRef(0);
  const body={conversation_id:record.conversationId,expected_revision:record.chatRevision??record.revision,source_sha256:r.source_sha256,profile_sha256:String(r.artifact.sha256),view:mode};
@@ -47,8 +47,8 @@ export function DatasetViewExplorer({record,dataset:r,mode,readOnly=false,archiv
  const stop=()=>{sequence.current++;active.current?.abort();setBusy(false);setLoading(false);};
  return <section className="table-explorer dataset-view-explorer" aria-label={mode==='groups'?'Interactive dataset groups':'Selected dataset columns'}>
   <div className="analytical-controls">
-   <label>{mode==='groups'?'Group by':'Column'}<select aria-label={mode==='groups'?'Outcome group by':'Outcome table column'} disabled={readOnly||busy||loading} value={primary} onChange={e=>{setPrimary(e.target.value);if(split===e.target.value)setSplit('');}}>{candidates.map(c=><option key={c}>{c}</option>)}</select></label>
-   <label>{mode==='groups'?'Split by':'Additional column'}<select aria-label={mode==='groups'?'Outcome split by':'Outcome additional column'} disabled={readOnly||busy||loading} value={split} onChange={e=>setSplit(e.target.value)}><option value="">None</option>{candidates.filter(c=>c!==primary).map(c=><option key={c}>{c}</option>)}</select></label>
+   <label>{mode==='groups'?'Rows (vertical)':'Column'}<select aria-label={mode==='groups'?'Outcome group by':'Outcome table column'} disabled={readOnly||busy||loading} value={primary} onChange={e=>{setPrimary(e.target.value);if(split===e.target.value)setSplit('');}}>{candidates.map(c=><option key={c}>{c}</option>)}</select></label>
+   <label>{mode==='groups'?'Columns (horizontal)':'Additional column'}<select aria-label={mode==='groups'?'Outcome split by':'Outcome additional column'} disabled={readOnly||busy||loading} value={split} onChange={e=>setSplit(e.target.value)}><option value="">None</option>{candidates.filter(c=>c!==primary).map(c=><option key={c}>{c}</option>)}</select></label>
   </div>
   <button type="button" disabled={readOnly||busy||loading||!primary} onClick={()=>void read('calculate')}>{busy?'Calculating…':mode==='groups'?'Apply grouping':'Load selected columns'}</button>
   {loading&&<p role="status">Loading saved selection; no calculation requested…</p>}
@@ -57,7 +57,7 @@ export function DatasetViewExplorer({record,dataset:r,mode,readOnly=false,archiv
   {readOnly&&<p className="result-notice">Historical snapshot. No new reads or calculations are available here.</p>}
   {!readOnly&&pending&&<p className="result-notice">Selection changed. Apply it to calculate new results; the table/chart below still shows {keys.join(' / ')}.</p>}
   {result?<>
-   <p>Recorded selection: <strong>{keys.join(' / ')}</strong> · {result.matching_rows.toLocaleString()} matching / {result.source_rows.toLocaleString()} source rows.</p>
+   <h3 className="grouped-result-title">{mode==='groups'?'Groups':'Table'} · {keys.join(' × ')}</h3><p>Recorded selection: <strong>{keys.join(' / ')}</strong> · {result.matching_rows.toLocaleString()} matching / {result.source_rows.toLocaleString()} source rows.</p>
    {mode==='table'?<>
     <p>Only the selected columns are shown. This is a verified page of source rows, not a group summary.</p>
     <ResultTable key={JSON.stringify(result.columns)+String(result.table.offset)} data={result.table} rowIds={result.table.preview.map((_,i)=>(result.table.offset??0)+i)} serverPage selectedRow={selected} onSelectRow={setSelected}/>
@@ -67,8 +67,7 @@ export function DatasetViewExplorer({record,dataset:r,mode,readOnly=false,archiv
     <p>{denominator}. Percentages use row counts, not distinct patients. Empty cells and declared missing-marker groups remain included. Changing the denominator does not rescan data.</p></>}
     <div className="verified-preview-controls"><button type="button" aria-pressed={presentation==='table'} onClick={()=>setPresentation('table')}>Group table</button><button type="button" aria-pressed={presentation==='chart'} onClick={()=>setPresentation('chart')}>Group chart</button></div>
     {presentation==='table'&&keys.length===2?<DatasetCrossTab key={JSON.stringify(keys)} fields={keys} groups={rows} matchingRows={result.matching_rows}/>:presentation==='table'?<><ResultTable key={String(within)+JSON.stringify(keys)+page} data={{columns:[...keys,'Rows','Percentage','Denominator'],preview:displayRows,row_count:rows.length}} rowIds={displayRows.map((_,i)=>page*100+i)} serverPage selectedRow={selected} onSelectRow={setSelected}/><div className="result-pagination"><button disabled={page===0} onClick={()=>setPage(p=>p-1)}>Previous groups</button><span>Groups {rows.length?page*100+1:0}–{Math.min((page+1)*100,rows.length)} / {rows.length}</span><button disabled={(page+1)*100>=rows.length} onClick={()=>setPage(p=>p+1)}>Next groups</button></div></>:<>
-     <div className="analytical-controls"><label>Chart<select aria-label="Outcome group chart type" value={kind} onChange={e=>setKind(e.target.value)}>{['bar','column','pie','donut'].map(k=><option key={k}>{k}</option>)}</select></label><label>Measure<select aria-label="Outcome group chart measure" value={measure} onChange={e=>setMeasure(e.target.value)}><option value="percentage">Percentage</option><option value="count">Row count</option></select></label></div>
-     {rows.length<=100?((kind==='pie'||kind==='donut')&&within?<p>Within-group percentages have separate denominators. Choose bar/column or “All matching rows” for a meaningful pie/donut.</p>:<ChartPlot kind={kind} x={keys.join(' / ')} y={measure==='percentage'?`Percentage · ${denominator}`:'Row count'} values={rows.map((g,i)=>({label:keys.map(k=>g[k]===''?'(empty cell)':String(g[k])).join(' · '),value:Number(g[measure==='count'?'row_count':within?'percentage_within_primary':'percentage_total']),x:i,index:i,members:[],facts:[['Rows',Number(g.row_count)],['Percentage',percent(g[within?'percentage_within_primary':'percentage_total'])],['Denominator',Number(g[within?'primary_denominator':'total_denominator'])]]}))}/>):<p>{rows.length} complete groups exceed the 100-group chart limit. Use the paginated table; groups have not been silently omitted.</p>}
+     <GroupedChart key={JSON.stringify(keys)} fields={keys} groups={rows} matchingRows={result.matching_rows} basis={within?'primary':'total'}/>
     </>}
     {!rows.length&&<p>No groups match this saved query.</p>}
    </>}

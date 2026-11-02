@@ -84,7 +84,7 @@ def _numeric(series):
     if any(not math.isfinite(float(x)) for x in numeric.dropna()): raise TabularError('Numeric values must be finite')
     return numeric
 
-def _source(root, args, completed, right=False):
+def source_binding(root, args, completed, right=False):
     path=getattr(args,'right_path' if right else 'path',None)
     source_step=getattr(args,'right_step' if right else 'source_step',None)
     area='input';expected=None
@@ -98,6 +98,11 @@ def _source(root, args, completed, right=False):
         path=output['path'];expected=output['sha256'];area='output'
     path=relative_path(path,area)
     if Path(path).suffix.lower() not in {'.csv','.tsv'}: raise TabularError('Tabular input must be CSV or TSV')
+    return {'path':path,'area':area,'sha256':expected,'source_step':source_step}
+
+def _source(root, args, completed, right=False):
+    binding=source_binding(root,args,completed,right)
+    path,area,expected,source_step=(binding[k] for k in ('path','area','sha256','source_step'))
     data=read_bytes(root,path,area)
     digest=hashlib.sha256(data).hexdigest()
     if expected and digest!=expected: raise TabularError('Intermediate output digest changed after validation')
@@ -183,12 +188,13 @@ def _publish(root,value,data):
 def inspect_csv(path,settings,delimiter=',',preview_rows=5,analysis=None):
     args=ARGUMENTS['inspect_csv'](path=path,delimiter=delimiter,preview_rows=preview_rows,analysis=analysis)
     root=Path(settings.project_root).resolve();path=relative_path(args.path,'input')
-    from geoagent_harness.discovery.csv import inspect
+    from .inspection import inspect_table as inspect
     from geoagent_harness.recipes.control import checkpoint
     try:
         return inspect(root,path,delimiter=args.delimiter,preview_rows=args.preview_rows,checkpoint=checkpoint,
                        analysis=args.analysis.model_dump(mode='json') if args.analysis is not None else None)
     except (ValueError, UnicodeError, csv.Error, StopIteration) as error:
+        if Path(path).suffix.lower() in {'.xlsx','.json','.jsonl','.ndjson'}:raise TabularError(str(error)) from error
         raise TabularError('CSV inspection failed: invalid, changed or over-budget input') from error
 
 from geoagent_harness.write_policy import guarded
@@ -198,9 +204,15 @@ def run_operation(skill,arguments,settings,completed_results=None):
     if skill not in WRITE_IDS:raise TabularError('Unsupported tabular write operation')
     if not settings.enable_write_tools:raise TabularError('Write tools are disabled')
     args=ARGUMENTS[skill].model_validate(arguments);root=Path(settings.project_root).resolve();sources=[]
+    if skill in {'select_csv_columns','filter_csv_rows','handle_csv_missing','decode_csv_codes','export_csv'} and args.streaming:
+        from .streaming import run
+        return run(skill,args,settings,completed_results or {})
     streaming = None
     decoding = {}
-    if skill == 'aggregate_csv' and args.streaming:
+    if skill=='aggregate_csv' and args.streaming and args.source_step:
+        from .streaming import aggregate
+        frame,sources,streaming=aggregate(root,args,completed_results or {})
+    elif skill == 'aggregate_csv' and args.streaming:
         if args.source_step or not args.path:
             raise TabularError('Full-file aggregate requires an explicit input source path')
         from .analytical_service import profile_table
@@ -270,19 +282,22 @@ def run_operation(skill,arguments,settings,completed_results=None):
     return {**decoding,**calculation, **({'streaming_aggregation':streaming} if streaming else {}),'operation':skill,'data_contract':'table/csv-v1','sources':sources,'output':{'path':path,'sha256':hashlib.sha256(data).hexdigest()},**_preview(published_frame,10),'effects':'create_csv','execution_performed':True,'validation_performed':False,'warnings':['Geometry/CRS are not included in the exported attribute table.'] if skill=='vector_attributes_to_csv' else []}
 
 def validate_output(result,settings):
+    if result.get('streaming_preparation'):
+        from .streaming import validate
+        return validate(result,settings)
     root=Path(settings.project_root).resolve()
     data=read_bytes(root,result['output']['path'],'output');frame=read_frame(data)
     def source_digest(s):
-        if result.get('streaming_aggregation') and s['area'] == 'input':
+        if result.get('streaming_aggregation'):
             from geoagent_harness.discovery.csv import source, Reader, identity
-            with source(root,s['path']) as (fd,_,before):
+            with source(root,s['path'],area=s['area']) as (fd,_,before):
                 reader = Reader(fd,limit=1024**3)
                 buffer = bytearray(65536)
                 while reader.readinto(buffer):
                     pass
                 if identity(os.fstat(fd)) != before:
                     raise TabularError('Aggregation source changed during verification')
-                with source(root,s['path']) as (_,_,after):
+                with source(root,s['path'],area=s['area']) as (_,_,after):
                     if after != before:
                         raise TabularError('Aggregation source was replaced')
                 return reader.sha.hexdigest()

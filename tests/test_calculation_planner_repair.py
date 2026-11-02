@@ -47,7 +47,7 @@ def test_keep_inspection_calculation_followup_has_focused_typed_decoder(project,
     assert steps[1]['arguments']['calculations'][0]['expression']['right']['value'] == 2
     assert steps[1]['requires_approval'] and steps[1]['validation_required']
     assert result['context_usage']['model_request']['prompt_bytes'] < 28000
-    assert result['context_usage']['model_request']['planner_contract'] == 'inspection-source-v2'
+    assert result['context_usage']['model_request']['planner_contract'] == 'statistics-v2'
     assert not result['execution_performed'] and not result['approval_performed']
     assert not (project/'data/output').exists()
 

@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from .schemas import ARGUMENTS, WRITE_IDS, is_extension, is_table_write
 from geoagent_harness.operations.packages import ProjectionArguments
 from .service import TabularError, relative_path
+from .source_contracts import TABLE_SUFFIXES
 
 def validate_steps(steps, dependencies):
     known={s.step_id:s for s in steps}
@@ -34,6 +35,7 @@ def validate_steps(steps, dependencies):
                 path=relative_path(path,'input')
                 suffix=Path(path).suffix.lower()
                 formats={'.geojson','.json'} if skill(step)=='vector_attributes_to_csv' else {'.csv','.tsv'}
+                if skill(step)=='inspect_csv':formats=set(TABLE_SUFFIXES)
                 if suffix not in formats:
                     raise TabularError(f'{step.step_id}: {skill(step)} requires {" or ".join(sorted(formats))} input; {key} has format {suffix or "(no extension)"}. Use the source requested in this turn, never an incompatible historical input. Nothing executed.')
         if skill(step)=='decode_csv_codes':

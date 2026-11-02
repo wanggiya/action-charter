@@ -6,6 +6,25 @@ import typer
 
 
 def register(app):
+    @app.command('inspect-table')
+    def inspect_table(path:Annotated[str,typer.Argument()],project_root:Annotated[Path,typer.Option('--project-root')]=Path('.'),options:Annotated[str,typer.Option('--options',help='Typed AnalysisOptions JSON, including source_options')]='{}',report:Annotated[bool,typer.Option('--report',help='Print the computed readiness report as Markdown instead of JSON')]=False):
+        from .analytical_service import profile_table
+        try:
+            result=profile_table(project_root,path,json.loads(options))
+            if report:
+                if not result.get('readiness_assessment'):raise ValueError(result.get('readiness_status','Readiness report unavailable'))
+                typer.echo(result['readiness_assessment']['report_markdown'])
+            else:typer.echo(json.dumps(result,indent=2,allow_nan=False))
+        except (ValueError,OSError,RuntimeError) as error:
+            typer.echo(f'Error: {error}',err=True);raise typer.Exit(2)
+
+    @app.command('table-guidance')
+    def guidance(path:Annotated[str,typer.Argument()],project_root:Annotated[Path,typer.Option('--project-root')]=Path('.'),source_options:Annotated[str,typer.Option('--source-options')]='null'):
+        from .analytical_service import recommend_fields
+        try:typer.echo(json.dumps(recommend_fields(project_root,path,source_options=json.loads(source_options)),indent=2,allow_nan=False))
+        except (ValueError,OSError,RuntimeError) as error:
+            typer.echo(f'Error: {error}',err=True);raise typer.Exit(2)
+
     @app.command('inspect-csv')
     def inspect(path: Annotated[str,typer.Argument()], project_root: Annotated[Path,typer.Option('--project-root')]=Path('.'), delimiter: Annotated[str,typer.Option('--delimiter')]=',', preview_rows: Annotated[int,typer.Option('--preview-rows')]=5):
         from .service import inspect_csv
@@ -15,6 +34,15 @@ def register(app):
             settings=load_settings().model_copy(update={'project_root':project_root.resolve()})
             typer.echo(json.dumps(redact_value(inspect_csv(path,settings,delimiter,preview_rows)),indent=2))
         except (ValueError,OSError) as error:
+            typer.echo(f'Error: {error}',err=True);raise typer.Exit(2)
+
+    @app.command('table-statistics')
+    def statistics(path: Annotated[str,typer.Argument()], specification: Annotated[str,typer.Option('--specification',help='JSON StatisticsSpec, not Python code')], project_root: Annotated[Path,typer.Option('--project-root')]=Path('.'), missing_values: Annotated[str,typer.Option('--missing-values')]='{}',source_options:Annotated[str,typer.Option('--source-options')]='null'):
+        from .analytical_service import profile_table
+        try:
+            result=profile_table(project_root,path,{'statistics':json.loads(specification),'missing_values':json.loads(missing_values),'source_options':json.loads(source_options)})
+            typer.echo(json.dumps(result,indent=2,allow_nan=False))
+        except (ValueError,OSError,RuntimeError) as error:
             typer.echo(f'Error: {error}',err=True);raise typer.Exit(2)
 
     @app.command('workflow-plan')

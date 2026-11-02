@@ -51,6 +51,44 @@ try{
  assert.deepEqual(await readdir(resolve(root,'data/output')),[]);
  await page.locator('.workflow-review-panel .execute-button').click();
  await page.locator('.results-workspace .outcome-step').first().waitFor({timeout:30000});
+ await page.getByLabel('Operation result',{exact:true}).selectOption('step_1');
+ await page.getByRole('tab',{name:'Groups',exact:true}).click();
+ await page.getByLabel('Explore group by',{exact:true}).selectOption('age');
+ await page.getByLabel('Explore split by',{exact:true}).selectOption('gender');
+ await page.getByRole('button',{name:'Run analysis',exact:true}).click();
+ const cross=page.getByRole('region',{name:'Cross-tab table',exact:true});
+ await cross.waitFor({timeout:30000});
+ const source=await readFile(resolve(root,'data/input/test/diabetic_sample_5000.csv'),'utf8');
+ // These source fields have no embedded CSV quoting; independent oracle reads every row.
+ const lines=source.trim().split(/\r?\n/),headers=lines.shift().split(',');
+ const ai=headers.indexOf('age'),gi=headers.indexOf('gender'),expected=new Map(),genders=new Set();
+ for(const line of lines){const cells=line.split(',');genders.add(cells[gi]);const key=JSON.stringify([cells[ai],cells[gi]]);expected.set(key,(expected.get(key)??0)+1);}
+ const horizontal=(await cross.locator('thead th').allTextContents()).slice(1,-1);
+ assert.deepEqual(horizontal,[...genders].sort());
+ for(const row of await cross.locator('tbody tr').all()){
+  const cells=await row.locator('th,td').allTextContents();
+  for(let j=0;j<horizontal.length;j++)assert.equal(Number(cells[j+1].replaceAll(',','')),expected.get(JSON.stringify([cells[0],horizontal[j]]))??0);
+ }
+ assert.equal(await cross.locator('tfoot td').last().innerText(),'5,000');
+ await page.getByLabel('Cross-tab cell values',{exact:true}).selectOption('row');
+ assert.ok((await cross.locator('tbody td').allTextContents()).some(v=>v.endsWith('%')));
+ await page.screenshot({path:'/tmp/actioncharter-real-diabetes-age-gender.png'});
+ cases.push('Age vertical / gender horizontal: every cell reconciles with all 5,000 source rows; row percentages available');
+ await page.getByRole('button',{name:'Result chart',exact:true}).click();
+ await page.getByLabel('Explore group chart measure',{exact:true}).selectOption('count');
+ await page.getByLabel('Explore group chart type',{exact:true}).selectOption('3d-column');
+ const three=page.getByRole('img',{name:'3D columns: age / gender',exact:true});
+ const marks=three.locator('[data-chart-value]');assert.equal(await marks.count(),expected.size);
+ let threeTotal=0;
+ for(const mark of await marks.all()){
+  const key=JSON.stringify([await mark.getAttribute('data-3d-row'),await mark.getAttribute('data-3d-column')]);
+  const count=Number(await mark.getAttribute('data-chart-value'));assert.equal(count,expected.get(key));threeTotal+=count;
+ }
+ assert.equal(threeTotal,5000);
+ await three.scrollIntoViewIfNeeded();
+ await page.screenshot({path:'/tmp/actioncharter-real-diabetes-3d.png'});
+ cases.push('3D age/gender columns preserve every source count and reconcile to 5,000');
+
  const files=await readdir(resolve(root,'data/output'));
  assert.deepEqual(files.sort(),['diabetes_trial_01_decoded.csv','diabetes_trial_01_groups.csv','diabetes_trial_01_selected.csv']);
  await page.getByRole('button',{name:'Flow graph',exact:true}).click();

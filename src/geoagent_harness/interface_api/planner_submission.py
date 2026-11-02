@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from .conversation import TurnRequest, conversation_turn
 from .planning_tasks import database
 from .inspection_policy import bounded_read, request_source, eligible, contract_digest, source_skill
+from geoagent_harness.tabular.source_contracts import RECORD_SUFFIXES
 
 
 class SubmissionRequest(BaseModel):
@@ -69,7 +70,7 @@ def _present(root, record):
             'approval_performed': False, 'execution_performed': bool(run and run['execution_performed'])}
 
 
-def submission_action(request: SubmissionRequest, *, project_root: Path, model_client=None, background=True):
+def _submission_action(request: SubmissionRequest, *, project_root: Path, model_client=None, background=True):
     from .server import InterfaceApiError, _trusted_root
     root = _trusted_root(project_root)
     if request.action == 'read':
@@ -105,6 +106,9 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
                 from .inspection_planning import plan_for_request
                 exact=plan_for_request(turn.message, ['inspect_csv','inspect_vector','inspect_raster'])
                 paths=[step.arguments['path'] for step in exact.steps] if exact else []
+                if any(Path(path).suffix.lower() in RECORD_SUFFIXES for path in paths):
+                    paths=[]
+                    refusal='Record/workbook inspection requires reviewed Execute; nothing was read on send.'
                 if paths:
                     from .inspection_policy import probe_action
                     sources=[]
@@ -122,7 +126,7 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
                     source=sources[0] if len(sources)==1 else {'sources':sources}
 
                 else:
-                    refusal = 'Only 1–4 explicit supported local metadata inspections can run on send. Use Execute for other proposals.'
+                    refusal = refusal or 'Only 1–4 explicit supported local metadata inspections can run on send. Use Execute for other proposals.'
             except (ValueError, OSError, InterfaceApiError):
                 if record.get('discovery'):record['discovery']['status']='incomplete'
                 refusal = 'The source could not be safely bounded or snapshotted. Review the proposal; ordinary reader limits also apply to Execute.'
@@ -137,6 +141,8 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
         record['finding'] = refusal or ('Proposal saved after preliminary metadata discovery. No workflow run executed; use Execute when ready.' if record.get('discovery') else 'Proposal saved. Nothing executed; use Execute when ready.')
         if (response.get('context_usage') or {}).get('result_view'):
             record['finding'] = 'Recorded-result view prepared. The workflow is unchanged; no workflow operation was executed.'
+        if (response.get('context_usage') or {}).get('model_request',{}).get('stage')=='field_guidance':
+            record['finding']='Field suggestions explained from recorded evidence. The current workflow is unchanged; no workflow operation was executed.'
         if (response.get('context_usage') or {}).get('model_request',{}).get('stage')=='analytical_exploration':
             state=(response.get('analytical_session') or {}).get('status','partial')
             record['status']='explored' if state=='completed' else 'exploration_'+state
@@ -191,3 +197,13 @@ def submission_action(request: SubmissionRequest, *, project_root: Path, model_c
         with database(root, write=True) as connection:
             _put(connection, record)
         raise
+
+
+def submission_action(request: SubmissionRequest, *, project_root: Path, model_client=None, background=True):
+    if request.action=='read':return _submission_action(request,project_root=project_root,model_client=model_client,background=background)
+    from geoagent_harness.model.telemetry import scope
+    with scope(project_root,request.conversation_id,request.submission_id) as state:
+        response=_submission_action(request,project_root=project_root,model_client=model_client,background=background)
+        state['record']['workflow_run_id']=(response.get('submission') or {}).get('run_id')
+        state['record']['submission_status']=(response.get('submission') or {}).get('status')
+        return response

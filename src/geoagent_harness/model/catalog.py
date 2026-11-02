@@ -9,7 +9,10 @@ import re
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from .settings import load_model_settings, selected_model
+from .settings import load_model_settings, selected_model, selected_reasoning
+from contextvars import ContextVar
+from typing import Literal
+_selection_root=ContextVar('model_selection_root',default=None)
 
 
 class CatalogError(ValueError):
@@ -37,11 +40,15 @@ def preference(root):
 @contextmanager
 def request_selection(root):
     """Pin selection across all model calls/corrections in this request."""
-    token = selected_model.set(preference(root)['model'])
-    try:
-        yield
+    from pathlib import Path
+    key=str(Path(root).resolve())
+    if _selection_root.get()==key:yield;return
+    token=selected_model.set(preference(root)['model'])
+    reasoning_token=selected_reasoning.set(reasoning_preference(root)['selection'])
+    root_token=_selection_root.set(key)
+    try:yield
     finally:
-        selected_model.reset(token)
+        selected_model.reset(token);selected_reasoning.reset(reasoning_token);_selection_root.reset(root_token)
 
 
 def native_url(environ=None):
@@ -104,7 +111,7 @@ def catalog(root, *, client=None, environ=None):
     return {'models': entries, 'count': len(entries), 'selected_model': effective,
             'selection_source': 'project' if saved['model'] else 'environment',
             'revision': saved['revision'], 'selected_available': any(e['name'] == effective for e in entries),
-            'loaded_status_error': loaded_error, 'model_called': False, 'execution_performed': False}
+            'reasoning':reasoning_preference(root,environ=environ),'loaded_status_error': loaded_error, 'model_called': False, 'execution_performed': False}
 
 
 def select(root, request, *, client=None, environ=None):
@@ -121,3 +128,32 @@ def select(root, request, *, client=None, environ=None):
         connection.execute('INSERT OR REPLACE INTO model_selection VALUES(1,?,?)', (request.model, revision + 1))
     return {**current, 'selected_model': request.model, 'selection_source': 'project',
             'revision': revision + 1, 'selected_available': True}
+
+
+class ReasoningSelection(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    selection:Literal['environment','provider','none','low','medium','high']
+    expected_revision:int=Field(ge=0)
+
+
+def reasoning_preference(root,*,environ=None):
+    from geoagent_harness.interface_api.planning_tasks import database
+    selection='environment';revision=0
+    with database(root) as connection:
+        if connection is not None and connection.execute("SELECT 1 FROM sqlite_master WHERE name='model_reasoning_selection'").fetchone():
+            row=connection.execute('SELECT selection,revision FROM model_reasoning_selection WHERE id=1').fetchone()
+            if row:selection,revision=row
+    values=os.environ if environ is None else environ
+    effective=(values.get('MODEL_REASONING_EFFORT','').strip() or None) if selection=='environment' else None if selection=='provider' else selection
+    if effective not in {None,'none','low','medium','high'}:raise CatalogError('Invalid reasoning configuration')
+    return {'selection':selection,'effective':effective,'revision':revision,'source':'environment' if selection=='environment' else 'project'}
+
+
+def select_reasoning(root,request):
+    from geoagent_harness.interface_api.planning_tasks import database
+    with database(root,write=True) as connection:
+        connection.execute('CREATE TABLE IF NOT EXISTS model_reasoning_selection (id INTEGER PRIMARY KEY CHECK(id=1),selection TEXT NOT NULL,revision INTEGER NOT NULL)')
+        row=connection.execute('SELECT revision FROM model_reasoning_selection WHERE id=1').fetchone();revision=row[0] if row else 0
+        if revision!=request.expected_revision:raise CatalogError('Reasoning selection changed. Refresh before applying.')
+        connection.execute('INSERT OR REPLACE INTO model_reasoning_selection VALUES(1,?,?)',(request.selection,revision+1))
+    return {**reasoning_preference(root),'model_called':False,'execution_performed':False}

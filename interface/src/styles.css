@@ -1302,6 +1302,20 @@
 }
 
 .chart-inspection {position:relative; min-width:0;}
+.results-body .chart-inspection {max-width:960px;width:100%;}
+.results-body .chart-inspection svg {display:block;width:100%;height:auto;max-width:680px;max-height:min(360px,45vh);margin:10px 0;}
+.results-body .grouped-chart .chart-legend {max-height:150px;}
+.results-body .grouped-chart[data-chart-size] .chart-inspection {max-width:none;}
+.results-body .grouped-chart[data-chart-size] .chart-inspection svg {max-width:100%;max-height:min(560px,65vh);}
+.results-body .grouped-chart[data-chart-size="compact"] .chart-inspection {max-width:680px;}
+.results-body .grouped-chart[data-chart-size="compact"] .chart-inspection svg {max-height:min(360px,45vh);}
+.results-body .grouped-chart[data-chart-size="large"] .chart-inspection svg {max-height:min(780px,80vh);}
+.chart-3d-floor {fill:var(--panel);stroke:var(--line);}
+.chart-3d-front {fill:var(--column-color);stroke:var(--background);}
+.chart-3d-side {fill:color-mix(in srgb,var(--column-color) 65%,var(--background));stroke:var(--background);}
+.chart-3d-top {fill:color-mix(in srgb,var(--column-color) 75%,white);stroke:var(--background);}
+.grouped-chart-3d .visual-mark.selected polygon {stroke:var(--foreground);stroke-width:2;}
+.execution-block-reason {display:block;max-width:460px;color:var(--muted);font-size:11px;white-space:normal;}
 .chart-inspection [data-chart-value] {cursor:pointer;}
 .chart-inspection [data-chart-value]:focus-visible {outline:2px solid var(--cyan,#22d3ee); outline-offset:3px;}
 .chart-value-detail {position:absolute; top:10px; right:10px; z-index:3; width:min(280px,calc(100% - 20px)); max-height:min(340px,70vh); overflow:auto; padding:14px; border:1px solid #36677d; border-radius:9px; color:#e2edf7; background:linear-gradient(145deg,rgba(17,42,57,.98),rgba(12,22,33,.98)); box-shadow:0 8px 28px #0007; overflow-wrap:anywhere;}
@@ -1478,3 +1492,92 @@
 .task-agent-report summary{cursor:pointer}
 .task-agent-report small{display:block;margin:6px 0}
 .task-agent-report pre{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.statistics-panel {display:grid;gap:20px;min-width:0;font-size:15px;line-height:1.65}
+.statistics-page-header {display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.statistics-panel .statistics-page-header h3 {font-size:23px!important;line-height:1.35;margin:2px 0 10px!important}
+.statistics-panel p {font-size:15px!important;line-height:1.65;overflow-wrap:anywhere}
+.statistics-panel .statistics-eyebrow {margin:0;color:var(--muted);font-size:12px!important;letter-spacing:.06em;text-transform:uppercase}
+.statistics-export {display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.statistics-export label {display:grid!important;gap:6px;margin:0!important;font-size:13px!important}
+.statistics-export select {min-width:170px;min-height:38px;font:inherit;color:var(--foreground);background:var(--background);border:1px solid var(--line);border-radius:6px;padding:8px 10px;color-scheme:dark}
+.statistics-page-header>div:first-child {flex:1;min-width:240px}
+.statistics-page-header p {margin:0 0 7px}
+.statistics-export button {display:inline-flex;align-items:center;gap:8px;font:inherit;min-height:38px}
+.statistics-panel .statistics-page-tabs {padding:0;margin:0;border-top:0;min-width:0;max-width:100%;overflow-x:auto;flex-wrap:nowrap}
+.app-shell[data-button-style] .workspace .results-workspace .statistics-page-tabs button[role=tab] {font-size:15px!important;padding:13px 18px!important}
+.statistics-page {min-width:0;min-height:320px;padding:6px 0 24px;outline-offset:4px}
+.statistics-page h4 {font-size:21px!important;line-height:1.4;margin:0 0 12px!important}
+.statistics-page h5 {font-size:17px!important;margin:24px 0 10px}
+.statistics-page>section {display:grid;gap:12px;margin-bottom:24px;min-width:0}
+.statistics-panel .result-table-scroll {max-height:62vh;margin:12px 0 20px}
+.statistics-panel .result-table-scroll table {font-size:14px;line-height:1.5}
+.statistics-panel .result-table-scroll th,.statistics-panel .result-table-scroll td {padding:12px 14px}
+.statistics-panel caption {text-align:left;padding:10px 14px;font-size:15px;font-weight:600}
+.statistics-panel details {border-top:1px solid var(--line);padding:16px 0;margin-top:16px}
+.statistics-panel summary {cursor:pointer;font-size:15px;font-weight:600}
+.statistics-panel li {margin:8px 0;font-size:15px;line-height:1.65}
+.statistics-panel {container-type:inline-size;container-name:statistics}
+.app-shell .workspace .results-workspace .statistics-facts {display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:18px 0}
+.app-shell .workspace .results-workspace .statistics-facts>div {display:grid!important;grid-template-columns:minmax(170px,.38fr) minmax(0,.62fr);align-items:baseline;gap:20px;padding:13px 0!important;border-bottom:1px solid var(--line);min-width:0}
+.app-shell .workspace .results-workspace .statistics-facts dt {font-size:14px;color:var(--muted);min-width:0;overflow-wrap:normal;word-break:normal;white-space:normal}
+.app-shell .workspace .results-workspace .statistics-facts dd {width:auto!important;max-width:none;font-size:15px!important;margin:0;text-align:right;overflow-wrap:anywhere;min-width:0;font-variant-numeric:tabular-nums}
+@container statistics (max-width:520px){.app-shell .workspace .results-workspace .statistics-facts>div{grid-template-columns:minmax(0,1fr);gap:5px}.app-shell .workspace .results-workspace .statistics-facts dd{text-align:left}}
+.field-guidance {margin:18px 0 26px;min-width:0;border-bottom:1px solid var(--line);padding-bottom:20px}
+.field-guidance h4 {font-size:19px;margin:0 0 10px}
+.field-guidance p {font-size:14px!important;line-height:1.6}
+.app-shell .workspace .results-workspace .field-guidance dl>div {display:grid;grid-template-columns:minmax(150px,.27fr) minmax(0,.73fr);gap:18px;padding:12px 0;border-top:1px solid var(--line)}
+.app-shell .workspace .results-workspace .field-guidance :is(dt,dd) {min-width:0;width:auto;max-width:none;white-space:normal;word-break:normal;text-align:left}
+.field-guidance dd>span {display:block;margin-top:5px;line-height:1.5;color:var(--muted)}
+.field-guidance dd strong {overflow-wrap:anywhere}
+.field-guidance button {margin:8px 0 16px}
+.field-guidance summary {cursor:pointer;font-size:14px;font-weight:600}
+.field-guidance table {white-space:normal!important}
+.field-guidance td {min-width:140px;vertical-align:top}
+.field-analysis-starter {padding:12px 0}
+.statistical-figure {margin:18px 0;padding:12px;border:1px solid var(--line);border-radius:8px;max-width:100%;overflow:auto}
+.statistical-svg svg {width:100%;height:auto;max-height:850px;min-width:420px}
+.statistical-svg [data-mark] {cursor:pointer}
+.statistical-svg [data-mark]:focus {outline:3px solid #f4c95b;outline-offset:-2px}
+.statistical-figure figcaption {font-size:14px;line-height:1.6;margin-top:10px;color:var(--muted)}
+.statistics-assessment {margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.statistics-panel label>select {margin:8px 0;padding:9px 12px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;color-scheme:dark;font:inherit}
+.field-analysis-controls {display:flex;flex-wrap:wrap;gap:16px;margin:14px 0}
+.field-analysis-controls label {display:flex;flex:1 1 180px;flex-direction:column;gap:8px;min-width:0;font-size:14px}
+.field-analysis-controls select {width:100%;min-width:0;padding:9px 12px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;font:inherit;color-scheme:dark}
+@media(max-width:650px){.app-shell .workspace .results-workspace .field-guidance dl>div{grid-template-columns:minmax(0,1fr);gap:6px}}
+.statistical-report {font:inherit;line-height:1.7;overflow-wrap:anywhere;max-width:100%;min-width:0}
+.app-shell[data-button-style] .workspace .results-workspace .statistical-report {border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;color:var(--foreground)!important}
+.statistics-panel .statistical-report h3 {font-size:25px!important;margin:0 0 22px!important}
+.statistical-report h4 {margin-top:30px!important;padding-top:16px;border-top:1px solid var(--line)}
+.statistical-report .result-table-scroll table {white-space:normal;table-layout:auto}
+.statistics-panel .statistical-report th,.statistics-panel .statistical-report td {overflow:visible;text-overflow:clip;white-space:pre-wrap;overflow-wrap:anywhere}
+.statistics-download-status {flex-basis:100%;margin:0;color:var(--muted);font-size:13px}
+@media(max-width:700px){.statistics-page-header{gap:14px}.statistics-export{width:100%}.statistics-page-tabs{overflow-x:auto}.statistics-facts{grid-template-columns:1fr}}
+
+/* Compact request telemetry follows the existing disclosure and button materials. */
+.request-diagnostics{margin:10px 0;border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;overflow-wrap:anywhere}
+.request-diagnostics summary{cursor:pointer;color:var(--text);font-weight:600;font-size:13px}
+.request-diagnostics p,.request-diagnostics li{font-size:12px;line-height:1.5}
+.request-diagnostics>details,.request-diagnostics details{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.request-diagnostics dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 10px;font-size:12px}
+.request-diagnostics dt,.request-diagnostics dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.request-diagnostics dd{text-align:right}
+.request-diagnostics-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.request-diagnostics-actions button{font-size:12px;padding:5px 8px}
+
+.app-shell .planner-dialogue>.intent-error{flex:0 0 auto;max-height:28vh;overflow:auto}
+.app-shell .planner-dialogue>.request-diagnostics{flex:0 0 auto;max-height:38vh;overflow:auto;scrollbar-gutter:stable}
+
+.app-shell .planner-dialogue{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+
+.analysis-goal-cards{flex:0 0 auto;max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px}
+.analysis-goal-cards h4,.analysis-goal-cards h5{margin:0 0 8px;font-size:14px;color:var(--foreground)}
+.analysis-goal-cards article{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.analysis-goal-cards p,.analysis-goal-cards li{line-height:1.5;overflow-wrap:anywhere}
+.analysis-goal-cards dl{display:grid;grid-template-columns:minmax(75px,1fr) minmax(0,2fr);gap:6px}
+.analysis-goal-cards dt,.analysis-goal-cards dd{margin:0;overflow-wrap:anywhere}
+.analysis-goal-cards summary{cursor:pointer;font-weight:600;margin:10px 0}
+.analysis-goal-cards button{margin-top:8px}
+
+.analysis-goal-cards dd{text-transform:none}

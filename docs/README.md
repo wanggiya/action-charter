@@ -18,6 +18,7 @@ Start with the [project README](../README.md) for installation, scope and the ex
 
 - [Contributing](../CONTRIBUTING.md)
 - [Documentation responsibilities](DOCUMENTATION_GUIDE.md)
+- [Product direction 2026-11: vision, editions/interfaces, autonomous platform design](product-direction/README.md)
 - [Architecture](../context/ARCHITECTURE.md)
 - [Current status](../context/CURRENT_STATUS.md)
 - [Product roadmap](../context/PRODUCT_ROADMAP.md)

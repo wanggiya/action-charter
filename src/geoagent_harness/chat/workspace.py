@@ -9,13 +9,17 @@ HELP='''Type a message to continue this chat. Read-only exploration may calculat
 /refresh             Reload current chat and list after frontend work
 /mode [single|three] Set agent mode for subsequent planning; never execute
 /report [RUN_ID]     Read the recorded coordinated report
+/diagnostics         Read saved request usage and failures
 /workflow            Show the current workflow and parameters
-/result [VIEW] [FIELD]  overview, columns, table, chart, groups, checks
+/result [VIEW] [FIELD]  overview, columns, table, chart, groups, report, checks
 /chart FIELD         Show saved field distributions as terminal bars
 /chart groups [total|within]  Chart saved grouped percentages
 /charts              Chart command guide
 /groups FIELD [SPLIT] Explicit complete-file grouped calculation, no model call
 /columns FIELD SPLIT  Two-field cross-tab (same calculation as /groups)
+/statistics [RUN_ID] Read recorded descriptive statistics, matrices and regression
+/guidance [RUN_ID]   Read recorded candidate statistical fields and cautions
+/analysis-report [RUN_ID] Read the same source-linked statistical report
 /crosstab count|row|column|total [swap] Display saved two-field groups
 /tablefields FIELD [FIELD]  Load selected source columns
 /review              Inspect exact current operations, inputs and effects
@@ -74,6 +78,23 @@ class Workspace:
         line=line.strip()
         if not line:return ''
         if not self.state:self.refresh()
+        if line.split()[0]=='/guidance':
+            self.operation('/run',line.split()[1:])
+            advice=[(s.get('outcome') or {}).get('field_guidance') for s in self.last_run.get('steps',[])]
+            advice=[g for g in advice if g]
+            if not advice:raise ChatError('No field guidance in this saved run. A new inspection can record it; no scan was started.')
+            lines=[]
+            for g in advice:
+                lines += [f"Recorded field guidance: {clean(g['source'],960)} · {g['matching_rows']} inspected records",'Advisory candidates; choose the objective and confirm field meanings before statistics.']
+                lines += [clean(kind.title()+': '+', '.join(names),2000) for kind,names in g['candidates'].items()]
+                lines += [clean(f['name']+': '+'; '.join(f['cautions']),2000) for f in g['fields'] if f['cautions']]
+            return '\n'.join(lines)
+        if line.split()[0] in {'/statistics','/analysis-report'}:
+            self.operation('/run',line.split()[1:])
+            reports=[((s.get('outcome') or {}).get('table_analysis') or {}).get('statistics') for s in self.last_run.get('steps',[])]
+            reports=[r['report_markdown'] for r in reports if r]
+            if not reports:raise ChatError('No statistical analysis is recorded. Ask Planner to include the methods and execute the read-only workflow.')
+            return '\n\n'.join('\n'.join(clean(line,64000) for line in r[:64000].split('\n'))+('\n[Terminal report display truncated at 64,000 characters; download the recorded report in Outcome → Statistics.]' if len(r)>64000 else '') for r in reports)
         if self.uncertain_execution and (not line.startswith('/') or line.split()[0] in {'/new','/open','/continue'}):raise ChatError('Execution response is unconfirmed. Inspect /history and /run RUN_ID before sending or switching chats.')
         if self.pending_receipt and (not line.startswith('/') or line.split()[0] in {'/new','/open','/continue'}):raise ChatError('Last submission is unconfirmed. Use /receipt then /refresh before sending or switching chats.')
         if not line.startswith('/'):
@@ -115,11 +136,18 @@ class Workspace:
             if len(args)!=1 or args[0] not in {'single','three'}:raise ChatError('Use /mode single or /mode three')
             self.state=self.client.post('/api/v1/planner/conversation',{'action':'configure_agent_mode','conversation_id':self.identity,'expected_revision':self.state['revision'],'agent_mode':args[0]});self.review=None;self.authorization=None
             return 'Next planning mode: '+args[0]+'. Existing runs keep their recorded mode; nothing executed.'
-        if command=='/report':
-            identity=args[0] if args else (self.last_run or {}).get('run_id')
+        report_run=self.historical.get('run') if self.historical else self.last_run
+        if command=='/report' and (args or report_run):
+            identity=args[0] if args else (report_run or {}).get('run_id')
             if not identity:raise ChatError('Use /report RUN_ID')
             report=self.client.post('/api/v1/workflow/runs',{'action':'report','run_id':identity})
+            if report.get('handoff'):
+                doc=report['handoff']
+                return '\n'.join(clean(line,64000) for line in (doc['analytical_markdown']+'\n'+doc['technical_markdown']).splitlines())
             return json.dumps(report,indent=2,ensure_ascii=False)
+        if command=='/diagnostics':
+            value=self.client.post('/api/v1/planner/diagnostics',{'conversation_id':self.identity})
+            return table(['Kind','Status','Role / phase','Error','Seconds'],[[r['kind'],r['status'],r.get('role','')+' / '+r.get('phase','submission'),r.get('error_code') or '',(r.get('resources') or {}).get('elapsed_seconds','unknown')] for r in value['records']])+'\nSampled API process RAM is shared; model/worker/GPU memory and missing tokens are unknown. Nothing retried or executed.'
         if command=='/workflow':return workflow_text((self.historical or self.state).get('planner_result'))
         if command=='/history':
             history=self.history();self.entries=history['entries']
@@ -156,7 +184,7 @@ class Workspace:
             else:value=interactive_view(self.client,self.state,'groups',cross_measure=measure,cross_swap=swap)
             if not value.get('cross_tab'):raise ChatError('Use /groups FIELD SPLIT to calculate a two-field grouping first.')
             return render_view(value)
-        if command in {'/result','/overview','/columns','/table','/chart','/groups','/checks'}:
+        if command in {'/result','/overview','/columns','/table','/chart','/groups','/checks','/report'}:
             if command=='/groups' and args:return self.calculate('groups',args)
             if command=='/columns' and len(args)==2:return self.calculate('groups',args)
             view=args[0] if command=='/result' and args else 'overview' if command=='/result' else command[1:]
@@ -191,8 +219,16 @@ class Workspace:
         if self.uncertain_execution and command not in {'/run','/cancel'}:raise ChatError('Execution response is unconfirmed; inspect /history and /run RUN_ID before another action')
         if command in {'/run','/cancel'}:
             identity=args[0] if args else (self.last_run or {}).get('run_id')
+            run=None
+            if not identity and command=='/run':
+                proposal=self.state.get('planner_result') or {}
+                if proposal.get('plan_sha256'):
+                    run=self.client.post('/api/v1/workflow/runs',{'action':'latest','conversation_id':self.identity,'confirmed_plan_sha256':proposal['plan_sha256']}).get('record')
+                    if run and (run.get('conversation_id')!=self.identity or run.get('plan_sha256')!=proposal['plan_sha256']):
+                        raise ChatError('Recovered run does not match this conversation and plan')
+                    identity=(run or {}).get('run_id')
             if not identity:raise ChatError('Use /run RUN_ID from /history or /execute')
-            run=self.client.post('/api/v1/workflow/runs',{'action':'read','run_id':identity})
+            if run is None:run=self.client.post('/api/v1/workflow/runs',{'action':'read','run_id':identity})
             if run.get('conversation_id')!=self.identity:raise ChatError('Run does not belong to this chat')
             if command=='/cancel':run=self.client.post('/api/v1/workflow/runs',{'action':'cancel','run_id':identity})
             if self.uncertain_execution:

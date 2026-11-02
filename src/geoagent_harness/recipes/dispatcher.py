@@ -235,7 +235,9 @@ def _dispatch_recipe_step(
             if step.skill_id not in PG_READS:
                 from geoagent_harness.postgres.service import claim_authority
                 claim_authority(settings,envelope.approval_id,step_id)
-            value=inspect_postgres(step.skill_id,step.arguments,settings) if step.skill_id in PG_READS else run_postgres(step.skill_id,step.arguments,settings,completed_results)
+            value=(inspect_postgres(step.skill_id,step.arguments,settings,completed_results) if step.skill_id=='validate_postgres_import' else inspect_postgres(step.skill_id,step.arguments,settings)) if step.skill_id in PG_READS else run_postgres(step.skill_id,step.arguments,settings,completed_results)
+            if step.skill_id=='validate_postgres_import' and not value['passed']:
+                raise PostgresError('Import mapping validation failed: '+str(value['column_findings'])[:1500])
             status='completed' if step.skill_id in PG_READS else 'completed_pending_validation'
             validation_performed=False
         elif is_extension(step.skill_id):

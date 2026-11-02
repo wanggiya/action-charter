@@ -1,5 +1,16 @@
 # Real-data work after inspection — acceptance targets
 
+2026-10-29: [readiness/full-data slice](READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md)
+adds shared measured assessment/reporting and bounded role evidence; source quality,
+missingness, mappings and groups are composed without another model or data scan.
+Full-file numerical checks are distinct from pending local-model/user acceptance and
+authorized full-scale PostgreSQL/preparation validation. The 5,000-row sample is a
+preliminary fixture; never silently substitute it for the full supplied dataset.
+
+2026-10-27 expanded scope: [science, formats, memory and remote acceptance](DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+extends this target matrix to statistical inference/modeling and multi-format adapters.
+Reports must include methods, evidence and diagnostics, not merely initial inspection.
+
 2026-10-27 design: [generalization/consolidation](GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
 records how to pursue these targets through shared contracts/adapters and reusable skills,
 instead of binding product behavior to the diabetes data or adding per-dataset services.

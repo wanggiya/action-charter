@@ -52,7 +52,7 @@ def test_large_csv_inspection_streams_but_processing_limits_stay(dataset,monkeyp
     assert result['row_count']==20000 and result['source_sha256']==digest.hexdigest()
     from geoagent_harness.operations.registry import TableMetadata,TableArtifact
     assert TableMetadata.model_validate(result).row_count==20000
-    assert TableArtifact.model_json_schema()['properties']['row_count']['maximum']==10000
+    assert TableArtifact.model_json_schema()['properties']['row_count']['maximum']==200000
     assert path.stat().st_size>8*1024**2
     assert len(json.dumps(result).encode())<16000
     with pytest.raises(service.TabularError,match='8 MiB'):service.read_bytes(dataset,'orders.csv')

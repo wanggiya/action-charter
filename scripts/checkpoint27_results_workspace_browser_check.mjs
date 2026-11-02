@@ -51,7 +51,7 @@ try{
  await page.getByText(/The running API has an older or incompatible Planner version/).waitFor();
  assert.equal(calls.filter(call=>call.path==='/api/v1/planner/conversation'&&call.action==='turn').length,turnsBeforeLegacy);
  await page.unroute('**/api/v1/health');
- assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'inspection-source-v2');
+ assert.equal((await page.evaluate(async()=>await (await fetch('/api/v1/health')).json())).planner_contract_revision,'statistics-v2');
  cases.push('Legacy API is detected before a planner POST; current health reports the loaded Planner contract');
  await generate('Inspect sample_orders.csv. Calculate doubled as amount multiplied by 2, preserve original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.');
  const inspector=page.locator('#workflow-information');

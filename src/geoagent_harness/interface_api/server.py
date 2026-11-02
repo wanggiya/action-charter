@@ -147,7 +147,7 @@ MAX_INTERFACE_DATA_RESOURCES = 500
 MAX_INTERFACE_CRITIC_EVIDENCE = 200
 INTERFACE_DATA_EXTENSIONS = {
     ".csv", ".geojson", ".gpkg", ".json", ".kml", ".parquet",
-    ".shp", ".tif", ".tiff", ".tsv",
+    ".shp", ".tif", ".tiff", ".tsv", ".xlsx", ".jsonl", ".ndjson",
 }
 
 
@@ -3124,6 +3124,7 @@ def _handler(
                 return
             if self.path not in {
                 "/api/v1/models/select",
+                "/api/v1/models/reasoning",
                 "/api/v1/write-policy",
                 "/api/v1/recipe-proposals/compile",
                 "/api/v1/tasks/events",
@@ -3148,6 +3149,7 @@ def _handler(
                 "/api/v1/reusable-recipes",
                 "/api/v1/planner/conversation",
                 "/api/v1/planner/submit",
+                "/api/v1/planner/diagnostics",
                 "/api/v1/analysis/view",
                 "/api/v1/chat/history",
                 "/api/v1/method-memory",
@@ -3192,6 +3194,11 @@ def _handler(
                     except CatalogError as error:
                         self._send(HTTPStatus.CONFLICT, {'error': str(error), 'execution_performed': False})
                         return
+                elif self.path == '/api/v1/models/reasoning':
+                    from geoagent_harness.model.catalog import select_reasoning,ReasoningSelection,CatalogError
+                    try:response=select_reasoning(project_root,ReasoningSelection.model_validate(payload))
+                    except CatalogError as error:
+                        self._send(HTTPStatus.CONFLICT,{'error':str(error),'execution_performed':False});return
                 elif self.path == '/api/v1/write-policy':
                     response = update_write_policy(project_root, PolicyUpdate.model_validate(payload))
                 elif self.path == "/api/v1/context/retrieve":
@@ -3345,6 +3352,13 @@ def _handler(
                 elif self.path == "/api/v1/method-memory":
                     from .method_memory import MethodRequest, method_action
                     response = method_action(MethodRequest.model_validate(payload), project_root=project_root)
+                elif self.path == "/api/v1/planner/diagnostics":
+                    from geoagent_harness.model.telemetry import read as read_diagnostics
+                    class DiagnosticRequest(BaseModel):
+                        model_config=ConfigDict(extra='forbid')
+                        conversation_id:str=Field(pattern=r'^[a-f0-9]{32}$')
+                    diagnostic_request=DiagnosticRequest.model_validate(payload)
+                    response=read_diagnostics(project_root,diagnostic_request.conversation_id)
                 elif self.path == "/api/v1/planner/submit":
                     from .planner_submission import SubmissionRequest, submission_action
                     response = submission_action(SubmissionRequest.model_validate(payload), project_root=project_root)
@@ -3564,6 +3578,7 @@ def _handler(
                 })
                 return
             except PlannerAgentError as exc:
+                from geoagent_harness.model.telemetry import error_code as diagnostic_error_code
                 message = str(exc)
                 if getattr(exc, "reason", None) == "unverified_reuse_claim":
                     error = "planner claimed unverified recipe reuse"
@@ -3593,6 +3608,10 @@ def _handler(
                     error = "planner model returned an invalid plan schema"
                     code = "planner_invalid_schema"
                     finding = "; ".join(exc.findings) or "The model response did not satisfy the required workflow-plan schema."
+                elif diagnostic_error_code(exc)=='planner_review_needs_revision':
+                    error='planner role review requested revision'
+                    code='planner_review_needs_revision'
+                    finding='An advisory role requested changes after the bounded correction. This is separate from deterministic operation validation.'
                 elif "deterministic policy" in message:
                     error = "planner plan was rejected by deterministic policy"
                     code = "planner_policy_rejected"
@@ -3609,7 +3628,7 @@ def _handler(
                     "schema_findings": exc.findings,
                     "correction_attempted": exc.correction_attempted,
                     "planner_diagnostics": getattr(exc, "planner_diagnostics", None),
-                    "retry_guidance": ("The Planner must follow the declared text-capability contract: propose a bounded missing candidate when ON, or use the supplied compatible installed operation. Do not substitute numeric arithmetic. Your workflow is preserved; do not add approval flags or edit stored files." if code == "planner_capability_gap" else "The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted the calculation after one correction. Your saved workflow is preserved. Retry the same calculation request with automatic skill selection or calculate_csv_columns enabled; do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "Clarify the exact skills, arguments, approval requirements, and validation requirements, then retry."),
+                    "retry_guidance": ("The Planner must follow the declared text-capability contract: propose a bounded missing candidate when ON, or use the supplied compatible installed operation. Do not substitute numeric arithmetic. Your workflow is preserved; do not add approval flags or edit stored files." if code == "planner_capability_gap" else "The model cited a reuse source that was unavailable, uninspected or unrelated. The saved workflow is preserved. Retry the same task; ordinary planning needs no recipe selection or extra authorization instructions." if code == "planner_reuse_unverified" else "The model omitted a requested operation after one correction. Your saved workflow is preserved. Inspect the listed missing method or operation and retry with a compatible selected model. No execution happened. Do not edit stored plans or add authorization instructions." if code == "planner_scope_incomplete" else "The endpoint reported finish_reason=length. Increase MODEL_MAX_TOKENS in the launcher environment and restart, or reduce the requested workflow scope. The saved workflow is preserved; no partial plan was accepted." if code == "planner_output_truncated" else "This is a model-output failure, not missing user authorization or technical details. Your saved workflow is preserved. Retry the same task after checking the running backend and selected skills; do not add approval or validation rules to your request." if code == "planner_repair_deferred" else "The model did not follow the plan structure after a bounded correction. Inspect the listed fields and retry generation with the same reviewed scope; do not modify stored review files." if code in {"planner_invalid_json", "planner_invalid_schema"} else "The role review requested changes after one correction. Inspect the supplied finding and current workflow. No authorization instruction can repair this review disagreement; no extra retry or execution happened." if code=="planner_review_needs_revision" else "The proposed workflow did not satisfy registered operation contracts. Review the listed finding and current workflow. Internal task IDs and approval flags are not user authorization instructions; changing permissions cannot repair an invalid plan."),
                     "plan_returned": False,
                     "plan_saved": False,
                     "approval_performed": False,
@@ -3624,7 +3643,7 @@ def _handler(
                 if self.path in {"/api/v1/planner/conversation", "/api/v1/planner/submit", "/api/v1/method-memory", "/api/v1/reusable-recipes"}:
                     if isinstance(exc, ModelClientError):
                         message, code = str(exc), exc.code
-                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. Try MODEL_REASONING_EFFORT=none on a compatible Ollama model, fewer selected skills, or a smaller installed model. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
+                        guidance = ("The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. In Settings → Model service, try Reasoning effort None for a compatible model, fewer selected skills, or a smaller installed model. Saved project reasoning settings apply to new requests without a launcher restart. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow."
                                     if code == "model_timeout" else "The configured endpoint rejected JSON-schema output. Check its structured-output support. For a compatible endpoint that only supports JSON mode, explicitly set MODEL_RESPONSE_FORMAT=json_object in the launcher environment and restart. No automatic fallback or retry occurred." if code == "model_response_format_rejected" else "Planner reached its call or configured time limit. Review request diagnostics; reduce the scope or adjust trusted launcher settings. Nothing executed." if code == "planner_budget_exhausted" else "Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.")
                     elif isinstance(exc, ModelSettingsError):
                         message, code = "Planner model configuration is invalid or missing", "model_configuration_failed"

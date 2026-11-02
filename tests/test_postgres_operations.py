@@ -123,6 +123,6 @@ def test_same_chat_bindings_and_authority_attempts(settings):
 def test_postgres_schema_focus_does_not_bloat_unrelated_csv():
  from geoagent_harness.planner.prompt_scope import schema_scope
  available=list(ARGUMENTS)+['inspect_csv','calculate_csv_columns','join_csv']
- assert schema_scope('Import visits.csv into PostgreSQL',available)==['import_csv_to_postgres','inspect_csv']
+ assert schema_scope('Import visits.csv into PostgreSQL',available)==['validate_postgres_import','import_csv_to_postgres','inspect_csv']
  assert schema_scope('Soft delete the selected PostgreSQL rows',available)==['inspect_postgres_table','soft_delete_postgres_rows']
  assert 'import_csv_to_postgres' not in schema_scope('Calculate a column in visits.csv',available)

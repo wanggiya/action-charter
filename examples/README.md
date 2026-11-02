@@ -1,5 +1,9 @@
 # Examples by function
 
+New [flat record tables](table_formats/README.md) provide equivalent JSON/JSON Lines
+fixtures for XLSX/record-adapter and statistical figure acceptance; XLSX is generated
+in temporary automated tests rather than bundled as a binary archive.
+
 Choose by outcome below. Checkpoint directories remain in place for historical compatibility.
 
 | Function | Example | What it demonstrates |

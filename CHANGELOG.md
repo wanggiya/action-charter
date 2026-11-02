@@ -1,3 +1,207 @@
+# Inspection-led analysis goals and report metric coverage (2026-10-30)
+
+- Add typed Planner advice over recorded inspection fields/source hashes, persisted per chat.
+- Show concise goal cards with prerequisites, metrics and capability gaps; supported goals
+  continue through normal planning without automatic execution or authorization.
+- Reject numeric inference on identifiers/codes and expose statistical row limits.
+- Add measured/not-calculated statistical coverage to new readiness reports. Classification
+  evaluation, categorical hypothesis tests and causal analysis remain unavailable.
+- Verification: 2,254 backend tests passed, interface validation and isolated browser/API/CLI/PTY
+  passed; actual local-model advice passed in one 67.6-second call. Scientific review and
+  broader real-data acceptance remain open.
+- See [acceptance and limitations](docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+
+# Project reasoning settings and report planning contracts (2026-10-30)
+
+- Add persistent, revision-checked reasoning selection to Model service Settings and
+  backend request context; new requests apply it without environment edits or restart.
+  Active requests remain pinned. Shared-client payload and Settings persistence tested.
+- Separate derived analytical report views from legacy PostGIS evidence-file steps.
+  Ordinary table reports focus on inspection, exclude unrequested generate_report in
+  decoding and reject it in backend coverage before the bounded correction.
+- Bind missing task identity for explicitly requested legacy evidence steps before
+  review; preserve PostGIS validation and normal exact write authorization.
+- Keep background workflow telemetry independent of inherited submission contexts.
+- Verification: 2,248 tests, interface validation and isolated browser/API/CLI/PTY passed.
+- Actual model produced a read-only inspection/report proposal after one correction;
+  broad role-mode/model reliability remains an open gate. No live DB or Git changes.
+
+# Inspection routing and failure diagnostics access (2026-10-30)
+
+- Recognize numerical-summary wording without stripping typed analysis fields; route
+  eligible one-inspector requests, including metadata-only requests, through the
+  existing focused instruction profile rather than general planning instructions.
+- Put View request diagnostics in the failure message; open/scroll the bounded
+  disclosure and make the Planner panel scroll instead of clipping controls.
+- Display the sent reasoning setting separately from provider defaults. No model
+  setting, timeout retry, validation rule or execution authority is silently changed.
+- Actual timeout evidence showed ~211 MiB API RSS and at least ~3.49 GiB available
+  system RAM; model/GPU memory remains unmeasured. RAM exhaustion is not established.
+- Matched focused-prompt test: provider-default reasoning timed out at 120.1 s;
+  explicit none returned a valid proposal in 38.6 s with the same 1,024-token cap.
+  Verification: 2,244 tests, interface validation and isolated browser/CLI/PTY passed.
+- [Scope and recorded acceptance](docs/REQUEST_DIAGNOSTICS.md).
+
+# Durable request telemetry and actionable failures (2026-10-29)
+
+- Persist content-free submission/model-call records before dispatch and after success,
+  timeout, invalid replies or policy failures. Retain safe categories across refresh;
+  distinguish advisory revision requests from deterministic operation rejection.
+- Add bounded per-chat SQLite storage, process-interruption detection, nested-chat
+  isolation, reported token usage and sampled API RSS/CPU/system available memory.
+  Worker/model/GPU memory stays unknown; raw prompts/replies/data/secrets are excluded.
+- Add collapsible Planner diagnostics, sanitized JSON export, terminal `/diagnostics`
+  and CLI/API parity. Failed first chats remain discoverable without copying prompts.
+- Give advisory reviews up to 60 seconds within existing model/coordinator limits;
+  no extra attempt, automatic timeout retry, write authority or accepted invalid plan.
+  Full-source inspection planning reproduction passed; Single-mode workflow reliability
+  remains open after a separate failed bounded-correction experiment.
+- [Scope, evidence and manual validation](docs/REQUEST_DIAGNOSTICS.md).
+
+# Full-source preparation, PostgreSQL preflight and handoff (2026-10-29)
+
+- Qualify bounded streaming selection/filter/null handling/codebook decoding/export
+  and aggregation from validated CSV ancestors; retain existing dataframe limits.
+- Bind eligible streaming strategies before review, preserve explicit false, and
+  validate source identity/complete outputs before create-only publication.
+- Register read-only PostgreSQL mapping preflight across Planner/MCP/CLI; add explicit
+  per-column null policies and repeat full mapping checks before import transactions.
+- Record mapping digest/executed typed CREATE; preserve bounded schema facts in saved
+  runs before trimming preview rows. Add analytical/technical saved reports with
+  frontend Markdown/PDF, CLI/terminal and MCP access without execution replay.
+- Extend full-source disposable database acceptance and JSON/PDF browser coverage.
+  Real-model Single/Three selection passed; advisory reviews timed out. F5 remains
+  partial; this is not one-shot arbitrary workflow/model certification.
+- Verification: 2,230 tests passed, interface validation and isolated JSON/PDF/browser/
+  CLI/PTY journeys passed; full-source saved-run roundtrip matched every projected
+  record in disposable PostgreSQL. Original files and live services unchanged.
+- [Current scope and manual acceptance](docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+
+# Readiness assessment and full-data reporting (2026-10-29)
+
+- Documentation only: record the dependency-ordered full-data preparation, schema
+  preflight, PostgreSQL round trip, analytical/technical handoff and agent-mode acceptance
+  plan, including skill/service ownership and measurable gates. No future capability
+  is marked implemented by this planning record.
+
+- Timeout follow-up: focus single-inspector quality planning on concise relevant rules,
+  retain typed schemas/governance, expose the instruction profile in failure diagnostics,
+  and verify one-call timeout preservation. Actual Ollama latency remains unmeasured.
+
+- Compose typed source-bound readiness evidence from existing analytical/profile results,
+  preserving unknown checks, missing policies, mapping coverage and complete group bases.
+- Add Outcome Report using existing styling and Markdown/PDF export; share evidence via
+  CLI/MCP, CLI --report and saved terminal /report without execution replay.
+- Reuse statistical tables/figures when they fit; declare omissions and retain original
+  results. Share pure group-percentage calculation with interactive views.
+- Update existing Planner/Critic/statistical skill guidance and review evidence; block
+  silent neighbouring-sample substitution in the bounded exploration loop.
+- Reconcile full-file calculations independently; real-model/user and full database
+  acceptance remain separate. No new agent, write authority or dependency installation.
+
+# Shared table-source consolidation (2026-10-29)
+
+- Replace duplicated CSV/record inspection assembly with typed bounded batches and one
+  consumer for counts, preview, analysis, guidance and source evidence.
+- Centralize trusted reader capabilities across registry, relevant Planner metadata and
+  policy; add read-only MCP list_operation_contracts discovery.
+- Add validated table-source-v1 evidence without expanding the v1 digest formula or rewriting old
+  snapshots; normalize default percentile labels across direct/CLI/MCP validation.
+- Add unrelated cross-format/entry-point regression cases; broader consolidation and
+  manual acceptance remain open. No unrestricted library execution or authority added.
+
+# Statistical figures and common table readers (2026-10-29)
+
+- Add recorded grouped-mean figures, selectable correlation heatmaps and local PDF
+  figures; keep numerical tables and adjacent advisory agent assessment distinct.
+- Extend the stable table inspection operation with bounded XLSX and flat JSON/JSONL/
+  NDJSON readers, typed source selection, original hashes and explicit native-preview/
+  string-analysis semantics. No formula evaluation or permanent CSV conversion.
+- Share CLI/MCP/Planner contracts; preserve selected source table during result reads,
+  keep CSV transforms restricted and new-format execution separate from sending.
+- Declare XLSX dependencies and synthetic examples; prior/current manual acceptance pending.
+
+# Analytical recommendations and review evidence (2026-10-28)
+
+- Extend recorded advice with supported analysis opportunities and next-analysis Planner
+  questions that preserve the workflow; update existing statistical skill and role guidance.
+- Add optional statistical question, report definition/computed-finding sections and
+  bounded source/specification/group/missingness evidence for Critic review.
+- Verify actual local-model advice/grouped/Pearson proposals on temporary synthetic data,
+  plus question/report/PDF/terminal history browser acceptance. No new agent or authority.
+
+# Inspection-to-analysis starters (2026-10-28)
+
+- Prepare an explicit descriptive-analysis request from initial inspection, with a
+  numerical field and optional group selection; preserve separate Planner review/Execute.
+- Reuse typed statistical contracts and recorded reports through existing services;
+  exclude incomplete/ambiguous measurements from this shortcut without imputing values.
+- Reconcile the real sample's complete and age-group means, plus unrelated fixture
+  statistics, CLI/MCP results, browser request/Execute/report and terminal history.
+
+# Initial statistical field guidance and Summary rows (2026-10-28)
+
+- Fix vertically squeezed Summary/Regression labels with scoped responsive rows.
+- Add bounded full-scan candidate field guidance to initial CSV inspection and reuse
+  comprehensive profiling rules; keep identifiers, codes and missingness cautions explicit.
+- Show candidate families in Outcome Overview and prepare an optional Planner question;
+  advice-only responses preserve the workflow and never dispatch inspection/statistics.
+- Register read-only MCP recommend_table_fields, CLI table-guidance and terminal
+  /guidance; preserve source hashes, output budgets, old snapshots and worker isolation.
+
+# Statistics pages, PDF reports and covariance matrices (2026-10-28)
+
+- Use page-style statistical navigation, larger typography and readable diagnostic
+  facts; match existing result/material controls and remove inherited report-card styling.
+- Offer Markdown/PDF downloads from the same recorded report, with locally bundled
+  lazy PDF code/fonts, pagination and wide-table continuation. No upload or new execution.
+- Produce structured source/scope, descriptive/percentile, missingness, matrix, model,
+  inference and runtime tables; preserve historical reports and exact filter evidence.
+- Add labeled covariance matrices through the existing workflow/Planner/MCP/CLI family,
+  with explicit ddof and complete-case bounds, independent numerical checks and PDF parsing.
+
+# Exact-scope saved-run recovery (2026-10-27)
+
+- Recover runs by conversation and plan before global inventory display limits; reuse
+  the scoped read in frontend restoration and terminal `/run` without a known run ID.
+- Reconnect polling for active restored runs and retain matching evidence on failed
+  refresh, with visible status. No execution retry or authority restoration.
+- Fix assistance receipt JSON persistence and cached rereading. Test unrelated-receipt
+  saturation, scope isolation, read-only recovery, failure retention and timeout history.
+
+# Adjustable grouped charts, 3D columns and execution-state clarity (2026-10-27)
+
+- Restore a larger Comfortable default with Compact/Large presets, retaining proper
+  percentage denominators and shared grouped rendering.
+- Add optional SVG-projected two-field 3D columns with rotation/elevation, keyboard/
+  click facts and unchanged recorded values; no plotting dependency added.
+- Explain disabled header Execute states and distinguish proposal restoration from
+  execution. Add restore-before-execute/history-state browser acceptance; no authority change.
+
+# Applied result names and grouped percentage charts (2026-10-27)
+
+- Bind displayed table/group titles to applied fields; distinguish draft selections.
+- Share grouped-chart presentation across ordinary/session outcomes, including exact
+  record-count percentage bases, 0–100% percentage axes and a compact chart area.
+- Start the T01 ownership/Builder audit with concrete paths and compatibility gaps;
+  retain existing statistical measures and separate execution boundaries.
+
+# Age-by-gender cross-tab in CSV inspection Outcome (2026-10-27)
+
+- Connect the shared cross-tab renderer to ordinary executed CSV grouping, which
+  previously displayed a flat list; label Explore as Groups with row/column controls.
+- Preserve detailed numeric/distinct measures, charts and recorded two-field groups.
+- Exercise actual real-sample cell reconciliation, full-file totals, percentages and
+  axis swapping in isolated browser journeys; no live database or input changes.
+
+# Statistical, format and deployment requirements — documentation only (2026-10-27)
+
+- Record broader descriptive/inferential/modeling reports, qualified causal analysis,
+  multi-format source adapters and measurable acceptance targets.
+- Clarify Builder role versus lifecycle services, reuse existing generation foundations,
+  and require scoped memory/knowledge readiness before autonomous Linux deployment.
+- No runtime capability, dependency installation or remote-service operation added.
+
 # Analytical inspection prompt scope (2026-10-27)
 
 - Focus explicit read-only CSV profiling on its inspector schema instead of unrelated
@@ -892,6 +1096,27 @@ Explicit reviewed-intent plan storage, exact provenance/scope checks, existing P
 - Added fake-model regression tests and terminal acceptance guide. No frontend or execution authority changes.
 
 # Changelog
+
+## 2026-10-27 — typed table statistics and analytical reports
+
+- Regression omission follow-up: statistics-v2 constrains the proposal's requested
+  method/analysis/regression structure and cluster grouping requirements; providers
+  ignoring the schema still fail deterministic policy. Clarification remains possible.
+  Corrected generic omission advice and preserved table-statistics-v1 result history.
+  Fixed covariance/variance request matching and unused descriptive selectors in
+  regression-only proposals, exposed by a real-model synthetic acceptance run.
+
+- Timeout follow-up: statistics-only requests use focused instructions/examples and
+  relevant recipes instead of the general planning prompt. Preserves history, schemas,
+  allowlist, deterministic policy and no automatic retry; model latency remains unproven.
+
+- Extended existing CSV inspection with descriptive/grouped statistics, Pearson/Spearman
+  matrices and numeric OLS coefficients, standard errors, P-values, confidence intervals,
+  R-squared and diagnostics; explicit missingness/covariance choices and bounded scans.
+- Registered typed MCP tools, Planner method coverage/catalog guidance and shared CLI
+  access; optional scientific dependencies declared. No arbitrary code or new authority.
+- Added recorded Outcome Statistics sections, Markdown download and terminal report
+  reads. [Acceptance and remaining limits](docs/TABLE_STATISTICS_ACCEPTANCE.md).
 
 ## Checkpoint 22B — exact context review and storage
 

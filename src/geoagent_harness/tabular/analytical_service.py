@@ -31,6 +31,14 @@ def source_reference(result):
             lifecycle='recorded query and evidence; no materialized full-table cache').model_dump(mode='json')
 
 
+def recommend_fields(root,path,*,delimiter=',',source_options=None):
+    """Shared fresh inspection advice; no model, dataframe, stats dispatch or writes."""
+    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    path=relative_path(path,'input')
+    result=bounded_read(Path(root).resolve(strict=True),action='csv_discover',path=path,delimiter=delimiter,preview_rows=0,analysis={'source_options':source_options} if source_options is not None else None)
+    return result['field_guidance']
+
+
 def recorded_analysis(root, record, request, *, max_seconds=None):
     """Explicit new read, bound to a completed chat/plan/step and original sources."""
     if (request.confirmed_plan_sha256 != record['plan_sha256'] or not request.conversation_id
@@ -43,6 +51,14 @@ def recorded_analysis(root, record, request, *, max_seconds=None):
     if not outcome.get('source_sha256'):
         raise ValueError('No verified source identity in the recorded result')
     options = request.table_options or AnalysisOptions()
+    original_selection=((step.get('arguments') or {}).get('analysis') or {}).get('source_options')
+    from .analysis_contracts import TableSourceOptions
+    original_selection=TableSourceOptions.model_validate(original_selection).model_dump(mode='json') if original_selection is not None else None
+    selected=options.source_options.model_dump(mode='json') if options.source_options is not None else None
+    if selected is not None and selected!=original_selection:
+        raise ValueError('Changing worksheet/record selection requires a new reviewed inspection')
+    if original_selection is not None:
+        options=options.model_copy(update={'source_options':TableSourceOptions.model_validate(original_selection)})
     original = (outcome.get('table_analysis') or {}).get('codebook')
     requested_codebook = relative_path(options.codebook_path, 'input') if options.codebook_path else None
     if requested_codebook != (original['path'] if original else None):

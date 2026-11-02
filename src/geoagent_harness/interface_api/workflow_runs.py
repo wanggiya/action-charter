@@ -10,6 +10,8 @@ import hashlib
 import json
 import os
 import tempfile
+import re
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,7 +34,7 @@ from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
 
 class RunRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    action: Literal['start', 'list', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview', 'explore', 'spatial_view', 'table_analysis', 'execution_assistance', 'report']
+    action: Literal['start', 'list', 'latest', 'read', 'cancel', 'recover', 'assess', 'retain', 'preview', 'explore', 'spatial_view', 'table_analysis', 'execution_assistance', 'report']
     run_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
     workflow: WorkflowRequest | None = None
     conversation_id: str | None = Field(default=None,pattern=r'^[a-f0-9]{32}$')
@@ -199,6 +201,18 @@ def fit_table_preview(value,limit=6000):
     return result
 
 
+def fit_database_receipt(value,limit=48000):
+    """Retain bounded actual mapping/schema facts before trimming displayed rows."""
+    if not isinstance(value,dict) or not (value.get('column_metadata') or value.get('schema_version')=='postgres-import-preflight-v1'):
+        return value
+    result={**value}
+    if 'preview' in result:
+        result['preview']=list(result['preview'])
+        while result['preview'] and len(json.dumps(result).encode())>limit:
+            result['preview'].pop();result['preview_truncated']=True
+    return result
+
+
 class _Observer:
     def __init__(self, directory, identity):
         self.directory, self.identity = directory, identity
@@ -226,8 +240,8 @@ class _Observer:
                     else:
                         step['finished_at'] = _now()
                     if outcome is not None:
-                        bounded = _bounded_outcome(fit_table_preview(outcome))
-                        limit = 128000 if isinstance(bounded,dict) and isinstance(bounded.get('table_analysis'),dict) else 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
+                        bounded = _bounded_outcome(fit_database_receipt(fit_table_preview(outcome)))
+                        limit = 48000 if skill_id in {'validate_postgres_import','import_csv_to_postgres','inspect_postgres_table','export_postgres_to_csv'} else 128000 if isinstance(bounded,dict) and isinstance(bounded.get('table_analysis'),dict) else 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
                         if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
                             from geoagent_harness.skills.inspect_vector.preview import fit_recorded_geometry
                             bounded = fit_recorded_geometry(bounded)
@@ -242,7 +256,7 @@ class _Observer:
             _write(self.directory, record)
 
 
-def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
+def _worker_impl(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
     from .inspection_policy import active_inspection
     inspection_token = active_inspection.set(inspection_binding)
     from geoagent_harness.recipes.control import observer, ExecutionCancelled
@@ -317,6 +331,21 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspe
         assess_run(root,identity)
 
 
+def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
+    from geoagent_harness.model.telemetry import scope,phase
+    try:conversation_id=_read(directory,identity).get('conversation_id')
+    except Exception:conversation_id=None
+    if not conversation_id:return _worker_impl(root,directory,identity,workflow,fd,review_outcome,inspection_binding)
+    from geoagent_harness.model.catalog import request_selection
+    with scope(root,conversation_id,independent=True) as telemetry,request_selection(root):
+        telemetry['record']['workflow_run_id']=identity
+        with phase('executor','workflow'):
+            result=_worker_impl(root,directory,identity,workflow,fd,review_outcome,inspection_binding)
+        try:telemetry['record']['workflow_status']=_read(directory,identity)['status']
+        except Exception:pass
+        return result
+
+
 def _retain_record(root, directory, record):
     from geoagent_harness.planner.outcome_recommendations import record_outcome
     try:
@@ -369,11 +398,47 @@ def _recovery(root, record):
     return validate_edit(EditRequest(action='validate_plan_edit', planner_result=result), project_root=root)
 
 
+def _latest_scoped_run(directory, request):
+    """Find exact saved scope before applying an inventory display limit.
+
+    Inspect metadata without reconciling/writing unrelated runs. A bounded lookup
+    failure is unavailable evidence, never a claim that no run exists.
+    """
+    from .server import InterfaceApiError
+    if not request.conversation_id or not request.confirmed_plan_sha256:
+        raise InterfaceApiError('Latest run lookup requires the exact conversation and plan')
+    started = time.monotonic()
+    latest = None
+    for index, path in enumerate(directory.glob('*.json')):
+        if index >= 10000 or time.monotonic() - started > 3:
+            raise InterfaceApiError('Scoped run lookup exceeded its budget. Open Execution History; no execution was retried.')
+        if not re.fullmatch('[a-f0-9]{32}', path.stem):
+            continue
+        try:
+            if path.is_symlink() or not path.is_file() or path.stat().st_size > 512000:
+                raise ValueError('Unsafe receipt')
+            record = json.loads(path.read_text())
+            if not isinstance(record, dict) or record.get('run_id') != path.stem or not isinstance(record.get('started_at'), str):
+                raise ValueError('Invalid receipt')
+        except (OSError, ValueError):
+            raise InterfaceApiError('Scoped run lookup encountered an unreadable receipt. Inspect Execution History; saved work was not retried.') from None
+        if (record.get('conversation_id') == request.conversation_id
+                and record.get('plan_sha256') == request.confirmed_plan_sha256
+                and (latest is None or (record['started_at'], record['run_id']) > (latest['started_at'], latest['run_id']))):
+            latest = record
+    # Only the selected scope may undergo existing interrupted-run reconciliation.
+    return _read(directory, latest['run_id']) if latest else None
+
+
 def run_action(request: RunRequest, *, project_root: Path, background=True, inspection_binding=None, submission_run_id=None):
     from .server import _trusted_root, InterfaceApiError
     from .workflow import prepare_workflow
     root = _trusted_root(project_root)
     directory = _directory(root)
+    if request.action == 'latest':
+        with _LOCK:
+            record = _latest_scoped_run(directory, request)
+        return {'record':record,'execution_performed':False,'approval_performed':False}
     if request.action == 'execution_assistance':
         with _LOCK:
             record = _read(directory, request.run_id)
@@ -402,7 +467,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
             raise InterfaceApiError(str(error)) from error
         with _LOCK:
             latest = _read(directory,request.run_id)
-            latest['execution_assistance', 'report'] = {**response,'request_sha256':identity}
+            latest['execution_assistance'] = {**response,'request_sha256':identity}
             _write(directory,latest)
         return response
     if request.action=='assess':
@@ -444,8 +509,8 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         if request.action != 'start':
             record = _read(directory, request.run_id)
             if request.action=='report':
-                if not record.get('agent_report'):raise InterfaceApiError('No coordinated task report is recorded yet')
-                return record['agent_report']
+                from geoagent_harness.recipes.handoff import handoff
+                return {**(record.get('agent_report') or {}),'handoff':handoff(record)}
             if request.action == 'cancel' and record['status'] not in TERMINAL:
                 record['cancel_requested'] = True
                 record['status'] = 'cancelling'

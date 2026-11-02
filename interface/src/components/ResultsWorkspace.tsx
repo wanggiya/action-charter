@@ -1,3 +1,7 @@
+import {StatisticsPanel} from './StatisticsPanel';
+import {ReadinessReport} from './ReadinessReport';
+import {WorkflowHandoff} from './WorkflowHandoff';
+import {FieldGuidance} from './FieldGuidance';
 import {TaskAgentReport} from './TaskAgentReport';
 import {ColumnExplorer,GroupExplorer,useTableAnalysis} from './TableExplorer';
 import type {TableAnalysis} from './AnalyticalProfile';
@@ -22,8 +26,8 @@ import {ResultTable,emptyTableView} from './ResultTable';
 import {VerifiedResultExplorer} from './VerifiedResultExplorer';
 import {exploreResult,defaultExplorationQuery,type ExplorationResult,type ExplorationQuery,type ChartAnalysisSpec,type ResultViewSpec} from '../lib/result-exploration';
 
-export type ResultView='Overview'|'Columns'|'Explore'|'Table'|'Map'|'Chart'|'Checks';
-const resultViews:ResultView[]=['Overview','Table','Map','Chart','Checks'];
+export type ResultView='Overview'|'Columns'|'Explore'|'Table'|'Map'|'Chart'|'Checks'|'Statistics'|'Report';
+const resultViews:ResultView[]=['Overview','Table','Map','Chart','Report','Checks'];
 const object=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const verifiedSchema=z.object({run_id:z.string(),plan_sha256:z.string(),step_id:z.string(),source:z.string(),source_sha256:z.string(),verified_at_read:z.literal(true),row_count:z.number(),column_count:z.number(),columns:z.array(z.string()).max(32),preview:z.array(z.record(z.unknown())).max(1000),preview_truncated:z.boolean(),columns_truncated:z.boolean(),cells_truncated:z.boolean(),chart_analysis:z.object({columns:z.array(z.string()).max(2),preview:z.array(z.object({category:z.string().nullable(),value:z.number().finite().nullable()})).max(100),row_count:z.number(),source_row_count:z.number(),scope:z.literal('complete_verified_artifact'),group_by:z.string(),value:z.string().nullable(),aggregation:z.string(),missing_values:z.string()}).optional(),execution_performed:z.literal(false),approval_performed:z.literal(false)});
 export type ResultRecord={run_id:string;plan_sha256?:string;conversation_id?:string|null;status:string;started_at?:string;steps:WorkflowRun['steps'];finding?:string|null;durable?:WorkflowRun};
@@ -48,16 +52,17 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
   const step=record.steps.find(s=>s.step_id===stepId)!;
   const outcome=object(step.outcome),spatial=object(spatialView?.kind==='vector'?spatialView.spatial_preview:outcome.spatial_preview);
   const [interactiveAnalysis,setInteractiveAnalysis]=useState<TableAnalysis|null>(null);
-  const analytical=interactiveAnalysis??parseAnalysis(outcome.table_analysis);
+  const recordedAnalysis=parseAnalysis(outcome.table_analysis);
+  const analytical=interactiveAnalysis??recordedAnalysis;
   const analysisReader=useTableAnalysis(record,stepId,setInteractiveAnalysis);
   const csvAnalysisAvailable=step.skill_id==='inspect_csv'&&['completed','validated_success','reused_completed'].includes(step.status);
   const availableColumns=Array.isArray(outcome.columns)?outcome.columns.filter((c):c is string=>typeof c==='string'):[];
-  const analyticalViews:ResultView[]=csvAnalysisAvailable?['Overview','Columns','Explore','Table','Chart','Checks']:resultViews;
+  const analyticalViews:ResultView[]=csvAnalysisAvailable?['Overview','Columns','Explore','Table','Chart','Statistics','Report','Checks']:resultViews;
   const table=Array.isArray(outcome.columns)&&Array.isArray(outcome.preview);
   const discovery=object(outcome.discovery);
   const preliminary=discovery.phase==='verifying';
   const verificationStopped=preliminary&&!['queued','running','cancelling'].includes(record.status);
-  const completeExplorationAvailable=!(Number(discovery.file_bytes)>8*1024*1024||Number(outcome.row_count)>10000);
+  const completeExplorationAvailable=outcome.data_contract!=='table/records-v1'&&!(Number(discovery.file_bytes)>8*1024*1024||Number(outcome.row_count)>10000);
   const spatialDisplayAvailable=!(discovery.schema_version==='spatial-discovery-v1'&&(
     Number(discovery.file_bytes)>8*1024*1024||Number(outcome.band_count)>16||
     Number(outcome.width)*Number(outcome.height)*Number(outcome.band_count)>100000000||
@@ -111,13 +116,16 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
       if(next===null)return;
       event.preventDefault();setView(analyticalViews[next]);
       event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]')[next]?.focus();
-    }}>{analyticalViews.map(tab=><button type="button" key={tab} role="tab" tabIndex={view===tab?0:-1} aria-selected={view===tab} aria-controls={`result-view-${tab}`} id={`result-tab-${tab}`} onClick={()=>setView(tab)}>{tab}</button>)}</nav>
+    }}>{analyticalViews.map(tab=><button type="button" key={tab} role="tab" tabIndex={view===tab?0:-1} aria-selected={view===tab} aria-controls={`result-view-${tab}`} id={`result-tab-${tab}`} onClick={()=>setView(tab)}>{tab==='Explore'?'Groups':tab}</button>)}</nav>
     <div ref={bodyRef} className="results-body" role="tabpanel" tabIndex={0} id={`result-view-${view}`} aria-labelledby={`result-tab-${view}`}>
       <article className="outcome-step result-active-operation">
-        <header className="result-operation-heading"><div><h3>{view}</h3><span>{skillLabel(step.skill_id)} · {stepId} · {step.status.replaceAll('_',' ')}</span></div>{completed&&<span className="result-source-badge">{preliminary?(verificationStopped?'Verification incomplete':'Verification pending'):spatialView?'Spatial hash verified at read':verified||explored||interactiveAnalysis?'CSV hash verified at read':'Recorded snapshot'}</span>}</header>
+        <header className="result-operation-heading"><div><h3>{view==='Explore'?`Groups${analytical?.group_by.length?' · '+analytical.group_by.join(' × '):''}`:view}</h3><span>{skillLabel(step.skill_id)} · {stepId} · {step.status.replaceAll('_',' ')}</span></div>{completed&&<span className="result-source-badge">{preliminary?(verificationStopped?'Verification incomplete':'Verification pending'):spatialView?'Spatial hash verified at read':verified||explored||interactiveAnalysis?'CSV hash verified at read':'Recorded snapshot'}</span>}</header>
         {!analytical&&<DiscoveryStatus outcome={outcome} runStatus={record.status} detailed={view==='Overview'}/>}
         {csvAnalysisAvailable&&view==='Columns'&&<ColumnExplorer analysis={analytical} columns={availableColumns} reader={analysisReader}/>}
         {csvAnalysisAvailable&&view==='Explore'&&<GroupExplorer analysis={analytical} columns={availableColumns} reader={analysisReader}/>}
+        {view==='Statistics'&&(recordedAnalysis?.statistics?<><StatisticsPanel result={recordedAnalysis.statistics}/>{record.durable&&<details className="statistics-assessment"><summary>Agent assessment · advisory</summary><CriticOutcome run={record.durable}/></details>}</>:<p>No statistical analysis recorded for this operation. Ask Planner to include descriptive statistics, correlation or an explicit regression specification, then execute the read-only inspection.</p>)}
+        {view==='Report'&&(csvAnalysisAvailable?<><ReadinessReport value={outcome.readiness_assessment} statistics={recordedAnalysis?.statistics} source={String(outcome.source??'')} sha256={String(outcome.source_sha256??'')}/>{typeof outcome.readiness_status==='string'&&<p>{outcome.readiness_status}</p>}{record.durable&&<details className="statistics-assessment"><summary>Agent assessment · advisory</summary><CriticOutcome run={record.durable}/></details>}<details><summary>Workflow technical handoff</summary><WorkflowHandoff record={record} technicalOnly/></details></>:<WorkflowHandoff record={record}/>)}
+        {view==='Overview'&&completed&&<FieldGuidance value={outcome.field_guidance}/>}
         {analytical&&view==='Overview'&&<AnalyticalProfile analysis={analytical} onTable={()=>setView('Table')}/>}
         {!completed&&<p role="status">This operation has no completed result. Any recorded values may be partial; inspect its status and recovery evidence.</p>}
         {record.finding&&<p className="result-notice">{record.finding}</p>}
@@ -136,7 +144,7 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
         {view==='Map'&&error&&<p role="alert">{error} Saved inspection evidence is preserved.</p>}
         {view==='Map'&&!spatialDisplayAvailable?<p>Metadata and package identity are available in Overview. This source exceeds the bounded viewer's file, feature, field or band limits; full geometry/pixel display is unavailable.</p>:view==='Map'&&(completed?(['inspect_vector','inspect_raster'].includes(step.skill_id)?<SpatialExplorer blocked={busy} scope={record.durable&&record.plan_sha256&&record.conversation_id?{run_id:record.run_id,plan_sha256:record.plan_sha256,conversation_id:record.conversation_id,step_id:stepId}:null} skill={step.skill_id} outcome={outcome} value={spatialView} onValue={setSpatialView} selectedRow={selectedRow} onSelectRow={index=>setSelectedRow(index<0?null:index)} camera={mapCamera} onCamera={setMapCamera} />:Array.isArray(outcome.layers)||outcome.spatial_preview?<PointMap value={spatial} camera={mapCamera} onCamera={setMapCamera} selectedRow={selectedRow} onSelectRow={setSelectedRow}/>:<p>No spatial snapshot recorded for this operation. Select a completed vector or raster inspection. CSV and database validation metadata are not map geometries.</p>):null)}
         {view==='Chart'&&analytical&&completed&&<AnalyticalChart analysis={analytical}/>}
-        {view==='Chart'&&!analytical&&(completed?(table||points.length?<><p>Configure the chart below. The plotted data identifies its sample or complete verified scope.</p><DataChart data={table?data:coordinateTable} analysis={object(explored?.chart_analysis??verified?.chart_analysis)} busy={busy} onAnalyze={table&&record.durable?(spec)=>{if(explored)void loadExploration(explored.query,{...spec,aggregation:spec.aggregation as ChartAnalysisSpec['aggregation']});else void load(spec);}:undefined} options={chartState} onOptions={setChartState} selectedRow={explored?explored.row_ids.indexOf(selectedRow??-1):selectedRow} onSelectRow={index=>setSelectedRow(explored?.row_ids[index]??index)}/>{explored&&<p>Filters apply to {explored.matched_row_count} of {explored.row_count} verified source rows. Aggregates cover all matching rows; unaggregated marks show only the current page sample.</p>}{error&&<p role="alert">{error}</p>}{selectedRow!==null&&(explored?explored.row_ids.indexOf(selectedRow):selectedRow)>=20&&<p>The selected table row lies outside the first 20 chart rows.</p>}</>:<p>No chartable table or geometry-attribute snapshot recorded. Choose an executed CSV or vector operation.</p>):null)}
+        {view==='Chart'&&!analytical&&(completed?(table||points.length?<><p>Configure the chart below. The plotted data identifies its sample or complete verified scope.</p><DataChart data={table?data:coordinateTable} analysis={object(explored?.chart_analysis??verified?.chart_analysis)} busy={busy} onAnalyze={table&&completeExplorationAvailable&&record.durable?(spec)=>{if(explored)void loadExploration(explored.query,{...spec,aggregation:spec.aggregation as ChartAnalysisSpec['aggregation']});else void load(spec);}:undefined} options={chartState} onOptions={setChartState} selectedRow={explored?explored.row_ids.indexOf(selectedRow??-1):selectedRow} onSelectRow={index=>setSelectedRow(explored?.row_ids[index]??index)}/>{explored&&<p>Filters apply to {explored.matched_row_count} of {explored.row_count} verified source rows. Aggregates cover all matching rows; unaggregated marks show only the current page sample.</p>}{error&&<p role="alert">{error}</p>}{selectedRow!==null&&(explored?explored.row_ids.indexOf(selectedRow):selectedRow)>=20&&<p>The selected table row lies outside the first 20 chart rows.</p>}</>:<p>No chartable table or geometry-attribute snapshot recorded. Choose an executed CSV or vector operation.</p>):null)}
         {view==='Checks'&&<><ReadableValidation value={step.validation_outcome}/><details><summary>Validation details</summary><pre>{JSON.stringify(step.validation_outcome,null,2)}</pre></details>{record.durable&&<><ExecutionAssistance record={record} stepId={stepId}/><CriticOutcome run={record.durable}/></>}</>}
       </article>
       <details className="results-provenance"><summary>Source and run identity</summary><dl><div><dt>File reference</dt><dd>{path}</dd></div><div><dt>Run ID</dt><dd>{record.run_id}</dd></div><div><dt>Plan digest</dt><dd>{record.plan_sha256??'Not recorded'}</dd></div><div><dt>Recorded execution</dt><dd>{record.status}</dd></div></dl><p>Saved snapshots do not establish current file freshness. Viewing/filtering/selecting data does not modify it or grant execution authority.</p></details>

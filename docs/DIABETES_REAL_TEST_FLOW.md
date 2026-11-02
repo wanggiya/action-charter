@@ -1,5 +1,74 @@
 # Real diabetes sample — frontend acceptance flow
 
+2026-10-29: the **full supplied file is the real acceptance target**. The sample-scale
+flow below remains a preliminary/reference journey. Follow the new
+[readiness and full-data acceptance](READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md) before
+claiming full-data completion. Report now combines existing evidence; actual-model
+planning, domain review and full-scale preparation/database transfer remain unverified.
+
+## Inspection to descriptive analysis — 2026-10-28
+
+Follow the [six exact steps and known answers](INITIAL_FIELD_GUIDANCE.md#exact-real-data-validation)
+to inspect the sample, prepare time_in_hospital grouped by age, Execute and examine
+the recorded report. This exercises general shared field guidance/statistics rather
+than a dataset-specific operation. Expect 5,000 rows, ten age groups, mean 4.6592 and
+sample variance 9.647384836967394; do not mix this sample with the full source.
+
+## Age-by-gender cross-tab — 2026-10-27
+
+The ordinary executed CSV inspection Outcome previously used a flat grouped list;
+the cross-tab was only wired into the separate analytical-session Groups view.
+Both now reuse the same two-field renderer. In ordinary Outcome the old Explore
+tab is labeled **Groups**; existing internal view identifiers remain compatible.
+
+1. Restart the launcher and refresh to load the new frontend. Open the completed
+   inspection run for `data/input/test/diabetic_sample_5000.csv`; do not rerun writes.
+2. Open **Outcome**. If multiple operations exist, select **Inspect CSV table** in
+   **Operation result**. A saved proposal without an executed inspection has no result;
+   execute the read-only inspection first, or reopen its actual completed run.
+3. Select **Groups**. Set **Rows (vertical)** to `age` and **Columns (horizontal)**
+   to `gender`. Optional distinct/numeric summaries and filters are under **Additional
+   measures and filters**. Clear the filter unless testing a deliberately filtered population.
+4. Click **Run analysis**. This is a source-verified full-file read, not an LLM request
+   or a new workflow execution; write authorization is unnecessary. The source must
+   remain available and match the recorded identity.
+5. In **Result table**, expect age bands down the left, observed gender categories
+   across the top, counts in cells and a grand total of **5,000** for this unfiltered
+   sample. Categories absent from the source are not invented.
+6. **Cell values** switches count / row percentage / column percentage / overall
+   percentage. **Swap rows and columns** changes orientation. These presentation
+   changes do not rescan the source. **Detailed measures** retains other computed
+   numeric/distinct summaries; **Result chart** remains available.
+
+For changed fields, apply the calculation before expecting the result title to change:
+the title describes the displayed data, not the draft controls. Group chart supports
+record counts or percentages with a visible all-matching/within-row denominator and
+0–100% percentage axis. **Chart size** offers Compact, Comfortable (default) and Large;
+the default uses the available width rather than the previous narrow chart. Additional numeric/distinct
+chart measures remain selectable separately; those are not automatically percentages.
+
+For two-field groups, **Chart → 3D columns** puts the first/second grouping fields on
+the base and count/percentage on the height axis. Rotation/elevation sliders and Reset
+adjust the view without a new read. Click or keyboard-activate a column for exact
+values/denominator; background/Escape dismisses details. Height is a third visual axis,
+not a third input feature. The cross-table/2D view remains the exact comparison path;
+perspective may obscure columns. No new plotting dependency or model call is required.
+
+Execution-state follow-up: disabled header Execute now provides its reason in its
+tooltip/accessible description and graph status. Reloading a saved proposal does not
+create an Outcome; the browser explicitly checks restore-before-execution. Historical
+views remain read-only. This does not establish that every timeout/recovery case is solved.
+
+For the analytical-session Outcome, use **Groups**, the same row/column selections,
+then **Apply grouping**. Historical snapshots do not permit new source calculations;
+return to the current workflow/session when a fresh grouping is required.
+
+Browser acceptance uses temporary copies of the real sample/codebook, reconciles every
+displayed age/gender count against all 5,000 source rows, and verifies totals/percentages.
+A separate 20,000-row fixture checks equal gender splits, axis swapping and no new
+analysis calls for display changes. Model proposals are fixtures; actual backend reads
+and browser rendering are exercised. No live database calls or original-file mutations.
+
 Prepared 2026-10-26 against the files actually present under `data/input/test`.
 This is a structural/descriptive data-engineering test, not a clinical cohort,
 population estimate, trained model or evidence of autonomous domain learning.

@@ -112,3 +112,11 @@ def test_preflight_correction_is_bounded_and_failed_attempt_preserves_plan(proje
  state=conversation_turn(TurnRequest(action='read',conversation_id=ID),project_root=project)
  assert state['planner_result']['plan_sha256']==good['planner_result']['plan_sha256']
  assert state['agent_attempt']['metrics']['model_calls']<=6
+
+
+def test_review_budget_allows_local_model_but_preserves_coordination_deadline():
+ client=Client();coordinator=Coordinator('single',client=client)
+ receipt=coordinator.review('executor','preflight',{'steps':[{'step_id':'step_1'}]})
+ assert receipt['status']=='complete'
+ assert 15<client.requests[0].timeout_seconds<=60
+ assert not receipt['authority_granted'] and len(client.requests)==1

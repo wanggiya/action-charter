@@ -2,6 +2,8 @@ import {useEffect,useRef,useState} from 'react';
 import {parseAnalysis,type TableAnalysis} from './AnalyticalProfile';
 import {ResultTable,emptyTableView} from './ResultTable';
 import {DataChart} from './RecordedVisualization';
+import {DatasetCrossTab} from './DatasetCrossTab';
+import {GroupedChart} from './GroupedChart';
 import type {ResultRecord} from './ResultsWorkspace';
 import './TableExplorer.css';
 
@@ -67,7 +69,7 @@ export function ColumnExplorer({analysis,columns,reader}:{analysis:TableAnalysis
 export function GroupExplorer({analysis,columns,reader}:{analysis:TableAnalysis|null;columns:string[];reader:Reader}) {
   const [group,setGroup]=useState(analysis?.group_by[0]??columns[0]??''),[split,setSplit]=useState(analysis?.group_by[1]??'');
   const [distinct,setDistinct]=useState((analysis?.request.distinct_columns as string[]|undefined)?.[0]??''),[numeric,setNumeric]=useState((analysis?.request.numeric_columns as string[]|undefined)?.[0]??''),[filterColumn,setFilterColumn]=useState(analysis?.request.filters?.[0]?.column??''),[filterValue,setFilterValue]=useState(analysis?.request.filters?.[0]?.value??'');
-  const [presentation,setPresentation]=useState<'table'|'chart'>('table'),[measure,setMeasure]=useState('row_count');
+  const [presentation,setPresentation]=useState<'table'|'details'|'chart'>('table'),[measure,setMeasure]=useState('row_count');
   const [state,setState]=useState(emptyTableView),[selected,setSelected]=useState<number|null>(null);
   const [missingGroup,setMissingGroup]=useState('');
   const run=()=>{
@@ -80,27 +82,32 @@ export function GroupExplorer({analysis,columns,reader}:{analysis:TableAnalysis|
   };
   const metrics=analysis?.groups.length?Object.keys(analysis.groups[0]).filter(c=>!analysis.group_by.includes(c)):[];
   const effectiveMeasure=metrics.includes(measure)?measure:'row_count';
-  const chartRows=analysis?.groups.map(g=>({group:JSON.stringify(analysis.group_by.map(n=>{const value=String(g[n]??'');const definition=analysis.codebook?.sections[n]?.[value];return definition?`${value}: ${definition}`:value;})),[effectiveMeasure]:g[effectiveMeasure]}))??[];
+  const chartCategory=analysis?.group_by.join(' / ')||'Group';
+  const chartRows=analysis?.groups.map(g=>({[chartCategory]:JSON.stringify(analysis.group_by.map(n=>{const value=String(g[n]??'');const definition=analysis.codebook?.sections[n]?.[value];return definition?`${value}: ${definition}`:value;})),[effectiveMeasure]:g[effectiveMeasure]}))??[];
   return <section className="table-explorer" aria-label="Grouped data explorer">
     <p>Choose fields and measures, then run an explicit complete-file calculation. No model call or workflow regeneration is required.</p>
     <div className="analytical-controls">
-      <label>Group by<select aria-label="Explore group by" value={group} onChange={e=>setGroup(e.target.value)}>{columns.map(c=><option key={c}>{c}</option>)}</select></label>
-      <label>Split by<select aria-label="Explore split by" value={split} onChange={e=>setSplit(e.target.value)}><option value="">None</option>{columns.filter(c=>c!==group).map(c=><option key={c}>{c}</option>)}</select></label>
+      <label>Rows (vertical)<select aria-label="Explore group by" value={group} onChange={e=>{setGroup(e.target.value);if(split===e.target.value)setSplit('');}}>{columns.map(c=><option key={c}>{c}</option>)}</select></label>
+      <label>Columns (horizontal)<select aria-label="Explore split by" value={split} onChange={e=>setSplit(e.target.value)}><option value="">None</option>{columns.filter(c=>c!==group).map(c=><option key={c}>{c}</option>)}</select></label>
+    </div>
+    <details><summary>Additional measures and filters</summary><div className="analytical-controls">
       <label>Distinct count field<select aria-label="Explore distinct field" value={distinct} onChange={e=>setDistinct(e.target.value)}><option value="">None</option>{columns.map(c=><option key={c}>{c}</option>)}</select></label>
       <label>Numeric summary field<select aria-label="Explore numeric field" value={numeric} onChange={e=>setNumeric(e.target.value)}><option value="">None</option>{columns.map(c=><option key={c}>{c}</option>)}</select></label>
       <label>Filter field<select aria-label="Explore filter field" value={filterColumn} onChange={e=>setFilterColumn(e.target.value)}><option value="">No filter</option>{columns.map(c=><option key={c}>{c}</option>)}</select></label>
       <label>Exact filter value<input aria-label="Explore filter value" disabled={!filterColumn} value={filterValue} onChange={e=>setFilterValue(e.target.value)}/></label>
     </div>
+    </details>
     <button disabled={reader.busy||!group||split===group} onClick={run}>Run analysis</button>
     <AnalysisRequestStatus reader={reader}/>
+    {analysis&&JSON.stringify(analysis.group_by)!==JSON.stringify([group,...(split?[split]:[])])&&<p className="result-notice">Selection changed. Run analysis to apply it; the displayed result still shows {analysis.group_by.join(' × ')||'the previous calculation'}.</p>}
     <p>Controls are a draft. Results below use the recorded query: {analysis?.group_by.join(' / ')||'No grouping yet'}. Coverage: {analysis?.matched_row_count.toLocaleString()??'—'} matching / {analysis?.source_row_count.toLocaleString()??'—'} source rows.</p>
     {analysis&&<details><summary>Result scope and definitions</summary><p>Exact row/encounter counts and proportions use all matching rows. Distinct counts exclude declared missing values and may overlap across groups. Numeric summaries require explicitly selected numerical meaning.</p><p>Missing group tokens remain separate raw groups; no category is silently removed. Numeric invalid values are excluded from numeric measures and reported in column profiles.</p><pre>{JSON.stringify(analysis.request,null,2)}</pre></details>}
-    {analysis?.profiles.filter(p=>p.numeric).map(p=><p key={p.name}>Numeric field {p.name}: {p.numeric!.count.toLocaleString()} valid values · {p.numeric!.invalid_count.toLocaleString()} invalid · {p.missing_count.toLocaleString()} missing. Counts and means exclude invalid/missing values.</p>)}
+    {analysis?.profiles.some(p=>p.numeric)&&<details><summary>Numeric field coverage</summary>{analysis?.profiles.filter(p=>p.numeric).map(p=><p key={p.name}>Numeric field {p.name}: {p.numeric!.count.toLocaleString()} valid values · {p.numeric!.invalid_count.toLocaleString()} invalid · {p.missing_count.toLocaleString()} missing. Counts and means exclude invalid/missing values.</p>)}</details>}
     {analysis?.groups.length?<>
-      <div className="verified-preview-controls"><button aria-pressed={presentation==='table'} onClick={()=>setPresentation('table')}>Result table</button><button aria-pressed={presentation==='chart'} onClick={()=>setPresentation('chart')}>Result chart</button></div>
-      {presentation==='table'?<ResultTable data={{columns:Object.keys(analysis.groups[0]),preview:analysis.groups,row_count:analysis.groups.length}} state={state} onState={setState} selectedRow={selected} onSelectRow={setSelected}/>:<>
+      <div className="verified-preview-controls"><button aria-pressed={presentation==='table'} onClick={()=>setPresentation('table')}>Result table</button><button aria-pressed={presentation==='chart'} onClick={()=>setPresentation('chart')}>Result chart</button>{analysis.group_by.length===2&&<button aria-pressed={presentation==='details'} onClick={()=>setPresentation('details')}>Detailed measures</button>}</div>
+      {presentation==='table'&&analysis.group_by.length===2?<DatasetCrossTab key={JSON.stringify(analysis.group_by)} fields={analysis.group_by} groups={analysis.groups} matchingRows={analysis.matched_row_count}/>:presentation!=='chart'?<ResultTable data={{columns:Object.keys(analysis.groups[0]),preview:analysis.groups,row_count:analysis.groups.length}} state={state} onState={setState} selectedRow={selected} onSelectRow={setSelected}/>:<>
         <label>Plot measure<select aria-label="Explore plot measure" value={effectiveMeasure} onChange={e=>setMeasure(e.target.value)}>{metrics.map(c=><option key={c}>{c}</option>)}</select></label>
-        {chartRows.length<=100?<DataChart key={effectiveMeasure+JSON.stringify(analysis.group_by)} data={{columns:['group',effectiveMeasure],preview:chartRows,row_count:chartRows.length}} completeGroups/>:<p>{chartRows.length} complete groups exceed the 100-group chart display limit. Use the result table or refine your grouping; no groups have been silently omitted.</p>}
+        {effectiveMeasure==='row_count'?<GroupedChart key={JSON.stringify(analysis.group_by)} fields={analysis.group_by} groups={analysis.groups} matchingRows={analysis.matched_row_count} controlPrefix="Explore" initialMeasure="count"/>:chartRows.length<=100?<DataChart key={effectiveMeasure+JSON.stringify(analysis.group_by)} data={{columns:[chartCategory,effectiveMeasure],preview:chartRows,row_count:chartRows.length}} completeGroups/>:<p>{chartRows.length} complete groups exceed the 100-group chart display limit. Use the result table or refine your grouping; no groups have been silently omitted.</p>}
       </>}
     </>:<p>No grouped result yet. Choose a low-cardinality field and run analysis.</p>}
     <details><summary>Missing-value policy for grouping field</summary><label>Declared missing group tokens<input value={missingGroup} onChange={e=>setMissingGroup(e.target.value)} placeholder="Comma separated; optional"/></label><small>Changes take effect on Run analysis. Missing declarations affect summaries; raw group labels remain visible.</small></details>

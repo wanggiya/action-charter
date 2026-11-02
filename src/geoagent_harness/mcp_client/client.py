@@ -26,11 +26,15 @@ from geoagent_harness.mcp_client.settings import (
 
 READ_ONLY_TOOL_ALLOWLIST = frozenset(
     {
+        "list_operation_contracts", "workflow_report",
         "profile_table",
+        "table_statistics",
+        "recommend_table_fields",
+        "linear_regression",
     "profile_dataset",
     "explore_dataset_view",
         "discover_inputs",
-        "discover_postgres_tables", "inspect_postgres_table",
+        "discover_postgres_tables", "inspect_postgres_table", "validate_postgres_import",
         "assess_table",
         "health_check",
         "discover_dataset",

@@ -15,7 +15,7 @@ FIELDS={
     'inspect_vector':{'metadata','feature count','fields','crs','bounds','geometry type','layer names','driver'},
     'inspect_raster':{'metadata','crs','width','height','dimensions','band count','bands','bounds','resolution','driver','nodata'},
 }
-FILENAME=r'[^\s,;]+\.(?:csv|tsv|geojson|gpkg|shp|tiff|tif)'
+FILENAME=r'[^\s,;]+\.(?:csv|tsv|xlsx|jsonl|ndjson|json|geojson|gpkg|shp|tiff|tif)'
 FIELD='|'.join(sorted(set.union(*FIELDS.values()),key=len,reverse=True))
 PATTERN=re.compile(r'\s*inspect\s+(?P<files>'+FILENAME+r'(?:\s*,\s*'+FILENAME+r'|\s+and\s+'+FILENAME+r'){0,3})\.?\s*'
     r'(?:return\s+(?P<fields>(?:'+FIELD+r')(?:\s*(?:,|and)\s*(?:'+FIELD+r'))*)\.\s*)?(?:no writes\.?\s*)?',re.I)

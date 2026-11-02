@@ -11,6 +11,11 @@ connection string, arbitrary SQL, package installation or shell execution from a
    do not invent clinical meanings or exclusion rules.
 2. Propose typed preparation using existing select/filter/missing/join/calculation
    operations only when needed. Declare join cardinality; reconcile row counts.
+   For select/filter/handle_csv_missing/decode/export_csv above 10,000 rows or 8 MiB,
+   use streaming=true: bounded chunks, at most 200,000 rows / 64 MiB output, verified
+   source identity and replay. It supports original inputs and validated CSV ancestors.
+   This does not enlarge join or calculation limits. Streaming aggregate_csv also
+   accepts validated CSV ancestors; keep output groups within its existing bounds.
 3. discover_postgres_tables / inspect_postgres_table reads allowed ordinary tables,
    including soft-deleted records. Inspection returns exact bounded table_sha256 and
    connection_sha256, counts, nulls, column metadata and a bounded saved preview.
@@ -20,6 +25,13 @@ connection string, arbitrary SQL, package installation or shell execution from a
    input requires source_sha256 from same-chat inspection; validated CSV ancestors use
    source_step. Backend may bind configured connection identity and already recorded
    source identity, without a new read or any permission grant.
+   First propose validate_postgres_import with the same mapping/source. It scans all
+   values for casts, nullability and key violations without database mutation. Its
+   proposed_ddl is not proof of target existence or permission. Import repeats the
+   same checks before CREATE TABLE. Use each column's optional null_values to override
+   the global policy only when explicitly justified; do not turn '?' into NULL in
+   unrelated fields. Preserve entity IDs as text and distinguish a unique observation
+   key from repeated entities. Unsupported types/DDL/constraints require another contract.
 5. export_postgres_to_csv creates a fresh selected-column CSV from an exact snapshot,
    or a validated database-writing ancestor for the same table. Null token defaults
    to backslash-N; collisions reject. Export includes all rows, including deleted ones.
@@ -45,11 +57,16 @@ Do not substitute new ordinary-table skills for spatial validation.
 
 Current database reads/import/export: at most 200,000 rows, 100 columns, 64 MiB encoded
 snapshot/source/output. Previews: at most 20 rows and 4 KiB. Per-statement timeout 15s;
-lock timeout 3s. Existing pandas preparation remains bounded to 10,000 rows/8 MiB;
-these database limits do not enlarge it. No arbitrary joins/SQL, append/replace, schema
+lock timeout 3s. Default pandas preparation remains bounded to 10,000 rows/8 MiB;
+only the qualified streaming paths above have larger bounds. No arbitrary joins/SQL, append/replace, schema
 creation, hard delete, automatic sampling or unvalidated model-generated code.
 
 Results/evidence report what actually completed. If commit acknowledgement or later
 validation fails, inspect history and the actual target. Cancellation rolls back before
 commit; it cannot reverse completed earlier steps. Never treat an uncertain response as
 proof of rollback. See docs/POSTGRES_DATA_WORKFLOW.md for acceptance and manual testing.
+
+workflow_report reads source-linked analytical and technical Markdown from a saved run.
+It distinguishes proposed DDL from observed column/key metadata, reports partial work,
+and includes source/output digests and recovery guidance. No model call, source scan,
+write retry or approval occurs. Full database defaults/indexes/grants are not a backup.

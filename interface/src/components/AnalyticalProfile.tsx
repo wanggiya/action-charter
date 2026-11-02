@@ -1,14 +1,16 @@
+import {statisticsSchema} from '../lib/table-statistics';
 import { useState } from 'react';
 import { z } from 'zod';
 import { ResultTable, emptyTableView } from './ResultTable';
 import type { ResultRecord } from './ResultsWorkspace';
 import { DataChart } from './RecordedVisualization';
+import { DatasetCrossTab } from './DatasetCrossTab';
 
 const row = z.record(z.union([z.string(), z.number(), z.null()]));
 const optionsSchema = z.object({codebook_path:z.string().nullable().optional(),profile_columns:z.array(z.string()).optional(),
   filters:z.array(z.object({column:z.string(),value:z.string()})).optional(),offset:z.number(),limit:z.number()}).passthrough();
 const frequency=z.object({status:z.literal('exact'),distinct_count:z.number(),once_only_values:z.number(),repeated_values:z.number(),rows_in_repeated_groups:z.number(),excess_occurrences:z.number()});
-const analysisSchema = z.object({schema_version:z.literal('table-analysis-v1'),source_row_count:z.number(),matched_row_count:z.number(),
+const analysisSchema = z.object({statistics:statisticsSchema.optional(),schema_version:z.literal('table-analysis-v1'),source_row_count:z.number(),matched_row_count:z.number(),
   available_columns:z.array(z.string()).optional(),quality:z.object({columns:z.record(frequency),duplicate_rows:frequency.nullable(),duplicate_key:frequency.extend({columns:z.array(z.string()),missing_key_rows:z.number(),candidate_key:z.boolean()}).passthrough().nullable()}).passthrough().optional(),
   columns:z.array(z.string()),distinct_counts:z.record(z.number()),
   profiles:z.array(z.object({name:z.string(),missing_count:z.number(),empty_count:z.number().optional(),declared_missing_count:z.number().optional(),frequency:frequency.nullable().optional(),distinct_count:z.number().nullable(),categories_status:z.string(),
@@ -49,6 +51,7 @@ export function AnalyticalProfile({analysis,onTable}:{analysis:TableAnalysis;onT
         <small>At most 12 categories displayed. Missing tokens follow the declared request; numeric syntax does not establish clinical meaning.</small></>}
     </details>
     {analysis.groups.length>0&&<details><summary>Full-file groups · {analysis.groups.length}</summary>
+      {analysis.group_by.length===2&&<DatasetCrossTab fields={analysis.group_by} groups={analysis.groups} matchingRows={analysis.matched_row_count}/>}
       <ResultTable data={{columns:Object.keys(analysis.groups[0]),preview:analysis.groups,row_count:analysis.groups.length}} state={groupsView} onState={setGroupsView} selectedRow={selectedGroup} onSelectRow={setSelectedGroup}/>
       <p>Group counts reconcile: {analysis.checks.group_count_reconciles?'Yes':'No'}. Denominator: {analysis.matched_row_count.toLocaleString()} matching encounters, not distinct patients.</p>
     </details>}
@@ -83,7 +86,7 @@ export function AnalyticalTable({initial,record,stepId}:{initial:TableAnalysis;r
   };
   const start=analysis.table.offset+1,end=Math.min(analysis.table.offset+analysis.table.preview.length,analysis.matched_row_count);
   return <section className="detail-section" aria-label="Verified analytical table">
-    <h3>Verified analytical table</h3>
+    <h3>Table · {analysis.table.columns.join(' × ')}</h3>
     <p>{analysis.matched_row_count?`Rows ${start}–${end}`:'No matching rows'} of {analysis.matched_row_count.toLocaleString()} matching records · {analysis.source_row_count.toLocaleString()} source records.</p>
     <label>Columns to show · up to 16<input value={columns} onChange={e=>setColumns(e.target.value)} /></label>
     <label>Filter column<select aria-label="Filter column" value={column} onChange={e=>setColumn(e.target.value)}>{initial.columns.map(c=><option key={c}>{c}</option>)}</select></label>

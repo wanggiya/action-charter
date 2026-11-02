@@ -166,7 +166,12 @@ def render_recipe_evidence_report(
         ]
     )
 
-    return "\n".join(lines)
+    from .handoff import handoff
+    record={'run_id':evidence.recipe_id,'plan_sha256':evidence.recipe_sha256,'status':evidence.final_status,
+        'steps':[{'step_id':s.step_id,'skill_id':s.skill_id,'status':s.status,
+                  'outcome':s.execution.result if s.execution else {},'validation_outcome':s.validation_result} for s in evidence.run_result.step_results]}
+    documents=handoff(record)
+    return "\n".join(lines)+'\n\n'+documents['analytical_markdown']+'\n'+documents['technical_markdown']
 
 
 def recipe_evidence_report_path(

@@ -8,9 +8,90 @@
 
 **Local AI-assisted data workflows with explicit approval and verifiable results.**
 
+The Planner can propose source-bound analysis goals from a recorded inspection, with
+actual candidate fields, prerequisites and supported/missing methods. Outcome → Overview
+→ **Let Planner propose analysis goals** opens suggestions; **Prepare this goal** plans
+without executing. New reports distinguish computed and uncomputed statistical metrics.
+[Scope, metric limits and validation](docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+
+Requests now keep content-free diagnostics for successes and failures: model/phase,
+time, request size, reported tokens and sampled API RAM/CPU. Open **Request diagnostics**
+in the Planner panel (also directly from a failed request), export sanitized JSON,
+or use terminal `/diagnostics`. Numeric-summary inspections use focused instructions. Unknown
+model/worker/GPU memory remains unknown; opening records never retries execution.
+[Measurements, privacy, limits and validation](docs/REQUEST_DIAGNOSTICS.md).
+Reasoning effort is now selectable in Settings → Model service and saved per project;
+new requests use it without a launcher restart. Inspection reports use Outcome Report,
+without an extra legacy evidence-file operation or internal task-ID entry.
+
+Analytical inspections now produce a source-bound **Data readiness and findings** report:
+field coverage, missingness, requested key/duplicate checks, codebook coverage and group
+percentages. Outcome -> Report exports Markdown/PDF; CLI/MCP share the structured evidence.
+Unknown checks and report omissions are explicit. Full supplied files remain the target;
+sample substitution is blocked in the exploration loop. [Structure and full-data test](docs/READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md).
+Quality-only planning uses concise table-inspection instructions; timeout diagnostics
+identify the active profile. Message size and full-file processing limits are separate.
+
+Qualified CSV preparation now supports full-file streaming (200,000 rows / 64 MiB
+output), typed PostgreSQL mapping preflight, per-column null policies and verified
+create-only import/export. Saved analytical/technical handoffs expose actual schema
+and receipts through Outcome Report, CLI and MCP. Joins/calculations retain their
+separate bounds. Local-model advisory review reliability remains open.
+[Scope and full-data/JSON/PDF validation](docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+
+Table readers now feed one typed, bounded inspection pipeline. A shared catalog drives
+reader discovery/policy and relevant Planner metadata; MCP `list_operation_contracts`
+exposes the same registry. New results retain original source identity in an additive
+descriptor; saved results stay compatible. [Structure, limits and validation](docs/TABLE_SOURCE_CONSOLIDATION.md).
+
+Table inspection/statistics now reads **XLSX, flat JSON, JSON Lines and NDJSON** through
+the existing operation and shared CLI/MCP service. Worksheet/header/range selection is
+explicit; formulas and nested records are not executed or silently flattened. Statistics
+adds recorded grouped-mean figures, correlation heatmaps and local PDF figures, with
+advisory agent assessment beside the results. [Support, limits and combined validation](docs/TABLE_FORMATS_AND_STATISTICAL_FIGURES.md).
+
+Initial CSV inspection now suggests statistical fields and cautions in Outcome →
+Overview. **Ask Planner about these fields** explains recorded candidates while
+preserving the workflow. [Field guidance and validation](docs/INITIAL_FIELD_GUIDANCE.md).
+**Prepare a descriptive analysis** lets you choose a complete numerical candidate and
+optional grouping field, then prepares a Planner request. Review the proposed workflow
+and click Execute; initial hints never silently calculate statistics.
+The Planner can now recommend next analyses from recorded field evidence, while
+reports separate analysis definition and computed findings. Critic guidance reviews
+scope and assumptions. [T05 behavior and validation](docs/T05_ANALYTICAL_ADVICE_AND_REVIEW.md).
+
+CSV agents now have typed descriptive/grouped statistics, Pearson/Spearman matrices
+and numeric OLS (coefficients, standard errors, P-values, intervals and R-squared).
+Shared workflow/MCP/CLI services produce source-linked reports in Outcome → Statistics.
+Statistics has readable page tabs and Markdown/PDF download selection. New reports
+include structured tables and covariance matrices using the same recorded evidence.
+See [pages, exports and validation](docs/STATISTICS_PAGES_AND_REPORTS.md).
+See [setup, limits and exact validation steps](docs/TABLE_STATISTICS_ACCEPTANCE.md).
+This is an initial statistical family, not causal inference or arbitrary Python execution.
+
+CSV inspection Outcome now exposes **Groups** for two-field cross-tabs: choose
+**Rows (vertical)** and **Columns (horizontal)**, then **Run analysis**. Age × gender
+counts and percentages cover all matching records; every cell was reconciled against
+the 5,000-row sample in browser acceptance. See [validation steps](docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27).
+Grouped result titles follow applied fields. Shared group charts show explicit percentage
+denominators on 0–100% axes in a bounded display area; changing display controls adds no model call.
+Choose Compact/Comfortable/Large sizing or optional **3D columns** for two-field groups;
+rotation and exact-value inspection use recorded results. Disabled Execute explains its state.
+Saved-run recovery now matches the exact chat and plan beyond the recent global inventory;
+terminal `/run` can reopen that matching run without an ID. Reads never retry execution.
+
+[Implementation to-do list](docs/IMPLEMENTATION_TODO.md) consolidates the next work,
+dependencies, existing foundations and acceptance gates. It is a plan, not delivered support.
+
+[Planned statistical and format expansion](docs/DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+records broader analytical reporting, document/image/point-cloud adapters, and memory
+before autonomous Linux operation. These are requirements, not current capability claims.
+
 [Planned generalization and consolidation](docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
 records the direction for reusable skills, shared data contracts and simpler agent
 coordination. This is a design record, not a claim that the proposed capabilities exist.
+The [Builder reuse plan](docs/BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md) distinguishes
+existing extension-code generation from proposed task-driven analytical skill acquisition.
 
 [Manual task agent modes](docs/TASK_AGENT_MODES.md): choose Single agent or Three
 agents in the conversation gear menu. Both share governed execution and saved

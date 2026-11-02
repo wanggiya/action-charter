@@ -30,7 +30,8 @@ def main():
         if spatial:
             from geoagent_harness.discovery.spatial import probe, inspect
         else:
-            from geoagent_harness.discovery.csv import probe, inspect
+            from geoagent_harness.discovery.csv import probe
+            from geoagent_harness.tabular.inspection import inspect_table as inspect
         arguments={} if spatial else {'delimiter':request['delimiter'],'preview_rows':request['preview_rows']}
         if not spatial and request['action'] == 'csv_discover' and request.get('analysis') is not None:
             arguments['analysis'] = request['analysis']
@@ -48,12 +49,16 @@ def main():
                 while encoded:
                     encoded=encoded[os.write(fd,encoded):]
             from geoagent_harness.tabular.analysis import AnalysisError
+            from geoagent_harness.tabular.statistics import StatisticsError
             try:
                 result=inspect(Path(request['root']),path,**arguments,
                                expected_identity=request.get('source_identity'),on_metadata=emit)
-            except AnalysisError as error:
+            except (AnalysisError, StatisticsError) as error:
                 print(json.dumps({'error_code':'table_analysis_rejected','error':str(error)}))
                 return
+            except ValueError as error:
+                if Path(path).suffix.lower() not in {'.xlsx','.json','.jsonl','.ndjson'}:raise
+                print(json.dumps({'error_code':'table_analysis_rejected','error':str(error)[:2000]}));return
         usage=resource.getrusage(resource.RUSAGE_SELF)
         result['resource_usage']={'worker_seconds':round(time.monotonic()-worker_started,4),'peak_rss_kib':usage.ru_maxrss}
         encoded=json.dumps(result,separators=(',',':'),allow_nan=False)

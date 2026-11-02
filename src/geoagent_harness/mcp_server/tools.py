@@ -58,10 +58,14 @@ from geoagent_harness.geoserver_publication import (
 )
 
 TOOL_ALLOWLIST = [
-    "discover_postgres_tables", "inspect_postgres_table",
+    "list_operation_contracts", "workflow_report",
+    "discover_postgres_tables", "inspect_postgres_table", "validate_postgres_import",
     "discover_inputs",
     "assess_table",
     "profile_table",
+    "table_statistics",
+    "recommend_table_fields",
+    "linear_regression",
     "profile_dataset",
     "explore_dataset_view",
     "discover_dataset",
@@ -117,6 +121,32 @@ def profile_table(path: str, options: dict | None = None, settings: MCPSettings 
     if active.input_root.resolve() != (active.project_root / 'data/input').resolve():
         raise ValueError('Analytical tools require the configured project data/input root')
     return profile(active.project_root, path, options)
+
+
+def workflow_report(run_id:str,settings=None):
+    from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
+    return run_action(RunRequest(action='report',run_id=run_id),project_root=(settings or load_settings()).project_root)
+
+def list_operation_contracts(query:str='',settings:MCPSettings|None=None)->dict:
+    """Registry discovery only: typed parameters/results/effects; no source reads."""
+    if not isinstance(query,str) or len(query)>160:raise ValueError('Operation search supports up to 160 characters')
+    from geoagent_harness.operations.registry import operation_catalog
+    active=settings or load_settings()
+    return operation_catalog(active.project_root,query)
+
+
+def table_statistics(path: str, specification: dict, missing_values: dict | None = None, settings: MCPSettings | None = None,source_options:dict|None=None) -> dict:
+    """Typed full-file describe/correlation/OLS methods; shared bounded reader, no writes."""
+    from geoagent_harness.tabular.statistics import StatisticsSpec
+    specification=StatisticsSpec.model_validate(specification)
+    return profile_table(path,{'statistics':specification.model_dump(mode='json'),'missing_values':missing_values or {},'source_options':source_options},settings)
+
+
+def recommend_table_fields(path:str,settings:MCPSettings|None=None,source_options:dict|None=None)->dict:
+    from geoagent_harness.tabular.analytical_service import recommend_fields
+    active=settings or load_settings()
+    if active.input_root.resolve()!=(active.project_root/'data/input').resolve():raise ValueError('Field guidance requires the configured project data/input root')
+    return recommend_fields(active.project_root,path,source_options=source_options)
 
 
 def plan_geoserver_publication(
@@ -394,6 +424,10 @@ def validate_postgis_layer(
         settings=active,
     )
 
+
+def validate_postgres_import(arguments,settings=None):
+    from geoagent_harness.postgres.service import inspect
+    return inspect('validate_postgres_import',arguments,settings or load_settings())
 
 def discover_postgres_tables(target_schema='agent_sandbox',settings=None):
     from geoagent_harness.postgres.service import inspect

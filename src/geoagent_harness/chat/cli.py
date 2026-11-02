@@ -23,6 +23,19 @@ def register(app):
 
     def emit(value,text,as_json):typer.echo(json.dumps(value,indent=2,ensure_ascii=False,allow_nan=False) if as_json else text())
 
+    @chat.command('diagnostics')
+    def diagnostics(ctx:typer.Context,chat_id:str,as_json:bool=typer.Option(False,'--json')):
+        """Read bounded content-free usage records, including failed requests."""
+        value=call(lambda:ctx.obj.post('/api/v1/planner/diagnostics',{'conversation_id':chat_id}))
+        emit(value,lambda:table(['Kind','Status','Phase','Error','Seconds'],[[r['kind'],r['status'],r.get('phase','submission'),r.get('error_code') or '',(r.get('resources') or {}).get('elapsed_seconds','unknown')] for r in value['records']])+'\nRAM is sampled API process RSS; unknown tokens remain unknown. No retry or execution.',as_json)
+
+    @chat.command('report')
+    def report(ctx:typer.Context,run_id:str,kind:Literal['analytical','technical','json']=typer.Option('technical','--kind')):
+        """Read saved workflow handoff; no source scan, execution or model call."""
+        value=call(lambda:ctx.obj.post('/api/v1/workflow/runs',{'action':'report','run_id':run_id}))
+        if kind=='json':typer.echo(json.dumps(value,indent=2))
+        else:typer.echo(value['handoff'][kind+'_markdown'])
+
     @chat.command('list')
     def inventory(ctx:typer.Context,as_json:bool=typer.Option(False,'--json')):
         value=call(lambda:ctx.obj.conversation('list','0'*32))
@@ -59,7 +72,7 @@ def register(app):
         emit(value,lambda:clean(value['submission']['status'])+' · '+clean(value['submission']['finding'],1000),as_json)
 
     @chat.command('result')
-    def result(ctx:typer.Context,chat_id:str=typer.Argument(),view:Literal['overview','columns','table','chart','groups','checks']=typer.Option('overview','--view'),
+    def result(ctx:typer.Context,chat_id:str=typer.Argument(),view:Literal['overview','columns','table','chart','groups','checks','report']=typer.Option('overview','--view'),
                source:str|None=typer.Option(None,'--source'),field:str|None=typer.Option(None,'--field'),offset:int=typer.Option(0,'--offset',min=0),
                limit:int=typer.Option(20,'--limit',min=1,max=100),as_json:bool=typer.Option(False,'--json')):
         """View saved comprehensive analysis, without scans/model calls. --field selects a column or chart distribution."""

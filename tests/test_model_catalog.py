@@ -77,3 +77,38 @@ def test_discovery_never_follows_redirects_or_embedded_credentials(tmp_path):
     assert len(calls) == 1
     with pytest.raises(CatalogError, match='without URL credentials'):
         catalog(tmp_path, environ={**ENV, 'MODEL_BASE_URL':'http://user:password@localhost/v1'})
+
+
+def test_reasoning_project_override_persists_and_pins_active_requests(tmp_path,monkeypatch):
+    from geoagent_harness.model.catalog import reasoning_preference,select_reasoning,ReasoningSelection
+    for key,value in ENV.items():monkeypatch.setenv(key,value)
+    monkeypatch.setenv('MODEL_REASONING_EFFORT','high')
+    assert reasoning_preference(tmp_path)['effective']=='high'
+    with request_selection(tmp_path):
+        assert load_model_settings().reasoning_effort=='high'
+        saved=select_reasoning(tmp_path,ReasoningSelection(selection='none',expected_revision=0))
+        assert saved['effective']=='none' and not saved['model_called']
+        with request_selection(tmp_path):assert load_model_settings().reasoning_effort=='high'
+    with request_selection(tmp_path):assert load_model_settings().reasoning_effort=='none'
+    assert load_model_settings().reasoning_effort=='high'
+    with pytest.raises(CatalogError,match='changed'):select_reasoning(tmp_path,ReasoningSelection(selection='low',expected_revision=0))
+    select_reasoning(tmp_path,ReasoningSelection(selection='provider',expected_revision=1))
+    with request_selection(tmp_path):assert load_model_settings().reasoning_effort is None
+    select_reasoning(tmp_path,ReasoningSelection(selection='environment',expected_revision=2))
+    with request_selection(tmp_path):assert load_model_settings().reasoning_effort=='high'
+
+
+def test_project_reasoning_is_sent_by_shared_client(tmp_path,monkeypatch):
+    from geoagent_harness.model.catalog import select_reasoning,ReasoningSelection
+    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.model.schemas import ModelRequest,ChatMessage
+    for key,value in ENV.items():monkeypatch.setenv(key,value)
+    monkeypatch.delenv('MODEL_REASONING_EFFORT',raising=False)
+    select_reasoning(tmp_path,ReasoningSelection(selection='none',expected_revision=0))
+    bodies=[]
+    def handle(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200,json={'choices':[{'message':{'content':'{}'},'finish_reason':'stop'}]})
+    with request_selection(tmp_path):
+        SharedModelClient(load_model_settings(),transport=httpx.MockTransport(handle)).complete(ModelRequest(messages=[ChatMessage(role='user',content='Inspect metadata')]))
+    assert len(bodies)==1 and bodies[0]['reasoning_effort']=='none'

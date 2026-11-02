@@ -4,6 +4,10 @@ Operator decision recorded 2026-10-19. **Original design; not implemented by thi
 The bounded data-only text pilot is now implemented separately: [28.1 delivery and acceptance](CHECKPOINT28_1.md). General generated Python, RL and memory remain outside that pilot. This refines [the delivery plan](POST_CALCULATION_DELIVERY_PLAN.md)
 without renumbering checkpoints or changing historical implementation records.
 
+2026-10-27 follow-up: [reuse existing Builder machinery](BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md)
+for any broader generated implementation path. The August/September developer extension
+lifecycle exists; general task-driven Python execution/skill qualification remains proposed.
+
 ## Purpose and activation
 
 Acquisition fills a demonstrated gap in executable operations. Workflow

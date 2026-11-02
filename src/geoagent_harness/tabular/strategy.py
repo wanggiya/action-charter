@@ -78,7 +78,8 @@ def assess_table(root,path,operation='profile'):
     path=relative_path(request.path,'input')
     from geoagent_harness.discovery.csv import source
     with source(Path(root),path,max_bytes=None) as (_,path,identity):size=identity[2]
-    streaming=request.operation in {'profile','quality','group'}
+    qualified=request.operation=='select_csv_columns'
+    streaming=request.operation in {'profile','quality','group'} or qualified
     supported=request.operation!='statistical_model'
     limit=1024**3 if streaming else 8*1024**2
     strategy='full_stream' if streaming else 'bounded_dataframe'
@@ -86,7 +87,9 @@ def assess_table(root,path,operation='profile'):
     elif size>limit:strategy='needs_alternative'
     return {'path':path,'operation':request.operation,'source_bytes':size,'strategy':strategy,
         'supported':supported,'within_byte_limit':supported and size<=limit,'byte_limit':limit if supported else None,
-        'row_limit':None if streaming or not supported else 10000,'row_count':'not established',
+        'required_arguments':{'streaming':True} if qualified else {},
+        'output_byte_limit':64*1024**2 if qualified else None,
+        'row_limit':200000 if qualified else None if streaming or not supported else 10000,'row_count':'not established',
         'runtime_state_checks_required':True,'sampling_required':supported and size>limit,
         'sample_creation_available':False,'sample_write_authority_granted':False,
         'reason':('Statistical model fitting is not registered in this slice.' if not supported else

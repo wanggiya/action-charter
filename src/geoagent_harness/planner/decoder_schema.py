@@ -2,7 +2,92 @@
 from copy import deepcopy
 
 
-def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspection_source=None, inspection_arguments=None, original_vector_source=None):
+def require_statistical_methods(schema, methods, *, covariance=None):
+    """Constrain a single CSV statistical proposal, keeping clarification possible.
+
+    This constrains generation, never fills a missing operation/argument afterwards.
+    Variables, source and semantics remain model output; policy still validates them.
+    """
+    result=deepcopy(schema);definitions=result['$defs']
+    analysis=definitions['operation_inspect_csv_AnalysisOptions']
+    statistics=definitions['operation_inspect_csv_StatisticsSpec']
+    regression=definitions['operation_inspect_csv_RegressionSpec']
+    def require(value, name):value['required']=list(dict.fromkeys([*value.get('required',[]),name]))
+    analysis['properties']['statistics']={'$ref':'#/$defs/operation_inspect_csv_StatisticsSpec'}
+    require(analysis,'statistics')
+    statistics['properties']['methods']={'type':'array','const':methods}
+    require(statistics,'methods')
+    if 'linear_regression' in methods:
+        statistics['properties']['regression']={'$ref':'#/$defs/operation_inspect_csv_RegressionSpec'}
+        require(statistics,'regression')
+        regression['properties']['predictors']['minItems']=1
+        regression['properties']['predictors']['maxItems']=12
+        if covariance:
+            regression['properties']['covariance']={'type':'string','const':covariance}
+            require(regression,'covariance')
+            if covariance=='cluster':
+                regression['properties']['cluster_column']={'type':'string'}
+                require(regression,'cluster_column')
+    else:
+        statistics['properties'].pop('regression',None)
+    if 'describe' not in methods:
+        for name in ('by','percentiles'):statistics['properties'].pop(name,None)
+    if set(methods)-{'linear_regression'}:
+        require(statistics,'columns')
+        statistics['properties']['columns']['minItems']=2 if set(methods)&{'pearson','spearman','covariance'} else 1
+    else:
+        # OLS derives numeric fields only from outcome/predictors. A grouping ID
+        # must not be added as a numeric descriptive field by an unused option.
+        for name in ('columns','by','percentiles','ddof'):
+            statistics['properties'].pop(name,None)
+    # Both PlanStep and a requested sequence contain copies of the operation branch.
+    branches=definitions['PlanStep']['anyOf']+definitions['WorkflowPlan']['properties']['steps']['prefixItems']
+    for branch in branches:
+        if branch['properties']['skill'].get('const')!='inspect_csv':continue
+        arguments=branch['properties']['arguments']
+        arguments['properties']['analysis']={'$ref':'#/$defs/operation_inspect_csv_AnalysisOptions'}
+        require(arguments,'analysis')
+    return result
+
+
+def require_source_options(schema,options):
+    """Bind explicitly supplied selector values during decoding, not after it."""
+    result=deepcopy(schema);defs=result['$defs']
+    if 'operation_inspect_csv_TableSourceOptions' not in defs:return result
+    analysis=defs['operation_inspect_csv_AnalysisOptions'];selection=defs['operation_inspect_csv_TableSourceOptions']
+    def require(value,key):value['required']=list(dict.fromkeys([*value.get('required',[]),key]))
+    analysis['properties']['source_options']={'$ref':'#/$defs/operation_inspect_csv_TableSourceOptions'};require(analysis,'source_options')
+    for key,value in options.items():
+        selection['properties'][key]={'type':'integer' if isinstance(value,int) else 'null' if value is None else 'string','const':value};require(selection,key)
+    branches=defs.get('PlanStep',{}).get('anyOf',[])+defs['WorkflowPlan']['properties']['steps'].get('prefixItems',[])
+    for branch in branches:
+        if branch['properties']['skill'].get('const')=='inspect_csv':
+            arguments=branch['properties']['arguments'];arguments['properties']['analysis']={'$ref':'#/$defs/operation_inspect_csv_AnalysisOptions'};require(arguments,'analysis')
+    return result
+
+
+def require_statistical_arguments(schema,arguments,source=None):
+    result=deepcopy(schema);spec=result['$defs'].get('operation_inspect_csv_StatisticsSpec')
+    if not spec:return result
+    for key,value in arguments.items():
+        kind='array' if isinstance(value,list) else 'integer' if isinstance(value,int) else 'null' if value is None else 'string'
+        spec['properties'][key]={'type':kind,'const':value}
+        spec['required']=list(dict.fromkeys([*spec.get('required',[]),key]))
+    if source is not None:
+        from pathlib import Path
+        suffix=Path(source).suffix.lower();selection=result['$defs'].get('operation_inspect_csv_TableSourceOptions')
+        if selection:
+            fixed={'records_key':None} if suffix=='.xlsx' else {'sheet':None,'header_row':1,'cell_range':None} if suffix in {'.json','.jsonl','.ndjson'} else {}
+            if suffix in {'.jsonl','.ndjson'}:fixed['records_key']=None
+            for key,value in fixed.items():selection['properties'][key]={'type':'integer' if isinstance(value,int) else 'null','const':value}
+        branches=result['$defs'].get('PlanStep',{}).get('anyOf',[])+result['$defs']['WorkflowPlan']['properties']['steps'].get('prefixItems',[])
+        for branch in branches:
+            if branch['properties']['skill'].get('const')=='inspect_csv':
+                branch['properties']['arguments']['properties']['path']={'type':'string','const':source}
+    return result
+
+
+def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspection_source=None, inspection_arguments=None, original_vector_source=None, excluded_operations=()):
     # Older local grammar compilers reject some regexes/bounds in full Pydantic
     # schemas. Keep structure, enums/consts and closed objects; validate patterns,
     # limits and cross-field policy independently after generation. This is not
@@ -22,7 +107,7 @@ def decoder_schema(schema, operation_schemas=None, *, step_sequence=None, inspec
         return result
 
     step = result['$defs']['PlanStep']
-    available = step['properties']['skill']['enum']
+    available = [skill for skill in step['properties']['skill']['enum'] if skill not in excluded_operations]
     alternatives = []
     for skill, source in operation_schemas.items():
         if skill not in available:

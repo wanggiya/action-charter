@@ -13,6 +13,7 @@ parser.add_argument('--root',required=True)
 parser.add_argument('--acquisition-fixture',action='store_true')
 parser.add_argument('--planning-task-fixture',action='store_true')
 parser.add_argument('--analytical-fixture',action='store_true')
+parser.add_argument('--statistics-fixture',action='store_true')
 parser.add_argument('--csv-discovery-fixture',action='store_true')
 parser.add_argument('--spatial-view-fixture',action='store_true')
 parser.add_argument('--recipe-runs-fixture',action='store_true')
@@ -74,6 +75,14 @@ if args.spatial_view_fixture:
         dataset.descriptions=('Elevation <b>literal</b>',None,None)
         dataset.update_tags(owner='Synthetic spatial fixture')
 (root/'data/output').mkdir(exist_ok=True)
+if args.statistics_fixture:
+    from openpyxl import Workbook
+    rows=[{'record_id':'001','x':1.5,'region':'A'},{'record_id':'002','x':2.5,'region':'A'},{'record_id':'003','x':4.5,'region':'B'}]
+    (root/'data/input/table_fixture.json').write_text(json.dumps(rows))
+    (root/'data/input/table_fixture.jsonl').write_text('\n'.join(json.dumps(r) for r in rows)+'\n')
+    book=Workbook();sheet=book.active;sheet.title='Data';sheet.append(list(rows[0]))
+    for row in rows:sheet.append(list(row.values()))
+    book.save(root/'data/input/table_fixture.xlsx')
 plan=json.loads((repo/'examples/checkpoint24/regional_csv_plan.json').read_text())
 if args.calculation_omission_fixture:
     # A temporary historical record reproduces the real inspection-only bug.
@@ -90,6 +99,22 @@ if args.calculation_omission_fixture:
     conversation._write(conversation._path(root,historical_id),historical_state)
 class FixtureModel:
     def complete(self,request):
+        system=json.loads(request.messages[0].content)
+        if 'analysis_goal_capabilities' in system:
+            guide=system['result_view_context']['results'][0]['field_guidance']
+            numeric=next(f['name'] for f in guide['field_evidence'] if f['role'] in {'numerical','count'})
+            grouping=next((f['name'] for f in guide['field_evidence'] if f['role'] in {'categorical','ordered_category'}),numeric)
+            goals=[{'title':'Describe observed measurements','question':'How are observed measurements distributed?','method':'describe','fields':[numeric],'rationale':'A measurement candidate is present.','prerequisites':['Review units and the analysis unit.']},
+                   {'title':'Assess prediction feasibility','question':'Could a future model predict a chosen category?','method':'classification_evaluation','fields':list(dict.fromkeys([numeric,grouping])),'target_candidate':grouping,'rationale':'A candidate category would require a defined outcome.','prerequisites':['Define labels before model training.']}]
+            return ModelResult(model='temporary goal fixture',content=json.dumps({'message':'Two proposed analysis goals; no statistics were computed.','plan':None,'source_sha256':guide['source_sha256'],'analysis_goals':goals}))
+        if any('report_scope_fixture' in m.content for m in request.messages):
+            steps=[{'step_id':'step_1','skill':'inspect_csv','purpose':'Read-only data-quality report','arguments':{'path':'data/input/sample_orders.csv','analysis':{'numeric_columns':['amount']}}}]
+            if not any('Remove the unrequested generate_report' in m.content for m in request.messages):
+                steps.append({'step_id':'step_2','skill':'generate_report','purpose':'Extra report','arguments':{}})
+            return ModelResult(model='temporary report fixture',content=json.dumps({'message':'Prepared inspection report.','plan':{'summary':'Inspect and report','steps':steps}}))
+        if any('diagnostics_timeout_fixture' in m.content for m in request.messages):
+            from geoagent_harness.model import ModelClientError
+            raise ModelClientError.timeout()
         control=json.loads(request.messages[0].content).get('task_coordinator')
         if args.agent_modes_fixture and control and control['phase']!='planning':
             evidence=json.loads(request.messages[1].content)['evidence']
@@ -116,6 +141,24 @@ class FixtureModel:
             handle.write(json.dumps({'role':role or json.loads(request.messages[0].content).get('agent_id')})+'\n')
         context=json.loads(request.messages[0].content).get('result_view_context')
         latest=json.loads(request.messages[1].content).get('latest_message','')
+        if args.statistics_fixture and latest.startswith('Which fields are suitable for statistics based on the recorded inspection'):
+            return ModelResult(model='temporary field-guidance fixture',content=json.dumps({'message':'x and y are candidate measurements for distributions and spread. Confirm their units and your objective before choosing a regression outcome. These suggestions preserve the workflow.','plan':None}))
+        if args.statistics_fixture and latest.startswith('Compute descriptive statistics for "') and 'typed arguments: ' in latest:
+            arguments,_=json.JSONDecoder().raw_decode(latest.split('typed arguments: ',1)[1])
+            proposed={'summary':'Selected descriptive analysis','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Describe the selected measurement and groups','arguments':arguments}]}
+            return ModelResult(model='temporary selected-analysis fixture',content=json.dumps({'message':'Review the selected methods and source; nothing executed.','plan':proposed}))
+        if args.statistics_fixture and any(name in latest for name in ('table_fixture.xlsx','table_fixture.json','table_fixture.jsonl')):
+            name=next(name for name in ('table_fixture.xlsx','table_fixture.jsonl','table_fixture.json') if name in latest)
+            options={'statistics':{'columns':['x'],'by':['region'],'question':'How does x vary by region?'}}
+            if name.endswith('.xlsx'):options['source_options']={'sheet':'Data'}
+            proposed={'summary':'Analyze selected record table','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Describe selected measurement by region','arguments':{'path':'data/input/'+name,'analysis':options}}]}
+            return ModelResult(model='temporary format fixture',content=json.dumps({'message':'Review the selected table and methods.','plan':proposed}))
+        if args.statistics_fixture and any(name in latest for name in ('statistical_fixture.csv','statistical_wide.csv')):
+            statistics={'methods':['describe','pearson','covariance','linear_regression'],'columns':['x','y'],'question':'How does y vary with x?','regression':{'outcome':'y','predictors':['x']}}
+            wide='statistical_wide.csv' in latest
+            if wide:statistics={'methods':['covariance'],'columns':[f'x{i}' for i in range(9)]}
+            proposed={'summary':'Numeric statistical analysis','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Compute declared statistical methods','arguments':{'path':'data/input/'+('statistical_wide.csv' if wide else 'statistical_fixture.csv'),'analysis':{'statistics':statistics}},'requires_approval':False,'validation_required':False}]}
+            return ModelResult(model='temporary statistics fixture',content=json.dumps({'message':'Review numeric methods, then execute.','plan':proposed}))
         if context and latest in {'Show boundaries layer on the map.','Display band 2 as a color ramp.','Explain the current result.'}:
             candidate=context['results'][0]
             spec={'run_id':context['run_id'],'plan_sha256':context['plan_sha256'],'step_id':candidate['step_id'],'view':'Map'}

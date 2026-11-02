@@ -52,7 +52,9 @@ class Coordinator:
         event={'actor':actor,'role':role,'phase':phase,'prompt_bytes':supplied,'status':'failed','prompt_tokens':None,'completion_tokens':None}
         self.calls.append(event);started=time.monotonic()
         try:
-            result=self._client().complete(request.model_copy(update={'messages':messages,'timeout_seconds':min(request.timeout_seconds or 600,max(0.1,180-(time.monotonic()-self.started)))}))
+            from geoagent_harness.model.telemetry import phase as diagnostic_phase
+            with diagnostic_phase(role,phase):
+                result=self._client().complete(request.model_copy(update={'messages':messages,'timeout_seconds':min(request.timeout_seconds or 600,max(0.1,180-(time.monotonic()-self.started)))}))
             event.update(status='complete',model=result.model,prompt_tokens=result.prompt_tokens,completion_tokens=result.completion_tokens)
             notes=[*self.journals.get(actor,[]),{'phase':phase,'content':result.content[:1400]}][-3:]
             self.journals[actor]=notes
@@ -69,12 +71,13 @@ class Coordinator:
         if len(json.dumps(source).encode())>16000:
             source['evidence']={k:v for k,v in evidence.items() if k not in {'arguments','steps'}}
             source['evidence']['limitation']='Detailed arguments exceeded review context; deterministic validators remain authoritative.'
-        request=ModelRequest(json_mode=True,response_schema=Review.model_json_schema(),timeout_seconds=15,messages=[
+        request=ModelRequest(json_mode=True,response_schema=Review.model_json_schema(),timeout_seconds=60,messages=[
             ChatMessage(role='system',content=json.dumps({'role':role,'task':phase,'rules':[
                 'Review the supplied work order or recorded evidence. Do not execute, authorize or claim independent validation.',
                 'For preflight use ready or needs_revision; for final recorded results use supported or needs_attention.',
                 'Use only supplied step IDs. Base findings on recorded facts; do not invent numbers, domain meanings or observations.',
                 'An unavailable check is a limitation, not a success. Failed or incomplete executions require needs_attention.',
+                'For statistics assess the question, fields, source scope, missing policy, exclusions, grouping, observation unit and supplied diagnostics. Report omitted evidence and unresolved assumptions; separate computed facts from interpretation. Completion does not prove independence, clinical validity or causality.',
                 'The single mode is self-review in one primary context. Three mode uses isolated role contexts and explicit evidence handoffs.'],
                 'required_json_schema':Review.model_json_schema()})),ChatMessage(role='user',content=json.dumps(source))])
         try:
@@ -162,7 +165,13 @@ def finish_run(root,record,*,model_client=None):
         analysis=value.get('table_analysis') or {}
         quality=analysis.get('quality') or {}
         facts={k:value[k] for k in ('row_count','column_count','missing_counts','codebook_coverage','affected_rows','committed') if k in value}
-        if analysis:
+        from geoagent_harness.tabular.statistics import statistical_evidence
+        statistical=statistical_evidence(value)
+        if statistical:facts['statistics']=statistical
+        if value.get('readiness_assessment'):
+            from geoagent_harness.tabular.readiness import compact_assessment
+            facts['readiness']=compact_assessment(value['readiness_assessment'])
+        elif analysis:
             facts['readiness']={'matching_rows':analysis.get('matched_row_count'),'distinct_counts':analysis.get('distinct_counts',{}),
                 'duplicate_key':quality.get('duplicate_key'),'duplicate_rows':quality.get('duplicate_rows'),
                 'numeric_profiles':[{'name':p['name'],'numeric':p['numeric']} for p in analysis.get('profiles',[]) if p.get('numeric')],

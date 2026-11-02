@@ -1,5 +1,127 @@
 # ActionCharter Product Roadmap
 
+2026-11-01 direction (design only, not implemented): [product direction](../docs/product-direction/README.md).
+One core codebase with Personal / Team server / Enterprise deployment profiles; Guided (non-expert)
+and Studio (professional) interface modes over the same backend; long-term policy-governed
+autonomous platform (autonomy levels L0–L4, control/data plane split, evaluated self-evolution).
+Next: Phase 0 consolidation, benchmark suite, one hero journey in Guided mode, Linux packaging.
+
+2026-10-30 T03/T05: [inspection-led analysis goals](../docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md)
+now separate agent-proposed questions/prerequisites from actual typed calculations.
+Source-bound per-chat cards prepare supported goals without executing; new reports
+state statistical coverage. Classification training/evaluation, categorical tests,
+causality and full real-data/model acceptance remain open; no new checkpoint claimed.
+
+
+2026-10-30 F5: persistent reasoning Settings/request snapshots and analytical-report
+contract separation. Derived Outcome reports remain read-only; explicit legacy evidence
+steps retain existing validation/approval. Actual-model report case passed after bounded
+correction; wider reliability remains open. See [diagnostics](../docs/REQUEST_DIAGNOSTICS.md).
+
+2026-10-30 F5 follow-up: focused numeric-summary/metadata inspection routing and
+direct, scrollable failure diagnostics. No model default change or authority change;
+real-model/resource evidence and remaining limits in [diagnostics](../docs/REQUEST_DIAGNOSTICS.md).
+
+2026-10-29 F5 diagnostic slice: [durable request telemetry](../docs/REQUEST_DIAGNOSTICS.md),
+failed-chat recovery, UI/CLI export and safe failure categorization. Focused full-source
+inspection proposal returned; full role-mode reliability remains open. Memory/model
+resource observations are not proof of context overflow or exact attribution.
+
+2026-10-29 continuation of T03/T04/T05/T13:
+[full-data preparation, schema and handoff](../docs/POSTGRES_DATA_WORKFLOW.md#next-implementation-full-data-analytical-and-engineering-handoff--2026-10-29).
+F1 full-file preparation -> F2 typed mapping preflight -> F3 verified fresh-table round
+trip -> F4 analytical/technical documents -> F5 real-model Single/Three acceptance.
+F1–F4 delivered with bounded streaming, shared preflight and saved handoff contracts;
+[current acceptance and remaining gates](../docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+F5 partial: full-file selection executed in Single/Three; advisory review timeouts and
+complete real-model database composition remain open. No new permanent agent.
+
+2026-10-29 T03/T04/T05 [readiness/full-data reporting](../docs/READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md):
+typed source-bound readiness projection, Report Markdown/PDF and CLI/MCP/terminal
+access; shared group bases, explicit unknowns/omissions and bounded agent evidence.
+Quality-only planning now has a focused instruction profile with timeout diagnostics;
+actual-model latency remains a manual acceptance check, not inferred from prompt size.
+Existing roles/skill updated; exploration sample substitution blocked. Full supplied
+file remains the acceptance target. Actual-model/user journey and full-scale service
+transfer/preparation remain open; do not infer them from sample or fixture acceptance.
+
+2026-10-29 T03/T04/T08 [shared table pipeline](../docs/TABLE_SOURCE_CONSOLIDATION.md):
+typed bounded batches and one result consumer replace CSV/record duplication; trusted
+catalog drives registry, policy and relevant Planner metadata; MCP registry discovery
+is read-only. Additive source descriptors preserve the v1 identity formula/old results. Broader
+dataset-profile/task-action consolidation, semantic types and manual acceptance remain
+open; no new permanent agent or automatic library execution.
+
+2026-10-29 T05/T08 [figures and table readers](../docs/TABLE_FORMATS_AND_STATISTICAL_FIGURES.md):
+recorded group means/heatmaps and PDF figures, adjacent advisory assessment; bounded
+XLSX/JSON/JSONL/NDJSON adapters reuse analysis, typed source selection and original file
+identity across workflow/CLI/MCP. CSV transforms remain CSV-only. User manual acceptance
+pending; Parquet and document extraction remain later work, not delivered formats.
+
+2026-10-28 T03/T04/T05 [advice/review/report slice](../docs/T05_ANALYTICAL_ADVICE_AND_REVIEW.md):
+recorded analysis opportunities inform Planner recommendations; existing statistical
+skill and Critic role guidance cover scope/assumptions. Optional question and computed-
+finding report sections share evidence across interfaces. Three actual-model synthetic
+cases pass; broader interpretation, report chart figures and general consolidation stay open.
+
+2026-10-28 T03/T05: [inspection-to-analysis starters](../docs/INITIAL_FIELD_GUIDANCE.md#inspection-to-analysis-follow-up--2026-10-28)
+prepare a typed descriptive request from complete recorded measurement candidates and
+an optional selected group. Planner proposes; explicit Execute uses existing statistics/
+report services. No inferred outcome, exclusion policy or domain knowledge. Real sample
+numerical checks and isolated UI acceptance are recorded in the linked guide.
+
+2026-10-28 T03/T04/T05 follow-up: [initial field guidance](../docs/INITIAL_FIELD_GUIDANCE.md)
+shares existing role rules across inspections, exposes bounded advisory evidence to
+Planner/MCP/CLI and preserves the workflow for advice-only questions. Summary label/
+value rows are responsive. Domain knowledge, inference and memory remain separate work.
+
+2026-10-28 T05/T09: [Statistics pages and reports](../docs/STATISTICS_PAGES_AND_REPORTS.md)
+adds readable page navigation, Markdown/PDF downloads from recorded evidence, structured
+reports and shared covariance matrices. Broader report figures, inference and format/
+document adapters remain open; existing checkpoint history and authority gates retained.
+
+2026-10-27 T05/T09/T10 slice: [typed table statistics](../docs/TABLE_STATISTICS_ACCEPTANCE.md)
+extends the shared verified CSV scan, Planner/MCP/CLI and recorded Outcome/report views.
+Descriptive/grouped statistics, Pearson/Spearman and numeric OLS are implemented;
+broader inference/causality, generated-code reuse, word clouds and format adapters remain open.
+Timeout follow-up reduces statistics-only planning instructions/examples (comparable
+fixture 24,861 → 14,638 prompt bytes); real-model latency remains a validation gate.
+Statistics-v2 adds required-method decoding and fixes covariance/variance matching;
+read-only fixture/browser evidence and real-model acceptance remain distinct checks.
+
+2026-10-27 T02/T03 slice: [exact-scope run recovery](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md#t02-exact-scope-recovery-delivered--2026-10-27)
+shared by frontend and terminal, active-run reconnection, evidence retention on refresh
+failure and persisted assistance receipts. Broader lifecycle/contract audit remains open.
+
+2026-10-27 presentation/T02 slice: grouped-chart sizing presets and optional two-field
+3D columns; explicit disabled-Execute reasons and proposal-restoration wording. Existing
+policy and data services remain shared. See [validation](../docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27);
+broader task recovery/consolidation remains open.
+
+2026-10-27 consolidation started: [T01 analytical/Builder audit slice](../docs/T01_EXECUTION_AND_BUILDER_AUDIT.md)
+records inspected ownership/runtime boundaries and remaining gaps. Shared grouped-chart
+presentation fixes applied-field naming, explicit percentage bases and oversized plots.
+This is partial T01/T03 work, not completion of general consolidation or generated-code integration.
+
+2026-10-27 priority delivery: [ordinary inspection age × gender cross-tab](../docs/DIABETES_REAL_TEST_FLOW.md#age-by-gender-cross-tab--2026-10-27)
+reuses existing renderer/services in Outcome Groups, with clear vertical/horizontal
+controls and count/percentage/swap. Real-sample browser cell reconciliation passed;
+this does not complete general statistical reporting or the structural TODO.
+
+2026-10-27 execution planning: [consolidated implementation TODO](../docs/IMPLEMENTATION_TODO.md)
+is the dependency/acceptance checklist across consolidation, Builder reuse, analytical
+reports, formats, routing, databases and memory-before-Linux. T01 ownership audit is next;
+no application delivery or new checkpoint completion claimed by this documentation.
+
+2026-10-27 requirements: [broader statistics/formats and Linux sequence](../docs/DATA_SCIENCE_FORMATS_MEMORY_AND_REMOTE_PLAN.md)
+records analytical reporting, distributions/association/regression/qualified causality,
+table/document/image/raster/point-cloud adapters, Builder reuse and memory before
+autonomous isolated Linux/PostgreSQL/PostGIS operation. Targets only; preserve history.
+
+2026-10-27 design correction: [Builder reuse/integration](../docs/BUILDER_REUSE_AND_CAPABILITY_INTEGRATION.md)
+prioritizes audit of existing August/September code-generation and extension lifecycle
+before task-driven Python/skill reuse. No new parallel generator or runtime delivery claimed.
+
 2026-10-27 design only: [generalization/consolidation](../docs/GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
 records user-requested reduction of special cases, shared task/result/operation contracts,
 reusable skills and optional bounded Python, plus Auto/manual role routing. Ordered slices

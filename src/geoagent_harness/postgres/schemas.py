@@ -18,6 +18,7 @@ class Column(Strict):
     name:Identifier
     type:Literal['text','bigint','numeric','boolean']='text'
     nullable:bool=True
+    null_values:list[Annotated[str,Field(max_length=200)]]|None=Field(default=None,max_length=20)
 class ImportCSV(Table):
     connection_sha256:Digest
     path:str|None=Field(default=None,min_length=1,max_length=960)
@@ -65,7 +66,8 @@ class ChangeRows(Table):
         if sum(len(k.encode()) for k in self.keys)>8000:raise ValueError('Selected keys exceed the review budget')
         if self.key_column==self.deleted_column:raise ValueError('Deletion marker cannot be the key')
         return self
-ARGUMENTS={'discover_postgres_tables':Discover,'inspect_postgres_table':Inspect,'import_csv_to_postgres':ImportCSV,'export_postgres_to_csv':ExportCSV,'soft_delete_postgres_rows':ChangeRows,'restore_postgres_rows':ChangeRows}
-READ_IDS={'discover_postgres_tables','inspect_postgres_table'}
+ARGUMENTS={'discover_postgres_tables':Discover,'inspect_postgres_table':Inspect,'validate_postgres_import':ImportCSV,'import_csv_to_postgres':ImportCSV,'export_postgres_to_csv':ExportCSV,'soft_delete_postgres_rows':ChangeRows,'restore_postgres_rows':ChangeRows}
+READ_IDS={'discover_postgres_tables','inspect_postgres_table','validate_postgres_import'}
 WRITE_IDS=set(ARGUMENTS)-READ_IDS
 LABELS={'discover_postgres_tables':'Discover PostgreSQL tables','inspect_postgres_table':'Inspect PostgreSQL table','import_csv_to_postgres':'Import CSV into PostgreSQL','export_postgres_to_csv':'Export PostgreSQL table to CSV','soft_delete_postgres_rows':'Soft delete PostgreSQL rows','restore_postgres_rows':'Restore PostgreSQL rows'}
+LABELS['validate_postgres_import']='Validate PostgreSQL import mapping'

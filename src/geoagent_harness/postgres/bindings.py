@@ -15,7 +15,7 @@ def known_sources(state):
 def bind(plan,state,settings):
     sources=known_sources(state);assigned=[]
     for step in plan.steps:
-        if step.skill!='import_csv_to_postgres':continue
+        if step.skill not in {'import_csv_to_postgres','validate_postgres_import'}:continue
         args=step.arguments
         if not args.get('connection_sha256'):
             args['connection_sha256']=connection_sha256(settings);assigned.append(step.step_id)

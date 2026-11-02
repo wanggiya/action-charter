@@ -111,6 +111,14 @@ class SharedModelClient:
     def complete(self, request: ModelRequest) -> ModelResult:
         """Send a validated, non-streaming chat-completion request."""
 
+        from .telemetry import model_call
+        with model_call(request,self._settings) as record:
+            result=self._complete(request)
+            if record is not None:
+                record.update(prompt_tokens=result.prompt_tokens,completion_tokens=result.completion_tokens,finish_reason=result.finish_reason,response_format=result.response_format)
+            return result
+
+    def _complete(self, request: ModelRequest) -> ModelResult:
         payload = {
             "model": self._settings.model,
             "messages": [

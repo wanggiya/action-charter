@@ -84,11 +84,24 @@ def test_tool_failure_and_timeout_keep_evidence_no_retry(data):
 def test_sample_is_not_certified_and_no_write_tools_exist(data):
     client=Client(assessment('data/input/test/visits_sample_2.csv'),{'action':'profile_table','path':'data/input/test/visits_sample_2.csv'},
         {'action':'answer','message':'This provisional sample has 2 rows; its provenance is unverified.'})
-    result=run_session(data,'Explore data/input/test','test',model_client=client)
+    result=run_session(data,'Explore data/input/test/visits_sample_2.csv','test',model_client=client)
     assert result['observations'][-1]['result']['possible_sample']
     assert result['observations'][-1]['result']['sample_provenance']=='unverified'
     assert result['observations'][-1]['result']['source_rows']==2
     assert not list(data.rglob('*.gpkg')) and not (data/'data/output').exists()
+
+
+def test_full_source_cannot_be_silently_replaced_with_neighboring_sample(data):
+    sample='data/input/test/visits_sample_2.csv'
+    client=Client(assessment(sample),{'action':'profile_table','path':sample},
+        {'action':'answer','message':'The sample was not selected. Please select a source explicitly.'})
+    result=run_session(data,'Explore data/input/test/visits.csv','test',model_client=client)
+    assert result['status']=='partial'
+    failed=[o['result'] for o in result['observations'] if 'error' in o['result']]
+    assert 'Source substitution blocked' in failed[0]['error']
+    assert 'profile_table' not in client.requests[1].response_schema['properties']['action']['enum']
+    assert not any(o['result'].get('source_sha256') for o in result['observations'])
+    assert not (data/'data/output').exists()
 
 
 def test_directory_boundaries_and_empty_folder(data,tmp_path):

@@ -198,7 +198,7 @@ def explanation_text(spec, context):
     return '\n'.join(lines)
 
 
-def view_context(root, conversation_id, base):
+def view_context(root, conversation_id, base, *, goal_schema=False):
     """Recorded metadata only: no file read and no row values in model context."""
     from .run_assessment import latest_conversation_run
     if base is None:
@@ -214,6 +214,12 @@ def view_context(root, conversation_id, base):
         if not isinstance(outcome, dict):
             continue
         extra = {'recorded_facts':recorded_facts(outcome,step.get('validation_outcome'))}
+        if isinstance(outcome.get('field_guidance'),dict):
+            from geoagent_harness.tabular.field_guidance import compact_guidance
+            extra['field_guidance']=compact_guidance(outcome['field_guidance'])
+            if goal_schema:
+                extra['field_guidance']['field_evidence']=[{k:f[k] for k in ('name','role','kind','numeric_count','missing_count','distinct_count','cautions')} for f in outcome['field_guidance']['fields'][:100]]
+                extra['field_guidance']['omitted_goal_fields']=max(0,outcome['field_guidance']['field_count']-len(extra['field_guidance']['field_evidence']))
         if step.get('skill_id')=='inspect_vector':
             extra.update(spatial_kind='vector',layers=[str(item.get('name',''))[:120] for item in outcome.get('layers',[])[:8] if isinstance(item,dict)])
         elif step.get('skill_id')=='inspect_raster':

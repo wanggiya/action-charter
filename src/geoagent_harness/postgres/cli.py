@@ -14,6 +14,11 @@ def install(app):
     @group.command('inspect')
     def inspect_table(table:str,schema:str=typer.Option('agent_sandbox','--schema'),preview_rows:int=typer.Option(5,'--preview-rows'),project_root:Path=typer.Option(Path('.'),'--project-root')):
         _show('inspect_postgres_table',{'target_schema':schema,'target_table':table,'preview_rows':preview_rows},project_root)
+    @group.command('preflight')
+    def preflight(arguments:Path,project_root:Path=typer.Option(Path('.'),'--project-root')):
+        """Validate complete mapped source without database writes; workflows bind ancestors."""
+        try:_show('validate_postgres_import',json.loads(arguments.read_text()),project_root)
+        except (ValueError,OSError):typer.echo('Invalid preflight argument file',err=True);raise typer.Exit(2)
     @group.command('effects')
     def review(operation:str,arguments:Path):
         """Show effects of a JSON argument file; no connection, approval or execution."""

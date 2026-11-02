@@ -19,7 +19,7 @@ def validate_steps(steps,dependencies):
             from geoagent_harness.planner.topology import ancestors
             if ref not in ancestors(step.step_id,dependencies):raise ValueError('Database source_step must be a preceding ancestor')
             source=known[ref]
-            if id=='import_csv_to_postgres':
+            if id in {'import_csv_to_postgres','validate_postgres_import'}:
                 from geoagent_harness.tabular.schemas import is_table_write
                 if not is_table_write(skill(source)) and skill(source)!='export_postgres_to_csv':raise ValueError('Database import source_step must produce a validated CSV')
             elif id=='export_postgres_to_csv':

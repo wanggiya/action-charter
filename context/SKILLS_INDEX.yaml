@@ -241,6 +241,15 @@ skills:
   validation_required: false
   entrypoint: geoagent_harness.postgres.service:inspect
 
+- id: validate_postgres_import
+  version: 0.1.0
+  status: implemented
+  kind: inspection
+  access: read_only
+  approval_required: false
+  validation_required: false
+  entrypoint: geoagent_harness.postgres.service:inspect
+
 - id: import_csv_to_postgres
   version: 0.1.0
   status: implemented

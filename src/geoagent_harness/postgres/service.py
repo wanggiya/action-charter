@@ -127,9 +127,14 @@ def _snapshot(connection,args,settings,*,lock=False):
         'column_metadata':columns,'key_constraints':key_constraints,'columns':names,'preview':preview,'missing_counts':nulls,'table_sha256':digest.hexdigest(),
         'semantic_sha256':hashlib.sha256(b''.join(sorted(digests))).hexdigest(),'restricted_write_target':restricted,'snapshot_policy':'Exact bounded multiset of all rows and column metadata; includes soft-deleted records. Not a persistent lock.'}
 
-def inspect(skill,arguments,settings):
+def inspect(skill,arguments,settings,completed_results=None):
     if skill not in READ_IDS:raise PostgresError('Only read-only database skills can use this entry point')
     args=ARGUMENTS[skill].model_validate(arguments);_schema(args,settings)
+    if skill=='validate_postgres_import':
+        if args.connection_sha256!=connection_sha256(settings):raise PostgresError('Configured database profile changed')
+        from .preflight import assess
+        data,binding=_input(args,settings,completed_results)
+        return {'operation':skill,'execution_performed':True,**assess(args,data,binding)}
     with _transaction(settings) as connection:
         if skill=='discover_postgres_tables':
             with connection.cursor() as c:
@@ -208,6 +213,9 @@ def run_operation(skill,arguments,settings,completed_results=None):
     if skill=='import_csv_to_postgres':
         if args.connection_sha256!=connection_sha256(settings):raise PostgresError('Configured database profile changed; inspect and authorize the intended connection')
         data,source=_input(args,settings,completed_results)
+        from .preflight import assess
+        preflight=assess(args,data,source)
+        if not preflight['passed']:raise PostgresError('Import mapping preflight rejected: '+json.dumps({'columns':preflight['column_findings'],'key':preflight['key_findings']},separators=(',',':'))[:2000])
     if skill=='export_postgres_to_csv':
         relative_path(args.target_path,'output')
         if not args.target_path.endswith('.csv'):raise PostgresError('Database export target must be a new .csv under data/output')
@@ -218,11 +226,9 @@ def run_operation(skill,arguments,settings,completed_results=None):
             if len(header)!=len(set(header)) or len(header)>MAX_COLUMNS or any(not n or len(n)>200 for n in header):raise PostgresError('Import CSV needs bounded unique nonempty columns')
             if any(c.source not in header for c in args.columns):raise PostgresError('Column mapping references absent source columns')
             indices=[header.index(c.source) for c in args.columns]
-            declarations=[sql.SQL('{} {} {}').format(sql.Identifier(c.name),sql.SQL(c.type),sql.SQL('' if c.nullable else 'NOT NULL')) for c in args.columns]
-            if args.soft_delete_marker:declarations.append(sql.SQL('{} boolean NOT NULL DEFAULT false').format(sql.Identifier(args.soft_delete_marker)))
-            if args.key_columns:declarations.append(sql.SQL('PRIMARY KEY ({})').format(sql.SQL(',').join(map(sql.Identifier,args.key_columns))))
+            from .preflight import declarations,mapped_values
             with connection.cursor() as c:
-                c.execute(sql.SQL('CREATE TABLE {} ({})').format(_relation(args),sql.SQL(',').join(declarations)))
+                c.execute(sql.SQL('CREATE TABLE {} ({})').format(_relation(args),sql.SQL(',').join(declarations(args))))
                 query=sql.SQL('COPY {} ({}) FROM STDIN').format(_relation(args),sql.SQL(',').join(sql.Identifier(x.name) for x in args.columns))
                 count=0;expected_rows=[]
                 try:
@@ -232,7 +238,7 @@ def run_operation(skill,arguments,settings,completed_results=None):
                             count+=1
                             if count%1000==0:checkpoint()
                             if count>MAX_ROWS or len(row)!=len(header) or any(len(v)>4096 for v in row):raise PostgresError('CSV is ragged or exceeds 200,000 rows / 4,096 characters per cell')
-                            values=tuple(None if row[i] in args.null_values else row[i] for i in indices)
+                            values=mapped_values(row,indices,args)
                             canonical=tuple(_value(v,col.type) for v,col in zip(values,args.columns))
                             expected_rows.append(_row_digest([*canonical,*(['false'] if args.soft_delete_marker else [])],[*[col.type for col in args.columns],*(['boolean'] if args.soft_delete_marker else [])]))
                             copy.write_row(canonical)
@@ -281,6 +287,7 @@ def run_operation(skill,arguments,settings,completed_results=None):
     if skill=='export_postgres_to_csv':
         after={**after,'columns':args.columns,'column_metadata':[c for c in after['column_metadata'] if c['name'] in args.columns],'preview':[{k:row[k] for k in args.columns} for row in after['preview']],'missing_counts':{k:after['missing_counts'][k] for k in args.columns}}
     return {'operation':skill,**after,'affected_rows':affected,'sources':[source] if source else [],'output':output,
+        **({'mapping_sha256':preflight['mapping_sha256'],'executed_ddl':preflight['proposed_ddl']} if skill=='import_csv_to_postgres' else {}),
         'semantic_sha256':semantic or after['semantic_sha256'],'data_contract':'table/csv-v1' if output else 'database/snapshot-v1','arguments':args.model_dump(mode='json',exclude_none=True),'effects':effects(skill,arguments),
         'committed':skill!='export_postgres_to_csv','database_written':skill!='export_postgres_to_csv','execution_performed':True,
         'validation_performed':False,'recovery':'No automatic write retry. Inspect actual targets and this receipt before proposing a new authorized operation.'}

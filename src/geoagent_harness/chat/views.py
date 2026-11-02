@@ -2,7 +2,7 @@
 import json,re
 from pathlib import PurePosixPath
 from .client import ChatError
-VIEWS={'overview','columns','table','chart','groups','checks'}
+VIEWS={'overview','columns','table','chart','groups','checks','report'}
 
 def cross_tab(groups,keys,matching,*,measure='count',swap=False):
     """Bound the displayed matrix, never its population or marginal totals."""
@@ -28,7 +28,7 @@ def cross_tab(groups,keys,matching,*,measure='count',swap=False):
 
 
 def saved_view(state,view='overview',*,source=None,field=None,offset=0,limit=20,cross_measure='count',cross_swap=False):
-    if view not in VIEWS:raise ChatError('Unknown view; choose overview, columns, table, chart, groups or checks')
+    if view not in VIEWS:raise ChatError('Unknown view; choose overview, columns, table, chart, groups, report or checks')
     if offset<0 or not 1<=limit<=100:raise ChatError('Use offset >= 0 and limit 1–100')
     session=state.get('analytical_session') or {}
     profiles=[o['result']['dataset_profile'] for o in session.get('observations',[]) if isinstance(o.get('result',{}).get('dataset_profile'),dict)]
@@ -45,14 +45,18 @@ def saved_view(state,view='overview',*,source=None,field=None,offset=0,limit=20,
     if field:
         columns=[p for p in columns if p['name']==field]
         if not columns:raise ChatError('Field is absent from this recorded profile')
-    if view=='overview':
-        result.update(summary=session.get('message'),field_count=len(r['columns']),roles={role:sum(p['analytical_role']==role for p in r['profiles']) for role in sorted({p['analytical_role'] for p in r['profiles']})},runtime=r['runtime'].get('mode'),limitations=r['limitations'])
+    if view=='report':
+        assessment=r.get('readiness_assessment')
+        if not assessment:raise ChatError('No readiness report recorded for this older profile. No read was repeated.')
+        result['report_markdown']=assessment['report_markdown']
+    elif view=='overview':
+        result.update(summary=session.get('message'),field_guidance=r.get('field_guidance'),field_count=len(r['columns']),roles={role:sum(p['analytical_role']==role for p in r['profiles']) for role in sorted({p['analytical_role'] for p in r['profiles']})},runtime=r['runtime'].get('mode'),limitations=r['limitations'])
     elif view=='columns':result.update(total=len(columns),offset=offset,profiles=columns[offset:offset+limit])
     elif view in {'table','groups'}:
         if view=='groups':result['group_by']=r.get('group_by',[])
         rows=r['table']['preview'] if view=='table' else r['groups']
         if view=='groups' and r.get('group_by'):
-            from geoagent_harness.tabular.dataset_views import percentages
+            from geoagent_harness.tabular.grouping import percentages
             rows=[{**row,**percentage} for row,percentage in zip(rows,percentages(rows,r['group_by'],r['matching_rows']))]
         if view=='groups':result['cross_tab']=cross_tab(rows,r.get('group_by',[]),r['matching_rows'],measure=cross_measure,swap=cross_swap)
         result.update(columns=r['table']['columns'] if view=='table' else list(rows[0]) if rows else [],rows=rows[offset:offset+limit],offset=offset,loaded_rows=len(rows),total_rows=r['matching_rows'] if view=='table' else len(rows),preview_only=view=='table')
@@ -85,7 +89,12 @@ def table(headers,rows):
 def render_view(v):
     lines=[f"Chat {v['chat_id']} · revision {v['revision']} · {v['view'].title()}",clean(v['source']),f"Analysis revision: {v.get('analysis_revision') or 'not recorded'}; saved snapshot, not current file freshness",f"{v['source_rows']:,} source rows · {v['matching_rows']:,} matching rows · saved evidence; no calculation rerun"]
     view=v['view']
-    if view=='overview':lines += [clean(v.get('summary') or '',4000),f"Fields: {v['field_count']} · Runtime: {v['runtime']}",table(['Role','Fields'],list(v['roles'].items()))]
+    if view=='report':
+        lines += [clean(line,2000) for line in v['report_markdown'].splitlines()]
+    elif view=='overview':
+        lines += [clean(v.get('summary') or '',4000),f"Fields: {v['field_count']} · Runtime: {v['runtime']}",table(['Role','Fields'],list(v['roles'].items()))]
+        if v.get('field_guidance'):
+            lines += ['Suggested fields (advisory, not confirmed domain meanings):',*[clean(kind+': '+', '.join(names),2000) for kind,names in v['field_guidance']['candidates'].items()]]
     elif view=='columns':
         if len(v['profiles'])==1:
             p=v['profiles'][0];n=p.get('numeric') or {};q=n.get('quantiles') or {}

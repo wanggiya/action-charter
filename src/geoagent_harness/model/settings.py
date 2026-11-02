@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 # Set once at the interface request boundary; never mutate process environment.
 selected_model: ContextVar[str | None] = ContextVar('selected_model', default=None)
+selected_reasoning: ContextVar[str | None] = ContextVar('selected_reasoning', default=None)
 
 
 class ModelSettingsError(ValueError):
@@ -84,6 +85,8 @@ def load_model_settings(
         )
 
     reasoning = values.get("MODEL_REASONING_EFFORT", "").strip() or None
+    override=selected_reasoning.get() if environ is None else None
+    if override and override!='environment':reasoning=None if override=='provider' else override
     if reasoning not in {None, "none", "low", "medium", "high"}:
         raise ModelSettingsError("MODEL_REASONING_EFFORT must be none, low, medium or high")
     response_format = values.get("MODEL_RESPONSE_FORMAT", "json_schema").strip()

@@ -1,8 +1,8 @@
 # Current implementation status
 
-[Agent modes](../docs/TASK_AGENT_MODES.md); [resume](WORK_RESUME.md).
+[Full-data delivery; F5 partial](../docs/FULL_DATA_WORKFLOW_ACCEPTANCE.md); [resume](WORK_RESUME.md). [Goals](../docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
 
-Updated: 2026-10-26
+Updated: 2026-10-30
 
 [28 accepted](../docs/CHECKPOINT28_CLOSEOUT.md): exact inspections, batches, discovery; [resume](WORK_RESUME.md).
 

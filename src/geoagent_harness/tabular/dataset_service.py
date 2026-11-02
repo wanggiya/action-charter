@@ -19,5 +19,11 @@ def profile_dataset(root,path,options=None,*,delimiter=',',owner=None,checkpoint
         result['runtime']={'mode':'local_bounded_process','container_isolation':False,'reason':'Explicit trusted compatibility setting'}
     else:raise ValueError('Analytical runtime must be docker or explicit local compatibility mode')
     if expected_sha256 and result['source_sha256']!=expected_sha256:raise ValueError('Source changed since the recorded analytical read')
+    # Also supports an existing fixed worker image: guidance uses its recorded
+    # complete profiles, without a second scan or weakening the worker boundary.
+    from .field_guidance import guidance_from_profiles
+    result['field_guidance']=guidance_from_profiles(result['profiles'],path=result['source'],sha256=result['source_sha256'],source_rows=result['source_rows'],matching_rows=result['matching_rows'])
+    from .readiness import attach_assessment
+    attach_assessment(result,result_budget=1024**2)
     if retain_artifact:result['artifact']=record_artifact(root,result,owner)
     return result

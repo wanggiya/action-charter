@@ -7,10 +7,7 @@ import re
 import sys
 from geoagent_harness.discovery.csv import source,Reader,text_reader,records,header,row_values,identity,MAX_BYTES
 
-MARKERS={'?','NA','N/A','NULL','None','Unknown'}
-IDENTIFIER=r'(^id$|_nbr$|^(?:patient|encounter)(?:_id|_number|_nbr)?$|identifier)'
-CODE=r'(_id$|(^|_)code($|_)|^diag_|postal|zip)'
-ROLES={'numerical','count','categorical','ordered_category','identifier','text','uncertain'}
+from .field_guidance import MARKERS,IDENTIFIER,CODE,ROLES,classify_role,guidance_from_profiles
 
 class Numeric:
     def __init__(self):self.n=0;self.mean=0.;self.m2=0.;self.minimum=None;self.maximum=None;self.total=0.;self.values=array('d');self.quantiles=True
@@ -115,15 +112,8 @@ def inspect_dataset(root,path,options=None,*,delimiter=','):
             if after!=before:raise ValueError('Source path changed while profiling')
     profiles=[]
     for name,p in columns.items():
-        n=p['numeric'];basis=[];confidence='candidate'
-        if name in overrides:role=overrides[name];basis=['explicit override'];confidence='declared'
-        elif re.search(IDENTIFIER,name,re.I):role='identifier';basis=['identifier name hint'];confidence='candidate'
-        elif re.search(CODE,name,re.I) or book and name in book['sections']:role='categorical';basis=['coded field name or supplied codebook']
-        elif p['nonmarker'] and p['bands']==p['nonmarker']:role='ordered_category';basis=['all non-marker values are interval labels']
-        elif p['nonmarker'] and n.n/p['nonmarker']>=.95:
-            role='count' if re.search(r'number|count|visits|num_',name,re.I) and p['integer']==n.n and (n.minimum or 0)>=0 else 'numerical'
-            basis=['at least 95% numeric compatibility; semantic meaning remains a candidate']
-        else:role='categorical' if not p['overflow'] else 'uncertain';basis=['observed string/mixed values']
+        n=p['numeric']
+        role,basis,confidence=classify_role(name,nonmarker=p['nonmarker'],numeric=n.n,integer=p['integer'],minimum=n.minimum,bands=p['bands'],overflow=p['overflow'],override=overrides.get(name),coded=bool(book and name in book['sections']))
         observed='empty' if not p['nonmarker'] else 'interval_labels' if p['bands']==p['nonmarker'] else 'integer_compatible' if n.n==p['nonmarker'] and p['integer']==n.n else 'number_compatible' if n.n==p['nonmarker'] else 'mixed' if n.n else 'text'
         numeric=n.result() if role in {'numerical','count'} else None
         undeclared_markers=sum(v for k,v in p['markers'].items() if k not in missing.get(name,[]))
@@ -149,6 +139,7 @@ def inspect_dataset(root,path,options=None,*,delimiter=','):
         with source(root,book['path']) as (_,_,after):
             if after!=book['identity']:raise ValueError('Codebook changed during profile')
     return {'schema_version':'dataset-profile-v1','source':path,'source_sha256':reader.sha.hexdigest(),'source_rows':count,'matching_rows':matched,
+        'field_guidance':guidance_from_profiles(profiles,path=path,sha256=reader.sha.hexdigest(),source_rows=count,matching_rows=matched),
         'scope':'complete_parsed_file','groups':group_rows,'group_by':group_by,'distinct_counts':{p['name']:p['distinct_count'] for p in profiles if p['name'] in requested_distinct and p['distinct_count'] is not None},'columns':names,'profiles':profiles,'codebook':book,
         'table':{'columns':page_columns,'preview':preview,'row_count':matched,'offset':page_offset,'limit':page_limit,'preview_truncated':len(preview)<matched or len(page_columns)<len(names)},
         'query':options,'checks':{'profile_count_matches_columns':len(profiles)==len(names),'complete_source_hashed':reader.bytes==before[2]},

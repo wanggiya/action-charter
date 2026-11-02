@@ -1,12 +1,14 @@
 """MCP server exposing a fixed GIS tool allowlist."""
 
 from __future__ import annotations
+from geoagent_harness.postgres.schemas import ImportCSV
 from geoagent_harness.sandbox.contracts import DatasetOptions
 from geoagent_harness.tabular.dataset_views import DatasetViewRequest
 from typing import Any, Literal
-from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
+from geoagent_harness.tabular.analysis_contracts import AnalysisOptions,TableSourceOptions
 
 from mcp.server.fastmcp import FastMCP
+from geoagent_harness.tabular.statistics import StatisticsSpec,RegressionSpec
 from mcp.server.transport_security import (
     TransportSecuritySettings,
 )
@@ -73,6 +75,11 @@ def create_mcp_server(
         return tools.inspect_postgres_table(target_schema,target_table,preview_rows)
 
     @server.tool()
+    def validate_postgres_import(arguments:ImportCSV)->dict:
+        """Read-only full-source cast/null/key mapping validation; no database write or authority."""
+        return tools.validate_postgres_import(arguments.model_dump(mode='json'))
+
+    @server.tool()
     def discover_inputs(directory:str)->dict:
         """Discover supported files and bounded CSV headers in one input folder; no raw rows, recursion or writes."""
         return tools.discover_inputs(directory)
@@ -93,9 +100,34 @@ def create_mcp_server(
         return tools.profile_dataset(path,options.model_dump(mode='json') if options else None)
 
     @server.tool()
+    def workflow_report(run_id:str)->dict:
+        """Read analytical/technical handoff from recorded workflow evidence; no source scan, model call or execution."""
+        return tools.workflow_report(run_id)
+
+    @server.tool()
+    def list_operation_contracts(query:str='')->dict:
+        """Search registered operations, typed arguments/results, source readers, effects and requirements. Discovery grants no execution authority."""
+        return tools.list_operation_contracts(query)
+
+    @server.tool()
     def profile_table(path: str, options: AnalysisOptions | None = None) -> dict:
-        """Full-file CSV profiles, quality/duplicate checks and grouped distinct counts; optional codebook, no dataset writes."""
+        """Full-file CSV/TSV/XLSX/flat JSON/JSONL profiles, quality/duplicate checks and grouped distinct counts; optional codebook, no dataset writes."""
         return tools.profile_table(path, options.model_dump(mode="json") if options is not None else None)
+
+    @server.tool()
+    def table_statistics(path:str,specification:StatisticsSpec,missing_values:dict[str,list[str]]|None=None,source_options:TableSourceOptions|None=None)->dict:
+        """Describe numeric fields, Pearson/Spearman/covariance matrices or OLS coefficients/P-values/R-squared. Read-only; explicit variables and missing policy."""
+        return tools.table_statistics(path,specification.model_dump(mode='json'),missing_values,source_options=source_options.model_dump(mode='json') if source_options else None)
+
+    @server.tool()
+    def recommend_table_fields(path:str,source_options:TableSourceOptions|None=None)->dict:
+        """Inspect a full supported table source and suggest measurement/grouping/identifier candidates with evidence and cautions. Advisory, no statistics execution or write authority."""
+        return tools.recommend_table_fields(path,source_options=source_options.model_dump(mode='json') if source_options else None)
+
+    @server.tool()
+    def linear_regression(path:str,specification:RegressionSpec,source_options:TableSourceOptions|None=None,missing_policy:Literal['error','complete_cases']='error',missing_values:dict[str,list[str]]|None=None)->dict:
+        """Numeric OLS with coefficients, standard errors, P-values, confidence intervals, R-squared and diagnostics; optional HC3/cluster covariance. Not causal inference."""
+        return tools.table_statistics(path,{'methods':['linear_regression'],'regression':specification.model_dump(mode='json'),'missing_policy':missing_policy},missing_values,source_options=source_options.model_dump(mode='json') if source_options else None)
 
     @server.tool()
     def discover_dataset(path:str,delimiter:str|None=None)->dict:

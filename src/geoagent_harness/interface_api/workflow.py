@@ -99,6 +99,8 @@ def validate_edit(request: EditRequest, *, project_root: Path):
     from .server import _trusted_root
     result = request.planner_result
     normalize_plan_input_filenames(result.plan)
+    from geoagent_harness.planner.bindings import bind_streaming_preparation
+    bind_streaming_preparation(result.plan,project_root)
     _check(result, _trusted_root(project_root))
     return dict(schema_version='1.0', status='planned_not_saved',
                 **result.model_dump(mode='json'), allowed_skill_ids=list(dict.fromkeys(s.skill for s in result.plan.steps)),

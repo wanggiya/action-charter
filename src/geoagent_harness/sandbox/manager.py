@@ -87,6 +87,7 @@ def run_profile(root,path,options,*,delimiter=',',checkpoint=None,max_seconds=12
             if len(result.get('profiles',[]))!=len(result.get('columns',[])):raise SandboxError('Worker profile coverage mismatch')
             if len(bindings)>1 and (result.get('codebook') or {}).get('sha256')!=bindings[1]['sha256']:raise SandboxError('Worker codebook binding mismatch')
             result['source']=original;result['query']=options
+            if result.get('field_guidance'):result['field_guidance']['source']=original
             if result.get('codebook'):result['codebook']['path']=bindings[1]['path']
             result['runtime']={'mode':'docker','job_id':name,'image_id':image_id,'protocol':'dataset-profile-v1',
                 'network':'none','root_read_only':True,'user':'65534:65534','memory_bytes':512*1024**2,

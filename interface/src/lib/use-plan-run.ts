@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {z} from 'zod';
-import {runs, runSchema, type WorkflowRun} from './workflow-tools';
+import {runs, runSchema, runActive, type WorkflowRun} from './workflow-tools';
 
 export function currentChatId(): string | null {
   try { return localStorage.getItem('actioncharter:planner-conversation:v1'); } catch { return null; }
@@ -20,13 +20,12 @@ export function usePlanRun(plan:string|undefined, draft:boolean, live:WorkflowRu
     let active=true;
     setSelection(null);
     if(!plan||!chat||draft){setState({scope,run:null,status:draft?'Draft edits have no execution evidence.':'No chat-linked execution evidence.'});return;}
-    setState({scope,run:null,status:'Loading recorded execution…'});
+    setState(previous=>previous.scope===scope?{...previous,status:'Loading recorded execution…'}:{scope,run:null,status:'Loading recorded execution…'});
     void (async()=>{
-      const inventory=z.object({records:z.array(runSchema)}).parse(await runs({action:'list'}));
-      const latest=inventory.records.filter(run=>matchesPlanRun(run,plan,chat)).sort((a,b)=>b.started_at.localeCompare(a.started_at))[0];
-      const record=latest?runSchema.parse(await runs({action:'read',run_id:latest.run_id})):null;
-      if(active)setState({scope,run:matchesPlanRun(record,plan,chat)?record:null,status:record?'':'No recorded run found in the recent history for this chat and plan.'});
-    })().catch(()=>{if(active)setState({scope,run:null,status:'Recorded results unavailable. Refresh evidence or inspect Execution History; nothing was retried.'});});
+      const {record}=z.object({record:runSchema.nullable()}).parse(await runs({action:'latest',conversation_id:chat,confirmed_plan_sha256:plan}));
+      if(record&&!matchesPlanRun(record,plan,chat))throw new Error('Recorded execution scope mismatch');
+      if(active)setState({scope,run:record,status:record?'':'No recorded run found for this chat and plan.'});
+    })().catch(()=>{if(active)setState(previous=>({scope,run:previous.scope===scope?previous.run:null,status:'Recorded results unavailable. Refresh evidence or inspect Execution History; nothing was retried.'}));});
     return()=>{active=false;};
   },[plan,chat,draft,revision]);
   const loaded=state.scope===scope?state.run:null;
@@ -34,7 +33,7 @@ export function usePlanRun(plan:string|undefined, draft:boolean, live:WorkflowRu
   const pinned=matchesPlanRun(selection,plan,chat)?selection:null;
   const run=draft?null:pinned??(current&&(!loaded||current.started_at>=loaded.started_at)?current:loaded);
   useEffect(()=>{
-    if(!run||draft||(!pinned&&live?.run_id===run.run_id)||!['queued','running'].includes(run.critic_review?.status??''))return;
+    if(!run||draft||(!pinned&&live?.run_id===run.run_id)||(!runActive(run)&&!['queued','running'].includes(run.critic_review?.status??'')))return;
     let active=true;
     const timer=window.setTimeout(()=>{
       void runs({action:'read',run_id:run.run_id}).then(value=>{

@@ -1,5 +1,176 @@
 # Governed tabular PostgreSQL workflow — 2026-10-26
 
+## Next implementation: full-data analytical and engineering handoff — 2026-10-29
+
+**Historical implementation plan, now followed by delivered F1–F4 functionality.**
+See [current contracts, limits and acceptance](FULL_DATA_WORKFLOW_ACCEPTANCE.md).
+The seven-step full-source disposable round trip is qualified separately from local
+model generation. F5 remains partial: Single/Three generated and executed a full-file
+selection, but advisory model reviews were unavailable within their budgets. The full
+seven-step workflow has not been certified as a one-shot model-generated proposal.
+The future-tense detail below preserves the original plan, not an assertion that all
+its broader acceptance gates are closed.
+This continues T03/T04/T05/T13 in [IMPLEMENTATION_TODO](IMPLEMENTATION_TODO.md), rather
+than creating another independent checkpoint or agent system. The target is the full
+supplied dataset; a 5,000-row sample is a preliminary fixture, never a silent substitute.
+Existing delivered capabilities and earlier acceptance below remain historical evidence.
+
+### Target and known baseline
+
+Complete one reusable journey:
+
+```text
+Question -> source/readiness inspection -> explicit preparation
+         -> analytical calculations -> proposed database mapping + read-only preflight
+         -> review exact write effects -> authorize -> execute fresh-table import
+         -> inspect actual database schema/content -> export and reconcile
+         -> analytical report + technical handoff + saved evidence
+```
+
+Full-file calculations/readiness have been independently reconciled for 101,766 rows,
+50 fields and 71,518 patient identifiers. That does not certify local-model planning,
+clinical interpretation, full-file preparation, database transfer or a final report.
+The planning timeout follow-up is documented in
+[readiness acceptance](READINESS_ASSESSMENT_AND_FULL_DATA_TEST.md).
+
+Current PostgreSQL import/read/export limits are 200,000 rows / 100 columns / 64 MiB;
+several pandas preparation paths still have 10,000-row / 8 MiB limits. The source is
+19,159,383 bytes. Being eligible for database import does not make preparation eligible,
+and expanded decoded outputs/snapshots must be measured separately. Do not merely raise
+all limits or promise unrestricted processing.
+
+### Agent skills and backend responsibilities
+
+| Layer | Planned responsibility | Boundary |
+| --- | --- | --- |
+| Planner/statistical/PostgreSQL skills | Choose registered operations, use readiness/codebook evidence, propose preparation and table design, explain genuine ambiguities and supported findings | Reasoning/proposals only; no invented field meaning, values, credentials or permission |
+| Execution role and shared services | Run the validated typed operations, enforce worker/resource/path boundaries, perform calculations and transactional database changes, record actual results | Models do not supply arbitrary Python/SQL; role labels do not grant authority |
+| Critic skill | Review observation grain, repeated entities, mapping/cast coverage, denominators, analytical assumptions and handoff completeness against recorded evidence | Advisory assessment cannot change deterministic results, approve writes or certify missing checks |
+| Registry/MCP/CLI/frontend | Expose the same typed arguments, effects, runtime limits, validation/result contracts and saved evidence | No separate implementation of calculations or direct unapproved MCP mutator |
+| Report assembly | Deterministically assemble source-linked facts, actual schema/receipts and separately labelled model interpretation | No invented findings, generic success narrative or silent merging of unrelated runs |
+
+Update existing `skills/table_statistics/SKILL.md`,
+`skills/postgres_workflows/SKILL.md` and applicable Planner/Critic role guidance when
+the corresponding services are qualified. Audit the existing `generate_report`
+implementation/registration and its stale-looking skill documentation before deciding
+whether to extend it or add an explicitly distinct report contract. Do not instruct
+agents to invoke planned operations as though they already exist.
+
+MCP exposes callable contracts, not the implementation of pandas/PostgreSQL itself.
+The shared backend implements operations; skills teach agents when and how to compose
+them. Register new contracts or compatible extensions with typed schemas, dependencies,
+read/write effects, authorization and validation requirements. Reuse existing operation
+IDs where compatible, and version materially changed behavior. No new permanent agent,
+unrestricted library execution, automatic installation or general SQL console is needed.
+
+### Dependency-ordered delivery slices
+
+1. **F1 — full-file preparation (T03/T04/T13).** Audit/reuse source verification and
+   existing selection, filtering, missing-value and sectioned-codebook decoding paths.
+   Add bounded streaming only for needed row-local/verified-mapping operations, sharing
+   CSV parsing, null semantics and result manifests. Retain bounded dataframe behavior
+   for operations that cannot safely stream; joins require explicit cardinality/state
+   contracts. Every transform records source identity, parameters, input/output counts,
+   null/mapping coverage and fresh output identity. Preserve identifiers, row order
+   where promised and original inputs. Check cancellation and publish outputs atomically.
+   Acceptance: unrelated known-answer fixtures, all full-source rows for row-preserving
+   transforms, declared filtering counts, changed-source rejection, output collisions,
+   bounded memory/time and no partial output claimed as success. No silent sample or
+   unrequested imputation. All generated dataset files require normal write authority.
+
+2. **F2 — schema proposal and read-only mapping preflight (T04/T13), after F1's
+   source/output contracts.** Planner proposes source-to-destination column names,
+   supported PostgreSQL types, explicit null policies and observation keys from full
+   evidence and supplied definitions. Backend checks every selected value for cast
+   compatibility, nullability and key violations against exact source/selection and
+   configured connection identity. Report totals and bounded safe findings; do not expose
+   raw patient identifiers in model evidence. The current global `null_values` policy
+   must not silently turn a meaningful token into NULL across unrelated columns. Audit
+   whether an additive per-column policy or an explicit preparation step is needed;
+   retain compatibility and bind any new semantics into review/approval identity.
+   Acceptance: textual IDs/leading zeros preserved, unique/non-null key evidence, repeated
+   patient IDs allowed, exact bad-cast/null/key counts, changed-binding invalidation and
+   no database mutation or authority from preflight. A passed preflight is stale if its
+   source, mapping or target identity changes; execution must check again.
+
+3. **F3 — fresh PostgreSQL round trip (T13), after F1/F2.** Reuse create-only import,
+   database inspection and snapshot-bound export. Use bounded bulk/streaming execution
+   only after inspecting current implementation and testing its transaction/resource
+   behavior. Verify the actual destination column types, nullability, keys and counts;
+   reconcile exported values with the prepared source under a recorded normalization
+   policy. CSV byte hashes alone are not semantic equality after type/null/order changes.
+   Acceptance: full-file import/inspect/export in a disposable database, exact identifiers,
+   numeric precision/null preservation, target collision, source/target drift, rollback,
+   cancellation and one-attempt/recovery evidence. Distinguish committed writes from
+   failed later verification. Never automatically repeat a write. Existing production
+   tables/services and their data are outside this acceptance.
+
+4. **F4 — analytical report and technical handoff (T05/T13).** Reuse source-bound
+   statistical/readiness evidence and existing Markdown/PDF presentation. Assemble
+   results from explicitly compatible workflow steps with source/transformation lineage;
+   no implicit cross-chat or cross-source synthesis. Analytical report: question, scope,
+   grain, methods, missingness/exclusions, measured tables/charts, interpretations and
+   limitations. Technical handoff: source/codebook hashes, workflow/run/operation versions,
+   preparation and mapping/null decisions, reviewed versus actually created table design,
+   safely rendered DDL/data dictionary, constraints/indexes actually present, verification
+   results, export encoding/digests, reproduction and recovery instructions. Before a run,
+   label technical material as a draft; after execution derive actual claims from receipts
+   and database introspection. Acceptance: reproducible source-linked numbers, actual
+   schema agrees with document, explicit unavailable/omitted checks, no secrets or
+   fabricated success. Browser downloads stay local; backend report-file creation follows
+   normal write authorization. Report scope/budgets and complete-table access are explicit.
+
+5. **F5 — real-model and role-mode acceptance, after F1–F4.** First use unrelated small
+   fixtures, then preliminary sample checks, then the full supplied file. Stage planning
+   around inspection/preparation/schema boundaries rather than one oversized prompt;
+   retrieve relevant contracts and reuse the reviewed current plan. Run the same task
+   separately in existing Single and Three modes with the same model and comparable
+   settings. Record correctness, calls/tokens when available, prompt sizes, wall time,
+   failures, corrections, tool/resource use and user interventions. Do not automatically
+   choose modes by tokens alone. Acceptance: correct end-to-end evidence in both modes,
+   frontend/CLI continuation, history after restart without execution replay, cancellation
+   and clear recovery. A fixture pass or extra role alone is not proof of real-model
+   competence. Any live user database write requires separate explicit permission.
+
+### What “good schema” means for the first case
+
+Start with a validated encounter-grain table in an existing allowed test namespace.
+Preserve encounter/patient identifiers as text, test encounter uniqueness/non-nullness,
+allow repeated patient identifiers, retain age bands as categories, and use numeric
+types only for justified measurements/counts with verified range/precision. Declared
+missing markers must be distinguished from genuine codes. Supplied codebook labels
+are definitions to trace, not independent clinical verification. The full-source test
+must not infer a cohort, units or exclusion policy from the filename.
+
+Separate lookup tables, foreign keys, extra indexes, namespace creation and broader
+relational normalization require justified contracts, verified mappings and their own
+reviewed write effects; they are not silently added. Distinguish a PostgreSQL namespace
+from table design. The first slice does not add arbitrary schema maintenance, append,
+replace, destructive cleanup or ongoing autonomous production administration.
+
+### Low-friction interaction and authority
+
+User supplies the objective and resolves genuine domain/destination ambiguities.
+Planner handles mechanical operation composition, parameter binding and explanations;
+backend handles supported safe defaults, validation and evidence. Do not require users
+to type SQL, intermediate JSON, mapping definitions that can already be derived from
+evidence, or manually register a recipe. Ambiguous semantics cannot be invented to save
+a click. Present one coherent review of exact file/database effects where supported.
+Read-only operations remain directly executable; writes require Allow writes ->
+Authorize -> Execute. Context, history, model text, recipes, a preflight or library
+installation never grants or renews authority.
+
+### Resume instruction
+
+Start F1 by tracing the actual preparation reader/writer and verification paths and
+existing tests. Then implement the smallest shared streaming preparation slice needed
+for the full-data journey. Update skills/registry/interfaces alongside the qualified
+backend behavior, run meaningful tests plus `make test`/`make interface-validate`, and
+record browser/model evidence separately. Do not mark F1–F5 or the first real end-to-end
+test complete from the earlier read-only numerical results. No implementation, database
+action, package installation or Git/publication action is authorized by this planning
+record alone.
+
 2026-10-26: [real diabetes frontend test flow](DIABETES_REAL_TEST_FLOW.md) now records
 actual files, measured expectations, sectioned-codebook decoding and temporary database
 round-trip acceptance. Earlier proposed/unverified statuses below remain historical.

@@ -23,7 +23,9 @@ class DiscoverySession:
             if self.rounds:
                 diagnostics['stage']='planner_correction_after_discovery' if diagnostics['stage'].startswith('planner_correction') else 'planner_after_discovery'
             try:
-                result=self.budget.complete(client, request, check_prompt)
+                from geoagent_harness.model.telemetry import phase
+                with phase('planner',diagnostics['stage']):
+                    result=self.budget.complete(client, request, check_prompt)
             except ModelClientError as error:
                 error.planner_diagnostics={**diagnostics,'elapsed_seconds':round(monotonic()-started,3),'discovery_rounds':len(self.rounds), 'effort_budget':self.budget.receipt()}
                 raise
