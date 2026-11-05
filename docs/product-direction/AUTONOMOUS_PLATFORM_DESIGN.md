@@ -4,6 +4,28 @@ Recorded 2026-11-01. Target architecture; **not implemented**. It extends, and d
 replace, the core principle in [context/ARCHITECTURE.md](../../context/ARCHITECTURE.md):
 *models propose; deterministic software authorizes, executes, validates and records evidence.*
 
+## Revision 2026-11-02 — read first
+
+The owner decided to build this platform ourselves ([decision note](../decisions/2026-11-02-own-platform-direction.md)). Compared with
+the original 2026-11-01 design below:
+
+| Area | Original (2026-11-01) | Revised (2026-11-02) |
+|---|---|---|
+| Scope | General autonomous platform for processing, science, engineering and administration | Same long-term goal, but **verified data work first** |
+| Sandbox | Sandboxed executors (Docker → gVisor/Firecracker) for isolation | **Run workspaces**: process vs outcome areas, snapshots, promotion by verification, governed sharing between agents; Docker per job now, MicroVM later |
+| Data access | Connectors | **Data Card** first (header, schema, profile, quality, hash) for agents and people |
+| Efficiency | Budgets and observability | **Measured efficiency** as a main differentiator (calls, tokens, time, resources; routing; recipe reuse) |
+| Agents | Supervisor + about nine roles, multi-agent central | **Single-agent mode by default**, multi-agent mode optional and benchmark-justified |
+| Interop | MCP as one front end | **Two-way, opt-in**: external agents use our tools; our agents can hand work to Claude Code, Codex or other agents |
+| Technology | Temporal, OPA/Cedar, gVisor/Firecracker, Helm named | **Thin platform layer**: reuse proven tools; choose specific ones when the phase needs them |
+| Order | Server first (headless → policy/sandbox → Supervisor → evolution) | Differentiators first; phases 0–8 in [WORKING_METHOD.md](WORKING_METHOD.md) |
+
+Server-side unattended operation (registered automations, authorization, what stays human): [SERVER_AUTONOMY_DESIGN.md](SERVER_AUTONOMY_DESIGN.md) (2026-11-05).
+
+Unchanged: core principle, policy, ledger, verification, autonomy levels L0–L4, agent
+manifests, model gateway, editions, governed evolution. Code moves: [RESTRUCTURE_PLAN.md](RESTRUCTURE_PLAN.md).
+The original design follows unchanged as the reference for those parts.
+
 ## Goal
 
 An agent platform that runs on a laptop, an on-site server or a private cloud. It handles

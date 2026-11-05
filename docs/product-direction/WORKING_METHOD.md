@@ -28,28 +28,61 @@ Existing checkpoint files stay as history. **Do not create new `CHECKPOINT*.md` 
 Do not start a step before the previous one meets its exit criterion, unless the owner
 says otherwise. Update the **Status** column when a step changes state.
 
-| Step | Goal | Exit criterion | Status |
+Order set by the [own-platform decision](../decisions/2026-11-02-own-platform-direction.md) (2026-11-02)
+and the [model-provider decision](../decisions/2026-11-03-model-providers.md) (2026-11-03).
+Progress notes do not belong in this file: put them in `context/WORK_RESUME.md`, and
+only change the Status columns here.
+
+| Phase | Goal | Exit criterion | Status |
 |---|---|---|---|
-| 1 | Phase 0: consolidate the codebase (no new features) | Full `make test` passes; repo root contains source only | In progress |
-| 2 | Benchmark suite | 20–30 realistic tasks on synthetic sensitive-style data, runnable with one command against the real local model, baseline recorded | Not started |
-| 3 | Hero journey reliable and fast | CSV/Excel → profile/clean → 3–5 plain-language questions → readable report; benchmark success and time targets agreed with owner and met | Not started |
-| 4 | Prove one learning loop | Case-based recipe reuse makes a repeated benchmark task measurably faster or more accurate | Not started |
-| 5 | Guided mode + Linux Personal package | Non-expert can install and finish the hero journey; tested with real users | Not started |
-| 6+ | Server platform Phases 1–5 | See [AUTONOMOUS_PLATFORM_DESIGN.md](AUTONOMOUS_PLATFORM_DESIGN.md#migration-phases) | Not started |
+| 0 | Consolidate (no new features): Phase 0 tasks below + [restructure steps R1–R11](RESTRUCTURE_PLAN.md) | Full `make test` passes; repo root contains source only; layer check has no violations | In progress |
+| 1 | Baseline benchmark + model providers ([M1–M2](MODEL_PROVIDERS_PLAN.md)) | Provider profiles, credentials and the data-egress gate pass their tests; 20–30 realistic tasks on synthetic sensitive-style data, one command, real local model; measures correctness **and** efficiency (model calls, tokens, time, resources); baseline recorded | Not started |
+| 2 | Data Card + efficiency (incl. per-role model routing, M3); hero journey | Data Card shown to agents and users before work; deterministic routing/recipe reuse; hero journey (CSV/Excel → profile/clean → 3–5 plain-language questions → readable report) meets owner-agreed targets; fewer calls and less time at equal or better correctness | Not started |
+| 3 | Run workspaces | Per-run process/outcome areas with snapshots; promotion only by verification; governed read access for other agents; sandbox boundary tests pass. **Decide first:** fresh sandbox per job (current plan) vs long-lived MicroVM workspace per agent; Docker on laptops, MicroVM on Linux servers with KVM (not available on macOS; needs nested virtualization on WSL2); measure memory per sandbox against the laptop budget | Not started |
+| 4 | Agent modes | Single-agent default and multi-agent mode on one runtime; multi mode enabled by default only where the benchmark shows it helps | Not started |
+| 5 | Frontend redesign + Linux Personal package | Guided and Studio modes; non-expert installs and finishes the hero journey without help | Not started |
+| 6 | Interop (incl. other model API styles, M4) | External agents (Claude Code, Codex, …) use our governed tools via MCP; optional external models via the gateway; one benchmark task completed this way | Not started |
+| 7 | Server profile (incl. shared model gateway, M5) | Headless runs, queue, scheduler, PostgreSQL, login; a scheduled job runs unattended for a week | Not started |
+| 8 | Autonomy and evolution | Policy autonomy levels L0–L4; recipe learning promoted only after beating the benchmark; rollback tested | Not started |
+
+2026-11-02 compatibility fix alongside P0-2: execution versus standalone Critic-review
+labels/statuses and explicit review budget verified: 2,275 backend tests, interface
+validation and isolated fixture browser/API/CLI/PTY passed. See
+[diagnostics](../REQUEST_DIAGNOSTICS.md#execution-and-outcome-review-distinction-2026-11-02).
+This does not complete P0-2 or add a processing capability.
+
+Inspection wording follow-up: normalize the user's explicit read-only metadata lead-in
+across existing parser/source checks; keep complete-request matching and send policy.
+Verified: 2,287 backend tests, interface validation and isolated fixture browser/API/CLI/PTY
+passed, including the exact user wording. No new processing operation or checkpoint.
+
+Inspection-source bug fix: bounded follow-ups resolve active inputs or ask a question;
+shared format guards cover plan/edit/recipe/runtime boundaries. Decoder focus preserves
+capability metadata. [Evidence](../INSPECTION_SOURCE_COMPATIBILITY.md): 2,317 tests,
+interface validation and relocated fixture browser/API/CLI/PTY passed. No new processing capability, agent or checkpoint.
 
 ### Step 1 tasks (Phase 0)
+
+2026-11-03 bug fix: complete inspection clarification response diagnostics, including
+read-only compatibility for older chat/receipt responses; shared equivalent read-only
+wording. No new capability or phase. Verified: 2,327 tests (621.88 s), interface
+validation and isolated fixture browser/API/CLI/PTY passed. See
+[inspection guide](../INSPECTION_SOURCE_COMPATIBILITY.md).
 
 Each task is one branch and one PR. Tasks marked "after" depend on another task.
 
 | ID | Task | What it achieves | Status |
 |---|---|---|---|
 | P0-1 | Move checkpoint docs to `docs/development/checkpoints/`; group `postgis_*`/`geoserver_*` under subpackages | Readable docs tree | Done (PR #59) |
-| P0-2 | Move runtime folders (`builder-*`, `recipe-runs`, `traces`, `plans`, `approvals`, …) under one workspace root, configurable by setting | Repo holds only source; prerequisite for packaging and Windows | Not started |
-| P0-3 | Merge the PostGIS promotion/rollback packages into one plan → approve → execute → verify → rollback lifecycle | Reusable pattern for L3 production writes | Not started |
-| P0-4 | Shared task-actions layer used by `interface_api`, CLI, chat and MCP | One code path; Guided/Studio/Admin/REST become thin adapters | Not started |
-| P0-5 | Storage repository interface (SQLite implementation now) — after P0-2 | Editions differ by config, not code | Not started |
-| P0-6 | Split `interface/src/App.tsx` by workspace (Planner / Graph / Results / Settings) with a state store | Room to add Guided mode | Not started |
-| P0-7 | Trim/archive `context/PRODUCT_ROADMAP.md` below the 128 KB context-load limit | Planner context keeps loading | Not started |
+| P0-2 | Move runtime folders (`builder-*`, `recipe-runs`, `traces`, `plans`, `approvals`, …) under one workspace root, configurable by setting | Repo holds only source; prerequisite for packaging and Windows | Done: [workspace and offline cutover](../WORKSPACE_STORAGE.md); 2,388 tests (666.49 s), frontend/Compose validation and relocated fixture browser journey passed; source-only exit proved on a disposable migrated project. Owner checkout remains unmigrated. |
+| P0-3 | Merge the PostGIS promotion/rollback packages into one plan → approve → execute → verify → rollback lifecycle | Reusable pattern for L3 production writes | Done: [issue #60](https://github.com/wanggiya/action-charter/issues/60), [shared lifecycle](../POSTGIS_LIFECYCLE.md); 2,419 tests (672.35 s), 193 focused checks, frontend/Compose and relocated fixture browser journey passed. Live acceptance remains owner-controlled. |
+| P0-4 | Shared task-actions layer used by `interface_api`, CLI, chat and MCP | One code path; Guided/Studio/Admin/REST become thin adapters | Done: [issue #61](https://github.com/wanggiya/action-charter/issues/61), [shared actions](../TASK_ACTIONS.md); 2,447 tests (688.52 s), frontend validation and relocated fixture browser/API/CLI/PTY passed. Import-boundary and compatibility checks pass; no live DB/model acceptance. |
+| P0-5 | Storage repository interface (SQLite implementation now) — after P0-2 | Editions differ by config, not code | Done: [issue #62](https://github.com/wanggiya/action-charter/issues/62), [repository contracts](../STORAGE_REPOSITORIES.md); 2,480 tests (732.26 s), frontend validation and relocated fixture browser/API/CLI/PTY passed. Local adapters only; specialized authority/evidence/ranking stores remain separate. |
+| P0-6 | Split `interface/src/App.tsx` by workspace (Planner / Graph / Results / Settings) with a state store | Room to add Guided mode | Done: [issue #63](https://github.com/wanggiya/action-charter/issues/63), [implementation](../FRONTEND_WORKSPACES.md); composition shell, workspace controllers/views and provider-scoped store. 2,483 tests passed (938.96 s), frontend validation and four isolated fixture browser journeys passed with zero page errors. |
+| P0-7 | Trim/archive `context/PRODUCT_ROADMAP.md` below the 128 KB context-load limit | Planner context keeps loading | Done: [issue #64](https://github.com/wanggiya/action-charter/issues/64); active roadmap below 15 KB, complete linked snapshot with original-byte/hash verification; 545 local links/151 fragments and 12 context checks passed. Full make test: 2,483 passed (682.93 s, 13 existing spatial warnings). Context-pack builder does not currently include the roadmap; no runtime loading change. |
+| P0-2b | Workspace follow-up: ownership by **project ID** instead of source-checkout path (servers run installed code with many projects); one layout configuration object replacing the scattered `GEOAGENT_*_ROOT` variables (with R2); migrate the owner's real checkout with the offline migration tool after a backup | Server-ready workspace identity; Phase 0 exit met on the real checkout | Not started |
+| P0-5b | Storage follow-up: bring the stores still outside the contracts behind them — approval/authority records, evidence, lifecycle records, write-policy ownership (`write_policy.py`), recipe ranking (`recipe_catalog/successful.py`) — as an **append-only ledger contract** where applicable; add a **concurrency contract** (transactions/row locks, idempotency) that a PostgreSQL implementation must meet | Complete interface, so the server profile is a new implementation, not a redesign | Not started |
+| R-series | Remaining [restructure steps](RESTRUCTURE_PLAN.md): **R1 first** (real layer test), R2 (one platform configuration), R5 completion (CLI through task actions), R7 (`cli.py`), R6 moves, **R12 server seams** | Clean layers; server seams in place | Not started |
 
 Follow [GENERALIZATION_AND_CONSOLIDATION_PLAN.md](../GENERALIZATION_AND_CONSOLIDATION_PLAN.md)
 for moves: trace callers first, move one responsibility at a time, keep external

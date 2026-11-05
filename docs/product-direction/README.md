@@ -1,7 +1,9 @@
 # Product direction (2026-11)
 
 Recorded 2026-11-01 from a strategy discussion with the project owner.
-**Design and direction only — nothing in this folder is implemented yet.**
+**Target design and direction, not a claim of delivered editions or autonomy.**
+Phase 0 consolidation has implemented portions of this direction; current and remaining
+work is navigable through the [active roadmap](../../context/PRODUCT_ROADMAP.md).
 Implementation status remains in [context/CURRENT_STATUS.md](../../context/CURRENT_STATUS.md).
 
 Read in this order:
@@ -11,7 +13,22 @@ Read in this order:
 | 1 | [Vision and assessment](VISION_AND_ASSESSMENT.md) | What the product is for, where it stands (2026-11-01), top priorities, structural problems, competitors |
 | 2 | [Editions and interfaces](EDITIONS_AND_INTERFACES.md) | Laptop vs server: one product or two? Professional vs non-professional interface |
 | 3 | [Autonomous server platform design](AUTONOMOUS_PLATFORM_DESIGN.md) | Target architecture for a policy-governed autonomous agent platform, new code structure, migration phases |
-| 4 | [Working method and delivery plan](WORKING_METHOD.md) | How contributors and agents work now (replaces checkpoints), ordered steps with exit criteria and status, task rules |
+| 4 | [Market position and strategy options](MARKET_POSITION_AND_STRATEGY.md) | Is it competitive? Portfolio vs niche product vs governance layer for other agents; validation gate; open decision on the owner's goal |
+| 5 | [Working method and delivery plan](WORKING_METHOD.md) | How contributors and agents work now (replaces checkpoints), ordered steps with exit criteria and status, task rules |
+| 6 | [Code restructure plan](RESTRUCTURE_PLAN.md) | Draft: exact ordered steps (R1–R11) to fix inverted dependencies and move code into layers; where new features go |
+| 7 | [Model providers plan](MODEL_PROVIDERS_PLAN.md) | Local / on-site / gateway / public models: profiles, data-egress gate, steps M0–M5, verification |
+| 8 | [Server autonomy design](SERVER_AUTONOMY_DESIGN.md) | Server-first unattended operation: registered automations, three-part authorization, what can and cannot be automated, build-now vs later |
+
+## Latest decision (2026-11-02)
+
+Build **our own agent platform** (one core for laptop and server), with opt-in interop to
+external agents (Claude Code, Codex, …) and our own single-agent (default) and
+multi-agent modes. Differentiators first: measured efficiency, process/outcome run
+workspaces, Data Card, better frontend. Any model source (local, on-site, gateway,
+public API) with a policy-controlled data-egress gate ([decision](../decisions/2026-11-03-model-providers.md)).
+Server autonomy through human-approved registered automations, server first
+([decision](../decisions/2026-11-05-server-autonomy-direction.md)).
+See the [platform decision note](../decisions/2026-11-02-own-platform-direction.md).
 
 ## One-paragraph summary for the next AI
 
