@@ -1,5 +1,15 @@
 # Work resume — Phase 0 consolidation
 
+2026-11-05 CI follow-up for PR #65: GitHub annotation confirms the PR test job hit
+its 15-minute limit at 98%; same-commit push run passed tests and frontend validation.
+Owner authorized raising timeout to 30 minutes and adding pytest --durations=20.
+Only those two workflow settings changed; coverage/authority/application code unchanged.
+Local validation passed: YAML parse, every run step's bash syntax, exact two-setting
+workflow diff, 12 focused tests with slow-duration output (2.69 s), git diff --check.
+Full suite not repeated for this CI-only edit; prior same-commit push suite passed.
+Remote verification of the changed configuration requires owner commit/push.
+Do not rerun the old workflow expecting it to use this uncommitted configuration.
+
 P0-7 complete, 2026-11-05, issue #64 (owner explicitly authorized creation).
 Active context/PRODUCT_ROADMAP.md now holds phase dependencies, P0 boundaries,
 retained T01–T15 requirements, unresolved memory/learning/format/report/service plans

@@ -1,3 +1,12 @@
+# CI test timeout and timing diagnostics (2026-11-05)
+
+- Increase the offline-test job budget from 15 to 30 minutes after PR #65 reached
+  98% before GitHub cancelled it at the job deadline. The same commit's push run passed.
+- Print the 20 slowest pytest durations to support measured optimization. Keep test
+  selection, assertions, frontend validation and permissions unchanged.
+- Validate YAML/shell syntax and the exact workflow diff; 12 focused tests passed
+  with duration reporting (2.69 s). Changed CI configuration awaits the owner's push.
+
 # Active roadmap and preserved history (2026-11-05, P0-7)
 
 - Replace the incremental roadmap with current phase dependencies, retained requirements
