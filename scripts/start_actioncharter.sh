@@ -99,6 +99,8 @@ PY
 
 api_source="$(PYTHONPATH="$project_root/src" "$python_path" -c 'import geoagent_harness.interface_api.server as server; print(server.__file__)')"
 status "project: $project_root"
+workspace_state="$(PYTHONPATH="$project_root/src" "$python_path" -c 'from pathlib import Path; from geoagent_harness.workspace import WorkspaceLayout; import sys; print(WorkspaceLayout.load(Path(sys.argv[1])).state_root)' "$project_root")"
+status "workspace state: $workspace_state"
 status "interface API source: $api_source"
 status "Node.js: $(node --version); Python: $($python_path --version 2>&1)"
 

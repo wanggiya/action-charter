@@ -131,7 +131,8 @@ def plan_reviewed_intent(*, project_root: Path, filename: str, allowed_skill_ids
 
 def save_reviewed_intent_plan(*, project_root: Path, filename: str, planner_result: PlannerResult, confirmed_plan_sha256: str) -> dict:
     """Store a human-reviewed bounded plan; never infer work authority from intent."""
-    from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveRequest, save_interface_reviewed_plan
+    from geoagent_harness.task_actions.contracts import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
     reviewed = load_reviewed_intent(project_root=project_root, filename=filename)
     try:
         source = json.loads(planner_result.original_request)

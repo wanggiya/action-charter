@@ -89,8 +89,8 @@ def test_planner_projection_displays_distinct_input_files_and_exact_references()
 import {transformWithEsbuild} from 'vite';
 import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const app=await readFile('src/App.tsx','utf8');
-const source=app.slice(app.indexOf('const plannerInputPaths ='),app.indexOf('const editedPlannerWorkflow ='));
+const app=await readFile('src/workspaces/model.ts','utf8');
+const source=app.slice(app.indexOf('const plannerInputPaths ='),app.indexOf('const editedPlannerWorkflow =')).replace(/^export /gm,'').replace(/export $/,'');
 const compiled=await transformWithEsbuild(source+'\nexport {plannerWorkflow,plannerReferenceFacts,withRecordedOutcome};','projection.ts',{loader:'ts'});
 const stubs='const skillLabel=id=>id; const operationDependencies=steps=>Object.fromEntries(steps.map((s,i)=>[s.step_id,i?[steps[i-1].step_id]:[]]));\n';
 const module=await import('data:text/javascript;base64,'+Buffer.from(stubs+compiled.code).toString('base64'));
@@ -121,13 +121,14 @@ def test_saved_plan_restoration_resets_drafts_and_binds_exact_action_scope():
 import {transformWithEsbuild} from 'vite';
 import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const app=await readFile('src/App.tsx','utf8');
-const source=app.slice(app.indexOf('  const resumeSavedPlan = async'),app.indexOf('  const savePlannerPlan = async'));
-const projection=app.slice(app.indexOf('const plannerInputPaths ='),app.indexOf('const editedPlannerWorkflow ='));
+const app=await readFile('src/workspaces/createPlannerActions.ts','utf8');
+const source=app.slice(app.indexOf('const resumeSavedPlan = async'),app.indexOf('const savePlannerPlan = async'));
+const model=await readFile('src/workspaces/model.ts','utf8');
+const projection=model.slice(model.indexOf('const plannerInputPaths ='),model.indexOf('const editedPlannerWorkflow =')).replace(/^export /gm,'').replace(/export $/,'');
 const setters=[...new Set(source.match(/set[A-Z][A-Za-z]+(?=\()/g))];
 const stubs=`const calls={}; ${setters.map(name=>`const ${name}=value=>{calls['${name}']=value};`).join(' ')}
 const skillLabel=id=>id; const operationDependencies=steps=>Object.fromEntries(steps.map((s,i)=>[s.step_id,i?[steps[i-1].step_id]:[]]));
-const cancelNodeLayoutDrag=()=>{}; const window={sessionStorage:{removeItem:()=>{}}}; const requestAnimationFrame=fn=>fn(); const plannerRequestRef={current:null};
+const cancelNodeLayoutDrag=()=>{}; const context={actions:()=>({cancelNodeLayoutDrag})}; const window={sessionStorage:{removeItem:()=>{}}}; const requestAnimationFrame=fn=>fn(); const plannerRequestRef={current:null};
 const readablePlannerRequest=value=>value; const preparePlannerApproval=async()=>({status:'prepared_not_recorded'});
 `;
 const compiled=await transformWithEsbuild(stubs+projection+source+'\nexport {resumeSavedPlan,calls,plannerInputPaths};','restore.ts',{loader:'ts'});

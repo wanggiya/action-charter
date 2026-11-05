@@ -35,7 +35,7 @@ def _request(manifest, task, schema, data):
 
 
 def prepare_recipe(base, root, *, model_client=None, critic_client=None, execution_evidence=None, effort_budget=None):
-    from geoagent_harness.interface_api.workflow import _check
+    from geoagent_harness.task_actions.workflow import _check
     _check(base,root)
     skills=[s.skill for s in base.plan.steps]
     allowed={'inspect_csv','inspect_vector','vector_attributes_to_csv','select_csv_columns','filter_csv_rows','handle_csv_missing','join_csv','aggregate_csv','calculate_csv_columns','export_csv'}
@@ -52,7 +52,7 @@ def prepare_recipe(base, root, *, model_client=None, critic_client=None, executi
         settings=load_model_settings()
         model_client=SharedModelClient(replace(settings,timeout_seconds=min(settings.timeout_seconds,45),max_tokens=min(settings.max_tokens,4096)))
     if effort_budget is not None:
-        from geoagent_harness.interface_api.conversation import _check_prompt
+        from geoagent_harness.task_actions.conversation import _check_prompt
         critic_client = effort_budget.client(critic_client or model_client, _check_prompt)
         model_client = effort_budget.client(model_client, _check_prompt)
     request=_request(planner,

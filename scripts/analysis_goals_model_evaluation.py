@@ -10,7 +10,7 @@ from geoagent_harness.model.telemetry import read,error_code
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--conversation-id',required=True);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
  repo=Path(__file__).resolve().parents[1]
- original=conversation._read(conversation._path(repo,args.conversation_id),args.conversation_id)
+ original=conversation._read(conversation._path(repo,args.conversation_id),args.conversation_id,project_root=repo)
  context=result_exploration.view_context(repo,args.conversation_id,original.planner_result,goal_schema=True)
  if not context:raise SystemExit('No saved matching inspection metadata')
  with tempfile.TemporaryDirectory(prefix='actioncharter-goal-evaluation-') as directory:

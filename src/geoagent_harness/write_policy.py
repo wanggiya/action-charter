@@ -11,6 +11,8 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import stat
+import tempfile
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -32,13 +34,105 @@ _authority: ContextVar[tuple | None] = ContextVar('write_authority', default=Non
 _operation: ContextVar[tuple | None] = ContextVar('write_operation', default=None)
 
 
+def _owner_directory():
+    # Coordination only, not authority/history. Never unlink a lock inode while
+    # processes may hold it. Its key stays stable across state-root changes.
+    return Path(tempfile.gettempdir()) / f'actioncharter-write-owners-{os.getuid()}'
+
+
+def _owner_fd(root, *, create=False):
+    directory = _owner_directory()
+    if create:
+        try: directory.mkdir(mode=0o700)
+        except FileExistsError: pass
+    try:
+        metadata = directory.lstat()
+    except FileNotFoundError:
+        return None
+    if (not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid!=os.getuid()
+            or metadata.st_mode & 0o077):
+        raise WritePolicyError('Project ownership directory is unsafe')
+    descriptor=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        identity=hashlib.sha256(str(Path(root).resolve()).encode()).hexdigest()
+        try:
+            fd=os.open(identity+'.lock',os.O_NOFOLLOW|os.O_NONBLOCK|
+                (os.O_CREAT|os.O_RDWR if create else os.O_RDONLY),0o600,dir_fd=descriptor)
+        except FileNotFoundError:
+            return None
+    finally:
+        os.close(descriptor)
+    metadata=os.fstat(fd)
+    if (not stat.S_ISREG(metadata.st_mode) or metadata.st_uid!=os.getuid()
+            or metadata.st_nlink!=1 or metadata.st_mode & 0o077 or metadata.st_size>4096):
+        os.close(fd)
+        raise WritePolicyError('Project ownership lease is unsafe')
+    return fd
+
+
+def _state_identity(directory):
+    return hashlib.sha256(str(directory.resolve()).encode()).hexdigest()
+
+
+def _owner_active(root, directory):
+    fd=_owner_fd(root)
+    if fd is None:return False
+    try:
+        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            if os.pread(fd,4096,0) != _state_identity(directory).encode():
+                raise WritePolicyError('Workspace storage changed during an active write session; restore its configuration and stop the launcher before migration')
+            return True
+        fcntl.flock(fd,fcntl.LOCK_UN)
+        return False
+    finally:os.close(fd)
+
+
+@contextmanager
+def _project_owner(root):
+    from geoagent_harness.workspace import WorkspaceLayout,WorkspaceError
+    try:layout=WorkspaceLayout.load(root)
+    except WorkspaceError as error:raise WritePolicyError(str(error)) from error
+    fd=_owner_fd(layout.project_root,create=True)
+    try:
+        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise WritePolicyError('Another API owns this project write-policy session') from error
+        os.ftruncate(fd,0);os.write(fd,_state_identity(layout.state_root/'workflow-state').encode());os.fsync(fd)
+        yield
+    finally:os.close(fd)
+
+
 def _paths(root, create=False):
     root = Path(root).absolute()
-    directory = root / 'workflow-state'
-    if root.is_symlink() or directory.is_symlink():
-        raise WritePolicyError('Write policy directory cannot be a symlink')
+    from geoagent_harness.workspace import WorkspaceLayout,WorkspaceError
+    try:
+        if not root.exists() and not create:
+            return root/'workflow-state/write-policy.sqlite3',root/'workflow-state/write-policy.lock'
+        if root.is_symlink():raise WorkspaceError('Write policy directory cannot be a symlink')
+        layout=WorkspaceLayout.load(root)
+        root=layout.project_root
+        directory=layout.runtime_path('workflow-state')
+        _owner_active(root,directory)
+        legacy=root/'workflow-state'
+        if directory!=legacy:
+            if legacy.is_symlink():raise WorkspaceError('Write policy directory cannot be a symlink')
+            legacy_lease=legacy/'write-policy.lock'
+            if legacy_lease.is_symlink():raise WorkspaceError('Write policy files cannot be symlinks')
+            if legacy_lease.exists():
+                fd=os.open(legacy_lease,os.O_RDONLY|os.O_NOFOLLOW)
+                try:
+                    try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                    except BlockingIOError as error:
+                        raise WritePolicyError('Another API owns the legacy project write-policy session; stop it before migration') from error
+                    fcntl.flock(fd,fcntl.LOCK_UN)
+                finally:os.close(fd)
+            if (legacy/'write-policy.sqlite3').exists() and not (directory/'write-policy.sqlite3').exists():
+                raise WorkspaceError('Write policy migration required; complete an offline SQLite backup before switching workspace storage')
+    except WorkspaceError as error:
+        raise WritePolicyError(str(error)) from error
     if create:
-        directory.mkdir(parents=True, exist_ok=True)
+        directory.mkdir(mode=0o700,parents=True, exist_ok=True)
     db, lease = directory / 'write-policy.sqlite3', directory / 'write-policy.lock'
     for path in (db, lease, Path(str(db)+'-journal'), Path(str(db)+'-wal'), Path(str(db)+'-shm')):
         if path.is_symlink():
@@ -65,6 +159,8 @@ def _connect(root):
 def _live(root):
     db, lease = _paths(root)
     if not db.exists() or not lease.exists():
+        if _owner_active(root,db.parent):
+            raise WritePolicyError('Write policy session is starting or unavailable; no write dispatched')
         return False
     fd = os.open(lease, os.O_RDONLY | os.O_NOFOLLOW)
     try:
@@ -91,7 +187,7 @@ def snapshot(root):
 
 
 @contextmanager
-def session(root, *, enabled=False, locked=False):
+def _session(root, *, enabled=False, locked=False):
     """One owning API per project. A new process session revokes old bindings."""
     db_path, lease = _paths(root, create=True)
     fd = os.open(lease, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
@@ -118,6 +214,14 @@ def session(root, *, enabled=False, locked=False):
         yield snapshot(root)
     finally:
         os.close(fd)
+
+
+@contextmanager
+def session(root, *, enabled=False, locked=False):
+    """Own the project independently of state location; restart revokes authority."""
+    with _project_owner(root):
+        with _session(root,enabled=enabled,locked=locked) as state:
+            yield state
 
 
 def update(root, request: PolicyUpdate):
@@ -160,6 +264,21 @@ def ticket(root):
 
 def _digest(record):
     return hashlib.sha256(json.dumps(record.model_dump(mode='json'), sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def approval_policy_root(approval_root, project_root=None):
+    """Use source identity only for its configured approval store.
+
+    An unrelated explicit approval directory must not acquire authority in a
+    project's live write session merely by supplying its registry/project root.
+    """
+    legacy = Path(approval_root).absolute().parent
+    if project_root is None:
+        return legacy
+    from geoagent_harness.workspace import runtime_store_path
+    if Path(approval_root).absolute() == runtime_store_path(project_root,'approvals').absolute():
+        return Path(project_root).resolve()
+    return legacy
 
 
 def bind(root, record, captured):
@@ -254,12 +373,15 @@ def root_guarded(parameter):
         def wrapped(*args,**kwargs):
             bound=signature.bind(*args,**kwargs);bound.apply_defaults()
             location=Path(bound.arguments[parameter]).absolute()
-            root=location.parent
-            for candidate in (location,*location.parents):
-                db,_=_paths(candidate)
-                if db.exists():
-                    root=candidate
-                    break
+            root=bound.arguments.get('project_root')
+            if root is None:
+                root=location.parent
+                for candidate in (location,*location.parents):
+                    if not candidate.is_dir():continue
+                    db,_=_paths(candidate)
+                    if db.exists():
+                        root=candidate
+                        break
             from geoagent_harness.mcp_server.settings import load_settings
             with operation(load_settings().model_copy(update={'project_root':root})):
                 return function(*bound.args,**bound.kwargs)

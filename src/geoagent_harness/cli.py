@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from geoagent_harness.task_history.service import history_directory as runtime_history_directory, TaskHistoryError
 from typing import Annotated, NoReturn
 
 from datetime import datetime
@@ -22,11 +23,17 @@ from geoagent_harness.recipe_proposals import (
 )
 
 
-app = typer.Typer(
+from geoagent_harness.workspace_cli import WorkspaceTyper
+from geoagent_harness.workspace import runtime_store_path
+
+app = WorkspaceTyper(
     name="geoagent",
     help="Run allowlisted ActionCharter operations.",
     no_args_is_help=True,
 )
+
+from geoagent_harness.workspace_cli import register_workspace_commands
+register_workspace_commands(app)
 
 
 @app.command("record-task-event")
@@ -44,7 +51,7 @@ def record_task_event_command(
 
     try:
         result = append_task_event(
-            root=project_root.resolve() / "task-history", task_id=task_id,
+            root=runtime_history_directory(project_root), task_id=task_id,
             event_type=event_type, summary=summary, artifact_path=artifact_path,
             artifact_sha256=artifact_sha256,
         )
@@ -64,7 +71,7 @@ def build_task_context_command(
     from geoagent_harness.task_history import TaskHistoryError, build_task_context
 
     try:
-        result = build_task_context(root=project_root.resolve() / "task-history", task_id=task_id)
+        result = build_task_context(root=runtime_history_directory(project_root), task_id=task_id)
         typer.echo(json.dumps(result, indent=2))
     except (TaskHistoryError, OSError) as exc:
         typer.echo(f"Error: {exc}", err=True)
@@ -80,9 +87,9 @@ def retrieve_task_context_command(
     """Retrieve unreviewed context candidates without calling a model or executing."""
     from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
     try:
-        result = retrieve_task_context(root=project_root.resolve() / "task-history", query=query, task_ids=task_ids)
+        result = retrieve_task_context(root=runtime_history_directory(project_root), query=query, task_ids=task_ids)
         typer.echo(json.dumps(result, indent=2))
-    except ContextRetrievalError as exc:
+    except (ContextRetrievalError,TaskHistoryError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -99,11 +106,11 @@ def review_task_context_command(
     """Confirm exact context for reasoning only, never approve work."""
     from geoagent_harness.context_retrieval import save_reviewed_context, ContextReviewError, ContextRetrievalError
     try:
-        result = save_reviewed_context(history_root=project_root.resolve() / "task-history",
-            review_root=project_root.resolve() / "reviewed-contexts", query=query, task_ids=task_ids,
+        result = save_reviewed_context(history_root=runtime_history_directory(project_root),
+            review_root=runtime_store_path(project_root, "reviewed-contexts"), query=query, task_ids=task_ids,
             confirmed_context_sha256=confirmed_context_sha256, reviewer=reviewer, reason=reason)
         typer.echo(json.dumps(result, indent=2))
-    except (ContextReviewError, ContextRetrievalError, OSError) as exc:
+    except (ContextReviewError, ContextRetrievalError, TaskHistoryError, OSError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -115,9 +122,9 @@ def inspect_reviewed_context_command(
 ) -> None:
     from geoagent_harness.context_retrieval import load_reviewed_context, ContextReviewError, ContextRetrievalError
     try:
-        typer.echo(json.dumps(load_reviewed_context(review_root=project_root.resolve() / "reviewed-contexts",
-            history_root=project_root.resolve() / "task-history", filename=filename), indent=2))
-    except (ContextReviewError, ContextRetrievalError, OSError, ValueError, KeyError) as exc:
+        typer.echo(json.dumps(load_reviewed_context(review_root=runtime_store_path(project_root, "reviewed-contexts"),
+            history_root=runtime_history_directory(project_root), filename=filename), indent=2))
+    except (ContextReviewError, ContextRetrievalError, TaskHistoryError, OSError, ValueError, KeyError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -138,7 +145,7 @@ def reason_task_intent_command(
         result = reason_task_intent(project_root=project_root, review_filename=review_filename, request=request, clarification_answers=clarification_answers, selected_input_path=selected_input)
         typer.echo(json.dumps(result, indent=2))
     except (IntentError, ContextReviewError, ContextRetrievalError, ModelClientError,
-            ModelSettingsError, OSError, ValueError, KeyError) as exc:
+            ModelSettingsError, TaskHistoryError, OSError, ValueError, KeyError) as exc:
         typer.echo(f"Error: {exc}", err=True)
         raise typer.Exit(code=2) from exc
 
@@ -151,7 +158,7 @@ def inspect_intent_proposal_command(
     from geoagent_harness.intent.review import read_intent_file, inspect_intent_for_review
     try:
         typer.echo(json.dumps(inspect_intent_for_review(payload=read_intent_file(proposal_file), project_root=project_root), indent=2))
-    except (ValueError, OSError, KeyError) as exc:
+    except (ValueError, TaskHistoryError, OSError, KeyError) as exc:
         typer.echo(f"Error: {exc}", err=True); raise typer.Exit(code=2) from exc
 
 
@@ -168,7 +175,7 @@ def review_task_intent_command(
         result=save_reviewed_intent(payload=read_intent_file(proposal_file),project_root=project_root,
             confirmed_intent_sha256=confirmed_intent_sha256,reviewer=reviewer,reason=reason)
         typer.echo(json.dumps(result,indent=2))
-    except (ValueError, OSError, KeyError) as exc:
+    except (ValueError, TaskHistoryError, OSError, KeyError) as exc:
         typer.echo(f"Error: {exc}",err=True);raise typer.Exit(code=2) from exc
 
 
@@ -3466,6 +3473,7 @@ def approve_recipe_command(
             approver=approver,
             reason=reason,
             approval_root=approval_root,
+            project_root=project_root,
             human_corrections=corrections,
             expires_at=expires_at,
             now=active_now,
@@ -4695,6 +4703,7 @@ def export_approved_recipe_snakemake_command(
         result = generate_snakemake_recipe_export(
             plan,
             export_root=export_root,
+            project_root=project_root,
         )
     except (
         RecipeApprovalError,

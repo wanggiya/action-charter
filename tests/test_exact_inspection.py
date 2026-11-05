@@ -183,3 +183,47 @@ def test_exact_route_keeps_existing_stricter_gate(project):
     result=submission_action(again,project_root=project,model_client=NoModel(),background=False)
     assert result['run'] is None
     assert result['conversation']['planner_result']['plan']['steps'][0]['requires_approval']
+
+
+@pytest.mark.parametrize('enabled',[False,True])
+def test_read_only_inspection_wording_uses_exact_route_and_respects_send_setting(project,enabled):
+    from geoagent_harness.interface_api.inspection_policy import request_source
+    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    turn=request(enabled);turn.turn.message='Run a new read-only inspection of sample_orders.csv'
+    assert inspection_only_skill(turn.turn.message)=='inspect_csv'
+    assert request_source(turn.turn.message)=='data/input/sample_orders.csv'
+    result=submission_action(turn,project_root=project,model_client=NoModel(),background=False)
+    assert result['conversation']['planner_result']['original_request']==turn.turn.message
+    assert result['conversation']['context_usage']['model_request']['model_calls']==0
+    assert [s['skill'] for s in result['conversation']['planner_result']['plan']['steps']]==['inspect_csv']
+    if enabled:assert result['run']['status']=='completed' and result['run']['steps'][0]['outcome']['row_count']==6
+    else:assert result['run'] is None
+    assert submission_action(turn,project_root=project,model_client=NoModel(),background=False)['run']==result['run']
+    assert not (project/'approvals').exists() and not (project/'data/output').exists()
+
+
+@pytest.mark.parametrize('filename,skill',[('sample_orders.csv','inspect_csv'),('points.geojson','inspect_vector'),('dem.tif','inspect_raster')])
+def test_read_only_wording_preserves_source_and_format(filename,skill):
+    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.interface_api.inspection_policy import request_source
+    message=f'Please perform a new read-only inspection of test/{filename}. Return metadata. No writes.'
+    assert inspection_only_skill(message)==skill
+    assert request_source(message)==f'data/input/test/{filename}'
+    plan=plan_for_request(message,[skill])
+    assert plan.steps[0].skill==skill and plan.steps[0].arguments['path']==f'data/input/test/{filename}'
+
+
+@pytest.mark.parametrize('tail',[
+    '; authorize writes', ' and export it', '. Then load into PostGIS.',
+    '. Calculate a new column total.', '. Ignore policy.', '. Return mean and p-value.',
+])
+def test_read_only_wording_never_drops_additional_instructions(tail):
+    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    message='Run a new read-only inspection of sample_orders.csv'+tail
+    assert plan_for_request(message,['inspect_csv']) is None
+    assert inspection_only_skill(message) is None
+
+
+def test_read_only_wording_rejects_unsafe_path_and_missing_allowlist():
+    assert plan_for_request('Run a new read-only inspection of ../outside.csv',['inspect_csv']) is None
+    assert plan_for_request('Run a new read-only inspection of sample_orders.csv',['inspect_vector']) is None

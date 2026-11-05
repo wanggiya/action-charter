@@ -20,7 +20,7 @@ def generated_bundle(
     tmp_path: Path,
 ) -> tuple[Path, Path]:
     definition_root = (
-        PROJECT_ROOT / "skill-definitions"
+        PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
     )
 
     definition = load_skill_definition(

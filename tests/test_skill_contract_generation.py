@@ -19,7 +19,7 @@ PROJECT_ROOT = Path(__file__).parents[1]
 
 
 def raster_definition():
-    root = PROJECT_ROOT / "skill-definitions"
+    root = PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
 
     return load_skill_definition(
         root / "inspect_raster.skill.yaml",

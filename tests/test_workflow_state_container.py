@@ -29,7 +29,7 @@ def test_executor_receives_state_read_only() -> None:
     volumes = executor["volumes"]
 
     assert (
-        "./workflow-state:"
+        "${ACTIONCHARTER_STATE_ROOT:-.}/workflow-state:"
         "/workspace/workflow-state:ro"
     ) in volumes
 

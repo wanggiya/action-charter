@@ -73,6 +73,16 @@ inconsistently scoped evidence fails closed.
 
 ## Runtime topology
 
+Phase 0 [workspace consolidation](../docs/WORKSPACE_STORAGE.md) separates source/data
+identity from the closed set of internal runtime stores. Shared services and CLI artifact
+defaults use the same resolver; explicit roots remain explicit. Artifact references stay
+logical; source identity binds write sessions and migrated workspace ownership. Offline
+copy/cutover verifies SQLite logical state and unchanged evidence bytes. Optional archival
+keeps old records; rollback rejects newer state. Legacy locations remain until an owner
+chooses migration. This changes storage resolution, not the agent/container topology.
+Compose host runtime mounts can use the configured root; mount permissions and existing
+container destinations remain unchanged.
+
 - Planner and Critic can reach only the shared model network required by their
   roles.
 - Executor can reach only the fixed internal MCP control boundary.
@@ -108,6 +118,61 @@ Inspection, comparison, and assessment accept no arbitrary SQL. Promotion and
 rollback execute only fixed identifier-safe mutations. Both verifiers reload
 and rehash the artifact chain and inspect PostGIS through separate read-only
 transactions rather than trusting executor claims.
+
+P0-3 shares these mechanics through `postgis/lifecycle.py` (decision checks, fixed
+transaction driver/choreography and independent reader lifetime), `postgis/attempts.py`
+(workspace-bound exclusive claims and append-only stage journals) and
+`postgis/artifact_storage.py` (immutable canonical records). Existing promotion/rollback
+packages retain their public schemas and import paths. An exact decision has one attempt;
+commit uncertainty requires inspection and a new decision, never automatic replay.
+The relation-profile contract remains metadata/count based. See
+[scope, recovery and validation](../docs/POSTGIS_LIFECYCLE.md).
+
+## Shared task actions (P0-4)
+
+`task_actions/` owns existing chat/submission coordination, typed workflow edits and
+reviews, exact decisions/dispatch, durable runs/cancellation/recovery proposals, and
+recorded results/assessment. `artifacts.py` and `contracts.py` own saved-plan and
+approval actions extracted from the HTTP server; `execution.py` owns exact dispatch
+and durable progress. Existing registry, policy, runners and workspace storage remain
+the execution boundary. HTTP, CLI and existing MCP tools import the shared owners;
+terminal chat uses the same API and session policy. Old service modules alias the
+actual shared modules, preserving identity of locks and context variables.
+
+Shared actions do not import HTTP/CLI/MCP-tool implementations. Legacy Advanced/
+assurance and some inventories remain in the HTTP module; settings retain their
+historical MCP location. Later router restructuring remains separate.
+See [entry points and verification](../docs/TASK_ACTIONS.md).
+
+## Storage repositories (P0-5)
+
+`storage/contracts.py` defines closed operational metadata transactions/records,
+settings and file/plan access. `provider.py` selects local SQLite/file adapters at
+trusted application composition; models cannot select a provider. `sqlite.py` owns
+SQL for the existing planning database. `files.py` owns bounded JSON reads, atomic
+run persistence/lookups and exclusive plan creation with the original parser.
+Task actions retain domain validation, revision checks, authority and recovery.
+Reads use coherent snapshots; writes retain immediate locking/rollback. Legacy raw
+SQLite consumers have explicit compatibility. Existing configuration/formats remain.
+
+Only local adapters are implemented. Specialized authority/evidence/lifecycle stores,
+ranking, legacy JSON writing and filesystem leases retain their existing mechanics;
+distributed storage/coordination is not delivered. See [contracts and acceptance](../docs/STORAGE_REPOSITORIES.md).
+
+## Frontend workspaces (P0-6)
+
+`interface/src/App.tsx` composes workspace controllers and views. Under `workspaces/`,
+the provider-owned React store holds shared state; graph/DOM references and transient
+or legacy forms remain local hooks. Pure projections, model derivation, typed action
+ports and unconditional effects are separate responsibilities. Render-bound action
+ports retain existing asynchronous scope guards. Selected-chat identity is explicit
+for recorded-run lookup. UI batching is not data authorization or durable storage.
+
+Planner, Graph/inspector, Results/history/review, Settings and Advanced views retain
+the existing DOM structure and API clients. Restoring a workflow or navigating cannot
+grant authority or dispatch operations; backend scope/session/digest verification
+remains required. No Guided mode, state dependency or visual redesign is introduced.
+See [ownership, limits and validation](../docs/FRONTEND_WORKSPACES.md).
 
 ## Historical Builder generated-extension lifecycle
 

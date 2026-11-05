@@ -110,7 +110,8 @@ def run_profile(root,path,options,*,delimiter=',',checkpoint=None,max_seconds=12
 
 def record_artifact(root,result,owner=None):
     root=Path(root).resolve(strict=True)
-    directory=root/'workflow-state'/'analytical-artifacts'
+    from geoagent_harness.workspace import runtime_store_path
+    directory=runtime_store_path(root, 'workflow-state', 'analytical-artifacts')
     if directory.parent.is_symlink() or directory.is_symlink():raise SandboxError('Unsafe analytical artifact storage')
     directory.mkdir(parents=True,exist_ok=True,mode=0o700)
     payload=json.dumps({'owner':owner,'result':result},sort_keys=True,separators=(',',':'),allow_nan=False).encode()

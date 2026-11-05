@@ -40,10 +40,40 @@ __all__ = [
 ]
 
 
+# Resolve shared action exports without importing the HTTP server.
+_ACTION_OWNERS = {'InterfaceApiError': 'geoagent_harness.task_actions.common',
+ 'InterfaceApprovalDecision': 'geoagent_harness.task_actions.contracts',
+ 'InterfaceApprovalVerificationRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfaceExecutionPreviewRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfaceGeneratedPlanSaveRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanApprovalDecisionRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanApprovalPreparationRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanApprovalVerificationRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanExecutionPreviewRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanRecipeCompilationRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfacePlanRecipeSaveRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfaceRecipeExecutionRequest': 'geoagent_harness.task_actions.contracts',
+ 'InterfaceReviewedPlanSaveRequest': 'geoagent_harness.task_actions.contracts',
+ 'TaskActionError': 'geoagent_harness.task_actions.common',
+ 'compile_interface_plan_recipe': 'geoagent_harness.task_actions.artifacts',
+ 'execute_interface_recipe': 'geoagent_harness.task_actions.execution',
+ 'interface_execution_inventory': 'geoagent_harness.task_actions.execution',
+ 'prepare_interface_execution_preview': 'geoagent_harness.task_actions.execution',
+ 'prepare_interface_plan_approval': 'geoagent_harness.task_actions.artifacts',
+ 'prepare_interface_recipe_approval': 'geoagent_harness.task_actions.artifacts',
+ 'preview_interface_plan_execution': 'geoagent_harness.task_actions.artifacts',
+ 'record_interface_plan_approval': 'geoagent_harness.task_actions.artifacts',
+ 'record_interface_recipe_approval': 'geoagent_harness.task_actions.artifacts',
+ 'save_interface_plan_recipe': 'geoagent_harness.task_actions.artifacts',
+ 'save_interface_reviewed_plan': 'geoagent_harness.task_actions.artifacts',
+ 'verify_interface_plan_approval': 'geoagent_harness.task_actions.artifacts',
+ 'verify_interface_recipe_approval': 'geoagent_harness.task_actions.artifacts'}
+
+
 def __getattr__(name: str):
     if name not in __all__:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    value = getattr(import_module(".server", __name__), name)
+    value = getattr(import_module(_ACTION_OWNERS.get(name, ".server"), __name__), name)
     globals()[name] = value
     return value
 

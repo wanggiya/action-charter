@@ -1,0 +1,19 @@
+schema_version: "1.0"
+
+skill_id: convert_raster
+version: "0.1.0"
+summary: Convert and reproject one raster into a new GeoTIFF.
+
+profile: artifact_transformation
+
+adapter_id: raster_conversion
+arguments_schema_id: convert_raster_arguments
+result_schema_id: convert_raster_result
+
+fixture_path: data/input/sample_dem.tif
+
+generation_requested: false
+promotion_requested: false
+execution_requested: false
+execution_performed: false
+

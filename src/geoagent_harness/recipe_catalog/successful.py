@@ -73,7 +73,8 @@ def capture_basis(root, steps):
 
 
 def _connection(root):
-    directory = Path(root) / 'workflow-state'
+    from geoagent_harness.workspace import runtime_store_path
+    directory = runtime_store_path(root, 'workflow-state')
     path = directory / 'successful-workflows.sqlite3'
     if directory.is_symlink() or any(Path(str(path) + suffix).is_symlink() for suffix in ('', '-journal', '-wal', '-shm')):
         raise ValueError('Successful workflow storage is unsafe')
@@ -136,7 +137,8 @@ def retain(root, record):
 
 def inventory(root, *, conversation_id=None, query=''):
     """Only own-chat records (or unlinked CLI records); no private chat pooling."""
-    path = Path(root) / 'workflow-state' / 'successful-workflows.sqlite3'
+    from geoagent_harness.workspace import runtime_store_path
+    path = runtime_store_path(root, 'workflow-state') / 'successful-workflows.sqlite3'
     if not path.exists() and not path.is_symlink():
         return []
     db = _connection(root)
@@ -170,7 +172,7 @@ def annotate(root, record):
 
     Baseline method identity/tags/evidence stay immutable. Failure is advisory.
     """
-    from geoagent_harness.interface_api.run_assessment import OutcomeAssessment, evidence, _digest
+    from geoagent_harness.task_actions.run_assessment import OutcomeAssessment, evidence, _digest
     review = record.get('critic_review') or {}
     if record.get('status') != 'completed' or review.get('status') != 'complete' or review.get('source_sha256') != _digest(evidence(record)):
         return 'not_eligible'

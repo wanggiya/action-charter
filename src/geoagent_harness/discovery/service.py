@@ -4,7 +4,7 @@ from .source import relative_path
 
 
 def discover_dataset(root,path,delimiter=None):
-    from geoagent_harness.interface_api.inspection_policy import bounded_read,probe_action,source_skill
+    from geoagent_harness.task_actions.inspection_policy import bounded_read,probe_action,source_skill
     path=relative_path(path,'input')
     if source_skill(path) is None:raise ValueError('Unsupported discovery format')
     delimiter=delimiter or ('\t' if path.lower().endswith('.tsv') else ',')

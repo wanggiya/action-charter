@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import hashlib
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,7 +17,6 @@ from geoagent_harness.postgis.promotion.plan import (
     PostGISPromotionPlanResult,
     postgis_promotion_plan_sha256,
 )
-from geoagent_harness.redaction import redact_text
 
 
 MAX_PLAN_BYTES = 2_000_000
@@ -29,19 +26,7 @@ class PostGISPromotionApprovalError(RuntimeError):
     """Raised when approval evidence is unsafe or inconsistent."""
 
 
-def _canonical_sha256(value: object) -> str:
-    payload = (
-        value.model_dump(mode="json")  # type: ignore[attr-defined]
-        if hasattr(value, "model_dump")
-        else value
-    )
-    canonical = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+from geoagent_harness.postgis.lifecycle import snapshot_sha256 as _canonical_sha256
 
 
 def _safe_file(path: Path, *, root: Path) -> Path:
@@ -124,13 +109,6 @@ def load_postgis_promotion_plan_result(
     return result
 
 
-def _approval_id(now: datetime) -> str:
-    stamp = now.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return (
-        f"postgis-promotion-approval-{stamp}-{uuid.uuid4().hex[:8]}"
-    ).lower()
-
-
 def create_postgis_promotion_approval(
     *,
     plan_result: PostGISPromotionPlanResult,
@@ -146,24 +124,15 @@ def create_postgis_promotion_approval(
     digest = postgis_promotion_plan_sha256(plan_result.plan)
     if plan_result.plan_sha256 != digest:
         raise PostGISPromotionApprovalError("promotion plan digest changed")
-    if decision not in {"approved", "denied"}:
-        raise PostGISPromotionApprovalError("decision must be approved or denied")
-    corrections = [redact_text(item) for item in (human_corrections or [])]
     active_now = now or datetime.now(timezone.utc)
+    from geoagent_harness.postgis.lifecycle import approval_fields
     try:
         return PostGISPromotionApproval(
-            approval_id=approval_id or _approval_id(active_now),
-            plan_id=plan_result.plan.plan_id,
-            plan_sha256=digest,
+            plan_id=plan_result.plan.plan_id, plan_sha256=digest,
             assessment_sha256=plan_result.plan.assessment_sha256,
-            decision=decision,
-            approved_step_ids=(APPROVAL_STEP_IDS if decision == "approved" else []),
-            approver=redact_text(approver),
-            reason=redact_text(reason),
-            human_corrections=corrections,
-            created_at=active_now,
-            expires_at=expires_at,
-        )
+            **approval_fields(kind='promotion', decision=decision, approver=approver, reason=reason,
+                corrections=human_corrections, expires_at=expires_at, now=active_now,
+                approval_id=approval_id, step_ids=APPROVAL_STEP_IDS, error=PostGISPromotionApprovalError))
     except ValidationError as exc:
         raise PostGISPromotionApprovalError(
             "promotion approval failed policy validation"

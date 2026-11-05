@@ -1,5 +1,7 @@
 """Bounded intent reasoning from independently rechecked context."""
 from __future__ import annotations
+from geoagent_harness.workspace import runtime_store_path, WorkspaceError
+from geoagent_harness.task_history.service import history_directory
 import json
 from pathlib import Path
 from typing import Literal
@@ -9,6 +11,12 @@ from geoagent_harness.model import ChatMessage, ModelRequest, SharedModelClient,
 
 class IntentError(ValueError):
     """Intent proposal cannot pass deterministic validation."""
+
+def intent_directory(root, store):
+    try:
+        return runtime_store_path(root, store)
+    except WorkspaceError as error:
+        raise IntentError(str(error)) from error
 
 class IntentProposal(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -47,10 +55,10 @@ def reason_task_intent(*, project_root: Path, review_filename: str | None, reque
             if len(answers) >= 5:
                 raise IntentError("leave one clarification answer slot for the explicitly selected input")
             answers = [selection_answer, *answers]
-    history = history_root if history_root is not None else root / "task-history"
+    history = history_root if history_root is not None else history_directory(root)
     reviewed = None
     if review_filename is not None:
-        reviewed = load_reviewed_context(review_root=root / "reviewed-contexts",
+        reviewed = load_reviewed_context(review_root=intent_directory(root, "reviewed-contexts"),
             history_root=history, filename=review_filename)
         # Reject forged outer metadata even when a caller supplies a canonical digest-named file.
         expected = {"schema_version", "status", "context", "context_sha256", "reviewer", "reason",
@@ -96,7 +104,7 @@ def reason_task_intent(*, project_root: Path, review_filename: str | None, reque
     if correction_used:
         # One new proposal, never a silent rewrite or an automatic resolution.
         if review_filename is not None:
-            load_reviewed_context(review_root=root / "reviewed-contexts", history_root=history, filename=review_filename)
+            load_reviewed_context(review_root=intent_directory(root, "reviewed-contexts"), history_root=history, filename=review_filename)
         correction = prompt.model_copy(update={"messages": [*prompt.messages,
             ChatMessage(role="user", content=json.dumps({
                 "instruction": "Re-evaluate once using the explicit answers already supplied. Do not ask again for an answered filename or scope. Only genuinely unanswered questions belong in clarification_questions. If nothing remains unclear, use intent_proposed. Unknown historical denial reason is a limitation, not a reason to block the new inspection. Never infer permission.",
@@ -111,7 +119,7 @@ def reason_task_intent(*, project_root: Path, review_filename: str | None, reque
         if proposal.status == "intent_proposed" and proposal.known_inputs != [selected_input]:
             raise IntentError("resolved intent does not match the selected input; review your request and retry. Nothing saved or executed.")
     # Detect source changes while inference was in flight; discard the proposal.
-    if review_filename is not None and load_reviewed_context(review_root=root / "reviewed-contexts", history_root=history,
+    if review_filename is not None and load_reviewed_context(review_root=intent_directory(root, "reviewed-contexts"), history_root=history,
                              filename=review_filename) != reviewed:
         raise IntentError("review changed during inference")
     return {"schema_version": "1.0", "agent_id": "intent", "model": result.model,

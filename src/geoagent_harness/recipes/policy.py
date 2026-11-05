@@ -103,6 +103,11 @@ def validate_recipe_policy(
     validation_required: list[str] = []
 
     for step in recipe.steps:
+        from geoagent_harness.operations.inspection_contracts import validate_inspector_source
+        try:
+            validate_inspector_source(step.skill_id, step.arguments)
+        except ValueError as error:
+            raise RecipePolicyError(f'{step.step_id}: {error}') from error
         try:
             skill = registry.get_skill(
                 step.skill_id

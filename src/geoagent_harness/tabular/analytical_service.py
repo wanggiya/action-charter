@@ -8,7 +8,7 @@ from geoagent_harness.discovery.source import relative_path
 
 
 def profile_table(root, path, options=None, *, delimiter=',', expected_sha256=None, checkpoint=None, max_seconds=None):
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     options = AnalysisOptions.model_validate(options or {})
     path = relative_path(path, 'input')
     result = bounded_read(Path(root).resolve(strict=True), action='csv_discover', path=path,
@@ -33,7 +33,7 @@ def source_reference(result):
 
 def recommend_fields(root,path,*,delimiter=',',source_options=None):
     """Shared fresh inspection advice; no model, dataframe, stats dispatch or writes."""
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     path=relative_path(path,'input')
     result=bounded_read(Path(root).resolve(strict=True),action='csv_discover',path=path,delimiter=delimiter,preview_rows=0,analysis={'source_options':source_options} if source_options is not None else None)
     return result['field_guidance']

@@ -58,7 +58,8 @@ def test_main_graph_export_and_verification_do_not_rerun_source(project, monkeyp
     authorization = authorize_workflow(authorization_request(request, review), project_root=project)
     assert not (project / 'snakemake-exports').exists()
     assert authorization['recipe_approval_filename'] is None
-    monkeypatch.setattr(api, 'execute_interface_recipe', lambda *args, **kwargs: pytest.fail('Source recipe must not rerun'))
+    from geoagent_harness.task_actions import execution
+    monkeypatch.setattr(execution, 'execute_interface_recipe', lambda *args, **kwargs: pytest.fail('Source recipe must not rerun'))
     run = execute_workflow(execute_request(request, review, plan_approval_filename=authorization['plan_approval_filename']), project_root=project)
     assert run['status'] == 'completed'
     assert [s['status'] for s in run['step_results']] == ['reused_completed', 'exported', 'validated_success']
@@ -141,8 +142,9 @@ def test_expired_source_approval_is_historical_only_and_new_export_authority_req
     assert not verify_recipe_approval(approval=old_approval, recipe=recipe, registry=load_skill_registry(project), now=old_approval.expires_at + timedelta(minutes=1)).approved
     auth = authorize_workflow(authorization_request(request, review), project_root=project)
     assert auth['recipe_approval_filename'] is None
-    verify_plan = api.verify_interface_plan_approval
-    monkeypatch.setattr(api, 'verify_interface_plan_approval', lambda request, **kwargs: verify_plan(request, **kwargs, now=datetime.now().astimezone() + timedelta(minutes=31)))
+    from geoagent_harness.task_actions import execution
+    verify_plan = execution.verify_interface_plan_approval
+    monkeypatch.setattr(execution, 'verify_interface_plan_approval', lambda request, **kwargs: verify_plan(request, **kwargs, now=datetime.now().astimezone() + timedelta(minutes=31)))
     with pytest.raises(api.InterfaceApiError, match='expired'):
         execute_workflow(execute_request(request, review, plan_approval_filename=auth['plan_approval_filename']), project_root=project)
     assert not (project / 'snakemake-exports').exists()

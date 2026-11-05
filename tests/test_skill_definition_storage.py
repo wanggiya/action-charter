@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).parents[1]
 
 
 def test_loads_canonical_raster_definition() -> None:
-    root = PROJECT_ROOT / "skill-definitions"
+    root = PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
 
     definition = load_skill_definition(
         root / "inspect_raster.skill.yaml",

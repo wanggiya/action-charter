@@ -1,124 +1,31 @@
-"""Immutable digest-addressed storage for PostGIS rollback plans."""
-
-from __future__ import annotations
-
-import hashlib
-import json
-import os
-import shutil
-import tempfile
+"""Compatibility facade for shared immutable rollback plans."""
 from pathlib import Path
-
-from pydantic import ValidationError
-
+from geoagent_harness.postgis.artifact_storage import ArtifactStore
 from .schemas import PostGISRollbackPlan, PostGISRollbackPlanStorageResult
 
-ROLLBACK_PLAN_FILE_NAME = "ROLLBACK_PLAN.json"
-
-
+ROLLBACK_PLAN_FILE_NAME = 'ROLLBACK_PLAN.json'
 class PostGISRollbackPlanStorageError(RuntimeError):
-    """Raised when rollback plan evidence is unsafe or invalid."""
+    pass
+
+_STORE = ArtifactStore(PostGISRollbackPlan, 'rollback_plan_id', 'postgis-rollback-plan',
+                       ROLLBACK_PLAN_FILE_NAME, 'rollback plan', PostGISRollbackPlanStorageError)
 
 
-def canonical_postgis_rollback_plan_json(value: PostGISRollbackPlan) -> str:
-    try:
-        snapshot = PostGISRollbackPlan.model_validate(value.model_dump(mode="json"))
-    except ValidationError as exc:
-        raise PostGISRollbackPlanStorageError(
-            "rollback plan failed schema validation"
-        ) from exc
-    return json.dumps(
-        snapshot.model_dump(mode="json"), sort_keys=True, indent=2, ensure_ascii=False
-    ) + "\n"
+def canonical_postgis_rollback_plan_json(value):
+    return _STORE.canonical(value)
 
 
-def postgis_rollback_plan_sha256(value: PostGISRollbackPlan) -> str:
-    return hashlib.sha256(canonical_postgis_rollback_plan_json(value).encode()).hexdigest()
+def postgis_rollback_plan_sha256(value):
+    return _STORE.digest(value)
 
 
-def persist_postgis_rollback_plan(
-    value: PostGISRollbackPlan, *, rollback_plan_root: Path
-) -> PostGISRollbackPlanStorageResult:
-    content = canonical_postgis_rollback_plan_json(value)
-    digest = hashlib.sha256(content.encode()).hexdigest()
-    if rollback_plan_root.is_symlink():
-        raise PostGISRollbackPlanStorageError("rollback plan root cannot be a symlink")
-    try:
-        rollback_plan_root.mkdir(parents=True, exist_ok=True)
-        root = rollback_plan_root.resolve(strict=True)
-    except OSError as exc:
-        raise PostGISRollbackPlanStorageError("rollback plan root is unavailable") from exc
-    directory = root / f"{value.rollback_plan_id}.{digest}.postgis-rollback-plan"
-    if directory.exists() or directory.is_symlink():
-        raise PostGISRollbackPlanStorageError("rollback plan package already exists")
-    temporary = Path(tempfile.mkdtemp(prefix=".postgis-rollback-plan-", dir=root))
-    staged = temporary / "record"
-    try:
-        staged.mkdir()
-        with (staged / ROLLBACK_PLAN_FILE_NAME).open(
-            "x", encoding="utf-8", newline="\n"
-        ) as stream:
-            stream.write(content)
-        os.replace(staged, directory)
-        temporary.rmdir()
-    except OSError as exc:
-        shutil.rmtree(temporary, ignore_errors=True)
-        raise PostGISRollbackPlanStorageError(
-            "rollback plan could not be persisted"
-        ) from exc
-    final_file = directory / ROLLBACK_PLAN_FILE_NAME
-    if hashlib.sha256(final_file.read_bytes()).hexdigest() != digest:
-        raise PostGISRollbackPlanStorageError("persisted rollback plan digest changed")
-    return PostGISRollbackPlanStorageResult(
-        rollback_plan_id=value.rollback_plan_id,
-        promotion_plan_id=value.promotion_plan_id,
-        execution_id=value.execution_id,
-        verification_id=value.verification_id,
-        rollback_plan_sha256=digest,
-        rollback_plan_directory=directory.as_posix(),
-        rollback_plan_file=final_file.as_posix(),
-    )
+def persist_postgis_rollback_plan(value, *, rollback_plan_root: Path):
+    path, digest, value = _STORE.persist(value, rollback_plan_root)
+    return PostGISRollbackPlanStorageResult(rollback_plan_id=value.rollback_plan_id,
+        promotion_plan_id=value.promotion_plan_id, execution_id=value.execution_id,
+        verification_id=value.verification_id, rollback_plan_sha256=digest,
+        rollback_plan_directory=path.parent.as_posix(), rollback_plan_file=path.as_posix())
 
 
-def load_postgis_rollback_plan(
-    rollback_plan_file: Path, *, rollback_plan_root: Path
-) -> PostGISRollbackPlan:
-    try:
-        root = rollback_plan_root.resolve(strict=True)
-        candidate = (
-            rollback_plan_file
-            if rollback_plan_file.is_absolute()
-            else root / rollback_plan_file
-        )
-        if (
-            rollback_plan_root.is_symlink()
-            or candidate.is_symlink()
-            or candidate.parent.is_symlink()
-        ):
-            raise OSError
-        safe = candidate.resolve(strict=True)
-        if (
-            safe.name != ROLLBACK_PLAN_FILE_NAME
-            or safe.parent.parent != root
-            or not safe.is_file()
-        ):
-            raise OSError
-        raw = safe.read_text(encoding="utf-8")
-        value = PostGISRollbackPlan.model_validate_json(raw)
-    except (OSError, UnicodeError, ValidationError) as exc:
-        raise PostGISRollbackPlanStorageError(
-            "rollback plan evidence is unavailable or invalid"
-        ) from exc
-    canonical = canonical_postgis_rollback_plan_json(value)
-    digest = hashlib.sha256(canonical.encode()).hexdigest()
-    if (
-        raw != canonical
-        or safe.parent.name
-        != f"{value.rollback_plan_id}.{digest}.postgis-rollback-plan"
-    ):
-        raise PostGISRollbackPlanStorageError("rollback plan package identity is invalid")
-    if {item.name for item in safe.parent.iterdir()} != {ROLLBACK_PLAN_FILE_NAME}:
-        raise PostGISRollbackPlanStorageError(
-            "rollback plan package contains unexpected files"
-        )
-    return value
+def load_postgis_rollback_plan(rollback_plan_file: Path, *, rollback_plan_root: Path):
+    return _STORE.load(rollback_plan_file, rollback_plan_root)

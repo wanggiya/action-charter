@@ -104,24 +104,25 @@ def promote(candidate, *, root, conversation_id, revision, confirmed_sha):
 
 def remember(root,candidate):
     """Private bounded attempt evidence, separate from installed public metadata."""
-    from geoagent_harness.interface_api.planning_tasks import database
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
     with database(root,write=True) as connection:
-        connection.execute('CREATE TABLE IF NOT EXISTS capability_attempts (sha TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, value TEXT NOT NULL)')
-        count=connection.execute('SELECT COUNT(*) FROM capability_attempts').fetchone()[0]
-        own=connection.execute('SELECT COUNT(*) FROM capability_attempts WHERE conversation_id=?',(candidate['source_conversation_id'],)).fetchone()[0]
+        connection.records('capability_attempts').ensure()
+        count=connection.records('capability_attempts').count()
+        own=connection.records('capability_attempts').count(owner=candidate['source_conversation_id'])
         if count>=128 or own>=16:raise ValueError('Capability attempt storage bound reached; no record was discarded')
-        connection.execute('INSERT OR IGNORE INTO capability_attempts VALUES (?,?,?)',(candidate['candidate_sha256'],candidate['source_conversation_id'],json.dumps(candidate,separators=(',',':'))))
+        connection.records('capability_attempts').put(candidate['candidate_sha256'],json.dumps(candidate,separators=(',',':')),owner=candidate['source_conversation_id'],ignore_existing=True)
 
 
 def attempts(root,conversation_id):
-    from geoagent_harness.interface_api.planning_tasks import database,_identity
+    from geoagent_harness.task_actions.planning_tasks import transaction as database, _identity
     _identity(conversation_id)
     with database(root) as connection:
-        if connection is None or not connection.execute("SELECT 1 FROM sqlite_master WHERE name='capability_attempts'").fetchone():
+        if connection is None:
             return {'conversation_id':conversation_id,'attempts':[],'execution_performed':False}
-        rows=connection.execute('SELECT sha,value FROM capability_attempts WHERE conversation_id=? ORDER BY rowid DESC LIMIT 16',(conversation_id,)).fetchall()
+        rows=connection.records('capability_attempts').entries(owner=conversation_id,limit=16)
         values=[]
-        for sha,value in rows:
+        for row in rows:
+            sha,value=row.key,row.content
             candidate=json.loads(value)
             if candidate.get('candidate_sha256')!=sha or digest({k:v for k,v in candidate.items() if k!='candidate_sha256'})!=sha:
                 raise ValueError('Capability attempt integrity check failed')

@@ -1,12 +1,88 @@
-# Work resume — checkpoint 28 accepted
+# Work resume — Phase 0 consolidation
 
-2026-11-01 direction: read [docs/product-direction/](../docs/product-direction/README.md)
-first. It records product vision, assessment, editions/interfaces and the autonomous
-platform design. Design only; no code changed by that discussion.
-2026-11-01 cleanup (branch cleanup/phase0-structure): postgis_*/geoserver_* packages
-are now grouped under geoagent_harness.postgis / .geoserver; checkpoint docs moved to
-docs/development/checkpoints/. Still open in Phase 0: runtime-state root out of the
-repo root, shared task-actions layer, App.tsx split.
+2026-11-05 CI follow-up for PR #65: GitHub annotation confirms the PR test job hit
+its 15-minute limit at 98%; same-commit push run passed tests and frontend validation.
+Owner authorized raising timeout to 30 minutes and adding pytest --durations=20.
+Only those two workflow settings changed; coverage/authority/application code unchanged.
+Local validation passed: YAML parse, every run step's bash syntax, exact two-setting
+workflow diff, 12 focused tests with slow-duration output (2.69 s), git diff --check.
+Full suite not repeated for this CI-only edit; prior same-commit push suite passed.
+Remote verification of the changed configuration requires owner commit/push.
+Do not rerun the old workflow expecting it to use this uncommitted configuration.
+
+P0-7 complete, 2026-11-05, issue #64 (owner explicitly authorized creation).
+Active context/PRODUCT_ROADMAP.md now holds phase dependencies, P0 boundaries,
+retained T01–T15 requirements, unresolved memory/learning/format/report/service plans
+and the Phase 0 exit audit as next action. Full prior roadmap is preserved in
+docs/development/PRODUCT_ROADMAP_BEFORE_P0_7.md; index/preservation metadata in
+docs/development/ROADMAP_HISTORY.md. Only relative Markdown URLs were rebased;
+check reverse-rebased bytes/hash against original 113,332 bytes (original SHA in index).
+The current context-pack builder does not include PRODUCT_ROADMAP; no loading change.
+
+README, documentation/context/product-direction navigation, T checklist precedence,
+CURRENT_STATUS, CHANGELOG and working-method status updated. Short decision note:
+docs/decisions/2026-11-04-active-roadmap.md. No application/test/dependency code changed.
+Archive/link audit passed (14 files, 545 local links, 151 fragments), original bytes/
+SHA reconstructed exactly. Twelve focused context tests passed (1.02 s); direct bounded
+roadmap read passed and the fixed six-file context list remains unchanged.
+Final make test: 2,483 passed, 13 existing spatial warnings, 682.93 s (11:22).
+Full log: /tmp/actioncharter-p07-full.log. Audit log:
+/tmp/actioncharter-p07-docs-audit.log; focused log: /tmp/actioncharter-p07-context.log.
+No frontend/browser rerun for documentation-only changes. Pre-demo memory/learning requirements remain explicit
+open scheduling decisions; Phase 0 completion does not waive them.
+
+P0-6 complete: 2,483 tests (938.96 s, 13 existing spatial warnings), frontend and four
+fixture browser journeys passed. Logs: /tmp/actioncharter-p06-full.log, -interface.log,
+-browser.log, -graph-browser.log, -authority-browser.log and -hmr-browser.log.
+Owner reported subsequent manual frontend smoke checks passed; not a new model benchmark.
+P0-2/P0-3/P0-4/P0-5 remain complete with documented scope limits. Real checkout remains
+unmigrated; no claim that all Phase 0 layer moves/exit requirements are met.
+Next: audit remaining Phase 0 gates, refresh/reconcile draft R1–R11 overlaps and agree
+the next issue. Do not automatically start Phase 1 or implement new features.
+Preserve accumulated work. No branch/stage/commit/push/PR, live database, secrets,
+model settings, dependency install or Docker change; issue #64 stays owner-controlled.
+Pre-existing historical CHECKPOINT24 contains CI YAML, lacks the old conversation
+anchor; README now links current guidance. Recorded in history index; recovery of
+the original historical content requires separate review, not silently rewritten.
+
+2026-11-03 bug fix: new-chat filename questions previously omitted required frontend
+context diagnostics, so saved clarification appeared as a Zod failure. Complete new
+responses and narrowly normalize older clarification chat/receipt responses on read,
+without rewriting/replaying. Shared read-only lead-in now accepts do/run/perform and
+on/of; trailing actions retain general planning. All 106 focused tests passed; final
+make test: 2,327 passed, 13 existing spatial warnings, 621.88 s. Interface validation
+and relocated fixture browser/API/CLI/PTY passed, zero page errors. Browser assertions
+now check the actual rendered clarification/error absence, not only stored CLI state.
+An initial full run was stopped after sandbox-blocked HTTP fixture sockets; permitted
+full run passed with no code changes. No real local-model quality claim.
+Latest owner receipt was proposal_only with no run; checked read-only. No live mutations.
+
+Active compatibility fix: task-local metadata follow-ups resolve the active source or ask
+for a file. Inspector suffix contracts are shared by registry/source routing, plan/graph/
+recipe validation and dispatch. Legacy mismatches fail before execution; an explicit
+metadata follow-up can create a separately validated compatible proposal. Historical
+records/digests are unchanged. Decoder/schema focus preserves stored capability metadata.
+53 targeted regressions pass. Final full suite: 2,317 passed, 13 existing spatial
+warnings, 693.78 s. Interface validation and relocated fixture browser/API/CLI/PTY
+passed with zero page errors. New isolated source tests also pass. Earlier broad runs
+exposed capability-metadata regressions and an outdated decoder assertion; corrected. See INSPECTION_SOURCE_COMPATIBILITY.md.
+No live records, model settings, secrets or databases changed; no Git mutations.
+
+P0-2 active slice: planning SQLite, legacy chat JSON, saved plans and durable interface-run
+history now resolve through the configured workspace. Production readers receive source
+project identity explicitly; partial-output recovery uses source data/output. Defaults,
+record bytes, digests and explicit low-level root overrides remain compatible. Missing/empty
+relocated file stores with legacy records fail closed; no automatic copies or real moves.
+External-root fixtures and test-only offline copies pass. Relocated browser/API/CLI/PTY
+journey passed with zero page errors, including scoped history and continuation. Final
+make test: 2,295 passed, 13 existing spatial warnings, 562.44 s. Interface validation
+passed. The preliminary run was interrupted while correcting the authorization fixture;
+the final full suite passes. See [storage map](../docs/WORKSPACE_STORAGE.md).
+Remaining after that earlier slice: authority/evidence (now implemented above), other lifecycle
+stores, verified offline migration/ownership/rollback and source-only-root exit check. Do not configure real relocation
+yet. No Git, live-data, secrets or model-setting mutations. User owns issue/branch/PR.
+Prior fixes: explicit read-only inspection wording (2,287 tests); execution/Critic status
+separation and bounded review setting (2,275 tests). See REQUEST_DIAGNOSTICS.md.
 
 2026-10-30 latest: inspection-led typed analysis goals and report metric coverage.
 User chose agent-proposed goals. Planner advises over recorded fields/source; backend

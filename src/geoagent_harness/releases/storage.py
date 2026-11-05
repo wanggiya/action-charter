@@ -128,11 +128,10 @@ def _reject_symlink_parts(path: Path, root: Path) -> None:
 
 
 def _source_file(path: str, *, project_root: Path) -> Path:
-    candidate = project_root / path
     try:
-        _reject_symlink_parts(candidate, project_root)
+        from geoagent_harness.workspace import runtime_reference_path
+        candidate = runtime_reference_path(project_root,path)
         resolved = candidate.resolve(strict=True)
-        resolved.relative_to(project_root)
     except (OSError, ValueError) as exc:
         if isinstance(exc, AuthoritativeReleaseStorageError):
             raise

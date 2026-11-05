@@ -14,6 +14,24 @@ _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 
 
+def authority_workspace_settings(settings):
+    """Resolve default recipe authority/evidence paths; explicit roots remain explicit.
+
+    Keep load_settings's public/environment contract unchanged. Execution boundaries
+    call this before loading authority or dispatching, including standalone MCP calls.
+    """
+    from geoagent_harness.workspace import WorkspaceLayout, runtime_store_path
+    layout = WorkspaceLayout.load(settings.project_root)
+    if layout.state_root == layout.project_root:
+        return settings
+    defaults = {'plan_root':'plans', 'approval_root':'approvals',
+                'recipe_root':'workflow-recipes', 'recipe_run_root':'recipe-runs',
+                'recipe_evidence_root':'recipe-evidence', 'trace_root':'traces', 'report_root':'reports',
+                'contract_root':'spatial-contracts', 'state_root':'workflow-state'}
+    return settings.model_copy(update={key:runtime_store_path(layout.project_root,store)
+        for key,store in defaults.items() if getattr(settings,key)==Path(store)})
+
+
 def parse_flag(value: str | None, *, default: bool = False) -> bool:
     """Parse a Boolean without enabling access for an unknown value."""
     if value is None:

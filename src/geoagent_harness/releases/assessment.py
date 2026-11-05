@@ -137,9 +137,8 @@ def _component(
 ) -> ReleaseComponentReference:
     safe_path = _safe_file(path, root=root)
     try:
-        relative = safe_path.relative_to(
-            project_root.resolve(strict=True)
-        ).as_posix()
+        from geoagent_harness.workspace import runtime_reference
+        relative = runtime_reference(project_root,safe_path)
         content = safe_path.read_bytes()
     except (OSError, ValueError) as exc:
         raise ReleaseAssessmentError(

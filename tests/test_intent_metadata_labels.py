@@ -55,7 +55,7 @@ def test_equivalent_review_can_plan_and_store_without_rewriting_immutable_intent
     with patch('geoagent_harness.intent.handoff.plan_task', side_effect=planner):
         handoff = plan_reviewed_intent(project_root=tmp_path, filename=stored['review_filename'], allowed_skill_ids=['inspect_vector'])
     result = PlannerResult.model_validate(handoff['planner_result'])
-    with patch('geoagent_harness.interface_api.server.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
+    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
         saved = save_reviewed_intent_plan(project_root=tmp_path, filename=stored['review_filename'], planner_result=result, confirmed_plan_sha256=handoff['plan_sha256'])
     assert saved['plan_saved'] and saved['execution_performed'] is False
     assert path.read_bytes() == original_bytes

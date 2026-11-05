@@ -31,8 +31,8 @@ def retrieve(root, conversation_id, message, available, *, use_history=True, sel
     if not matches:
         return [], {**receipt,'status':'selection_unavailable' if explicit else 'none'}
     matches.sort(key=lambda item:(-item[0],item[1]['method_id']))
-    from geoagent_harness.interface_api.server import InterfaceApiError
-    from geoagent_harness.interface_api.workflow_runs import _directory,_read
+    from geoagent_harness.task_actions.common import InterfaceApiError
+    from geoagent_harness.task_actions.workflow_runs import _directory,_read
     from geoagent_harness.operations.registry import argument_models
     models=argument_models(root)
     snippets=[]
@@ -41,7 +41,7 @@ def retrieve(root, conversation_id, message, available, *, use_history=True, sel
         source=max(record['sources'],key=lambda s:s['finished_at'])
         if re.fullmatch(r'[a-f0-9]{32}',source['run_id']) is None:continue
         try:
-            run=_read(_directory(root),source['run_id'])
+            run=_read(_directory(root),source['run_id'], project_root=root)
             if run.get('conversation_id')!=conversation_id or run['status']!='completed' or run['plan_sha256']!=source['plan_sha256']:continue
             observed={'plan_sha256':run['plan_sha256'],'steps':[{k:s.get(k) for k in ('step_id','skill_id','status','outcome','validation_outcome')} for s in run['steps']]}
             if digest(observed)!=source['evidence_sha256']:continue

@@ -14,7 +14,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.mcp_server.tools import (
+from geoagent_harness.task_actions.data_tools import (
     inspect_vector_dataset,
     load_vector_to_postgis,
     plan_load_vector_to_postgis,
@@ -161,6 +161,8 @@ def run_vector_postgis_workflow(
     approved_step_ids: list[str] | None = None,
 ) -> WorkflowRunResult:
     """Run inspect, plan, load, validate, report, and trace."""
+    from geoagent_harness.mcp_server.settings import authority_workspace_settings
+    settings = authority_workspace_settings(settings)
     active_task_id = task_id or _generate_task_id()
 
     report_path, trace_path = _ensure_artifacts_available(

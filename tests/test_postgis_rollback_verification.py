@@ -16,7 +16,7 @@ def evidence(tmp_path):
     ref,cand,archive=plan.original_reference,plan.promoted_candidate,plan.archive_relation
     promoted=cand.model_copy(update={'target_schema':ref.target_schema,'target_table':ref.target_table})
     tx=FakeTransaction([promoted,missing_like(cand),archive,ref,cand])
-    settings=MCPSettings(input_root=tmp_path/'input',output_root=tmp_path/'output',enable_write_tools=True)
+    settings=MCPSettings(project_root=tmp_path,input_root=tmp_path/'input',output_root=tmp_path/'output',enable_write_tools=True)
     ex=execute_postgis_rollback(rollback_plan_file=pf,rollback_plan_root=pr,approval_file=af,approval_root=ar,settings=settings,confirm_rollback_plan_sha256=postgis_rollback_plan_sha256(plan),confirm_approval_sha256=postgis_rollback_approval_sha256(approval),transaction=tx,now=NOW+timedelta(minutes=1))
     er=tmp_path/'executions'; es=persist_postgis_rollback_execution(ex,execution_root=er)
     return plan,pf,pr,approval,af,ar,ex,Path(es.execution_file),er,settings

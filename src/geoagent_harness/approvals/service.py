@@ -223,8 +223,8 @@ def create_approval(
                 + ", ".join(non_approval_steps)
             )
 
-    from geoagent_harness.write_policy import ticket, bind
-    policy_root = approval_root.absolute().parent
+    from geoagent_harness.write_policy import ticket, bind, approval_policy_root
+    policy_root = approval_policy_root(approval_root,project_root)
     policy_ticket = ticket(policy_root) if decision == 'approved' else None
     record = ApprovalRecord(
         approval_id=(

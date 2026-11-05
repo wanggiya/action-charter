@@ -474,7 +474,9 @@ def _run_approved_recipe(
 
 def run_approved_recipe(*, recipe, approval, registry, settings, progress_callback=None):
     from geoagent_harness.write_policy import authority, effective
+    from geoagent_harness.mcp_server.settings import authority_workspace_settings
     from contextlib import nullcontext
+    settings=authority_workspace_settings(settings)
     writes=any(registry.get_skill(step.skill_id).access!=SkillAccess.READ_ONLY for step in recipe.steps)
     with (authority(settings.project_root, approval) if writes else nullcontext()):
         return _run_approved_recipe(recipe=recipe, approval=approval, registry=registry,

@@ -12,17 +12,17 @@ from geoagent_harness.tabular.statistics import StatisticsSpec,RegressionSpec
 from mcp.server.transport_security import (
     TransportSecuritySettings,
 )
-from geoagent_harness.mcp_server.approved_workflow import (
+from geoagent_harness.task_actions.approved_workflow import (
     run_approved_vector_postgis_workflow,
 )
 
-from geoagent_harness.mcp_server import tools
+from geoagent_harness.task_actions import data_tools as tools
 from geoagent_harness.mcp_server.transport import (
     MCPTransportSettings,
     load_transport_settings,
 )
 
-from geoagent_harness.mcp_server.approved_recipe import (
+from geoagent_harness.task_actions.approved_recipe import (
     run_approved_recipe,
 )
 

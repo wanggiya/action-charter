@@ -52,7 +52,8 @@ def prepare_session(project_root: Path, session_base: Path | None = None) -> Pat
     root = project_root.resolve(strict=True)
     if not (root / '.venv/bin/python').is_file() or not (root / 'interface/node_modules/.bin/vite').exists():
         raise ValueError('Install the project Python and frontend dependencies before preparing acceptance')
-    base = session_base or root / '.local/interface-acceptance'
+    from geoagent_harness.workspace import runtime_store_path
+    base = session_base or runtime_store_path(root, '.local') / 'interface-acceptance'
     base.mkdir(parents=True, exist_ok=True)
     session = base / (datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8])
     session.mkdir()
@@ -116,7 +117,8 @@ def acceptance_environment(workspace: Path, inherited: dict[str, str]) -> dict[s
 
 def load_session(path: Path, project_root: Path = PROJECT):
     session = path.resolve(strict=True)
-    base = (project_root / '.local/interface-acceptance').resolve(strict=True)
+    from geoagent_harness.workspace import runtime_store_path
+    base = (runtime_store_path(project_root, '.local') / 'interface-acceptance').resolve(strict=True)
     if session.parent != base or path.is_symlink():
         raise ValueError('Select a session directly under .local/interface-acceptance')
     manifest = json.loads((session / 'SESSION.json').read_text())

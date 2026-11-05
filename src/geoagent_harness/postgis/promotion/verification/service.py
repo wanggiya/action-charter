@@ -3,10 +3,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import PostGISInspectionRequest, inspect_postgis_table
-from geoagent_harness.postgis.inspection.service import PostGISInspectionReader, PsycopgPostGISInspectionReader
+from geoagent_harness.postgis.inspection import PostGISInspectionRequest
+from geoagent_harness.postgis.inspection.service import PostGISInspectionReader
 from geoagent_harness.postgis.promotion.execution import load_postgis_promotion_execution, postgis_promotion_execution_sha256
 from geoagent_harness.postgis.promotion.approval import APPROVAL_STEP_IDS
 from geoagent_harness.postgis.promotion.approval.service import load_postgis_promotion_plan_result
@@ -16,12 +15,7 @@ from .schemas import PostGISPromotionVerificationResult
 class PostGISPromotionVerificationError(RuntimeError): pass
 
 
-def _profile(value) -> dict[str, Any]:
-    return {"columns":[x.model_dump(mode="json") for x in value.columns],
-            "primary_key":value.primary_key.columns if value.primary_key else None,
-            "unique_keys":sorted(x.columns for x in value.unique_keys),
-            "row_count":value.row_count,
-            "geometry_columns":[x.model_dump(mode="json") for x in value.geometry_columns]}
+from geoagent_harness.postgis.lifecycle import relation_profile as _profile, inspection_reader, read_relations
 
 
 def verify_postgis_promotion(*, execution_file: Path, execution_root: Path,
@@ -43,13 +37,10 @@ def verify_postgis_promotion(*, execution_file: Path, execution_root: Path,
         raise PostGISPromotionVerificationError("execution scope or snapshots do not bind the supplied plan")
     reference = plan.assessment.comparison.reference
     candidate = plan.assessment.comparison.candidate
-    active = reader or PsycopgPostGISInspectionReader(settings)
-    owns = reader is None
-    try:
-        promoted = inspect_postgis_table(request=PostGISInspectionRequest(target_schema=reference.target_schema,target_table=reference.target_table), settings=settings, reader=active)
-        archived = inspect_postgis_table(request=PostGISInspectionRequest(target_schema=plan.archive.target_schema,target_table=plan.archive.target_table), settings=settings, reader=active)
-    finally:
-        if owns: active.close()
+    requests = [PostGISInspectionRequest(target_schema=x.target_schema, target_table=x.target_table)
+                for x in (reference, plan.archive)]
+    with inspection_reader(settings, reader) as active:
+        promoted, archived = read_relations(requests, settings, active)
     findings=[]
     if not promoted.table_exists or _profile(promoted) != _profile(candidate): findings.append("promoted_relation_mismatch")
     if not archived.table_exists or _profile(archived) != _profile(reference): findings.append("archived_relation_mismatch")

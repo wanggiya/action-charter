@@ -39,7 +39,7 @@ def register(app):
                 options: Path | None = typer.Option(None, '--options')):
         """Full-file profiles, quality/duplicate checks and group summaries using closed JSON options; no dataset writes."""
         from geoagent_harness.tabular.analytical_service import profile_table
-        from geoagent_harness.interface_api.server import InterfaceApiError
+        from geoagent_harness.task_actions.common import InterfaceApiError
         try:
             if options and options.stat().st_size > 16000:
                 raise ValueError('Options exceed 16 KiB')
@@ -55,10 +55,10 @@ def register(app):
                submission_id:str|None=typer.Option(None,'--submission-id'),revision:int=typer.Option(0,'--revision')):
         """Prepare an exact 1–4 dataset inspection; --execute runs permitted reads only."""
         import uuid
-        from geoagent_harness.interface_api.inspection_planning import plan_for_request
-        from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
-        from geoagent_harness.interface_api.conversation import TurnRequest
-        from geoagent_harness.interface_api.server import InterfaceApiError
+        from geoagent_harness.task_actions.inspection_planning import plan_for_request
+        from geoagent_harness.task_actions.planner_submission import SubmissionRequest,submission_action
+        from geoagent_harness.task_actions.conversation import TurnRequest
+        from geoagent_harness.task_actions.common import InterfaceApiError
         try:
             if plan_for_request(message,['inspect_csv','inspect_vector','inspect_raster']) is None:
                 raise ValueError('Use an exact supported inspection request')
@@ -77,7 +77,7 @@ def register(app):
                  delimiter:str|None=typer.Option(None,'--delimiter')):
         """Read characteristics and complete identity; no model or write authority."""
         from .service import discover_dataset
-        from geoagent_harness.interface_api.server import InterfaceApiError
+        from geoagent_harness.task_actions.common import InterfaceApiError
         try:
             result=discover_dataset(project_root,path,delimiter)
             typer.echo(json.dumps(result,indent=2,allow_nan=False))

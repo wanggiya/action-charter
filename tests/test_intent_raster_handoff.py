@@ -26,7 +26,7 @@ def test_raster_handoff_and_storage_preserve_exact_scope(tmp_path: Path):
     with patch('geoagent_harness.intent.handoff.plan_task',side_effect=planner) as model:
         result = plan_reviewed_intent(project_root=tmp_path,filename=filename,allowed_skill_ids=['inspect_raster'])
     assert model.call_count == 1 and result['execution_performed'] is False
-    with patch('geoagent_harness.interface_api.server.load_skill_registry',return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_raster')])):
+    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry',return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_raster')])):
         stored = save_reviewed_intent_plan(project_root=tmp_path,filename=filename,planner_result=PlannerResult.model_validate(result['planner_result']),confirmed_plan_sha256=result['plan_sha256'])
     assert stored['plan_saved'] is True
     assert stored['execution_performed'] is stored['approval_performed'] is stored['model_called'] is False

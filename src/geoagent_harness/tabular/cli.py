@@ -48,8 +48,9 @@ def register(app):
     @app.command('workflow-plan')
     def plan(request_file: Annotated[Path,typer.Argument()], project_root: Annotated[Path,typer.Option('--project-root')]=Path('.'), request: Annotated[str,typer.Option('--request')]='Operator-authored typed workflow'):
         from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan
-        from geoagent_harness.interface_api.workflow import EditRequest,validate_edit
-        from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveRequest,save_interface_reviewed_plan
+        from geoagent_harness.task_actions.workflow import EditRequest,validate_edit
+        from geoagent_harness.task_actions.contracts import InterfaceReviewedPlanSaveRequest
+        from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
         try:
             if request_file.stat().st_size>64000:raise ValueError('Workflow request exceeds 64 KiB')
             result=PlannerResult(model='operator-authored',original_request=request,context_references=[],plan=WorkflowPlan.model_validate_json(request_file.read_text()))
@@ -60,7 +61,7 @@ def register(app):
             typer.echo(f'Error: {error}',err=True);raise typer.Exit(2)
 
     def call(action,filename,sha,root,**extra):
-        from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
+        from geoagent_harness.task_actions.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
         try:
             result={'prepare_workflow':prepare_workflow,'authorize_workflow':authorize_workflow,'execute_workflow':execute_workflow}[action](WorkflowRequest(action=action,plan_filename=filename,confirmed_plan_sha256=sha,**extra),project_root=root)
             typer.echo(json.dumps(result,indent=2))

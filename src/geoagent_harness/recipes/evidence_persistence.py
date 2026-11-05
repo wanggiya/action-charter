@@ -46,13 +46,9 @@ def _reference_path(
 ) -> str:
     """Return a portable project-relative reference."""
 
-    resolved_project = project_root.resolve()
-    resolved_path = path.resolve()
-
     try:
-        return resolved_path.relative_to(
-            resolved_project
-        ).as_posix()
+        from geoagent_harness.workspace import runtime_reference
+        return runtime_reference(project_root, path)
     except ValueError as exc:
         raise RecipeEvidencePersistenceError(
             "persisted recipe artifact is outside "

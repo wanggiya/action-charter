@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 
 from geoagent_harness.mcp_server.settings import MCPSettings
 from geoagent_harness.postgis.change_assessment import (
@@ -17,7 +15,6 @@ from geoagent_harness.postgis.comparison import (
 from geoagent_harness.postgis.inspection import inspect_postgis_table
 from geoagent_harness.postgis.inspection.service import (
     PostGISInspectionReader,
-    PsycopgPostGISInspectionReader,
 )
 from geoagent_harness.postgis.promotion.plan.schemas import (
     PostGISPromotionOperation,
@@ -31,22 +28,7 @@ class PostGISPromotionPlanError(RuntimeError):
     """Raised when promotion planning cannot complete safely."""
 
 
-def _canonical_json(value: object) -> str:
-    payload = (
-        value.model_dump(mode="json")  # type: ignore[attr-defined]
-        if hasattr(value, "model_dump")
-        else value
-    )
-    return json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-
-
-def _sha256(value: object) -> str:
-    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+from geoagent_harness.postgis.lifecycle import snapshot_sha256 as _sha256, inspection_reader
 
 
 def postgis_promotion_plan_sha256(plan: PostGISPromotionPlan) -> str:
@@ -61,11 +43,7 @@ def plan_postgis_promotion(
     reader: PostGISInspectionReader | None = None,
 ) -> PostGISPromotionPlanResult:
     """Reinspect and plan one exact promotion without modifying PostGIS."""
-    active_reader = reader
-    owns_reader = reader is None
-    try:
-        if active_reader is None:
-            active_reader = PsycopgPostGISInspectionReader(settings)
+    with inspection_reader(settings, reader) as active_reader:
         comparison = compare_postgis_tables(
             request=PostGISComparisonRequest(
                 reference=request.reference,
@@ -144,6 +122,3 @@ def plan_postgis_promotion(
             plan_sha256=postgis_promotion_plan_sha256(plan),
             plan=plan,
         )
-    finally:
-        if owns_reader and active_reader is not None:
-            active_reader.close()

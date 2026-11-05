@@ -99,7 +99,7 @@ def test_report_uses_saved_mode_and_bounded_original_context(project):
 def test_legacy_assessment_cannot_replace_captured_single_mode(project,monkeypatch):
  from geoagent_harness.interface_api import workflow_runs,run_assessment
  record={'run_id':'e'*32,'status':'completed','agent_coordination':{'mode':'single'},'critic_review':{'status':'complete','finding':'Saved self-review'}}
- monkeypatch.setattr(workflow_runs,'_read',lambda directory,identity:record)
+ monkeypatch.setattr(workflow_runs,'_read',lambda directory,identity,**kwargs:record)
  class ForbiddenClient:
   def complete(self,request):raise AssertionError('Must not run another Critic')
  assert run_assessment.assess_run(project,record['run_id'],model_client=ForbiddenClient(),retry=True)==record

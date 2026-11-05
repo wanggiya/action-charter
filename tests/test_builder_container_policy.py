@@ -67,7 +67,7 @@ def test_builder_mounts_only_its_manifest() -> None:
     assert volumes == [
         "./agents/builder:/app/agents/builder:ro",
         (
-            "./builder-requests/example-adapter.json:"
+            "./examples/extension-lifecycle/builder-request.json:"
             "/workspace/request/example-adapter.json:ro"
         ),
     ]

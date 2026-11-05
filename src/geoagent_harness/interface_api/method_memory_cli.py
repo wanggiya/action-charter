@@ -8,8 +8,8 @@ def register(app):
     @app.command('method-memory')
     def command(request_file: Path | None = typer.Option(None, '--request-file'),
                 project_root: Path = typer.Option(Path('.'), '--project-root')):
-        from .method_memory import MethodRequest, method_action
-        from .server import InterfaceApiError
+        from geoagent_harness.task_actions.method_memory import MethodRequest, method_action
+        from geoagent_harness.task_actions.common import InterfaceApiError
         from geoagent_harness.model import ModelClientError, ModelSettingsError
         from geoagent_harness.context_pack.redaction import redact_text
         try:

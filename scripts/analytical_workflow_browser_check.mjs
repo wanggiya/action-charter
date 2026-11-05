@@ -1,13 +1,15 @@
 // Isolated real API/worker journey. Ollama discovery is a local HTTP fixture.
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir,rm,utimes} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,mkdir,rm,utimes,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve,dirname,extname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const root=await mkdtemp(resolve(tmpdir(),'actioncharter-analysis-'));
+const stateRoot=process.env.ACTIONCHARTER_TEST_RELOCATED_STATE?resolve(root,'.actioncharter-state'):root;
+if(stateRoot!==root)await writeFile(resolve(root,'actioncharter.workspace.json'),JSON.stringify({version:1,state_root:stateRoot}));
 process.env.PLAYWRIGHT_BROWSERS_PATH=resolve(repo,'interface/.playwright-browsers');
 process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu'),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 const {chromium}=await import(pathToFileURL(resolve(repo,'interface/node_modules/playwright/index.mjs')).href);
@@ -51,10 +53,14 @@ try{
  await page.getByLabel('Model reasoning effort',{exact:true}).selectOption('none');
  await page.getByRole('button',{name:'Use reasoning setting',exact:true}).click();
  await page.getByText('Reasoning setting saved for new requests.',{exact:false}).waitFor();
+ await page.getByLabel('Critic outcome review timeout',{exact:true}).fill('30');
+ await page.getByRole('button',{name:'Save review timeout',exact:true}).click();
+ await page.getByText('Review timeout saved for future requests.',{exact:false}).waitFor();
  await page.getByRole('button',{name:'Close settings',exact:true}).click();
  await page.getByRole('button',{name:'Settings',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('select[aria-label="Ollama model"]')?.value==='fixture:other');
  assert.equal(await page.getByLabel('Model reasoning effort',{exact:true}).inputValue(),'none');
+ assert.equal(await page.getByLabel('Critic outcome review timeout',{exact:true}).inputValue(),'30');
  await page.getByRole('button',{name:'Close settings',exact:true}).click();
  console.log('audit: model preference persisted');
  const send=async(message)=>{await page.getByRole('textbox',{name:'Message Planner'}).fill(message);await page.locator('.planner-composer button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('.planner-composer button[type=submit]')?.textContent?.includes('Send'),{},{timeout:30000});};
@@ -90,10 +96,10 @@ try{
  if(!process.env.ACTIONCHARTER_AUDIT_ONLY){
   // A real completed run must remain recoverable outside the global 50-run window.
   const inventory=await (await fetch(origin+'/api/v1/workflow/runs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})})).json();
-  const owned=inventory.records[0],stored=JSON.parse(await readFile(resolve(root,'workflow-state/interface-runs',owned.run_id+'.json'),'utf8'));
+  const owned=inventory.records[0],stored=JSON.parse(await readFile(resolve(stateRoot,'workflow-state/interface-runs',owned.run_id+'.json'),'utf8'));
   const unrelated=[];
   for(let i=1;i<=55;i++){
-   const id=(100000+i).toString(16).padStart(32,'0'),path=resolve(root,'workflow-state/interface-runs',id+'.json');
+   const id=(100000+i).toString(16).padStart(32,'0'),path=resolve(stateRoot,'workflow-state/interface-runs',id+'.json');
    await writeFile(path,JSON.stringify({...stored,run_id:id,conversation_id:'f'.repeat(32),status:'completed'}));
    const future=new Date(Date.now()+86400000+i*1000);await utimes(path,future,future);unrelated.push(path);
   }
@@ -533,6 +539,26 @@ try{
   assert.equal(exportedDiagnostics.conversation_id,guidedChat);
   assert.ok(!JSON.stringify(exportedDiagnostics).includes('guided_measurements.csv'));
   await page.locator('.request-diagnostics > summary').click();
+  // Render a known completed-execution / timed-out-review fixture; no workflow dispatch.
+  const reviewDiagnostics=async route=>{
+    const response=await route.fetch();const value=await response.json();
+    value.records=[{id:'review-turn-fixture',kind:'turn',status:'completed',started_at:new Date().toISOString(),error_code:null,workflow_run_id:guidedRun.run.run_id,workflow_status:'completed',outcome_review:{status:'unavailable',error_code:'model_timeout',timeout_seconds:30}},
+      {id:'review-call-fixture',kind:'call',status:'failed',started_at:new Date().toISOString(),error_code:'model_timeout',role:'critic',phase:'outcome_review',timeout_seconds:30}];
+    await route.fulfill({response,json:value});
+  };
+  await page.route('**/api/v1/planner/diagnostics',reviewDiagnostics);
+  await page.locator('.request-diagnostics > summary').click();
+  const reviewCall=page.locator('.request-diagnostics details').filter({has:page.locator('summary',{hasText:'critic · outcome_review'})}).first();
+  await reviewCall.locator('summary').first().click();
+  await reviewCall.getByText('Critic review timed out after 30 seconds.',{exact:false}).waitFor();
+  const processing=page.locator('.request-diagnostics details').filter({has:page.locator('summary',{hasText:'Workflow processing'})}).first();
+  await processing.locator('summary').first().click();
+  await processing.getByText('Unavailable — model timed out',{exact:true}).waitFor();
+  assert.ok((await processing.innerText()).includes('completed'));
+  assert.equal(calls.filter(c=>c.body?.action==='start').length,reportStarts);
+  await page.unroute('**/api/v1/planner/diagnostics',reviewDiagnostics);
+  await page.locator('.request-diagnostics > summary').click();
+  console.log(JSON.stringify({audit:'completed execution and timed-out Critic review render independently',evidence:'diagnostic response fixture',timeout:30}));
   const handoff=await cli(['report',guidedRun.run.run_id,'--kind','json']);
   assert.equal(handoff.handoff.run_id,guidedRun.run.run_id);
   assert.equal(handoff.handoff.execution_performed,false);
@@ -730,6 +756,45 @@ try{
  }
 
  if(!process.env.ACTIONCHARTER_AUDIT_ONLY){
+  await page.getByRole('button',{name:'New chat',exact:true}).click();
+  await send('Run a new read-only inspection of sample_orders.csv');
+  const wordingChat=await page.evaluate(()=>localStorage.getItem('actioncharter:planner-conversation:v1'));
+  const wordingState=await cli(['show',wordingChat,'--json']);
+  assert.equal(wordingState.context_usage.model_request.stage,'deterministic_inspection');
+  assert.equal(wordingState.context_usage.model_request.model_calls,0);
+  assert.deepEqual(wordingState.planner_result.plan.steps.map(s=>s.skill),['inspect_csv']);
+  assert.equal(wordingState.planner_result.plan.steps[0].arguments.path,'data/input/sample_orders.csv');
+  assert.equal(wordingState.planner_result.original_request,'Run a new read-only inspection of sample_orders.csv');
+  console.log(JSON.stringify({audit:'user read-only inspection wording uses exact metadata route',modelCalls:0}));
+  await send('do a read-only inspection');
+  const followed=await cli(['show',wordingChat,'--json']);
+  assert.deepEqual(followed.planner_result.plan.steps.map(s=>[s.skill,s.arguments.path]),[['inspect_csv','data/input/sample_orders.csv']]);
+  assert.equal(followed.context_usage.model_request.model_calls,0);
+  assert.equal(followed.messages.at(-2).content,'do a read-only inspection');
+  await send('inspect it again');
+  const again=await cli(['show',wordingChat,'--json']);
+  assert.equal(again.planner_result.plan.steps[0].skill,'inspect_csv');
+  await page.getByRole('button',{name:'New chat',exact:true}).click();
+  const startsBeforeQuestion=calls.filter(c=>c.body?.action==='start').length;
+  await send('inspect it again');
+  await page.getByRole('log',{name:'Planning conversation'}).getByText(/Which input file should I inspect/).waitFor();
+  assert.equal(await page.locator('.intent-error[role="alert"]').count(),0);
+  const emptyChat=await page.evaluate(()=>localStorage.getItem('actioncharter:planner-conversation:v1'));
+  const question=await cli(['show',emptyChat,'--json']);
+  assert.equal(question.planner_result,null);
+  assert.ok(question.messages.at(-1).content.includes('Which input file'));
+  assert.equal(calls.filter(c=>c.body?.action==='start').length,startsBeforeQuestion);
+  await page.reload();
+  await page.getByRole('log',{name:'Planning conversation'}).getByText(/Which input file should I inspect/).waitFor();
+  assert.equal(await page.locator('.intent-error[role="alert"]').count(),0);
+  await send('do a read-only inspection on sample_orders.csv.');
+  await page.locator('[data-operation-skill="inspect_csv"]').waitFor();
+  assert.equal(await page.locator('.intent-error[role="alert"]').count(),0);
+  const explicitOn=await cli(['show',emptyChat,'--json']);
+  assert.equal(explicitOn.planner_result.original_request,'do a read-only inspection on sample_orders.csv.');
+  assert.equal(explicitOn.context_usage.model_request.model_calls,0);
+  console.log(JSON.stringify({audit:'metadata follow-up stays with active CSV; new chat asks for source',planningCalls:0}));
+
   const starts=calls.filter(c=>c.body?.action==='start').length;
   await page.getByRole('button',{name:'New chat',exact:true}).click();
   await send('Inspect sample_orders.csv and provide a data-quality report. report_scope_fixture. No writes.');
@@ -764,6 +829,19 @@ try{
 
  assert.deepEqual(errors,[]);
  assert.ok(providerCalls.every(path=>['/api/tags','/api/ps'].includes(path)));
+ if(stateRoot!==root){
+  assert.ok((await readFile(resolve(stateRoot,'workflow-state/write-policy.sqlite3'))).length>0);
+  assert.ok((await readdir(resolve(stateRoot,'reports'))).length>0);
+  assert.ok((await readFile(resolve(stateRoot,'workflow-state/successful-workflows.sqlite3'))).length>0);
+  for(const store of ['workflow-state','plans','planner-workspace','planner-conversations','approvals','reports','traces','recipe-runs','recipe-evidence','inspection-runs']){
+   await assert.rejects(readdir(resolve(root,store)),{code:'ENOENT'});
+  }
+  for(const name of ['write-policy.sqlite3','write-policy.lock']){
+   await assert.rejects(readFile(resolve(root,'workflow-state',name)),{code:'ENOENT'});
+  }
+ }
  assert.equal(calls.filter(c=>c.url.includes('/authorize')).length,process.env.ACTIONCHARTER_AUDIT_ONLY?0:1);
- console.log(JSON.stringify({status:'passed',pageErrors:errors,modelDiscovery:providerCalls.length,authorizationCalls:calls.filter(c=>c.url.includes('/authorize')).length,isolatedRoot:true}));
-}catch(error){console.error(error);console.error(JSON.stringify({lastCalls:calls.slice(-5),errors}));throw error;}finally{frontend.closeAllConnections();models.closeAllConnections();await browser?.close();child?.kill('SIGTERM');await new Promise(done=>frontend.close(done));await new Promise(done=>models.close(done));await rm(root,{recursive:true,force:true});}
+ console.log(JSON.stringify({status:'passed',relocatedState:stateRoot!==root,pageErrors:errors,modelDiscovery:providerCalls.length,authorizationCalls:calls.filter(c=>c.url.includes('/authorize')).length,isolatedRoot:true}));
+}catch(error){console.error(error);console.error(JSON.stringify({lastCalls:calls.slice(-5),errors}));
+ if(apiPort){try{const response=await fetch(`http://127.0.0.1:${apiPort}/api/v1/workflow/runs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})});const inventory=await response.json();console.error(JSON.stringify({fixtureRuns:(inventory.runs??inventory.records??[]).slice(0,4).map(r=>({run_id:r.run_id,status:r.status,finding:r.finding,failed_step_id:r.failed_step_id}))}));}catch{}}
+ throw error;}finally{frontend.closeAllConnections();models.closeAllConnections();await browser?.close();child?.kill('SIGTERM');await new Promise(done=>frontend.close(done));await new Promise(done=>models.close(done));await rm(root,{recursive:true,force:true});}

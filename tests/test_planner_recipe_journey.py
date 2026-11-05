@@ -301,3 +301,70 @@ def test_occupied_model_csv_target_is_corrected_before_review_without_overwrite(
     assert occupied.read_text()=='keep this exact content'
     assert len(list((project/'data/output').iterdir()))==1
     assert not result['execution_performed'] and not result['approval_performed']
+
+
+@pytest.mark.parametrize('failure',['timeout','invalid'])
+def test_review_diagnostics_are_critic_and_preserve_durable_execution(project,failure):
+    import httpx
+    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.model.settings import ModelSettings
+    from geoagent_harness.model.telemetry import scope,read
+    from geoagent_harness.model.catalog import select_review_timeout,ReviewTimeoutSelection
+    _,record=run(project)
+    before_outputs={p.name:p.read_bytes() for p in (project/'data/output').glob('*.csv')}
+    select_review_timeout(project,ReviewTimeoutSelection(seconds=30,expected_revision=0))
+    calls=[]
+    def handler(request):
+        calls.append(request)
+        if failure=='timeout':raise httpx.ReadTimeout('private provider detail',request=request)
+        return httpx.Response(200,json={'model':'fixture','choices':[{'message':{'content':'{}'},'finish_reason':'stop'}]})
+    model=SharedModelClient(ModelSettings(base_url='http://localhost:11434/v1',model='fixture',timeout_seconds=60,max_tokens=1024),transport=httpx.MockTransport(handler))
+    identity='f'*32
+    with scope(project,identity) as diagnostic:
+        diagnostic['record']['workflow_run_id']=record['run_id']
+        reviewed=assess_run(project,record['run_id'],model_client=model)
+    assert reviewed['status']=='completed' and reviewed['steps']==record['steps']
+    assert reviewed['critic_review']['status']=='unavailable'
+    assert reviewed['critic_review']['timeout_seconds']==30
+    if failure=='timeout':assert reviewed['critic_review']['error_code']=='model_timeout'
+    assert assess_run(project,record['run_id'],model_client=model)==reviewed and len(calls)==1
+    assert {p.name:p.read_bytes() for p in (project/'data/output').glob('*.csv')}==before_outputs
+    records=read(project,identity)['records'];call=next(r for r in records if r['kind']=='call')
+    assert (call['role'],call['phase'],call['workflow_run_id'],call['timeout_seconds'])==('critic','outcome_review',record['run_id'],30)
+    assert 'private provider detail' not in json.dumps(records)
+
+
+@pytest.mark.parametrize('execution_fails',[False,True])
+def test_worker_keeps_execution_status_separate_from_review_timeout(project,monkeypatch,execution_fails):
+    import os,httpx
+    from geoagent_harness.interface_api import workflow_runs,workflow,run_assessment
+    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.model.settings import ModelSettings
+    from geoagent_harness.model.telemetry import read
+    _,record=run(project)
+    record['conversation_id']='e'*32
+    _write(_directory(project),record)
+    calls=[]
+    def execute(*a,**kw):
+        calls.append('execution')
+        if execution_fails:raise ValueError('Synthetic operation failure')
+        return record['result']
+    def timeout(request):
+        calls.append('review');raise httpx.ReadTimeout('private',request=request)
+    settings=ModelSettings(base_url='http://localhost:11434/v1',model='fixture',timeout_seconds=60,max_tokens=1024)
+    model=SharedModelClient(settings,transport=httpx.MockTransport(timeout))
+    monkeypatch.setattr(workflow,'execute_workflow',execute)
+    monkeypatch.setattr(run_assessment,'load_model_settings',lambda:settings)
+    monkeypatch.setattr(run_assessment,'SharedModelClient',lambda settings:model)
+    fd=os.open(project/'worker-test.lock',os.O_CREAT|os.O_RDWR,0o600)
+    workflow_runs._worker(project,_directory(project),record['run_id'],object(),fd,review_outcome=True)
+    final=_read(_directory(project),record['run_id'])
+    assert final['status']==('failed' if execution_fails else 'completed')
+    assert final['critic_review']['status']=='unavailable'
+    assert calls==['execution','review']
+    diagnostics=read(project,'e'*32)['records']
+    turn=next(r for r in diagnostics if r['kind']=='turn')
+    assert turn['workflow_status']==final['status'] and turn['outcome_review']['error_code']=='model_timeout'
+    assert set(turn['outcome_review'])=={'status','error_code','timeout_seconds'}
+    call=next(r for r in diagnostics if r['kind']=='call')
+    assert (call['role'],call['phase'])==('critic','outcome_review')
