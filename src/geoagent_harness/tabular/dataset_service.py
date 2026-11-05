@@ -14,7 +14,7 @@ def profile_dataset(root,path,options=None,*,delimiter=',',owner=None,checkpoint
     mode=os.environ.get('ACTIONCHARTER_ANALYTICAL_RUNTIME','docker')
     if mode=='docker':result=run_profile(root,path,options,delimiter=delimiter,checkpoint=checkpoint,max_seconds=max_seconds)
     elif mode=='local':
-        from geoagent_harness.interface_api.inspection_policy import bounded_read
+        from geoagent_harness.task_actions.inspection_policy import bounded_read
         result=bounded_read(root,action='dataset_profile',path=path,delimiter=delimiter,analysis=options,max_seconds=max_seconds,checkpoint=checkpoint)
         result['runtime']={'mode':'local_bounded_process','container_isolation':False,'reason':'Explicit trusted compatibility setting'}
     else:raise ValueError('Analytical runtime must be docker or explicit local compatibility mode')

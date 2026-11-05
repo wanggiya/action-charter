@@ -1,5 +1,7 @@
 """Explicit immutable review of resolved intent, never work approval."""
 from __future__ import annotations
+from geoagent_harness.workspace import ensure_state_root
+from geoagent_harness.task_history.service import history_directory
 import json
 import os
 import re
@@ -9,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from geoagent_harness.intent.service import IntentProposal, IntentError
+from geoagent_harness.intent.service import IntentProposal, IntentError, intent_directory
 from geoagent_harness.context_retrieval import load_reviewed_context
 from geoagent_harness.task_history.service import _canonical, _digest
 from geoagent_harness.context_pack.redaction import redact_value
@@ -64,7 +66,7 @@ def _checked_intent(payload: dict, root: Path) -> tuple[IntentResult, str]:
     if any(not answer.strip() or len(answer) > 1000 for answer in intent.clarification_answers):
         raise IntentError("clarification answers are invalid")
     if intent.review_filename is not None:
-        context = load_reviewed_context(review_root=root / "reviewed-contexts", history_root=root / "task-history", filename=intent.review_filename)
+        context = load_reviewed_context(review_root=intent_directory(root, "reviewed-contexts"), history_root=history_directory(root), filename=intent.review_filename)
         if context["context_sha256"] != intent.context_sha256:
             raise IntentError("intent context digest mismatch")
         if context.get("review_performed") is not True or context.get("plan_approved") is not False:
@@ -112,10 +114,11 @@ def save_reviewed_intent(*, payload: dict, project_root: Path, confirmed_intent_
         reviewed_at=timestamp.isoformat(),review_performed=True,plan_approved=False,execution_performed=False,model_called=False)
     raw = _canonical(record.model_dump()); record_digest = _digest(raw)
     filename = f"intent-review.{record_digest}.json"
-    destination = root / "reviewed-intents"
+    destination = intent_directory(root, "reviewed-intents")
     if destination.is_symlink():
         raise IntentError("intent review root is unsafe")
-    destination.mkdir(exist_ok=True)
+    ensure_state_root(root)
+    destination.mkdir(mode=0o700, exist_ok=True)
     directory = os.open(destination,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     pending = f".pending-{uuid4().hex}"
     try:
@@ -142,7 +145,7 @@ def load_reviewed_intent(*, project_root: Path, filename: str) -> dict:
     if not re.fullmatch(r"intent-review\.[a-f0-9]{64}\.json",filename):
         raise IntentError("intent review filename is invalid")
     root=project_root.resolve()
-    directory=os.open(root / "reviewed-intents",os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    directory=os.open(intent_directory(root, "reviewed-intents"),os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         descriptor=os.open(filename,os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,dir_fd=directory)
         with os.fdopen(descriptor,"rb") as stream:

@@ -6,8 +6,8 @@ import typer
 
 def register(app):
     def emit(action, conversation_id, root, **fields):
-        from .conversation import TurnRequest, conversation_turn
-        from .server import InterfaceApiError
+        from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+        from geoagent_harness.task_actions.common import InterfaceApiError
         from geoagent_harness.planner.agent import PlannerAgentError
         from geoagent_harness.context_pack.builder import ContextPackError
         from geoagent_harness.model import ModelClientError, ModelSettingsError
@@ -91,7 +91,7 @@ def register(app):
     @app.command('planning-conversation-turn')
     def turn(request_file: Path = typer.Option(..., '--request-file'),
              project_root: Path = typer.Option(Path('.'), '--project-root')):
-        from .conversation import TurnRequest
+        from geoagent_harness.task_actions.conversation import TurnRequest
         if request_file.is_symlink() or not request_file.is_file() or request_file.stat().st_size > 64000:
             typer.echo('Error: choose a regular bounded conversation request JSON file', err=True)
             raise typer.Exit(2)
@@ -109,8 +109,8 @@ def register(app):
     def submit(request_file: Path = typer.Option(..., '--request-file'),
                project_root: Path = typer.Option(Path('.'), '--project-root')):
         """Submit a typed turn with explicit inspection intent, or read its receipt."""
-        from .planner_submission import SubmissionRequest, submission_action
-        from .server import InterfaceApiError
+        from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
+        from geoagent_harness.task_actions.common import InterfaceApiError
         from geoagent_harness.planner.agent import PlannerAgentError
         from geoagent_harness.context_pack.builder import ContextPackError
         from geoagent_harness.model import ModelClientError, ModelSettingsError

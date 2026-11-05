@@ -12,6 +12,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator, model_serializer
 from geoagent_harness.capabilities.text import TextTransform
 from geoagent_harness.tabular.schemas import Source
+from geoagent_harness.workspace import runtime_store_path,ensure_state_root,WorkspaceError
 
 ADAPTER_ENTRYPOINT = 'geoagent_harness.operations.packages:execute_projection'
 VERIFIER = 'geoagent_harness.tabular.service:validate_output'
@@ -74,7 +75,11 @@ def parse_package(value):
     return package
 
 def _directory(stack, root, create=False):
-    fd=os.open(Path(root).resolve(strict=True),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        directory=runtime_store_path(root,DIRECTORY)
+        if create:ensure_state_root(root)
+    except WorkspaceError as error:raise PackageError(str(error)) from error
+    fd=os.open(directory.parent.resolve(strict=True),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     stack.callback(os.close,fd)
     if create:
         try:os.mkdir(DIRECTORY,0o700,dir_fd=fd)
@@ -84,7 +89,8 @@ def _directory(stack, root, create=False):
     return fd
 
 def installed_packages(root):
-    directory=Path(root)/DIRECTORY
+    try:directory=runtime_store_path(root,DIRECTORY)
+    except WorkspaceError as error:raise PackageError(str(error)) from error
     if not directory.exists() and not directory.is_symlink():return {}
     result={}
     try:

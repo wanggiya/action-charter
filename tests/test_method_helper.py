@@ -164,7 +164,9 @@ def test_off_during_note_assisted_planning_discards_stale_reply(project):
 
 def test_corrupt_or_incompatible_note_is_not_injected(project):
     enable(project);turn(project,agent=Helper())
-    with helper.database(project,write=True) as connection:
+    # Corrupt fixture bytes through the explicitly retained raw SQLite boundary.
+    from geoagent_harness.task_actions.planning_tasks import database
+    with database(project,write=True) as connection:
         row=connection.execute('SELECT source_key,value FROM method_helper_notes').fetchone()
         value=json.loads(row[1]);value['note']['contract_version']='999'
         connection.execute('UPDATE method_helper_notes SET value=? WHERE source_key=?',(json.dumps(value),row[0]))

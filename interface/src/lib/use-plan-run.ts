@@ -10,8 +10,7 @@ export function matchesPlanRun(run:WorkflowRun|null, plan:string|undefined, chat
 }
 
 /** Read recorded evidence only. Never start, authorize, recover or retry work. */
-export function usePlanRun(plan:string|undefined, draft:boolean, live:WorkflowRun|null) {
-  const chat=currentChatId();
+export function usePlanRun(plan:string|undefined, draft:boolean, live:WorkflowRun|null, chat:string|null=currentChatId()) {
   const scope=`${chat??''}:${plan??''}`;
   const [state,setState]=useState<{scope:string;run:WorkflowRun|null;status:string}>({scope:'',run:null,status:''});
   const [selection,setSelection]=useState<WorkflowRun|null>(null);

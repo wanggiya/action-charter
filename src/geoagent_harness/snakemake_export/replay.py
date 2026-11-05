@@ -289,6 +289,11 @@ def run_approved_recipe_replay(
         or load_snakemake_replay_settings()
     )
 
+    from geoagent_harness.workspace import runtime_store_path
+    active = active.model_copy(update={key: runtime_store_path(active.project_root, store)
+        for key, store in {'recipe_root': 'workflow-recipes', 'approval_root': 'approvals',
+                           'export_root': 'snakemake-exports'}.items()
+        if getattr(active, key) == Path(store)})
     export_root = active.export_root.resolve()
 
     configuration_path = _contained_path(

@@ -21,7 +21,7 @@ from geoagent_harness.skill_registry import (
 
 PROJECT_ROOT = Path(__file__).parents[1]
 DEFINITION_ROOT = (
-    PROJECT_ROOT / "skill-definitions"
+    PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
 )
 DEFINITION_FILE = (
     DEFINITION_ROOT

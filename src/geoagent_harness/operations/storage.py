@@ -1,4 +1,4 @@
-"""Bounded metadata snapshots below a fixed project-local directory."""
+"""Bounded metadata snapshots in the project-bound workspace."""
 import hashlib
 import json
 import os
@@ -6,7 +6,7 @@ import re
 import stat
 import uuid
 from contextlib import ExitStack
-from pathlib import Path
+from geoagent_harness.workspace import runtime_store_path,ensure_state_root,WorkspaceError
 
 DIRECTORY='library-discovery'
 MAX_BYTES=12000000
@@ -14,7 +14,10 @@ MAX_BYTES=12000000
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
 
 def _parent(stack,root,create=False):
-    fd=os.open(Path(root).resolve(strict=True),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:directory=runtime_store_path(root,DIRECTORY)
+    except WorkspaceError as error:raise OSError(str(error)) from error
+    if create:ensure_state_root(root)
+    fd=os.open(directory.parent.resolve(strict=True),os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     stack.callback(os.close,fd)
     if create:
         try:os.mkdir(DIRECTORY,0o700,dir_fd=fd)

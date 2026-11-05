@@ -79,18 +79,13 @@ class Samples:
 
 def store(root,kind,value):
     try:
-        from geoagent_harness.interface_api.planning_tasks import database
+        from geoagent_harness.task_actions.planning_tasks import transaction as database
         with database(root,write=True) as c:
-            c.execute('CREATE TABLE IF NOT EXISTS request_diagnostics_v1 (id TEXT PRIMARY KEY,conversation_id TEXT NOT NULL,kind TEXT NOT NULL,parent_id TEXT,value TEXT NOT NULL)')
-            c.execute('CREATE INDEX IF NOT EXISTS request_diagnostics_chat_v1 ON request_diagnostics_v1(conversation_id)')
             encoded=json.dumps(value,separators=(',',':'))
             if len(encoded.encode())>12000:raise ValueError('Diagnostic record budget')
-            c.execute('INSERT INTO request_diagnostics_v1 VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value',
-                (value['id'],value['conversation_id'],kind,value.get('parent_id'),encoded))
-            # Retain newest finished turns; active calls are never evicted.
-            ids=[r[0] for r in c.execute("SELECT id FROM request_diagnostics_v1 WHERE kind='turn' AND json_extract(value,'$.status')!='started' ORDER BY rowid DESC LIMIT -1 OFFSET ?",(MAX_RECORDS,))]
-            for identity in ids:c.execute('DELETE FROM request_diagnostics_v1 WHERE id=? OR parent_id=?',(identity,identity))
-            c.execute("DELETE FROM request_diagnostics_v1 WHERE kind='call' AND json_extract(value,'$.status')!='started' AND id IN (SELECT id FROM request_diagnostics_v1 WHERE kind='call' ORDER BY rowid DESC LIMIT -1 OFFSET ?)",(MAX_CALLS,))
+            c.records('request_diagnostics_v1').put(value['id'],encoded,owner=value['conversation_id'],kind=kind,parent=value.get('parent_id'))
+            # Retention preserves the existing active-call and parent/child rules.
+            c.prune_diagnostics(turns=MAX_RECORDS,calls=MAX_CALLS)
         return True
     except Exception:return False  # Monitoring must not retry or alter data execution.
 
@@ -126,7 +121,7 @@ def model_call(request,settings):
     if state is None:yield None;return
     role,name=_phase.get();parent=state['record'];parent['observed_model_calls']+=1
     record={'schema_version':'request-diagnostics-v1','id':uuid4().hex,'parent_id':parent['id'],
-        'conversation_id':parent['conversation_id'],'submission_id':parent['submission_id'],'role':role,'phase':name,
+        'conversation_id':parent['conversation_id'],'submission_id':parent['submission_id'],'workflow_run_id':parent.get('workflow_run_id'),'role':role,'phase':name,
         'model':settings.model[:160],'timeout_seconds':min(settings.timeout_seconds,request.timeout_seconds or settings.timeout_seconds),
         'output_token_limit':settings.max_tokens,'reasoning_effort':settings.reasoning_effort,'response_format':settings.response_format,
         'prompt_bytes':sum(len(m.content.encode()) for m in request.messages),
@@ -145,11 +140,10 @@ def model_call(request,settings):
         if not store(state['root'],'call',record):parent['storage_available']=False
 
 def read(root,conversation_id):
-    from geoagent_harness.interface_api.planning_tasks import database,_identity
+    from geoagent_harness.task_actions.planning_tasks import transaction as database, _identity
     _identity(conversation_id)
     with database(root) as c:
-        if c is None or not c.execute("SELECT 1 FROM sqlite_master WHERE name='request_diagnostics_v1'").fetchone():rows=[]
-        else:rows=c.execute('SELECT kind,value FROM request_diagnostics_v1 WHERE conversation_id=? ORDER BY rowid DESC LIMIT 100',(conversation_id,)).fetchall()
+        rows=[] if c is None else [(row.kind,row.content) for row in c.records('request_diagnostics_v1').entries(owner=conversation_id,limit=100)]
     records=[]
     for kind,raw in rows:
         v=json.loads(raw)
@@ -172,8 +166,7 @@ def read(root,conversation_id):
 def recent_chats(root):
     """Keep failed first submissions discoverable without storing their prompts."""
     try:
-        from geoagent_harness.interface_api.planning_tasks import database
+        from geoagent_harness.task_actions.planning_tasks import transaction as database
         with database(root) as c:
-            if c is None or not c.execute("SELECT 1 FROM sqlite_master WHERE name='request_diagnostics_v1'").fetchone():return []
-            return [r[0] for r in c.execute("SELECT conversation_id FROM request_diagnostics_v1 WHERE kind='turn' GROUP BY conversation_id ORDER BY MAX(rowid) DESC LIMIT 20")]
+            return c.recent_diagnostic_chats() if c else []
     except Exception:return []

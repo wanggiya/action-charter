@@ -27,7 +27,7 @@ def approved_evidence(tmp_path:Path):
     plan=create_plan(tmp_path); plan_root=tmp_path/"rollback-plans"; stored_plan=persist_postgis_rollback_plan(plan,rollback_plan_root=plan_root)
     approval=create_postgis_rollback_approval(rollback_plan_file=Path(stored_plan.rollback_plan_file),rollback_plan_root=plan_root,decision="approved",approver="Jay Qi",reason="Restore exact relations.",now=NOW,expires_at=NOW+timedelta(hours=1),approval_id="postgis-rollback-approval-20260906t120000z-1234abcd")
     approval_root=tmp_path/"rollback-approvals"; stored_approval=persist_postgis_rollback_approval(approval,approval_root=approval_root)
-    settings=MCPSettings(input_root=tmp_path/"input",output_root=tmp_path/"output",enable_write_tools=True)
+    settings=MCPSettings(project_root=tmp_path,input_root=tmp_path/"input",output_root=tmp_path/"output",enable_write_tools=True)
     return plan,plan_root,Path(stored_plan.rollback_plan_file),approval,approval_root,Path(stored_approval.approval_file),settings
 
 
@@ -87,6 +87,6 @@ def test_expired_approval_fails_before_transaction(tmp_path:Path):
 
 
 def test_write_gate_fails_before_evidence_loading(tmp_path:Path):
-    settings=MCPSettings(input_root=tmp_path,output_root=tmp_path)
+    settings=MCPSettings(project_root=tmp_path,input_root=tmp_path,output_root=tmp_path)
     with pytest.raises(PostGISRollbackExecutionError,match="disabled"):
         execute_postgis_rollback(rollback_plan_file=Path("missing"),rollback_plan_root=Path("missing"),approval_file=Path("missing"),approval_root=Path("missing"),settings=settings,confirm_rollback_plan_sha256="a"*64,confirm_approval_sha256="b"*64)

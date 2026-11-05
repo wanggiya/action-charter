@@ -115,15 +115,15 @@ def current_plan_review(plan):
 
 
 def coordinated_turn(function,request,root,*,model_client=None,**kwargs):
-    from geoagent_harness.interface_api.conversation import _path,_read,_write,_LOCK
+    from geoagent_harness.task_actions.conversation import _path,_read,_write,_LOCK
     if request.action!='turn':return function(request,project_root=root,model_client=model_client,**kwargs)
-    with _LOCK:state=_read(_path(root,request.conversation_id),request.conversation_id)
+    with _LOCK:state=_read(_path(root,request.conversation_id),request.conversation_id, project_root=root)
     mode=request.agent_mode or state.agent_mode
     if mode is None:return function(request,project_root=root,model_client=model_client,**kwargs)
     if model_client is None:
         class ConfiguredClient:
             def complete(self,request):
-                from geoagent_harness.interface_api.conversation import SharedModelClient,load_model_settings
+                from geoagent_harness.task_actions.conversation import SharedModelClient,load_model_settings
                 return SharedModelClient(load_model_settings()).complete(request)
         model_client=ConfiguredClient()
     coordinator=Coordinator(mode,client=model_client,saved=state.agent_coordination)
@@ -132,10 +132,10 @@ def coordinated_turn(function,request,root,*,model_client=None,**kwargs):
         result=function(request,project_root=root,model_client=coordinator.planner_client(),**kwargs)
         receipt=coordinator.receipt((result.get('planner_result') or {}).get('plan_sha256'))
         with _LOCK:
-            latest=_read(_path(root,request.conversation_id),request.conversation_id)
+            latest=_read(_path(root,request.conversation_id),request.conversation_id, project_root=root)
             if latest.revision==result['revision']:
                 latest.agent_mode=mode;latest.agent_coordination=receipt;latest.agent_attempt=None
-                from geoagent_harness.interface_api.planning_tasks import database,_get,_put
+                from geoagent_harness.task_actions.planning_tasks import transaction as database, _get, _put
                 with database(root,write=True) as connection:
                     stored=_get(connection,'conversations',request.conversation_id)
                     if stored is None or stored['revision']==latest.revision:_put(connection,'conversations',request.conversation_id,latest.model_dump(mode='json'))
@@ -143,10 +143,10 @@ def coordinated_turn(function,request,root,*,model_client=None,**kwargs):
         return result
     except Exception:
         with _LOCK:
-            latest=_read(_path(root,request.conversation_id),request.conversation_id)
+            latest=_read(_path(root,request.conversation_id),request.conversation_id, project_root=root)
             if latest.revision==request.expected_revision:
                 latest.agent_attempt=coordinator.receipt()
-                from geoagent_harness.interface_api.planning_tasks import database,_get,_put
+                from geoagent_harness.task_actions.planning_tasks import transaction as database, _get, _put
                 with database(root,write=True) as connection:
                     stored=_get(connection,'conversations',request.conversation_id)
                     if stored is None or stored['revision']==latest.revision:_put(connection,'conversations',request.conversation_id,latest.model_dump(mode='json'))

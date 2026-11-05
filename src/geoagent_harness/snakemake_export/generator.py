@@ -137,6 +137,7 @@ def generate_snakemake_recipe_export(
     export_root: Path = Path(
         "snakemake-exports"
     ),
+    project_root: Path | None = None,
 ) -> SnakemakeRecipeExportResult:
     """Generate one immutable replay package."""
 

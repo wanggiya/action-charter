@@ -26,7 +26,9 @@ Start with the [project README](../README.md) for installation, scope and the ex
 
 ## Development records
 
-[development/checkpoints/](development/checkpoints/) holds the CHECKPOINT*.md files, which describe incremental delivery and acceptance. They are retained for traceability; consult current guides before following old setup instructions. The current closeout is [context and intent acceptance](development/checkpoints/CHECKPOINT22O.md); the current integration scope is [task-centered interface plan](development/checkpoints/CHECKPOINT23_PLAN.md), with [task/input acceptance](development/checkpoints/CHECKPOINT23A.md).
+[development/checkpoints/](development/checkpoints/) holds the CHECKPOINT*.md files, which describe historical delivery and acceptance. They are retained for traceability; consult [current status](../context/CURRENT_STATUS.md) and the [phase/task working method](product-direction/WORKING_METHOD.md) before following old setup instructions. New work does not create more checkpoint files.
+
+[Roadmap history](development/ROADMAP_HISTORY.md) indexes the complete pre-P0-7 roadmap, including earlier priorities, alternatives and requirements. The [active roadmap](../context/PRODUCT_ROADMAP.md) links current dependencies and remaining design work.
 
 [Previous README](development/README_BEFORE_REORGANIZATION.md) and [previous status](development/STATUS_BEFORE_REORGANIZATION.md) are preserved historical snapshots, not current guidance.
 

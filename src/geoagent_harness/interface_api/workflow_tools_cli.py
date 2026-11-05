@@ -6,9 +6,9 @@ import typer
 
 def register(app):
     def invoke(kind, request_file, project_root):
-        from .workflow_runs import RunRequest,run_action
+        from geoagent_harness.task_actions.workflow_runs import RunRequest,run_action
         from geoagent_harness.recipe_catalog.composition import RecipeRequest,recipe_action
-        from .server import InterfaceApiError
+        from geoagent_harness.task_actions.common import InterfaceApiError
         from geoagent_harness.model import ModelClientError,ModelSettingsError
         try:
             if request_file is not None:

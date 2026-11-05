@@ -228,8 +228,9 @@ def test_table_authority_reverified_before_any_writes(project,monkeypatch,case):
     authorization=authorize_workflow(WorkflowRequest(**{**request.model_dump(),'action':'authorize_workflow','confirmed_review_sha256':review['review_sha256'],'approve_required_steps':True,'approver':'fixture','reason':'Temporary authority test'}),project_root=project)
     review_sha=review['review_sha256']
     if case=='expired':
-        verifier=api.verify_interface_plan_approval
-        monkeypatch.setattr(api,'verify_interface_plan_approval',lambda request,**kwargs:verifier(request,**kwargs,now=datetime.now(timezone.utc)+timedelta(minutes=31)))
+        from geoagent_harness.task_actions import execution
+        verifier=execution.verify_interface_plan_approval
+        monkeypatch.setattr(execution,'verify_interface_plan_approval',lambda request,**kwargs:verifier(request,**kwargs,now=datetime.now(timezone.utc)+timedelta(minutes=31)))
     else:
         review_sha='f'*64
     with pytest.raises(api.InterfaceApiError):

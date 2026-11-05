@@ -10,6 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 import geoagent_harness.interface_api.server as interface_api_module
+import geoagent_harness.task_actions.execution as execution_actions
+import geoagent_harness.task_actions.artifacts as artifact_actions
 
 from geoagent_harness.interface_api import (
     InterfaceApiError,
@@ -1308,7 +1310,7 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
     assert repeated["contract"]["passed"] is True
 
     monkeypatch.setattr(
-        interface_api_module,
+        execution_actions,
         "load_settings",
         lambda: load_settings({"ENABLE_WRITE_TOOLS": "true"}),
     )
@@ -1351,7 +1353,7 @@ def test_reviewed_save_recompiles_and_writes_only_immutable_recipe(
         return SimpleNamespace(execution_record=fake_record, run_result=fake_run)
 
     monkeypatch.setattr(
-        interface_api_module,
+        execution_actions,
         "execute_approved_recipe",
         fake_execute,
     )
@@ -1971,7 +1973,7 @@ def test_intent_review_and_handoff_http_keep_exact_scope_and_authority(tmp_path:
         assert result['plan_saved'] is result['execution_performed'] is result['approval_inferred'] is False
         assert not (tmp_path/'plans').exists()
         from types import SimpleNamespace
-        monkeypatch.setattr(interface_api_module, 'load_skill_registry', lambda root: SimpleNamespace(implemented_skills=lambda: [SimpleNamespace(id='inspect_vector')]))
+        monkeypatch.setattr(artifact_actions, 'load_skill_registry', lambda root: SimpleNamespace(implemented_skills=lambda: [SimpleNamespace(id='inspect_vector')]))
         save_body = dict(action='save_reviewed_intent_plan', review_filename=saved['review_filename'], planner_result=result['planner_result'], confirmed_plan_sha256=result['plan_sha256'])
         code, _ = post('/api/v1/intent/save-plan', {**save_body, 'confirmed_plan_sha256': '0'*64})
         assert code == 409 and not (tmp_path/'plans').exists()

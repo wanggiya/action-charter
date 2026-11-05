@@ -19,14 +19,15 @@ import { loadPlannerConversations, newConversationId, plannerConversation, capab
 import type {ResultViewSpec} from "../lib/result-exploration";
 import type {WorkflowRun} from "../lib/workflow-tools";
 
-type Props = { onHistoryOpen:(record:HistoryRecord)=>void;onHistoryCurrent:()=>void;onAnalyticalSession:(session:AnalyticalSession,conversationId:string,revision:number,activate:boolean,planSha:string|null)=>void; onResultView:(spec:ResultViewSpec)=>Promise<void>;onSubmittedRun:(run:WorkflowRun)=>Promise<void>; currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onRestore: (plan: SavedPlanInventory["plans"][number]) => Promise<void>; onScopeChange:()=>void; onTaskBusyChange:(busy:boolean)=>void };
+type Props = { onConversationChange?:(id:string)=>void; onHistoryOpen:(record:HistoryRecord)=>void;onHistoryCurrent:()=>void;onAnalyticalSession:(session:AnalyticalSession,conversationId:string,revision:number,activate:boolean,planSha:string|null)=>void; onResultView:(spec:ResultViewSpec)=>Promise<void>;onSubmittedRun:(run:WorkflowRun)=>Promise<void>; currentPlan: InterfacePlannerResult | null; currentSaved: SavedPlannerResult | null; visible: boolean; editsPending: boolean; onClose: () => void; onPlan: (plan: InterfacePlannerResult) => void; onSaved: (saved: SavedPlannerResult) => void; onRestore: (plan: SavedPlanInventory["plans"][number]) => Promise<void>; onScopeChange:()=>void; onTaskBusyChange:(busy:boolean)=>void };
 const storageKey = "actioncharter:planner-conversation:v1";
 function initialId() {
   try { const id = localStorage.getItem(storageKey); if (id && /^[a-f0-9]{32}$/.test(id)) return id; } catch { /* Storage is optional. */ }
   return newConversationId();
 }
-export function TextPlanner({ onHistoryOpen,onHistoryCurrent,onAnalyticalSession, currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved, onRestore, onScopeChange, onTaskBusyChange, onSubmittedRun, onResultView }: Props) {
+export function TextPlanner({ onConversationChange, onHistoryOpen,onHistoryCurrent,onAnalyticalSession, currentPlan: plan, currentSaved: saved, visible, editsPending, onClose, onPlan, onSaved, onRestore, onScopeChange, onTaskBusyChange, onSubmittedRun, onResultView }: Props) {
   const [id, setId] = useState(initialId);
+  useEffect(()=>{onConversationChange?.(id);},[id,onConversationChange]);
   const [reloadVersion,setReloadVersion]=useState(0);
   const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadPlannerConversations>>>([]);
   const [conversation, setConversation] = useState<PlannerConversation | null>(null);

@@ -93,6 +93,18 @@ def validate_table_coverage(plan, message: str, existing=()) -> None:
         raise RequestedOperationOmission('The explicitly requested table operation is missing: '+', '.join(sorted(missing))+'. Repeated inspect_csv steps only return metadata; they cannot select columns or filter rows. Return the complete requested workflow with typed arguments, or ask only for genuinely missing semantic inputs with plan=null. Nothing has executed.')
 
 
+def metadata_request_text(message: str) -> str:
+    """Normalize a metadata-only lead-in; callers still full-match the whole request.
+
+    This does not strip trailing instructions or authorize execution. The ordinary
+    metadata grammar, file validation and inspect-on-send setting remain authoritative.
+    """
+    return re.sub(
+        r'^\s*(?:please\s+)?(?:do|run|perform)\s+(?:a\s+)?(?:new\s+)?read[- ]only\s+inspection\s+(?:of|on)\s+',
+        'Inspect ', message, count=1, flags=re.I,
+    )
+
+
 def inspection_only_skill(message: str) -> str | None:
     """Recognize a complete, narrow metadata-only request, not arbitrary prose.
 
@@ -103,7 +115,7 @@ def inspection_only_skill(message: str) -> str | None:
         r'\s*inspect\s+[^\s;]+\.(csv|tsv|xlsx|jsonl|ndjson|json|geojson|gpkg|shp|tif|tiff)\.?\s*'
         r'(?:return\s+(?:row count|column names|columns|feature count|fields|crs|a preview|preview|metadata|width|height|dimensions|band count|bands|bounds|resolution|driver|geometry type|layer names|nodata)'
         r'(?:\s*(?:,|and)\s*(?:row count|column names|columns|feature count|fields|crs|a preview|preview|metadata|width|height|dimensions|band count|bands|bounds|resolution|driver|geometry type|layer names|nodata))*\.\s*)?'
-        r'(?:no writes\.?\s*)?', message, re.I,
+        r'(?:no writes\.?\s*)?', metadata_request_text(message), re.I,
     )
     if not match:
         return None

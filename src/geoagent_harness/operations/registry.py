@@ -59,7 +59,7 @@ class TableArtifact(TableMetadata):
 
 def builtin_argument_models():
     from geoagent_harness.recipes import schemas
-    from geoagent_harness.interface_api.snakemake_workflow import ExportArguments, VerifyArguments
+    from geoagent_harness.task_actions.snakemake_workflow import ExportArguments, VerifyArguments
     return {
       'inspect_vector':schemas.InspectVectorRecipeArguments,'inspect_raster':schemas.InspectRasterRecipeArguments,
       'convert_vector':schemas.ConvertVectorRecipeArguments,'convert_raster':schemas.ConvertRasterRecipeArguments,
@@ -164,7 +164,10 @@ def operation_catalog(root, query=''):
           'validation_contract':{'verifier':skill.verifier,'read_only_checks':'typed adapter/runtime policy','result_preview':'bounded metadata and evidence; CSV rows limited to 20/4KB'},
           'adapter_configuration':configuration(package) if package else None,
           'package_sha256':package_sha(package) if package else None,'default_arguments':defaults,'origin':'installed_adapter' if package else 'builtin'})
+    from .inspection_contracts import INSPECTOR_SUFFIXES
     for operation in result:
+        if operation['id'] in INSPECTOR_SUFFIXES:
+            operation['supported_source_formats']=[suffix[1:] for suffix in INSPECTOR_SUFFIXES[operation['id']]]
         if operation['id']=='inspect_csv':
             operation['supported_source_formats']=[suffix[1:] for suffix in TABLE_SUFFIXES]
             operation['table_source_contract']=table_format_catalog()

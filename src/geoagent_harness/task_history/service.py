@@ -30,6 +30,14 @@ class TaskHistoryError(RuntimeError):
     """Task evidence is invalid, unsafe or outside its limits."""
 
 
+def history_directory(project_root: Path) -> Path:
+    """Resolve the default history store; never create/move it while reading."""
+    from geoagent_harness.workspace import runtime_store_path,WorkspaceError
+    try:return runtime_store_path(project_root,'task-history')
+    except WorkspaceError as error:
+        raise TaskHistoryError(str(error)) from error
+
+
 def _canonical(value: dict[str, Any]) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
 
@@ -44,7 +52,7 @@ def _task_dir(root: Path, task_id: str, *, create: bool = False) -> Path:
     if root.is_symlink() or (root.exists() and not root.is_dir()):
         raise TaskHistoryError("task history root is unsafe")
     if create:
-        root.mkdir(parents=True, exist_ok=True)
+        root.mkdir(mode=0o700,parents=True, exist_ok=True)
     task = root / task_id
     if task.is_symlink() or (task.exists() and not task.is_dir()):
         raise TaskHistoryError("task directory is unsafe")
@@ -251,7 +259,18 @@ def _artifact_bytes(project_root: Path, relative: str) -> bytes:
             or any(part in {"", ".", ".."} for part in parts) or "\\" in relative):
         raise TaskHistoryError("artifact path is outside evidence roots")
     import stat
-    descriptor = os.open(project_root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    # Logical references stay unchanged in the immutable event chain. Only stores
+    # adopted by P0-2 resolve through state; other evidence remains project-local.
+    from geoagent_harness.workspace import ADOPTED_ARTIFACT_STORES,runtime_store_path,WorkspaceError
+    if parts[0] in ADOPTED_ARTIFACT_STORES:
+        try:
+            base = runtime_store_path(project_root,parts[0])
+        except WorkspaceError as error:
+            raise TaskHistoryError('Artifact workspace is unsafe or requires migration') from error
+        parts = parts[1:]
+    else:
+        base = project_root
+    descriptor = os.open(base, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         for part in parts[:-1]:
             child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)

@@ -35,7 +35,7 @@ def test_no_history_lifecycle_is_explicit_and_has_no_work_authority(tmp_path: Pa
         return PlannerResult(model='fake', original_request=kwargs['original_request'], context_references=[], plan=WorkflowPlan(summary='Inspect metadata', steps=[PlanStep(step_id='step_1',skill='inspect_vector',purpose='Inspect',arguments={'path':'data/input/sample.geojson'},requires_approval=True)]))
     with patch('geoagent_harness.intent.handoff.plan_task', side_effect=planner):
         handoff = plan_reviewed_intent(project_root=tmp_path, filename=saved['review_filename'], allowed_skill_ids=['inspect_vector'])
-    with patch('geoagent_harness.interface_api.server.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
+    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
         stored = save_reviewed_intent_plan(project_root=tmp_path, filename=saved['review_filename'], planner_result=PlannerResult.model_validate(handoff['planner_result']), confirmed_plan_sha256=handoff['plan_sha256'])
     assert stored['context_sha256'] is None and stored['plan_saved'] is True
     assert stored['approval_performed'] is stored['execution_performed'] is stored['model_called'] is False

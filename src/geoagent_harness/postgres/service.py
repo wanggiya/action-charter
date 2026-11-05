@@ -195,9 +195,12 @@ def effects(skill,arguments,settings=None):
 def claim_authority(settings,approval_id,step_id):
     """One attempt per approved database step, including failed/unconfirmed attempts."""
     identity=hashlib.sha256((approval_id+':'+step_id).encode()).hexdigest()
+    from geoagent_harness.workspace import runtime_store_path
+    receipt_root=runtime_store_path(settings.project_root,'recipe-runs')
+    receipt_root.mkdir(mode=0o700,parents=True,exist_ok=True)
     with ExitStack() as stack:
         try:
-            parent,name=_parent(stack,Path(settings.project_root).resolve(),'recipe-runs/postgres-attempts/'+identity+'.json',create=True)
+            parent,name=_parent(stack,receipt_root,'postgres-attempts/'+identity+'.json',create=True)
             fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
             with os.fdopen(fd,'w') as handle:
                 json.dump({'approval_id':approval_id,'step_id':step_id,'status':'attempted_or_unconfirmed'},handle);handle.flush();os.fsync(handle.fileno())

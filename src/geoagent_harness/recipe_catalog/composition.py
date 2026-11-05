@@ -123,8 +123,9 @@ def _builtins():
 
 def catalog(root, diagnostics=None):
     from geoagent_harness.operations.registry import argument_models
+    from geoagent_harness.workspace import runtime_store_path
     recipes = {r.id:r for r in _builtins()}
-    directory = Path(root) / 'reusable-recipes'
+    directory = runtime_store_path(root,'reusable-recipes')
     if directory.is_symlink():
         raise ValueError('Reusable recipe storage cannot be a symlink')
     paths = list(directory.glob('*.json'))
@@ -169,7 +170,7 @@ def compose(uses, root, base=None, definitions=None):
     from geoagent_harness.planner.topology import plan_dependencies
     from geoagent_harness.skill_registry import load_skill_registry
     from geoagent_harness.tabular.schemas import is_table_write
-    from geoagent_harness.interface_api.workflow import _check
+    from geoagent_harness.task_actions.workflow import _check
     definitions = catalog(root) if definitions is None else definitions
     registry=load_skill_registry(root)
     steps = [s.model_copy(deep=True) for s in base.plan.steps] if base else []
@@ -275,7 +276,7 @@ def test_recipe(recipe, root):
             if not policy.write_step_ids:
                 raise ValueError('Current fixture verifier requires an expected CSV artifact')
             approval,_=create_recipe_approval(recipe=compiled,registry=registry,step_ids=policy.approval_required_step_ids,
-                decision='approved',approver='isolated-recipe-fixture',reason='Temporary fixture scope only',approval_root=workspace/'approvals')
+                decision='approved',approver='isolated-recipe-fixture',reason='Temporary fixture scope only',approval_root=workspace/'approvals',project_root=workspace)
             settings=MCPSettings(project_root=workspace,input_root=workspace/'data/input',output_root=workspace/'data/output',enable_write_tools=True)
             try:
                 run=run_approved_recipe(recipe=compiled,approval=approval,registry=registry,settings=settings)
@@ -294,8 +295,8 @@ def test_recipe(recipe, root):
 
 
 def recipe_action(request, *, project_root):
-    from geoagent_harness.interface_api.workflow import EditRequest,validate_edit
-    from geoagent_harness.interface_api.server import _trusted_root
+    from geoagent_harness.task_actions.workflow import EditRequest,validate_edit
+    from geoagent_harness.task_actions.common import _trusted_root
     root=_trusted_root(project_root)
     if request.action in {'search','inspect'}:
         from .discovery import DiscoveryRequest,discover
@@ -329,12 +330,14 @@ def recipe_action(request, *, project_root):
     if request.action=='register':
         if not request.confirm_register or request.confirmed_recipe_sha256!=digest:
             raise ValueError('Confirm registration of the exact tested recipe; it grants no execution authority')
-        if request.definition.id in catalog(root) or (root/'reusable-recipes'/(request.definition.id+'.json')).exists():
+        from geoagent_harness.workspace import runtime_store_path,ensure_state_root
+        directory=runtime_store_path(root,'reusable-recipes')
+        if request.definition.id in catalog(root) or (directory/(request.definition.id+'.json')).exists():
             raise ValueError('Recipe ID already registered; in-place replacement is unavailable')
-        directory=root/'reusable-recipes'
         if directory.is_symlink():
             raise ValueError('Recipe storage is unsafe')
-        directory.mkdir(exist_ok=True)
+        ensure_state_root(root)
+        directory.mkdir(mode=0o700,parents=True,exist_ok=True)
         if len(list(directory.glob('*.json')))>=50:
             raise ValueError('Recipe inventory limit reached')
         data=json.dumps({'definition':request.definition.model_dump(mode='json'),'recipe_sha256':digest,'test_report':report,

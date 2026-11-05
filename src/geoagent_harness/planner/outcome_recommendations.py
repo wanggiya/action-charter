@@ -65,7 +65,8 @@ def record_outcome(root, record):
 
 def recommendations(root, conversation_id, eligible):
     """Current-contract evidence only. Empty evidence preserves baseline ordering."""
-    path = root / 'workflow-state' / 'successful-workflows.sqlite3'
+    from geoagent_harness.workspace import runtime_store_path
+    path = runtime_store_path(root, 'workflow-state') / 'successful-workflows.sqlite3'
     if not path.exists():
         return []
     db = _connection(root)

@@ -26,17 +26,7 @@ class PostGISRollbackPlanError(RuntimeError):
     """Raised when rollback planning cannot bind trusted evidence."""
 
 
-def _profile(value: object) -> dict[str, object]:
-    """Return the identity-independent facts used by promotion verification."""
-    return {
-        "columns": [item.model_dump(mode="json") for item in value.columns],
-        "primary_key": value.primary_key.columns if value.primary_key else None,
-        "unique_keys": sorted(item.columns for item in value.unique_keys),
-        "row_count": value.row_count,
-        "geometry_columns": [
-            item.model_dump(mode="json") for item in value.geometry_columns
-        ],
-    }
+from geoagent_harness.postgis.lifecycle import relation_profile as _profile
 
 
 def plan_postgis_rollback(

@@ -26,15 +26,10 @@ class Selection(BaseModel):
 
 
 def preference(root):
-    from geoagent_harness.interface_api.planning_tasks import database
-    with database(root) as connection:
-        if connection is not None and connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='model_selection' AND type='table'"
-        ).fetchone():
-            row = connection.execute('SELECT model,revision FROM model_selection WHERE id=1').fetchone()
-            if row:
-                return {'model': row[0], 'revision': row[1]}
-    return {'model': None, 'revision': 0}
+    from geoagent_harness.task_actions.planning_tasks import transaction
+    with transaction(root) as unit:
+        row = unit.setting('model_selection') if unit else None
+        return row if row else {'model': None, 'revision': 0}
 
 
 @contextmanager
@@ -45,10 +40,11 @@ def request_selection(root):
     if _selection_root.get()==key:yield;return
     token=selected_model.set(preference(root)['model'])
     reasoning_token=selected_reasoning.set(reasoning_preference(root)['selection'])
+    review_token=_review_timeout.set(review_timeout_preference(root)['seconds'])
     root_token=_selection_root.set(key)
     try:yield
     finally:
-        selected_model.reset(token);selected_reasoning.reset(reasoning_token);_selection_root.reset(root_token)
+        selected_model.reset(token);selected_reasoning.reset(reasoning_token);_review_timeout.reset(review_token);_selection_root.reset(root_token)
 
 
 def native_url(environ=None):
@@ -111,21 +107,20 @@ def catalog(root, *, client=None, environ=None):
     return {'models': entries, 'count': len(entries), 'selected_model': effective,
             'selection_source': 'project' if saved['model'] else 'environment',
             'revision': saved['revision'], 'selected_available': any(e['name'] == effective for e in entries),
-            'reasoning':reasoning_preference(root,environ=environ),'loaded_status_error': loaded_error, 'model_called': False, 'execution_performed': False}
+            'review_timeout':review_timeout_preference(root),'reasoning':reasoning_preference(root,environ=environ),'loaded_status_error': loaded_error, 'model_called': False, 'execution_performed': False}
 
 
 def select(root, request, *, client=None, environ=None):
     current = catalog(root, client=client, environ=environ)
     if not any(item['name'] == request.model for item in current['models']):
         raise CatalogError('Selected model is no longer in the available catalog. Refresh the list.')
-    from geoagent_harness.interface_api.planning_tasks import database
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
     with database(root, write=True) as connection:
-        connection.execute('CREATE TABLE IF NOT EXISTS model_selection (id INTEGER PRIMARY KEY CHECK(id=1), model TEXT NOT NULL, revision INTEGER NOT NULL)')
-        row = connection.execute('SELECT revision FROM model_selection WHERE id=1').fetchone()
-        revision = row[0] if row else 0
+        row = connection.setting('model_selection')
+        revision = row['revision'] if row else 0
         if revision != request.expected_revision:
             raise CatalogError('Model selection changed. Refresh before applying.')
-        connection.execute('INSERT OR REPLACE INTO model_selection VALUES(1,?,?)', (request.model, revision + 1))
+        connection.save_setting('model_selection', request.model, revision + 1)
     return {**current, 'selected_model': request.model, 'selection_source': 'project',
             'revision': revision + 1, 'selected_available': True}
 
@@ -137,12 +132,11 @@ class ReasoningSelection(BaseModel):
 
 
 def reasoning_preference(root,*,environ=None):
-    from geoagent_harness.interface_api.planning_tasks import database
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
     selection='environment';revision=0
     with database(root) as connection:
-        if connection is not None and connection.execute("SELECT 1 FROM sqlite_master WHERE name='model_reasoning_selection'").fetchone():
-            row=connection.execute('SELECT selection,revision FROM model_reasoning_selection WHERE id=1').fetchone()
-            if row:selection,revision=row
+        row=connection.setting('model_reasoning_selection') if connection else None
+        if row:selection,revision=row['selection'],row['revision']
     values=os.environ if environ is None else environ
     effective=(values.get('MODEL_REASONING_EFFORT','').strip() or None) if selection=='environment' else None if selection=='provider' else selection
     if effective not in {None,'none','low','medium','high'}:raise CatalogError('Invalid reasoning configuration')
@@ -150,10 +144,41 @@ def reasoning_preference(root,*,environ=None):
 
 
 def select_reasoning(root,request):
-    from geoagent_harness.interface_api.planning_tasks import database
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
     with database(root,write=True) as connection:
-        connection.execute('CREATE TABLE IF NOT EXISTS model_reasoning_selection (id INTEGER PRIMARY KEY CHECK(id=1),selection TEXT NOT NULL,revision INTEGER NOT NULL)')
-        row=connection.execute('SELECT revision FROM model_reasoning_selection WHERE id=1').fetchone();revision=row[0] if row else 0
+        row=connection.setting('model_reasoning_selection');revision=row['revision'] if row else 0
         if revision!=request.expected_revision:raise CatalogError('Reasoning selection changed. Refresh before applying.')
-        connection.execute('INSERT OR REPLACE INTO model_reasoning_selection VALUES(1,?,?)',(request.selection,revision+1))
+        connection.save_setting('model_reasoning_selection',request.selection,revision+1)
     return {**reasoning_preference(root),'model_called':False,'execution_performed':False}
+
+# Standalone post-run review budget; independent of planning and coordinated reports.
+_review_timeout = ContextVar('outcome_review_timeout', default=None)
+
+class ReviewTimeoutSelection(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    seconds:int=Field(ge=5,le=180,strict=True)
+    expected_revision:int=Field(ge=0)
+
+
+def review_timeout_preference(root):
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
+    with database(root) as connection:
+        row=connection.setting('outcome_review_settings') if connection else None
+        if row:return {**row,'source':'project'}
+    return {'seconds':15,'revision':0,'source':'default'}
+
+
+def review_timeout_seconds(root):
+    from pathlib import Path
+    if _selection_root.get()==str(Path(root).resolve()) and _review_timeout.get() is not None:
+        return _review_timeout.get()
+    return review_timeout_preference(root)['seconds']
+
+
+def select_review_timeout(root,request):
+    from geoagent_harness.task_actions.planning_tasks import transaction as database
+    with database(root,write=True) as connection:
+        row=connection.setting('outcome_review_settings');revision=row['revision'] if row else 0
+        if revision!=request.expected_revision:raise CatalogError('Review timeout changed. Refresh before applying.')
+        connection.save_setting('outcome_review_settings',request.seconds,revision+1)
+    return {**review_timeout_preference(root),'model_called':False,'execution_performed':False}

@@ -112,3 +112,41 @@ def test_project_reasoning_is_sent_by_shared_client(tmp_path,monkeypatch):
     with request_selection(tmp_path):
         SharedModelClient(load_model_settings(),transport=httpx.MockTransport(handle)).complete(ModelRequest(messages=[ChatMessage(role='user',content='Inspect metadata')]))
     assert len(bodies)==1 and bodies[0]['reasoning_effort']=='none'
+
+
+def test_review_timeout_is_bounded_persistent_and_request_pinned(tmp_path):
+    from geoagent_harness.model.catalog import ReviewTimeoutSelection,select_review_timeout,review_timeout_seconds,review_timeout_preference
+    from pydantic import ValidationError
+    assert review_timeout_seconds(tmp_path)==15
+    for value in (0,4,181,True,12.5,'30'):
+        with pytest.raises(ValidationError):ReviewTimeoutSelection(seconds=value,expected_revision=0)
+    with request_selection(tmp_path):
+        select_review_timeout(tmp_path,ReviewTimeoutSelection(seconds=45,expected_revision=0))
+        assert review_timeout_seconds(tmp_path)==15
+        with pytest.raises(CatalogError,match='changed'):
+            select_review_timeout(tmp_path,ReviewTimeoutSelection(seconds=90,expected_revision=0))
+    with request_selection(tmp_path):assert review_timeout_seconds(tmp_path)==45
+    assert review_timeout_preference(tmp_path)=={'seconds':45,'revision':1,'source':'project'}
+
+
+def test_review_timeout_http_origin_validation_and_conflict(tmp_path):
+    from http.server import ThreadingHTTPServer
+    from http.client import HTTPConnection
+    from threading import Thread
+    from geoagent_harness.interface_api.server import _handler
+    from geoagent_harness.model.catalog import review_timeout_preference
+    server=ThreadingHTTPServer(('127.0.0.1',0),_handler(tmp_path));thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    def post(value,origin=None):
+        connection=HTTPConnection('127.0.0.1',server.server_port,timeout=5)
+        headers={'Content-Type':'application/json'}
+        if origin:headers['Origin']=origin
+        connection.request('POST','/api/v1/models/review-timeout',json.dumps(value),headers)
+        response=connection.getresponse();status=response.status;payload=json.loads(response.read());connection.close();return status,payload
+    try:
+        assert post({'seconds':30,'expected_revision':0},'https://foreign.invalid')[0]==403
+        assert review_timeout_preference(tmp_path)['seconds']==15
+        assert post({'seconds':181,'expected_revision':0})[0] in {400,422}
+        status,value=post({'seconds':30,'expected_revision':0})
+        assert status==200 and value['seconds']==30 and not value['execution_performed'] and not value['model_called']
+        assert post({'seconds':60,'expected_revision':0})[0]==409
+    finally:server.shutdown();server.server_close();thread.join(5)

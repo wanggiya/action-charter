@@ -80,6 +80,7 @@ def create_recipe_approval(
     approver: str,
     reason: str,
     approval_root: Path,
+    project_root: Path | None = None,
     human_corrections: list[str] | None = None,
     expires_at: datetime | None = None,
     now: datetime | None = None,
@@ -125,8 +126,10 @@ def create_recipe_approval(
             + ", ".join(invalid)
         )
 
-    from geoagent_harness.write_policy import ticket, bind
-    policy_root = approval_root.absolute().parent
+    from geoagent_harness.write_policy import ticket, bind, approval_policy_root
+    # Legacy artifact callers may omit identity; application callers must pass
+    # the source project, never derive its write session from relocated storage.
+    policy_root = approval_policy_root(approval_root,project_root)
     policy_ticket = ticket(policy_root) if decision == 'approved' else None
     record = RecipeApprovalRecord(
         approval_id=(

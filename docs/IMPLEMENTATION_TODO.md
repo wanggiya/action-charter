@@ -1,5 +1,12 @@
 # Consolidated implementation to-do
 
+2026-11-04 navigation: this T01–T15 checklist retains requirements, historical order
+and partial delivery evidence. Its “start here” directions below are superseded by the
+[phase/task working method](product-direction/WORKING_METHOD.md). Use the
+[active roadmap](../context/PRODUCT_ROADMAP.md#retained-requirements-and-design-links)
+to locate these requirements in the current dependency map. This does not mark any
+unfinished T item complete or authorize new features during Phase 0.
+
 2026-10-30 T03/T05: [typed inspection-led goals and report coverage](ANALYSIS_GOALS_AND_REPORT_COVERAGE.md)
 implemented for validation. Agent advice names observed fields and methods; service
 validates source/roles/capability limits; UI prepares without executing. No new

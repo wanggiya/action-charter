@@ -184,14 +184,15 @@ def test_actual_run_has_intermediate_previews_and_durable_result(project):
 
 
 def test_progress_stays_active_until_final_state_is_durable(project,monkeypatch):
-    original=api._persist_execution_progress
+    from geoagent_harness.task_actions import execution as execution_actions
+    original=execution_actions._persist_execution_progress
     observed=[]
     def persist(root,state,**kwargs):
         if state['status']=='validated_success':
             assert state['execution_preview_sha256'] in api._ACTIVE_PROGRESS
             observed.append(state['execution_preview_sha256'])
         return original(root,state,**kwargs)
-    monkeypatch.setattr(api,'_persist_execution_progress',persist)
+    monkeypatch.setattr(execution_actions,'_persist_execution_progress',persist)
     plan,_=recipes.compose([use(project)],project)
     record=run_action(RunRequest(action='start',workflow=execution(project,plan)),project_root=project,background=False)
     assert record['status']=='completed' and len(observed)==1

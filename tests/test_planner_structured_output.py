@@ -87,7 +87,9 @@ def test_conversation_passes_the_actual_allowlisted_reply_schema_to_both_attempt
         for branch in branches:
             skill=branch['properties']['skill']
             known.update(skill.get('enum', [skill.get('const')]))
-        assert known==set(result['supported_skill_ids'])
+        # Source-qualified decoding narrows choices, never the stored capability scope.
+        assert known==set(result['supported_skill_ids'])-{'inspect_vector','inspect_raster'}
+        assert {'inspect_vector','inspect_raster'}.issubset(json.loads(request.messages[0].content)['available_skills'])
         assert {'inspect_csv','calculate_csv_columns','export_csv'}.issubset({b['properties']['skill'].get('const') for b in branches})
     assert result['context_usage']['model_request']['response_schema_bytes']>0
     assert result['context_usage']['effort_budget']['model_calls']==2

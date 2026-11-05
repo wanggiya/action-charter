@@ -60,7 +60,7 @@ services:
 
     volumes:
       - ./agents/builder:/app/agents/builder:ro
-      - ./builder-requests/example-adapter.json:/workspace/request/example-adapter.json:ro
+      - ./examples/extension-lifecycle/builder-request.json:/workspace/request/example-adapter.json:ro
 
     profiles:
       - agents
@@ -82,10 +82,10 @@ services:
     volumes:
       - ./agents/executor:/app/agents/executor:ro
       - ./context:/workspace/context:ro
-      - ./plans:/workspace/plans:ro
-      - ./approvals:/workspace/approvals:ro
-      - ./workflow-recipes:/workspace/workflow-recipes:ro
-      - ./workflow-state:/workspace/workflow-state:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/plans:/workspace/plans:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/approvals:/workspace/approvals:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/workflow-recipes:/workspace/workflow-recipes:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/workflow-state:/workspace/workflow-state:ro
 
     profiles:
       - agents
@@ -134,9 +134,9 @@ services:
     volumes:
       - ./agents/executor:/app/agents/executor:ro
       - ./context:/workspace/context:ro
-      - ./approvals:/workspace/approvals:ro
-      - ./workflow-recipes:/workspace/workflow-recipes:ro
-      - ./snakemake-exports:/workspace/snakemake-exports
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/approvals:/workspace/approvals:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/workflow-recipes:/workspace/workflow-recipes:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/snakemake-exports:/workspace/snakemake-exports
 
     read_only: true
 
@@ -164,8 +164,8 @@ services:
     volumes:
       - ./agents/critic:/app/agents/critic:ro
       - ./context:/workspace/context:ro
-      - ./traces:/workspace/traces:ro
-      - ./reports:/workspace/reports:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/traces:/workspace/traces:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/reports:/workspace/reports:ro
 
     profiles:
       - agents
@@ -227,15 +227,15 @@ services:
     volumes:
       - ./data/input:/workspace/data/input:ro
       - ./benchmarks/spatial-contracts/vector:/workspace/spatial-contracts:ro
-      - ./traces:/workspace/traces
-      - ./reports:/workspace/reports
-      - ./plans:/workspace/plans:ro
-      - ./approvals:/workspace/approvals:ro
-      - ./workflow-recipes:/workspace/workflow-recipes:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/traces:/workspace/traces
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/reports:/workspace/reports
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/plans:/workspace/plans:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/approvals:/workspace/approvals:ro
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/workflow-recipes:/workspace/workflow-recipes:ro
       - ./context:/workspace/context:ro
       - ./data/output:/workspace/data/output
-      - ./recipe-runs:/workspace/recipe-runs
-      - ./recipe-evidence:/workspace/recipe-evidence
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/recipe-runs:/workspace/recipe-runs
+      - ${ACTIONCHARTER_STATE_ROOT:-.}/recipe-evidence:/workspace/recipe-evidence
 
     networks:
       - control

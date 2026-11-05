@@ -78,7 +78,7 @@ def _readiness(result):
 
 
 def run_session(root,message,directory,*,previous=None,model_client=None,max_seconds=150,owner=None):
-    from geoagent_harness.interface_api.server import InterfaceApiError
+    from geoagent_harness.task_actions.common import InterfaceApiError
     from geoagent_harness.planner.decoder_schema import decoder_schema
     from geoagent_harness.tabular.dataset_service import profile_dataset
     started=time.monotonic();deadline=started+max_seconds

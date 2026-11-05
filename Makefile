@@ -1,3 +1,8 @@
+# Resolve host state consistently for Compose and legacy evidence commands.
+# Explicit ACTIONCHARTER_STATE_ROOT remains an operator mount override.
+ACTIONCHARTER_STATE_ROOT ?= $(shell .venv/bin/python -c 'from pathlib import Path; from geoagent_harness.workspace import WorkspaceLayout; print(WorkspaceLayout.load(Path(".")).state_root)')
+export ACTIONCHARTER_STATE_ROOT
+
 CRITIC_TASK_ID ?= checkpoint5e-points-20260809a
 STATE_TASK_ID ?= checkpoint7c-state-check
 SNAKEMAKE_EXPORT_DIR ?=
@@ -109,8 +114,8 @@ checkpoint6-accept:
 	.venv/bin/pytest
 	docker compose --profile agents --profile tools config --quiet
 	@sha256sum \
-		traces/$(CRITIC_TASK_ID).json \
-		reports/$(CRITIC_TASK_ID).md \
+		"$(ACTIONCHARTER_STATE_ROOT)/traces/$(CRITIC_TASK_ID).json" \
+		"$(ACTIONCHARTER_STATE_ROOT)/reports/$(CRITIC_TASK_ID).md" \
 		> /tmp/geoagent-checkpoint6-before.sha256
 	@docker compose --profile agents run --rm critic \
 		critique-task \
@@ -122,8 +127,8 @@ checkpoint6-accept:
 		--pretty \
 		> /tmp/geoagent-checkpoint6-critic.json
 	@sha256sum \
-		traces/$(CRITIC_TASK_ID).json \
-		reports/$(CRITIC_TASK_ID).md \
+		"$(ACTIONCHARTER_STATE_ROOT)/traces/$(CRITIC_TASK_ID).json" \
+		"$(ACTIONCHARTER_STATE_ROOT)/reports/$(CRITIC_TASK_ID).md" \
 		> /tmp/geoagent-checkpoint6-after.sha256
 	@diff \
 		/tmp/geoagent-checkpoint6-before.sha256 \

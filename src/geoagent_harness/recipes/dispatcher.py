@@ -441,6 +441,11 @@ def dispatch_recipe_step(*, envelope, step_id, registry, settings, completed_res
     from geoagent_harness.write_policy import operation
     step = _step_from_envelope(envelope, step_id)
     skill = _validate_registered_skill(skill_id=step.skill_id, registry=registry)
+    from geoagent_harness.operations.inspection_contracts import validate_inspector_source
+    try:
+        validate_inspector_source(step.skill_id, step.arguments)
+    except ValueError as error:
+        raise RecipeDispatchError(str(error)) from error
     with (nullcontext(settings) if skill.access == SkillAccess.READ_ONLY else operation(settings)) as active:
         return _dispatch_recipe_step(envelope=envelope, step_id=step_id, registry=registry,
             settings=active, completed_results=completed_results)

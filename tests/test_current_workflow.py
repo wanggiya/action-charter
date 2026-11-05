@@ -278,8 +278,9 @@ def test_expired_authorization_is_reverified_before_dispatch(project, monkeypatc
     request = stored_request(project, result(extra_approval=True))
     review = prepare_workflow(request, project_root=project)
     authorization = authorize_workflow(authorization_request(request, review), project_root=project)
-    verify = api.verify_interface_plan_approval
-    monkeypatch.setattr(api, 'verify_interface_plan_approval', lambda request, **kwargs:
+    from geoagent_harness.task_actions import execution
+    verify = execution.verify_interface_plan_approval
+    monkeypatch.setattr(execution, 'verify_interface_plan_approval', lambda request, **kwargs:
         verify(request, **kwargs, now=datetime.now(timezone.utc) + timedelta(minutes=31)))
     with pytest.raises(api.InterfaceApiError, match='expired or blocked'):
         execute_workflow(execute_request(request, review,

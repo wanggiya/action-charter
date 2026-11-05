@@ -240,3 +240,102 @@ The browser verifies persisted Settings reasoning and automatic repair of an inc
 extra report step to read-only inspection, with no execution replay. Decoder regression
 coverage confirms unrelated calculation allowlists remain compatible. Source data,
 live databases, environment/secrets files and Git staging/publication were untouched.
+
+## Execution and outcome-review distinction (2026-11-02)
+
+Diagnostic phases now end `executor / execution` at operation completion; standalone
+post-run model calls are `critic / outcome_review`. Workflow-processing records link
+to the durable run and separately expose workflow status and review status/error/budget.
+The latter contains only status metadata, never review prose or findings. Model-call
+records also carry the run ID, actual timeout, timing and usage. Processing elapsed time
+includes review; the durable run's timestamps remain the source for execution duration.
+
+A completed inspection followed by a model timeout therefore remains completed, with
+Critic review unavailable. A genuinely failed execution remains failed regardless of
+review. Invalid review output is unavailable, not successful execution verification.
+No diagnostic read or timeout-setting change retries a review or an operation.
+Historical records are not rewritten: the UI explains that old `executor / workflow`
+labels can include post-run review. Consult the linked workflow status.
+
+Settings → Model service → **Critic outcome review timeout** saves the standalone
+review cap per project (integer 5–180 seconds; unchanged default 15). It takes effect
+for future requests, without launcher restart; active request settings remain pinned.
+The actual call can be shorter if the model request timeout or effort budget is lower;
+Request diagnostics records the actual call cap. This setting does not change planning
+timeouts or coordinated Single/Three task-report budgets. It does not approve work.
+The existing standalone review response cap remains 1,024 tokens.
+
+API clients can POST `/api/v1/models/review-timeout` with `seconds` and
+`expected_revision`; stale settings return 409 and foreign origins are rejected.
+The model catalog includes `review_timeout` with seconds/revision/source. No model
+call or execution occurs when saving settings. Storage uses the same planning SQLite
+helper, including the opt-in P0-2 workspace foundation.
+
+Manual validation after loading the updated code:
+
+1. Restart the usual launcher once and refresh the browser.
+2. Open Settings → Model service; confirm the Critic outcome-review timeout. Optionally
+   choose 30 or 60 seconds, Save review timeout, close/reopen Settings and verify it.
+   A larger budget is not a guarantee that the local model will finish.
+3. In a new chat inspect sample_orders.csv without writes, then Execute only if the
+   read-only inspection has not already run on send.
+4. Open Outcome and Request diagnostics. The workflow's completed/failed status and
+   Critic's status must be separate. New standalone review calls say critic/outcome_review;
+   a timeout shows the call cap and leaves the successful inspection result available.
+5. Refresh/reopen history: no new workflow attempt or review call should be created.
+   Changing the timeout does not revisit an already cached unavailable review.
+
+Tests use mocked HTTP/model responses and temporary output files. They cover review
+success/caching, timeout, malformed output, genuine operation failure, no execution
+replay, status-only telemetry, bounded/revision-checked configuration and request pinning.
+The browser journey verifies settings persistence and existing read-only execution/history.
+No live model or database acceptance is implied by these fixture checks.
+
+Final verification for this slice: **2,275 backend tests passed**, 13 existing spatial
+warnings, 531.45 seconds. Interface validation passed. The isolated browser/API/CLI/PTY
+journey passed with zero page errors; settings persistence was exercised against the
+real temporary API, and the exact review-timeout rendering used a labelled diagnostic
+response fixture. Backend tests used mocked model HTTP to exercise actual worker/review
+status separation. No live-model quality/latency or live database acceptance was run.
+
+## Read-only inspection wording (2026-11-02)
+
+The request `Run a new read-only inspection of sample_orders.csv` previously missed
+both the exact metadata parser and the narrow inspector schema recognizer. It entered
+general table planning with 12 operation schemas; the recorded failed submission had
+no workflow run. The model returned an unsupported field after one correction. That
+failure is a planning/schema failure, not an executor/Critic timeout or evidence of RAM
+exhaustion. The exact unexpected property was not retained in private diagnostics.
+
+A shared normalization now recognizes the explicit `run/perform [a] [new] read-only
+inspection of` lead-in (optionally `please`). All consumers still match the entire
+metadata request: plan construction, narrow schema selection and input-path binding
+use the same text. Additional transformations, instructions or unsupported metadata
+remain outside this closed route; they are not stripped. Existing safe path checks,
+format-specific fields, allowlists, batch limits and duplicate-submission protection
+remain authoritative. This is not general natural-language understanding.
+
+Original user text stays unchanged in persisted chat/provenance. For this exact request,
+the normal submission path creates a typed inspect_csv proposal without a planning
+model call. Inspection-on-send OFF still means proposal only; ON permits only the
+existing eligible read-only scope. Critic review is separate and may call a model after
+execution; zero planning-model calls does not promise zero model calls overall.
+
+Validation: restart the usual launcher once, refresh, and submit the exact sentence
+above in a new chat. Expect one Inspect CSV operation for data/input/sample_orders.csv,
+not a 12-schema planner request. With inspection-on-send disabled, click Execute after
+reviewing the proposal; otherwise inspect the recorded outcome. Reopening a submission
+must not create another run. Existing failed receipts remain historical and are not
+silently retried. No write authorization or storage change is needed.
+
+Temporary-fixture tests cover enabled/disabled send policy, source identity, CSV/vector/
+raster recognition, unsafe paths, unavailable operations, additional-clause rejection
+and duplicate receipt reuse. The isolated browser journey uses the user's actual wording
+and reads the saved state back through CLI to assert deterministic_inspection and zero
+planning calls. This proves the route, not general small-model planning reliability.
+
+Final wording-fix verification: **2,287 tests passed**, 13 existing spatial warnings,
+538.25 seconds. Interface validation and the isolated fixture browser/API/CLI/PTY
+journey passed with zero page errors. The browser submitted the user's unchanged
+sentence and verified deterministic_inspection, one inspect_csv source and zero planning
+model calls via saved chat state. No live dataset, database or model execution was used.

@@ -1,3 +1,203 @@
+# Active roadmap and preserved history (2026-11-05, P0-7)
+
+- Replace the incremental roadmap with current phase dependencies, retained requirements
+  and open decision links; preserve the complete earlier wording/order in a labelled
+  snapshot with rebased links and a section index.
+- Clarify documentation ownership and superseded checklist/checkpoint instructions.
+  No runtime context-loading, agent, data or UI behavior changes; Phase 0 remains open.
+- Verify original-byte/hash preservation, active size below 15 KB, 545 local links
+  and 151 fragments. Twelve context checks passed (1.02 s); full make test: 2,483
+  passed (682.93 s, 13 existing spatial warnings). No frontend/browser rerun for this
+  documentation-only task. Existing historical CHECKPOINT24 content anomaly recorded.
+
+# Frontend workspaces and shared state (2026-11-04, P0-6)
+
+- Split App into composition, workspace views/controllers, local state, projections
+  and effects. Use a provider-owned React store without another dependency.
+- Preserve layout/navigation, storage keys, graph gestures, restoration and exact
+  backend authorization. Batch coupled UI changes and share selected-chat identity.
+- Add store/ownership checks; type/build and four isolated browser journeys passed
+  with zero page errors. Full make test: 2,483 passed (938.96 s, 13 existing spatial
+  warnings). Fixture evidence only;
+  no new agent, operation, Guided mode or live database/model acceptance.
+
+# Storage repository interfaces (2026-11-04, P0-5)
+
+- Separate operational metadata SQL and run/plan file access from shared task actions
+  through local repository/unit-of-work contracts. Preserve formats, IDs and hashes.
+- Retain write transactions/revision checks and add coherent read snapshots; keep
+  submission claims, history atomicity, raw legacy compatibility and authority boundaries.
+- Add rollback, concurrency, provider/worker, filesystem and format-compatibility
+  fixtures. Final make test: 2,480 passed (732.26 s, 13 existing spatial warnings);
+  frontend validation and relocated fixture browser/API/CLI/PTY passed with zero page
+  errors. No new database, dependency, agent, UI or automatic migration; no live
+  model/database acceptance is claimed.
+
+# Shared task actions (2026-11-03, P0-4)
+
+- Move connected conversation/submission, workflow review/authorization, durable run
+  and recorded-result services into a shared backend package used by API/CLI/chat/MCP.
+- Extract saved-plan/approval contracts and exact dispatch/progress from the HTTP
+  server; retain legacy import aliases, schemas, hashes, commands and authority checks.
+- Add cross-transport, legacy/relocated-workspace and import-boundary regressions.
+  Final make test: 2,447 passed (688.52 s, 13 existing spatial warnings); frontend
+  validation and relocated fixture browser/API/CLI/PTY passed with zero page errors.
+  Fixture results do not establish local-model/live DB quality.
+
+# Shared PostGIS promotion/rollback lifecycle (2026-11-03, P0-3)
+
+- Share exact decision checks, fixed serializable relation changes, independent reader
+  lifetime and seven immutable record stores behind existing public facades.
+- Preserve CLI formats, schemas, canonical JSON bytes and historical artifact hashes.
+  Derive package names and returned metadata from the same validated detached snapshot.
+- Record one attempt per exact decision with an append-only stage journal. Distinguish
+  confirmed rollback, uncertain commit and cleanup failures; never repeat writes automatically.
+- Reject timezone-ambiguous or future authority; preserve readable historical records.
+- Add complete stateful-fixture round-trip, replay, relocation, concurrency and fault
+  checks: 2,419 backend tests passed (672.35 s, 13 existing spatial warnings), 193
+  focused checks passed, frontend/Compose validation and relocated fixture browser/API/
+  CLI/PTY passed with zero page errors. No live PostGIS/model acceptance is claimed.
+
+# Unified runtime workspace and offline cutover (2026-11-03, P0-2)
+
+- Complete resolver adoption for reviewed reasoning, Builder/skill lifecycle artifacts,
+  database evidence, replay exports, successful-workflow indexes and analytical artifacts.
+  Share CLI defaults while preserving explicit roots and old unconfigured defaults.
+- Add offline migration preview, verified SQLite/artifact copy, project ownership binding,
+  atomic configuration cutover, optional non-deleting legacy archival, verification and
+  rollback that rejects new state, including committed SQLite WAL records.
+- Preserve source project identity for relocated export policy. Keep review-inventory
+  unsafe-folder diagnostics and explicit missing-migration errors distinct.
+- Configure Compose host runtime mounts through the workspace location without widening
+  mount access; retain terminal log streaming and report resolved launcher state location.
+- Keep canonical Builder/raster examples under examples/extension-lifecycle; old copies
+  remain compatible and are preserved by migration. No real records or services moved.
+- Verified: 2,388 backend tests passed (666.49 s, 13 existing spatial warnings), frontend
+  validation, Compose config, shell syntax and relocated fixture browser/API/CLI/PTY
+  passed with zero page errors. Temporary cutover proves source-only exit and chat/run
+  restoration; no live-model/database acceptance or real checkout migration is claimed.
+- Stabilize the report storage fixture's clock after an observed host wall-clock reversal;
+  production evidence timestamp validation remains strict.
+
+# Workspace discovery and reusable catalogs (2026-11-03, P0-2 partial)
+
+- Resolve saved scans, installed operation manifests and registered reusable recipes
+  through the shared workspace for API/CLI/Planner/execution consumers.
+- Preserve snapshot/package/recipe hashes, operation fingerprints and builtin source
+  recipes. Scanning or registration grants no execution authority or dependency install.
+- Add temporary relocation, offline-copy, integrity, no-create and approval-boundary
+  coverage: 91 focused backend tests passed (11 new, 40.17 s). No real state moved;
+  full/frontend/manual acceptance deferred by the owner.
+
+# Workspace report and review lifecycle (2026-11-03, P0-2 partial)
+
+- Resolve reports, traces, Critic records, operational history and local release-evidence
+  packages through the workspace, preserving logical references and immutable hashes.
+- Share default report/trace roots across execution boundaries and resolve task-history
+  artifact links; explicit custom roots remain explicit.
+- Verify temporary CSV → evidence → fixture Critic → local package and offline copies.
+  Changed source reports invalidate current-source links; packaged copies verify separately.
+- Extend legacy test isolation to project ownership as well as policy paths.
+- Verified: 2,357 backend tests (661.64 s, 13 existing spatial warnings), frontend
+  validation and relocated fixture browser/API/CLI/PTY passed with zero page errors.
+  Nine new lifecycle tests and 97 focused checks pass. No real publication or state migration.
+
+# Workspace write sessions and task history (2026-11-03, P0-2 partial)
+
+- Resolve the write-policy database/session lease and governed task-event history through
+  the workspace, preserving default paths, hashes and API/CLI behavior.
+- Keep host-local project ownership independent of state location. Reject live storage
+  changes, competing owners and active legacy leases; restart revokes prior authority.
+- Recheck relocated history for context/intent review without rewriting old events or
+  treating history as execution authority. Real storage migration remains unfinished.
+- Verified: 2,348 backend tests (672.94 s, 13 existing spatial warnings), 52 focused
+  checks, frontend validation and relocated fixture browser/API/CLI/PTY passed with zero
+  page errors. No live data/model/Git mutations.
+
+# Workspace authority and evidence paths (2026-11-03, P0-2 partial)
+
+- Resolve approvals, workflow recipes, recipe results/evidence, execution progress and
+  inspection records through the workspace. Preserve explicit low-level root overrides.
+- Keep logical artifact references stable across persistence, task history, Critic traces,
+  Snakemake source checks and release component readers. Move no real records.
+- Bind configured relocated approvals to the source project's write session; retain
+  rejection of unrelated approval directories and stale/expired authority.
+- Preserve PostgreSQL one-attempt receipts under relocated recipe-runs; no automatic retry.
+- Verified: 2,338 backend tests (650.45 s, 13 existing spatial warnings), interface
+  validation and relocated fixture browser/API/CLI/PTY passed with zero page errors.
+  Other lifecycle stores and offline verified migration remain pending. See WORKSPACE_STORAGE.md.
+
+# Clarification response compatibility (2026-11-03)
+
+- Return required context diagnostics for inspection filename questions so the frontend
+  displays them. Complete older clarification responses on read without rewriting or replay.
+- Recognize equivalent explicit read-only do/run/perform inspection on/of file wording
+  through the shared normalizer; preserve full-request matching and authority boundaries.
+- Verified: 106 focused tests; full suite 2,327 passed (621.88 s, 13 existing spatial
+  warnings); interface validation and isolated fixture browser/API/CLI/PTY passed.
+  Browser checks assert the question renders without parsing errors before/after refresh.
+  No live model or database acceptance claimed.
+
+# Task-local inspection and format compatibility (2026-11-02)
+
+- Resolve bounded metadata follow-ups against active workflow inputs; ask for a source
+  when absent/ambiguous, preserving the current workflow and avoiding cross-chat lookup.
+- Share inspector format qualification across catalog, planning/source routing, plan and
+  recipe policy and recipe dispatch. Reject incompatible inspectors before reader dispatch.
+- Narrow model schemas/decoding without changing stored capability lists or authority.
+- Preserve historical failed plans and run records. Explicit metadata follow-ups may create
+  new independently checked proposals, never silent edits or automatic write retries.
+- Verified: 2,317 tests passed (693.78 s), interface validation and relocated fixture
+  browser/API/CLI/PTY passed. No live model/data/database acceptance claimed.
+- Scope and validation: docs/INSPECTION_SOURCE_COMPATIBILITY.md.
+
+# Workspace chat, plan and history paths (2026-11-02, P0-2 partial)
+
+- Adopt the shared workspace resolver for chat JSON, saved plans and durable run history,
+  including scoped lookup, receipt reopening, recovery and successful-method readers.
+- Pass project identity explicitly; interrupted-run recovery finds partial outputs under
+  source data/output rather than assuming record parents identify the source project.
+- Preserve legacy defaults, immutable artifacts/digests and exact write authorization.
+  Missing relocated stores with legacy records fail closed instead of hiding history.
+- Verified: 2,295 tests passed (562.44 s), interface validation and isolated relocated-
+  workspace browser/API/CLI/PTY passed with zero page errors.
+- No real records moved. Authority/evidence roots and offline verified migration remain
+  pending. See docs/WORKSPACE_STORAGE.md; existing users need no storage configuration.
+
+# Read-only inspection wording (2026-11-02)
+
+- Recognize “Run a new read-only inspection of sample_orders.csv” consistently in
+  exact planning, narrow schema selection and source binding, avoiding the general
+  12-operation model prompt for this complete metadata request.
+- Preserve original text and full-request matching; added actions remain outside the
+  exact route. Existing read-only send policy, safe paths and no-replay guards remain.
+- Critic review is separate; this change avoids planning inference, not all model calls.
+- Verified: 2,287 tests passed (538.25 s), interface validation and isolated fixture
+  browser/API/CLI/PTY passed using the exact user wording.
+- Scope and validation: docs/REQUEST_DIAGNOSTICS.md.
+
+# Execution and Critic-review diagnostics (2026-11-02)
+
+- Scope executor execution and standalone Critic outcome review separately; link model
+  calls to run IDs and display execution and review outcomes independently.
+- Preserve successful results when review times out; retain and explain legacy labels.
+- Add project-persistent standalone review timeout (5–180 s, default 15), request-pinned
+  and revision checked in Model service settings. No automatic retries or authority changes.
+- Planning and coordinated task-report budgets remain separate. See REQUEST_DIAGNOSTICS.md.
+- Verified: 2,275 tests passed (531.45 s), interface validation and isolated fixture
+  browser/API/CLI/PTY passed. No real-model or live-DB acceptance claimed.
+
+# Workspace storage foundation (2026-11-02, P0-2 partial)
+
+- Add a project-bound runtime path resolver and route shared planning SQLite through it.
+- Preserve existing locations by default; reject unsafe configuration and missing copied
+  planning state instead of silently opening empty history. Reads create no state.
+- Map remaining stores and migration dependencies. Real-project migration, other stores,
+  shared task actions and repository-root cleanup remain pending. No live records moved.
+- Verification: 2,269 tests passed (537.38 s); interface validation and isolated
+  fixture browser/API/CLI/terminal journey passed. No real-model or live-DB run.
+- See [storage map and limits](docs/WORKSPACE_STORAGE.md).
+
 # Structure cleanup, phase 0 part 1 (2026-11-01)
 
 - Group the 11 `postgis_*` packages under `geoagent_harness.postgis` (`inspection`,

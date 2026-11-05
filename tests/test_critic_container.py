@@ -61,11 +61,11 @@ def test_critic_filesystem_is_read_only() -> None:
         in volumes
     )
     assert (
-        "./traces:/workspace/traces:ro"
+        "${ACTIONCHARTER_STATE_ROOT:-.}/traces:/workspace/traces:ro"
         in volumes
     )
     assert (
-        "./reports:/workspace/reports:ro"
+        "${ACTIONCHARTER_STATE_ROOT:-.}/reports:/workspace/reports:ro"
         in volumes
     )
 

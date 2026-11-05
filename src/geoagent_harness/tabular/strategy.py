@@ -52,9 +52,9 @@ def discover_inputs(root,directory):
                     if len(files)>40:raise ValueError('Directory exceeds 40 supported files; use a smaller folder')
     except OSError as error:raise ValueError('Input directory unavailable or unsafe') from error
     files.sort(key=lambda f:f['path'])
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     deadline=time.monotonic()+20
-    from geoagent_harness.interface_api.server import InterfaceApiError
+    from geoagent_harness.task_actions.common import InterfaceApiError
     for item in files[:8]:
         if item['format'] not in {'csv','tsv'}:continue
         try:

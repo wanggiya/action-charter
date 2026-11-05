@@ -144,6 +144,11 @@ def validate_plan_policy(
             path_arguments = {key: value for key, value in step.arguments.items()
                               if not (key in {'path', 'right_path'} and value is None)}
         _validate_argument_paths(path_arguments)
+        from geoagent_harness.operations.inspection_contracts import validate_inspector_source
+        try:
+            validate_inspector_source(step.skill, step.arguments)
+        except ValueError as error:
+            raise PlannerPolicyError(f'{step.step_id}: {error}') from error
         if step.skill not in allowed:
             raise PlannerPolicyError(
                 f"skill is not implemented and approved: "

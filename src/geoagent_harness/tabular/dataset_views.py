@@ -2,7 +2,7 @@
 import json
 from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field,model_validator
-from geoagent_harness.interface_api.planning_tasks import database,_get
+from geoagent_harness.task_actions.planning_tasks import transaction as database, _get
 from .dataset_service import profile_dataset
 from .grouping import percentages
 
@@ -38,9 +38,8 @@ def dataset_view(request:DatasetViewRequest,*,project_root):
     # Different views have distinct slots, preserving both last table page and grouped result.
     slot=request.conversation_id+':'+request.view
     with database(root) as connection:
-        exists=connection and connection.execute("SELECT 1 FROM sqlite_master WHERE name='dataset_views_v1'").fetchone()
-        raw=connection.execute('SELECT value FROM dataset_views_v1 WHERE id=?',(slot,)).fetchone() if exists else None
-        saved=json.loads(raw[0]) if raw else None
+        raw=connection.records('dataset_views_v1').get(slot) if connection else None
+        saved=json.loads(raw) if raw else None
     if request.action=='read':
         if saved and saved['profile_sha256']==request.profile_sha256 and saved['source_sha256']==request.source_sha256:
             return {'result':saved,'recorded_only':True,'execution_performed':False,'approval_performed':False}
@@ -67,8 +66,7 @@ def dataset_view(request:DatasetViewRequest,*,project_root):
     with database(root,write=True) as connection:
         latest=_get(connection,'conversations',request.conversation_id)
         if not latest or latest['revision']!=request.expected_revision:raise ValueError('Chat changed during calculation; previous view is preserved. Refresh before retrying.')
-        connection.execute('CREATE TABLE IF NOT EXISTS dataset_views_v1 (id TEXT PRIMARY KEY,value TEXT NOT NULL)')
-        connection.execute('INSERT INTO dataset_views_v1 VALUES (?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value',(slot,encoded))
-        from geoagent_harness.interface_api.chat_history import archive
+        connection.records('dataset_views_v1').put(slot,encoded)
+        from geoagent_harness.task_actions.chat_history import archive
         archive(connection,latest,kind='view',view=value)
     return {'result':value,'recorded_only':False,'execution_performed':False,'approval_performed':False,'data_written':False}

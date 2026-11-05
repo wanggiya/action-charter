@@ -154,3 +154,7 @@ reusable-recipes/
 
 interface/.playwright-browsers/
 interface/.browser-system-libs/
+
+# Per-project workspace location and opt-in runtime state (P0-2).
+/actioncharter.workspace.json
+/.actioncharter-state/

@@ -1,5 +1,16 @@
 # ActionCharter
 
+Workspace storage consolidation now covers workflow approvals, recipes, execution
+evidence, reports/Critic records/local release evidence, write-policy state and governed
+task history. Project ownership stays stable
+across storage changes; references and session checks are preserved. Real
+record migration remains unfinished; existing users need no storage changes.
+[Storage scope and validation](docs/WORKSPACE_STORAGE.md).
+
+Inspection filename questions now remain readable in the frontend and saved receipts.
+Explicit read-only inspection requests accept `do/run/perform` and `on/of` wording.
+[Behavior and validation](docs/INSPECTION_SOURCE_COMPATIBILITY.md).
+
 [![Tests](https://github.com/wanggiya/action-charter/actions/workflows/test.yaml/badge.svg)](https://github.com/wanggiya/action-charter/actions/workflows/test.yaml)
 [![Container contracts](https://github.com/wanggiya/action-charter/actions/workflows/container-build.yaml/badge.svg)](https://github.com/wanggiya/action-charter/actions/workflows/container-build.yaml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -8,11 +19,46 @@
 
 **Local AI-assisted data workflows with explicit approval and verifiable results.**
 
+The [shared task-actions layer](docs/TASK_ACTIONS.md) connects existing interface,
+CLI, terminal chat and MCP actions to the same workflow services and saved evidence.
+Public commands and authorization rules are unchanged; no new setup is required.
+
+[Storage repositories](docs/STORAGE_REPOSITORIES.md) separate operational metadata,
+durable runs and saved-plan access from those services, using existing SQLite and
+JSON formats. Existing workspaces require no new database or automatic migration.
+
+The [frontend workspace split](docs/FRONTEND_WORKSPACES.md) gives Planner, Graph,
+Results and Settings shared state and separate controllers/views while keeping the
+current interface, saved-workflow restoration and backend authorization boundaries.
+
+Future work is organized in the [active phase roadmap](context/PRODUCT_ROADMAP.md),
+with detailed requirements linked separately. The [earlier roadmap](docs/development/ROADMAP_HISTORY.md)
+is preserved as history; it does not override current implementation or authority.
+
+Phase 0 [workspace storage](docs/WORKSPACE_STORAGE.md) now covers internal runtime
+records, catalogs and historical lifecycle artifacts. Existing locations remain the
+default until you explicitly use the offline migration tool. It copies and verifies
+records, switches configuration, optionally archives old folders, and provides guarded
+rollback. User input/output files and credentials stay in place. Existing users need no
+new folder setup; no real project records were moved during development.
+
+Metadata follow-ups such as `inspect it again` use the active workflow input; absent or
+ambiguous sources prompt a question. Inspector/source mismatches are rejected before
+execution. [Scope and validation](docs/INSPECTION_SOURCE_COMPATIBILITY.md).
+
+Simple requests such as `Run a new read-only inspection of sample_orders.csv` now use
+the existing exact metadata planner. Inspect-on-send controls whether they execute;
+planning needs no model call, and optional Critic review remains separate.
+
 The Planner can propose source-bound analysis goals from a recorded inspection, with
 actual candidate fields, prerequisites and supported/missing methods. Outcome → Overview
 → **Let Planner propose analysis goals** opens suggestions; **Prepare this goal** plans
 without executing. New reports distinguish computed and uncomputed statistical metrics.
 [Scope, metric limits and validation](docs/ANALYSIS_GOALS_AND_REPORT_COVERAGE.md).
+
+Execution and standalone Critic review now have separate diagnostic labels/statuses.
+Settings → Model service exposes the review timeout; its default remains 15 seconds.
+A review timeout preserves recorded execution results and never retries work.
 
 Requests now keep content-free diagnostics for successes and failures: model/phase,
 time, request size, reported tokens and sampled API RAM/CPU. Open **Request diagnostics**
@@ -186,6 +232,10 @@ and current bounds.
 
 Supported domains now include bounded pandas-backed CSV processing and geospatial data: vector and raster inspection/conversion, PostGIS workflows and bounded GeoServer inspection/publication. Local Ollama is supported through an OpenAI-compatible model endpoint.
 
+PostGIS promotion and rollback share a [governed lifecycle](docs/POSTGIS_LIFECYCLE.md)
+with separate exact decisions, durable attempt records and independent verification.
+Existing CLI formats and historical evidence remain compatible.
+
 [Vector-first spatial exploration](docs/development/checkpoints/CHECKPOINT28_3_SPATIAL_VIEWS.md) adds explicit source-verified layer selection, display reprojection and linked attributes, followed by bounded raster grayscale/color/RGB/class views with NoData and exact pixel inspection. Planner can select recorded layers/bands/render settings conversationally and request backend-formatted explanations of saved facts. Exact recorded count/dimension questions need no model call or source reread. Viewing does not authorize or execute processing; preview limits remain visible.
 
 [Typed result exploration — 28.3](docs/development/checkpoints/CHECKPOINT28_3_RESULTS.md) adds complete bounded CSV filtering/sorting/paging, column profiles and filtered chart totals. Planner can propose a scoped recorded-result view without replacing or executing the workflow; normal view reopening uses saved snapshots.
@@ -203,7 +253,7 @@ The [Results workspace](docs/development/checkpoints/CHECKPOINT27_RESULTS_WORKSP
 
 [Optional capability acquisition — 28.1 pilot](docs/development/checkpoints/CHECKPOINT28_1.md) adds a default-OFF per-chat switch. Planner can propose a closed CSV text-cleaning adapter, the backend tests synthetic/held-out cases, and Critic assesses applicability. One explicit install action registers the exact tested definition and asks Planner for a normal workflow. Installation grants no write or execution authority. This is a restricted data-only adapter family, not arbitrary Python generation, RL or general library-function execution. Linux resource-bounded testing currently requires the existing pinned pandas runtime. [Text-normalization example](examples/text-normalization/README.md). The bounded OFF/ON/changed-input-reuse local-model trial passed; this is not general model reliability or demonstrated speedup. See the delivery guide for prior failures, exact bounds and acceptance.
 
-Planner chat retains its full transcript while sending bounded recent excerpts to the model. Previous-message context can be disabled without deleting history; the current workflow remains explicit context. Conversational Planner requests structural JSON-schema output and keeps full backend validation. Model errors distinguish malformed output, reported token truncation, timeout and configuration failures; [format compatibility and diagnostics](docs/PLANNER_STRUCTURED_OUTPUT.md). Supported Ollama models can optionally use `MODEL_REASONING_EFFORT=none` to test non-thinking generation; it is not a guaranteed timeout fix. Planned input-file nodes and inspector source paths show declared data scope. Existing saved workflow scope recovers on startup without model calls or execution. Planner reuse citations are constrained to supplied or successfully inspected sources; ordinary planning needs no recipe selection. Explicit calculated-column requests receive a narrow missing-operation check with one correction and simple single-column requests use a decoder operation skeleton; summaries alone do not establish calculation support. The information panel lists actual workflow operations and calculation formulas; raw arguments, execution details, evidence and task history expand on demand. Per-chat graph positions persist in this browser and new blocks seek free space. Desktop Planner/information panels resize; outcomes and workflow-source groups expand/collapse without execution. See [conversation context guidance](docs/development/checkpoints/CHECKPOINT24.md#conversation-context-and-model-diagnostics).
+Planner chat retains its full transcript while sending bounded recent excerpts to the model. Previous-message context can be disabled without deleting history; the current workflow remains explicit context. Conversational Planner requests structural JSON-schema output and keeps full backend validation. Model errors distinguish malformed output, reported token truncation, timeout and configuration failures; [format compatibility and diagnostics](docs/PLANNER_STRUCTURED_OUTPUT.md). Supported Ollama models can optionally use `MODEL_REASONING_EFFORT=none` to test non-thinking generation; it is not a guaranteed timeout fix. Planned input-file nodes and inspector source paths show declared data scope. Existing saved workflow scope recovers on startup without model calls or execution. Planner reuse citations are constrained to supplied or successfully inspected sources; ordinary planning needs no recipe selection. Explicit calculated-column requests receive a narrow missing-operation check with one correction and simple single-column requests use a decoder operation skeleton; summaries alone do not establish calculation support. The information panel lists actual workflow operations and calculation formulas; raw arguments, execution details, evidence and task history expand on demand. Per-chat graph positions persist in this browser and new blocks seek free space. Desktop Planner/information panels resize; outcomes and workflow-source groups expand/collapse without execution. See [conversation context guidance](context/CURRENT_STATUS.md#planner-and-execution).
 
 Saved history uses chat bubbles. History/context controls collapse together to save room, and a drag handle resizes the message-writing area. Planner labels distinguish **Saved chat history** from **Context sent to Planner**. The single **Chat memory** switch controls recent-message inclusion. OFF keeps the saved transcript and current workflow. Its preference stays the same across chats and refreshes in this browser. Settings’ Include private declarations switch is also remembered. The disclosure separates your next request from the actual last-completed-request receipt. Other conversations are not pooled into chat context. **Cross-chat memory is deferred until checkpoint 30 or later**, after intervening operational/privacy work and a fresh operator decision; see [deferred scope](docs/DEFERRED_CROSS_CHAT_MEMORY.md).
 

@@ -51,7 +51,7 @@ def evidence(tmp_path: Path):
     approval_root = tmp_path / "approvals"
     stored = persist_postgis_promotion_approval(approval, approval_root=approval_root)
     settings = MCPSettings(
-        input_root=tmp_path / "input", output_root=tmp_path / "output",
+        project_root=tmp_path, input_root=tmp_path / "input", output_root=tmp_path / "output",
         enable_write_tools=True,
     )
     return result, approval, plan_file, plan_root, Path(stored.approval_file), approval_root, settings
