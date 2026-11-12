@@ -8,10 +8,10 @@ import pytest
 from tests.test_task_agents import project
 from tests.test_workspace_layout import configure
 from tests.test_reusable_recipes_and_runs import execution
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import execute_workflow, prepare_workflow
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.workspace import runtime_store_path, runtime_reference, WorkspaceError
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import execute_workflow, prepare_workflow
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.platform.workspace import runtime_store_path, runtime_reference, WorkspaceError
 
 
 def export_plan(target='exported.csv'):
@@ -24,7 +24,7 @@ def export_plan(target='exported.csv'):
 def test_external_authority_execution_evidence_history_and_trace(project,tmp_path_factory,monkeypatch):
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
     state=tmp_path_factory.mktemp('authority-state');configure(project,state)
-    from geoagent_harness.write_policy import session
+    from geoagent_harness.core.policy.write_policy import session
     with session(project,enabled=True):
         request=execution(project,export_plan())
         result=execute_workflow(request,project_root=project)
@@ -41,21 +41,21 @@ def test_external_authority_execution_evidence_history_and_trace(project,tmp_pat
     assert len(candidates)==1 and candidates[0]['adaptable']
     assert all(not r.startswith(str(state)) for r in candidates[0]['trace']['context_references'])
     assert any(r.startswith('recipe-evidence/') for r in candidates[0]['trace']['context_references'])
-    from geoagent_harness.task_history.service import append_task_event,inspect_task_artifacts
+    from geoagent_harness.core.ledger.task_history.service import append_task_event, inspect_task_artifacts
     path=state/result['evidence_path'];raw=path.read_bytes()
     append_task_event(root=project/'task-history',task_id='task-storage',event_type='request',
         summary='Record exact evidence',artifact_path=result['evidence_path'],artifact_sha256=hashlib.sha256(raw).hexdigest())
     links=inspect_task_artifacts(root=project/'task-history',task_id='task-storage',project_root=project)
     assert links['links'][0]['status']=='matched' and not links['execution_performed']
-    from geoagent_harness.recipes.approval import load_recipe_approval,verify_recipe_approval
-    from geoagent_harness.recipes.storage import load_recipe
-    from geoagent_harness.skill_registry import load_skill_registry
+    from geoagent_harness.core.policy.recipe_approval import load_recipe_approval, verify_recipe_approval
+    from geoagent_harness.core.ledger.recipe_storage import load_recipe
+    from geoagent_harness.platform.skill_registry import load_skill_registry
     approval=load_recipe_approval(state/'approvals'/request.recipe_approval_filename,approval_root=state/'approvals')
     review=prepare_workflow(request,project_root=project)
     recipe=load_recipe(state/'workflow-recipes'/review['recipe_filename'],recipe_root=state/'workflow-recipes')
     expired=verify_recipe_approval(approval=approval,recipe=recipe,registry=load_skill_registry(project),now=approval.expires_at+timedelta(seconds=1))
     assert not expired.approved
-    from geoagent_harness.write_policy import check,WritePolicyError
+    from geoagent_harness.core.policy.write_policy import check, WritePolicyError
     with session(project,enabled=True):
         with pytest.raises(WritePolicyError,match='stale'):
             check(project,approval)
@@ -64,14 +64,16 @@ def test_external_authority_execution_evidence_history_and_trace(project,tmp_pat
 def test_offline_authority_copy_preserves_reviews_and_database_attempt_replay_guard(project,tmp_path_factory,monkeypatch):
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
     request=execution(project,export_plan('after-copy.csv'))
-    from geoagent_harness.postgres.service import claim_authority,PostgresError
-    from geoagent_harness.mcp_server.settings import MCPSettings
+    from geoagent_harness.data.databases.postgres.service import claim_authority, PostgresError
+    from geoagent_harness.platform.settings import MCPSettings
     settings=MCPSettings(project_root=project,input_root=project/'data/input',output_root=project/'data/output')
     claim_authority(settings,'database-approval-fixture','step_1')
     stores=('plans','approvals','workflow-recipes','recipe-runs')
     before={p.relative_to(project):p.read_bytes() for store in stores for p in (project/store).rglob('*.json')}
     state=tmp_path_factory.mktemp('copied-authority')
     for store in stores:shutil.copytree(project/store,state/store)
+    # R12 dispatch claims must move with authority; never start a fresh audit.
+    shutil.copytree(project/'workflow-state',state/'workflow-state')
     configure(project,state)
     assert prepare_workflow(request,project_root=project)['review_sha256']==request.confirmed_review_sha256
     with pytest.raises(PostgresError,match='already has an attempt'):
@@ -93,7 +95,7 @@ def test_missing_authority_store_never_hides_legacy_records(tmp_path,store,parts
 
 
 def test_runtime_references_and_explicit_mcp_settings(project,tmp_path_factory):
-    from geoagent_harness.mcp_server.settings import MCPSettings,authority_workspace_settings
+    from geoagent_harness.platform.settings import MCPSettings, authority_workspace_settings
     state=tmp_path_factory.mktemp('reference-state');configure(project,state)
     assert runtime_reference(project,state/'recipe-runs/record.json')=='recipe-runs/record.json'
     assert runtime_reference(project,project/'reports/record.md')=='reports/record.md'
@@ -115,9 +117,9 @@ def test_absent_execution_progress_read_creates_no_state(tmp_path):
 
 
 def test_release_components_resolve_logical_state_paths_and_reject_escape(project,tmp_path_factory):
-    from geoagent_harness.releases.assessment import _component
-    from geoagent_harness.releases.storage import _source_file,AuthoritativeReleaseStorageError
-    from geoagent_harness.releases.schemas import ReleaseComponentKind
+    from geoagent_harness.core.ledger.releases.assessment import _component
+    from geoagent_harness.core.ledger.releases.storage import _source_file, AuthoritativeReleaseStorageError
+    from geoagent_harness.core.ledger.releases.schemas import ReleaseComponentKind
     state=tmp_path_factory.mktemp('release-source-state');configure(project,state)
     folder=state/'recipe-runs';folder.mkdir();record=folder/'result.json';record.write_text('{}')
     component=_component(component_id='run_result',kind=ReleaseComponentKind.RUN_RESULT,

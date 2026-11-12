@@ -4,11 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skill_definitions import (
-    SkillDefinitionStorageError,
-    assess_declarative_skill,
-    load_skill_definition,
-)
+from geoagent_harness.capabilities.skills.definitions.storage import SkillDefinitionStorageError, load_skill_definition
+from geoagent_harness.capabilities.skills.definitions.policy import assess_declarative_skill
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

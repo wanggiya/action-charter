@@ -18,8 +18,8 @@ exec "$python_path" -c '
 import inspect
 import sys
 from pathlib import Path
-import geoagent_harness.interface_api.server as server
-import geoagent_harness.interface_api.conversation as conversation
+import geoagent_harness.apps.http.server as server
+import geoagent_harness.task_actions.conversation as conversation
 
 host, port, root = sys.argv[1], int(sys.argv[2]), Path(sys.argv[3])
 handler_source = inspect.getsource(server._handler)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

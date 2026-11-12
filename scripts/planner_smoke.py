@@ -5,25 +5,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from geoagent_harness.agent_manifest import (
-    load_agent_manifest,
-)
-from geoagent_harness.context_pack import (
-    ContextPackError,
-    build_context_pack,
-)
-from geoagent_harness.model import (
-    ModelClientError,
-    SharedModelClient,
-    load_model_settings,
-)
-from geoagent_harness.model.settings import (
-    ModelSettingsError,
-)
-from geoagent_harness.planner import (
-    PlannerAgentError,
-    run_planner_agent,
-)
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.agents.memory.context_pack.builder import ContextPackError
+from geoagent_harness.agents.memory.context_pack.builder import build_context_pack
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import load_model_settings
+from geoagent_harness.platform.model_settings import ModelSettingsError
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
+from geoagent_harness.agents.roles.planner.agent import run_planner_agent
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

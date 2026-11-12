@@ -7,31 +7,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from geoagent_harness.approvals import (
-    ApprovalError,
-    load_approval,
-    load_planner_result,
-)
-from geoagent_harness.executor import (
-    ExecutionEnvelope,
-    ExecutorPolicyError,
-    build_execution_envelope,
-)
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-    load_settings,
-)
-from geoagent_harness.orchestrator.workflow import (
-    WorkflowRunResult,
-    run_vector_postgis_workflow,
-)
-from geoagent_harness.skills.load_vector_to_postgis.service import (
-    LoadVectorError,
-)
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    require_supported_schema,
-)
+from geoagent_harness.core.policy.approvals import ApprovalError, load_approval, load_planner_result
+from geoagent_harness.agents.roles.executor import ExecutionEnvelope
+from geoagent_harness.agents.roles.executor import ExecutorPolicyError, build_execution_envelope
+from geoagent_harness.platform.settings import MCPSettings, load_settings
+from geoagent_harness.agents.runtime.orchestrator.workflow import WorkflowRunResult, run_vector_postgis_workflow
+from geoagent_harness.data.spatial.skills.load_vector_to_postgis.service import LoadVectorError
+from geoagent_harness.contracts.schema_registry import ArtifactType
+from geoagent_harness.contracts.schema_registry import require_supported_schema
 
 
 class ApprovedWorkflowError(RuntimeError):
@@ -68,7 +51,7 @@ def validate_approved_workflow_request(
 ) -> ExecutionEnvelope:
     """Independently rebuild and compare the execution envelope."""
 
-    from geoagent_harness.mcp_server.settings import authority_workspace_settings
+    from geoagent_harness.platform.settings import authority_workspace_settings
     settings = authority_workspace_settings(settings)
     safe_plan_filename = _record_filename(
         plan_filename,
@@ -142,8 +125,8 @@ def run_approved_vector_postgis_workflow(
 ) -> WorkflowRunResult:
     """Verify approval server-side, then run the fixed workflow."""
 
-    from geoagent_harness.write_policy import effective
-    from geoagent_harness.mcp_server.settings import authority_workspace_settings
+    from geoagent_harness.core.policy.write_policy import effective
+    from geoagent_harness.platform.settings import authority_workspace_settings
     active = authority_workspace_settings(effective(settings or load_settings()))
 
     if not active.enable_write_tools:
@@ -160,7 +143,7 @@ def run_approved_vector_postgis_workflow(
 
     arguments = verified.tool_arguments
 
-    from geoagent_harness.write_policy import authority
+    from geoagent_harness.core.policy.write_policy import authority
     approval = load_approval(path=active.approval_root / approval_filename, approval_root=active.approval_root)
     with authority(active.project_root, approval):
         return run_vector_postgis_workflow(
@@ -183,3 +166,8 @@ def run_approved_vector_postgis_workflow(
                 verified.approved_step_ids
             ),
         )
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+run_approved_vector_postgis_workflow = _task_entrypoint(run_approved_vector_postgis_workflow)

@@ -4,8 +4,9 @@ import hashlib
 import json
 from types import SimpleNamespace
 import pytest
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.tabular.service import run_operation,validate_output,TabularError
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.tabular.service import run_operation, validate_output
+from geoagent_harness.contracts.paths import TabularError
 
 @pytest.fixture
 def settings(tmp_path):
@@ -66,7 +67,7 @@ def test_labels_are_independently_checked_when_hash_is_updated(settings):
 
 
 def test_durable_preview_keeps_counts_and_mapping_coverage_when_rows_exceed_budget():
- from geoagent_harness.interface_api.workflow_runs import fit_table_preview
+ from geoagent_harness.task_actions.workflow_runs import fit_table_preview
  value={'data_contract':'table/csv-v1','row_count':5000,'columns':['code','code_label'],'preview':[{'code':'1','code_label':'x'*1000} for _ in range(10)],'preview_truncated':False,'codebook_coverage':{'code':{'matched_rows':5000,'unmatched_rows':0}}}
  result=fit_table_preview(value)
  assert len(json.dumps(result).encode())<=6000

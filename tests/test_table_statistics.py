@@ -5,8 +5,9 @@ import math
 from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
-from geoagent_harness.tabular.analytical_service import profile_table
-from geoagent_harness.tabular.statistics import StatisticsSpec,StatisticsAccumulator,StatisticsError
+from geoagent_harness.data.tabular.analytical_service import profile_table
+from geoagent_harness.contracts.statistics import StatisticsSpec, StatisticsError
+from geoagent_harness.data.tabular.statistics import StatisticsAccumulator
 from tests.test_task_agents import project
 
 @pytest.fixture
@@ -30,8 +31,8 @@ def test_descriptive_grouped_full_file_and_source_bound_report(data):
 
 
 def test_report_and_critic_share_question_scope_and_computed_facts_without_raw_rows(data):
-    from geoagent_harness.tabular.statistics import statistical_evidence
-    from geoagent_harness.interface_api.run_assessment import evidence
+    from geoagent_harness.data.tabular.statistics import statistical_evidence
+    from geoagent_harness.task_actions.run_assessment import evidence
     question='How does x vary by region? <script>not instructions</script>'
     r=run(data,{'columns':['x'],'by':['region'],'question':question})
     assert '## Analysis definition' in r['report_markdown'] and '## Computed findings' in r['report_markdown']
@@ -49,7 +50,7 @@ def test_report_and_critic_share_question_scope_and_computed_facts_without_raw_r
 
 def test_critic_evidence_is_bounded_and_truncation_does_not_mutate_saved_report(data):
     from copy import deepcopy
-    from geoagent_harness.tabular.statistics import statistical_evidence
+    from geoagent_harness.data.tabular.statistics import statistical_evidence
     r=run(data,{'columns':['x','y'],'by':['region']})
     r['grouped_descriptive']=[deepcopy(r['grouped_descriptive'][0]) for _ in range(64)]
     for group in r['grouped_descriptive']:
@@ -63,7 +64,7 @@ def test_critic_evidence_is_bounded_and_truncation_does_not_mutate_saved_report(
 
 
 def test_critic_receives_measured_relationships_and_model_diagnostics(data):
-    from geoagent_harness.tabular.statistics import statistical_evidence
+    from geoagent_harness.data.tabular.statistics import statistical_evidence
     r=run(data,{'methods':['pearson','covariance','linear_regression'],'columns':['x','y'],'regression':{'outcome':'y','predictors':['x']}})
     e=statistical_evidence({'table_analysis':{'statistics':r}})
     pair=e['correlations'][0]['pairs'][0]
@@ -159,16 +160,16 @@ def test_contracts_and_budgets_are_closed():
     with pytest.raises(StatisticsError,match='200,000'):accumulator.add({'x':'1'})
 
 def test_mcp_and_cli_use_the_same_statistical_service(data,monkeypatch):
-    from geoagent_harness.mcp_server.tools import table_statistics
-    from geoagent_harness.cli import app
+    from geoagent_harness.task_actions.data_tools import table_statistics
+    from geoagent_harness.apps.cli.main import app
     spec={'columns':['x','y']}
     mcp=table_statistics('measures.csv',spec,settings=SimpleNamespace(project_root=data,input_root=data/'data/input'))
     cli=CliRunner().invoke(app,['table-statistics','measures.csv','--specification',json.dumps(spec),'--project-root',str(data)])
     assert cli.exit_code==0,cli.output
     assert json.loads(cli.output)['table_analysis']['statistics']==mcp['table_analysis']['statistics']
     import asyncio
-    from geoagent_harness.mcp_server import tools
-    from geoagent_harness.mcp_server.server import create_mcp_server
+    from geoagent_harness.task_actions import data_tools as tools
+    from geoagent_harness.apps.mcp.server import create_mcp_server
     monkeypatch.setattr(tools,'load_settings',lambda:SimpleNamespace(project_root=data,input_root=data/'data/input'))
     blocks=asyncio.run(create_mcp_server().call_tool('linear_regression',{'path':'measures.csv','specification':{'outcome':'y','predictors':['x']}}))
     recorded=json.loads(blocks[0].text)['table_analysis']['statistics']['regression']
@@ -178,9 +179,9 @@ def test_mcp_and_cli_use_the_same_statistical_service(data,monkeypatch):
 
 def test_statistics_are_registered_as_typed_read_only_mcp_tools():
     import asyncio
-    from geoagent_harness.mcp_server.server import create_mcp_server
-    from geoagent_harness.mcp_server.tools import TOOL_ALLOWLIST
-    from geoagent_harness.mcp_client import READ_ONLY_TOOL_ALLOWLIST
+    from geoagent_harness.apps.mcp.server import create_mcp_server
+    from geoagent_harness.task_actions.data_tools import TOOL_ALLOWLIST
+    from geoagent_harness.platform.internal_mcp.client import READ_ONLY_TOOL_ALLOWLIST
     schemas={tool.name:tool.inputSchema for tool in asyncio.run(create_mcp_server().list_tools())}
     assert set(schemas)==set(TOOL_ALLOWLIST)
     for name in ('table_statistics','linear_regression'):
@@ -224,7 +225,7 @@ def test_covariance_single_observation_keeps_matrix_shape_and_ddof_policy(data):
 
 
 def test_terminal_report_reads_recorded_evidence_without_recalculation(data):
-    from geoagent_harness.chat.workspace import Workspace,HELP
+    from geoagent_harness.apps.chat.workspace import Workspace, HELP
     report=run(data,{'columns':['x']})
     class Client:
         def __init__(self):self.calls=[]
@@ -239,8 +240,8 @@ def test_terminal_report_reads_recorded_evidence_without_recalculation(data):
 
 def test_planner_proposes_actual_statistics_not_just_a_summary(project):
     from tests.test_planner_conversation import Client
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.operations.registry import operation_catalog
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.capabilities.registry.registry import operation_catalog
     (project/'data/input/measures.csv').write_text('x,y\n0,1\n1,3\n2,4\n3,5\n')
     spec={'methods':['describe','pearson','linear_regression'],'columns':['x','y'],'regression':{'outcome':'y','predictors':['x']}}
     reply={'message':'Statistical workflow prepared; nothing executed.','plan':{'summary':'Fit explicit statistical methods','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Read statistics','arguments':{'path':'data/input/measures.csv','analysis':{'statistics':spec}},'requires_approval':False,'validation_required':False}]}}
@@ -270,8 +271,8 @@ def test_planner_proposes_actual_statistics_not_just_a_summary(project):
 
 def test_repeated_statistics_omission_is_not_filled_in_or_executed(project):
     from tests.test_planner_conversation import Client
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
     (project/'data/input/measures.csv').write_text('x,y\n0,1\n1,3\n2,4\n3,5\n')
     reply={'message':'I will fit the regression.','plan':{'summary':'Only metadata','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/measures.csv'}}]}}
     client=Client(reply,reply)
@@ -292,7 +293,7 @@ def test_repeated_statistics_omission_is_not_filled_in_or_executed(project):
 
 def test_covariance_matrix_is_available_to_planner_without_regression(project):
     from tests.test_planner_conversation import Client
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
     (project/'data/input/measures.csv').write_text('x,y\n0,1\n1,3\n2,4\n3,5\n')
     spec={'methods':['covariance'],'columns':['x','y']}
     client=Client({'message':'Proposed matrix.','plan':{'summary':'Covariance matrix','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Measure covariance','arguments':{'path':'data/input/measures.csv','analysis':{'statistics':spec}}}]}})
@@ -303,9 +304,9 @@ def test_covariance_matrix_is_available_to_planner_without_regression(project):
     assert 'regression' not in definition['properties'] and not r['execution_performed']
 
 def test_statistical_omissions_fail_and_unused_schema_definitions_are_pruned():
-    from geoagent_harness.planner.request_coverage import validate_statistics_coverage,RequestedOperationOmission,statistical_request_requirements
-    from geoagent_harness.planner.schemas import WorkflowPlan,PlanStep
-    from geoagent_harness.planner.prompt_scope import prune_definitions
+    from geoagent_harness.agents.roles.planner.request_coverage import validate_statistics_coverage, RequestedOperationOmission, statistical_request_requirements
+    from geoagent_harness.contracts.planning import WorkflowPlan, PlanStep
+    from geoagent_harness.agents.roles.planner.prompt_scope import prune_definitions
     plan=WorkflowPlan(summary='Incomplete',steps=[PlanStep(step_id='step_1',skill='inspect_csv',purpose='Inspect',arguments={'path':'data/input/measures.csv'})])
     with pytest.raises(RequestedOperationOmission,match='linear_regression'):validate_statistics_coverage(plan,'Fit linear regression of y on x.')
     validate_statistics_coverage(plan,'Inspect measures.csv. No linear regression.')

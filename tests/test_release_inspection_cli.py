@@ -4,12 +4,10 @@ import json
 
 from typer.testing import CliRunner
 
-import geoagent_harness.releases as releases
-from geoagent_harness.cli import app
-from geoagent_harness.releases import (
-    AuthoritativeReleaseInspectionResult,
-    AuthoritativeReleaseStorageError,
-)
+import geoagent_harness.core.ledger.releases as releases
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.core.ledger.releases.schemas import AuthoritativeReleaseInspectionResult
+from geoagent_harness.core.ledger.releases.storage import AuthoritativeReleaseStorageError
 
 
 runner = CliRunner()

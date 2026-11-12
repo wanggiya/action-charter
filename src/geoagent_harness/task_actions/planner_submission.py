@@ -4,7 +4,7 @@ Receipt claim precedes inference. A crash at an uncertain stage requires review;
 no planning or execution is replayed automatically, even for a read-only request.
 """
 from __future__ import annotations
-from .planning_tasks import as_transaction
+from geoagent_harness.task_actions.planning_tasks import as_transaction
 import hashlib
 import json
 import uuid
@@ -12,11 +12,12 @@ from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
-from .storage_paths import runtime_store_path
-from .conversation import TurnRequest, conversation_turn
-from .planning_tasks import transaction as database
-from .inspection_policy import bounded_read, request_source, eligible, contract_digest, source_skill
-from geoagent_harness.tabular.source_contracts import RECORD_SUFFIXES
+from geoagent_harness.platform.paths import runtime_store_path
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.platform.storage.metadata import transaction as database
+from geoagent_harness.workspaces.sandbox.inspection import bounded_read, source_skill
+from geoagent_harness.task_actions.inspection_policy import request_source, eligible, contract_digest
+from geoagent_harness.contracts.table_sources import RECORD_SUFFIXES
 
 
 class SubmissionRequest(BaseModel):
@@ -40,7 +41,7 @@ def _get(connection, identity):
     raw = connection.records('inspection_submissions_v1').get(identity)
     if raw is None:
         return None
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     if len(raw.encode()) > 2_000_000:
         raise InterfaceApiError('Submission receipt exceeds its storage budget')
     record = json.loads(raw)
@@ -51,7 +52,7 @@ def _get(connection, identity):
 
 def _put(connection, record):
     connection = as_transaction(connection)
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     encoded = json.dumps(record, separators=(',', ':'))
     if len(encoded.encode()) > 2_000_000:
         raise InterfaceApiError('Submission receipt exceeds its storage budget')
@@ -59,8 +60,8 @@ def _put(connection, record):
 
 
 def _present(root, record):
-    from .workflow_runs import run_action, RunRequest
-    from .inspection_planning import clarification_usage
+    from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
+    from geoagent_harness.task_actions.inspection_planning import clarification_usage
     conversation = record.get('conversation')
     if conversation is not None:
         conversation = {**conversation, 'context_usage': clarification_usage(
@@ -72,7 +73,7 @@ def _present(root, record):
         if path.exists():
             run = run_action(RunRequest(action='read', run_id=record['run_id']), project_root=root)
             if run.get('submission_id') != record['submission_id'] or run.get('conversation_id') != record['conversation_id']:
-                from .common import InterfaceApiError
+                from geoagent_harness.contracts.errors import InterfaceApiError
                 raise InterfaceApiError('Submission run provenance does not match')
     return {'submission': {key: record.get(key) for key in (
                 'submission_id', 'conversation_id', 'status', 'finding', 'run_id', 'discovery')},
@@ -82,7 +83,8 @@ def _present(root, record):
 
 
 def _submission_action(request: SubmissionRequest, *, project_root: Path, model_client=None, background=True):
-    from .common import InterfaceApiError, _trusted_root
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.platform.project import _trusted_root
     root = _trusted_root(project_root)
     if request.action == 'read':
         with database(root) as connection:
@@ -114,8 +116,8 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
         refusal = None
         metadata_message=turn.message
         metadata_expectation=None
-        from .inspection_planning import resolve_followup,plan_for_followup
-        from geoagent_harness.planner.schemas import PlannerResult
+        from geoagent_harness.task_actions.inspection_planning import resolve_followup, plan_for_followup
+        from geoagent_harness.contracts.planning import PlannerResult
         active=turn.current_plan
         if active is None:
             saved=conversation_turn(TurnRequest(action='read',conversation_id=turn.conversation_id),project_root=root).get('planner_result')
@@ -126,14 +128,14 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
             metadata_expectation=plan_for_followup(followup,['inspect_csv','inspect_vector','inspect_raster'])
         if request.inspect_on_send:
             try:
-                from .inspection_planning import plan_for_request
+                from geoagent_harness.task_actions.inspection_planning import plan_for_request
                 exact=metadata_expectation or plan_for_request(metadata_message, ['inspect_csv','inspect_vector','inspect_raster'])
                 paths=[step.arguments['path'] for step in exact.steps] if exact else []
                 if any(Path(path).suffix.lower() in RECORD_SUFFIXES for path in paths):
                     paths=[]
                     refusal='Record/workbook inspection requires reviewed Execute; nothing was read on send.'
                 if paths:
-                    from .inspection_policy import probe_action
+                    from geoagent_harness.workspaces.sandbox.inspection import probe_action
                     sources=[]
                     for path in paths:
                         sources.append(bounded_read(root,action=probe_action(path),path=path,delimiter='\t' if path.lower().endswith('.tsv') else ','))
@@ -153,7 +155,7 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
             except (ValueError, OSError, InterfaceApiError):
                 if record.get('discovery'):record['discovery']['status']='incomplete'
                 refusal = 'The source could not be safely bounded or snapshotted. Review the proposal; ordinary reader limits also apply to Execute.'
-        from .inspection_policy import planning_discovery
+        from geoagent_harness.task_actions.inspection_policy import planning_discovery
         discovery_token=planning_discovery.set(source or {'routing':'explicit_submit'})
         try:
             response = conversation_turn(turn, project_root=root, model_client=model_client)
@@ -176,14 +178,15 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
             return _present(root,record)
         exact_reply=(response.get('context_usage') or {}).get('model_request',{}).get('stage')=='deterministic_inspection'
         if request.inspect_on_send and (response['proposal_changed'] or exact_reply) and response['planner_result']:
-            from geoagent_harness.planner.schemas import PlannerResult
+            from geoagent_harness.contracts.planning import PlannerResult
             result = PlannerResult.model_validate({key: response['planner_result'][key] for key in (
                 'agent_id', 'model', 'original_request', 'context_references', 'plan', 'warnings')})
             refusal = refusal or eligible(root, result, metadata_message, source, expected_plan=metadata_expectation)
             if not refusal:
-                from .artifacts import InterfaceGeneratedPlanSaveRequest, save_interface_reviewed_plan
-                from .workflow import WorkflowRequest, prepare_workflow
-                from .workflow_runs import RunRequest, run_action
+                from geoagent_harness.contracts.actions import InterfaceGeneratedPlanSaveRequest
+                from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
+                from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow
+                from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
                 sha = response['planner_result']['plan_sha256']
                 stored = save_interface_reviewed_plan(InterfaceGeneratedPlanSaveRequest(
                     action='save_generated_plan', confirmed_plan_sha256=sha,
@@ -226,9 +229,14 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
 
 def submission_action(request: SubmissionRequest, *, project_root: Path, model_client=None, background=True):
     if request.action=='read':return _submission_action(request,project_root=project_root,model_client=model_client,background=background)
-    from geoagent_harness.model.telemetry import scope
+    from geoagent_harness.platform.model_gateway.telemetry import scope
     with scope(project_root,request.conversation_id,request.submission_id) as state:
         response=_submission_action(request,project_root=project_root,model_client=model_client,background=background)
         state['record']['workflow_run_id']=(response.get('submission') or {}).get('run_id')
         state['record']['submission_status']=(response.get('submission') or {}).get('status')
         return response
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+submission_action = _task_entrypoint(submission_action, audit=lambda arguments: arguments["request"].action not in ['read'])

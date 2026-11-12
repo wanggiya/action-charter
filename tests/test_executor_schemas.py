@@ -5,13 +5,9 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.executor.schemas import (
-    ExecutionEnvelope,
-)
+from geoagent_harness.contracts.execution import ExecutionEnvelope
 
-from geoagent_harness.executor.schemas import (
-    ExecutorRunResult,
-)
+from geoagent_harness.contracts.execution import ExecutorRunResult
 
 def test_executor_result_requires_real_execution() -> None:
     payload = {

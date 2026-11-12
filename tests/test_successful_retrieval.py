@@ -4,11 +4,11 @@ import pytest
 
 from tests.test_planner_conversation import project, Client, turn, as_base, ID
 from tests.test_reusable_recipes_and_runs import execution, use
-from geoagent_harness.recipe_catalog.composition import compose
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.planner.successful_retrieval import retrieve
-from geoagent_harness.model import ModelClientError
+from geoagent_harness.capabilities.recipes.catalog.composition import compose
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.capabilities.recipes.retrieval import retrieve
+from geoagent_harness.platform.model_gateway.client import ModelClientError
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def test_timeout_reports_safe_request_diagnostics_without_retry(project):
 
 
 def test_schema_focus_preserves_allowlist_and_property_named_title():
-    from geoagent_harness.planner.prompt_scope import compact_schema,schema_scope
+    from geoagent_harness.agents.roles.planner.prompt_scope import compact_schema, schema_scope
     schema={'title':'Root','type':'object','properties':{'title':{'title':'Title','type':'string'}},'required':['title']}
     result=compact_schema(schema)
     assert result['properties']['title']=={'type':'string'}
@@ -88,8 +88,8 @@ def test_schema_focus_preserves_allowlist_and_property_named_title():
 
 def test_cli_adaptation_uses_the_same_service_and_never_executes(completed,monkeypatch):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.cli.main import app
+    import geoagent_harness.task_actions.conversation as service
     root,run,reply=completed
     adapted=json.loads(json.dumps(reply['planner_result']['plan']))
     for step in adapted['steps']:step['arguments'].pop('target_path',None)
@@ -107,7 +107,7 @@ def test_cli_adaptation_uses_the_same_service_and_never_executes(completed,monke
 
 
 def test_structured_selection_keeps_ids_out_of_user_text_and_checks_scope(completed):
-    from geoagent_harness.interface_api.server import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     root,run,reply=completed
     adapted=json.loads(json.dumps(reply['planner_result']['plan']))
     for step in adapted['steps']:step['arguments'].pop('target_path',None)

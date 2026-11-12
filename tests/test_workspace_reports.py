@@ -12,10 +12,11 @@ from tests.test_task_agents import project
 from tests.test_workspace_layout import configure
 from tests.test_workspace_authority import export_plan
 from tests.test_reusable_recipes_and_runs import execution
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import execute_workflow
-from geoagent_harness.critic import CriticResult,critic_result_sha256
-from geoagent_harness.workspace import runtime_store_path,WorkspaceError
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import execute_workflow
+from geoagent_harness.contracts.critic import CriticResult
+from geoagent_harness.platform.storage.critic_records import critic_result_sha256
+from geoagent_harness.platform.workspace import runtime_store_path, WorkspaceError
 
 STORES=('plans','approvals','workflow-recipes','recipe-runs','recipe-evidence',
         'workflow-state','traces','reports','critic-results','operational-history','releases')
@@ -39,6 +40,9 @@ def ordered_fixture_clock(monkeypatch):
             return cls.latest
 
     monkeypatch.setattr(api, 'datetime', Clock)
+    from geoagent_harness.task_actions import critic_review, release_review, legacy_export
+    for owner in (critic_review, release_review, legacy_export):
+        monkeypatch.setattr(owner, 'datetime', Clock)
     from geoagent_harness.task_actions import artifacts, execution
     monkeypatch.setattr(artifacts, 'datetime', Clock)
     monkeypatch.setattr(execution, 'datetime', Clock)
@@ -88,13 +92,13 @@ def test_external_report_critic_history_package_lifecycle_and_read_only_cli(proj
     inventory=api.interface_critic_evidence_inventory(project)
     assert inventory['items'][0]['critic_record_link']=='verified'
     assert inventory['items'][0]['release_link']=='verified'
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     result=CliRunner().invoke(app,['inspect-authoritative-release',str(state/created['release_manifest']),
         '--release-root',str(state/'releases'),'--pretty'])
     assert result.exit_code==0,result.output
     assert json.loads(result.output)['component_count']==8
     assert not inventory['execution_performed'] and not inventory['critic_model_called']
-    from geoagent_harness.task_history.service import append_task_event,inspect_task_artifacts
+    from geoagent_harness.core.ledger.task_history.service import append_task_event, inspect_task_artifacts
     for index,path in enumerate((saved['trace_path'],saved['report_path'],recorded['record_file'])):
         append_task_event(root=state/'task-history',task_id='task-report',event_type='request' if not index else 'artifact_reference',
             summary='Fixture recorded artifact',artifact_path=path,artifact_sha256=hashlib.sha256((state/path).read_bytes()).hexdigest())
@@ -110,7 +114,7 @@ def test_offline_report_lifecycle_copy_preserves_bytes_digests_and_links(project
     for store in STORES:
         if (project/store).exists():shutil.copytree(project/store,state/store)
     configure(project,state)
-    from geoagent_harness.releases import inspect_authoritative_release
+    from geoagent_harness.core.ledger.releases.storage import inspect_authoritative_release
     verified=inspect_authoritative_release(state/created['release_manifest'],release_root=state/'releases')
     assert verified.release_sha256==created['release_sha256']
     item=api.interface_critic_evidence_inventory(project)['items'][0]
@@ -140,7 +144,7 @@ def test_empty_review_inventory_does_not_create_state(tmp_path):
 
 
 def test_default_mcp_report_roots_follow_workspace_and_custom_roots_remain_explicit(project,tmp_path_factory):
-    from geoagent_harness.mcp_server.settings import MCPSettings,authority_workspace_settings
+    from geoagent_harness.platform.settings import MCPSettings, authority_workspace_settings
     state=tmp_path_factory.mktemp('transport-report-state');configure(project,state)
     settings=MCPSettings(project_root=project,input_root=project/'data/input',output_root=project/'data/output')
     resolved=authority_workspace_settings(settings)

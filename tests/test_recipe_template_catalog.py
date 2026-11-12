@@ -4,16 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipe_catalog import (
-    RecipeTemplateCatalogError,
-    load_recipe_template_catalog,
-    parse_recipe_template_catalog,
-    RecipeTemplateCatalogError,
-    load_recipe_template_catalog,
-)
-from geoagent_harness.recipe_proposals import (
-    list_recipe_templates,
-)
+from geoagent_harness.capabilities.recipes.catalog.service import RecipeTemplateCatalogError, load_recipe_template_catalog, parse_recipe_template_catalog, RecipeTemplateCatalogError, load_recipe_template_catalog
+from geoagent_harness.capabilities.recipes.proposals.templates import list_recipe_templates
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

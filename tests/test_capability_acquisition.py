@@ -9,13 +9,16 @@ from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from tests.test_planner_conversation import project,Client,turn,read,ID
-from geoagent_harness.capabilities.service import CapabilityProposal,make_package,prepare,promote
-from geoagent_harness.capabilities.text import TextTransform,reference_value
-from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.operations.packages import package_sha,canonical,parse_package,test_package as package_test,installed_packages,execute_projection,PackageError
-from geoagent_harness.planner.agent import PlannerAgentError
-from geoagent_harness.planner.effort_budget import EffortBudget
+from geoagent_harness.agents.roles.planner.acquisition import CapabilityProposal, make_package, prepare, promote
+from geoagent_harness.contracts.text_transform import TextTransform
+from geoagent_harness.data.tabular.text import reference_value
+from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.contracts.operation_packages import package_sha, canonical, parse_package, PackageError
+from geoagent_harness.capabilities.registry.packages import test_package as package_test, execute_projection
+from geoagent_harness.platform.storage.operation_packages import installed_packages
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
+from geoagent_harness.agents.roles.planner.effort_budget import EffortBudget
 
 REQUEST='Inspect sample_orders.csv. Trim whitespace and uppercase region into a NEW region_clean column, preserving original columns, then save a fresh CSV. Do not execute.'
 DEFINITION={'source_column':'region','output_column':'region_clean','steps':[{'kind':'strip'},{'kind':'upper'}]}
@@ -48,7 +51,7 @@ def test_defaults_private_switch_persistence_and_stale_configuration(project):
 
 def test_off_rejects_candidate_with_bounded_repair_and_no_tests(project,monkeypatch):
     called=[]
-    monkeypatch.setattr('geoagent_harness.capabilities.service.prepare',lambda *a,**k:called.append(1))
+    monkeypatch.setattr('geoagent_harness.agents.roles.planner.acquisition.prepare',lambda *a,**k:called.append(1))
     with pytest.raises(PlannerAgentError):turn(project,Client(REPLY,REPLY),REQUEST)
     assert called==[] and read(project)['revision']==0
     assert not (project/'operation-packages').exists()
@@ -56,7 +59,7 @@ def test_off_rejects_candidate_with_bounded_repair_and_no_tests(project,monkeypa
 
 def test_on_existing_operation_plan_never_starts_acquisition(project,monkeypatch):
     configure(project)
-    monkeypatch.setattr('geoagent_harness.capabilities.service.prepare',lambda *a,**k:pytest.fail('Unneeded acquisition'))
+    monkeypatch.setattr('geoagent_harness.agents.roles.planner.acquisition.prepare',lambda *a,**k:pytest.fail('Unneeded acquisition'))
     reply={'message':'Inspect','plan':{'summary':'Inspect CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Read metadata','arguments':{'path':'sample_orders.csv'}}]}}
     client=Client(reply)
     result=turn(project,client,'Inspect sample_orders.csv. No writes.',revision=1)
@@ -84,7 +87,7 @@ def test_prepare_install_restart_reuse_no_execution_authority(project):
     # Exact compatible installed definitions bypass all fixture/Critic work.
     reused=prepare(CapabilityProposal.model_validate(PROPOSAL),root=project,conversation_id=ID,revision=3,message=REQUEST,budget=EffortBudget(),critic_client=Client())
     assert reused['status']=='use_existing' and reused['fixture_batches']==0 and reused['model_calls']==0
-    from geoagent_harness.operations.registry import operation_catalog
+    from geoagent_harness.capabilities.registry.registry import operation_catalog
     item=next(op for op in operation_catalog(project)['operations'] if op['id']==record['operation_id'])
     assert item['approval_required'] and item['validation_required']
     assert item['adapter_configuration']['text_transform']['output_column']=='region_clean'
@@ -135,8 +138,8 @@ def test_legacy_projection_manifest_digest_is_unchanged():
 
 
 def test_promoted_adapter_obeys_write_policy_and_verifies_exact_values(project):
-    from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.tabular.service import validate_output,read_frame
+    from geoagent_harness.platform.settings import load_settings
+    from geoagent_harness.data.tabular.service import validate_output, read_frame
     _,record=candidate(project);install(project,record)
     settings=load_settings({}).model_copy(update={'project_root':project,'enable_write_tools':False})
     args={'path':'data/input/sample_orders.csv','target_path':'data/output/cleaned.csv','package_sha256':record['package_sha256']}
@@ -155,7 +158,7 @@ def test_promoted_adapter_obeys_write_policy_and_verifies_exact_values(project):
 
 
 def test_cli_controls_share_the_chat_service_and_require_confirmation(project):
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     runner=CliRunner()
     output=runner.invoke(app,['capability-acquisition',ID,'--enabled','--expected-revision','0','--project-root',str(project)])
     assert output.exit_code==0,output.output
@@ -171,15 +174,15 @@ def test_critic_rejection_and_failed_fixture_never_install(project,monkeypatch):
     record=result['capability_candidate'];assert record['status']=='rejected'
     with pytest.raises(ValueError):install(project,record)
     assert not (project/'operation-packages').exists()
-    monkeypatch.setattr('geoagent_harness.capabilities.service.test_package',lambda value,**kwargs:{'passed':False,'finding':'Synthetic mismatch','scope':'temporary_fixtures_only'})
+    monkeypatch.setattr('geoagent_harness.agents.roles.planner.acquisition.test_package',lambda value,**kwargs:{'passed':False,'finding':'Synthetic mismatch','scope':'temporary_fixtures_only'})
     result=conversation_turn(TurnRequest(action='turn',conversation_id=ID,expected_revision=2,message=REQUEST),project_root=project,model_client=Client(REPLY),critic_client=Client())
     assert result['capability_candidate']['status']=='rejected' and result['capability_candidate']['critic']['status']=='not_requested'
     assert result['context_usage']['effort_budget']['model_calls']==1
 
 
 def test_capability_workflow_uses_existing_exact_authorization_and_downstream_csv(project,monkeypatch):
-    from geoagent_harness.planner.schemas import PlannerResult
-    from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
+    from geoagent_harness.contracts.planning import PlannerResult
+    from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
     from tests.test_operation_discovery import stored
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
     _,record=candidate(project);install(project,record)
@@ -199,7 +202,7 @@ def test_capability_workflow_uses_existing_exact_authorization_and_downstream_cs
 
 
 def test_fixture_and_model_deadlines_are_shared_and_bounded(monkeypatch):
-    from geoagent_harness.model.schemas import ModelRequest,ChatMessage,ModelResult
+    from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ChatMessage, ModelResult
     monkeypatch.setenv('PLANNER_TURN_TIMEOUT_SECONDS','60')
     budget=EffortBudget();client=Client({'message':'ok'})
     request=ModelRequest(timeout_seconds=15,messages=[ChatMessage(role='user',content='Fixture')])
@@ -212,8 +215,8 @@ def test_fixture_and_model_deadlines_are_shared_and_bounded(monkeypatch):
 
 
 def test_budget_failure_preserves_chat_and_keeps_private_attempt_receipt(project,monkeypatch):
-    from geoagent_harness.capabilities.service import attempts
-    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.agents.roles.planner.acquisition import attempts
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
     configure(project)
     def exhausted(self):self.reject('fixture_batch_limit')
     monkeypatch.setattr(EffortBudget,'fixture_batch',exhausted)
@@ -229,7 +232,7 @@ def test_budget_failure_preserves_chat_and_keeps_private_attempt_receipt(project
 
 
 def test_unavailable_critic_is_explicit_and_cannot_fabricate_success(project):
-    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
     configure(project)
     result=conversation_turn(TurnRequest(action='turn',conversation_id=ID,expected_revision=1,message=REQUEST),project_root=project,model_client=Client(REPLY),critic_client=Client(ModelClientError.timeout()))
     record=result['capability_candidate']
@@ -244,10 +247,10 @@ def test_unavailable_critic_is_explicit_and_cannot_fabricate_success(project):
 @pytest.mark.parametrize('enabled',[False,True])
 @pytest.mark.parametrize('typed_operations',[False,True])
 def test_known_gap_decoder_supports_plain_and_operation_branch_schemas(enabled,typed_operations):
-    from geoagent_harness.interface_api.conversation import Reply,AcquisitionReply
-    from geoagent_harness.planner.decoder_schema import decoder_schema
-    from geoagent_harness.capabilities.service import gap_decoder
-    from geoagent_harness.tabular.schemas import InspectCSV
+    from geoagent_harness.task_actions.conversation import Reply, AcquisitionReply
+    from geoagent_harness.agents.roles.planner.decoder_schema import decoder_schema
+    from geoagent_harness.agents.roles.planner.acquisition import gap_decoder
+    from geoagent_harness.contracts.tabular import InspectCSV
     schema=(AcquisitionReply if enabled else Reply).model_json_schema()
     schema['$defs']['PlanStep']['properties']['skill']['enum']=['inspect_csv']
     decoder=decoder_schema(schema,{'inspect_csv':InspectCSV.model_json_schema()} if typed_operations else {})
@@ -272,7 +275,7 @@ def test_known_gap_cannot_be_disguised_as_numeric_calculation(project):
 
 
 def test_explicit_negative_text_request_is_not_a_gap():
-    from geoagent_harness.capabilities.service import explicit_text_gap
+    from geoagent_harness.agents.roles.planner.acquisition import explicit_text_gap
     assert not explicit_text_gap('Inspect x.csv. Do not uppercase region.',[],{})
     assert explicit_text_gap('Inspect x.csv. Trim whitespace and uppercase region.',[],{})
     assert not explicit_text_gap('Inspect points.geojson. Uppercase region.',[],{})
@@ -280,7 +283,7 @@ def test_explicit_negative_text_request_is_not_a_gap():
 
 
 def test_explicit_constraints_bind_only_supplied_simple_semantics():
-    from geoagent_harness.capabilities.service import explicit_text_constraints
+    from geoagent_harness.agents.roles.planner.acquisition import explicit_text_constraints
     assert explicit_text_constraints(REQUEST)==TextTransform.model_validate(DEFINITION)
     negative='Inspect x.csv. Do not strip whitespace. Uppercase region into a new region_clean column.'
     assert [step.kind for step in explicit_text_constraints(negative).steps]==['upper']
@@ -300,13 +303,13 @@ def test_explicit_complete_text_request_cannot_become_unneeded_clarification(pro
 
 
 def test_package_limit_rejects_before_fixture_work(project,monkeypatch):
-    from geoagent_harness.operations.packages import install_package
+    from geoagent_harness.capabilities.registry.packages import install_package
     sample=json.loads((Path(__file__).parents[1]/'examples/checkpoint25/order_identity.operation.json').read_text())
     directory=project/'operation-packages';directory.mkdir()
     for index in range(20):
         value={**sample,'id':f'ext_fixture_{index}'};package=parse_package(value)
         (directory/f'{package.id}.json').write_text(json.dumps({'package':package.model_dump(mode='json'),'package_sha256':package_sha(package)}))
-    monkeypatch.setattr('geoagent_harness.operations.packages.test_package',lambda *a,**k:pytest.fail('No tests after the install limit'))
+    monkeypatch.setattr('geoagent_harness.capabilities.registry.packages.test_package',lambda *a,**k:pytest.fail('No tests after the install limit'))
     package=make_package(CapabilityProposal.model_validate(PROPOSAL))
     with pytest.raises(PackageError,match='limit'):install_package(package.model_dump(mode='json'),package_sha(package),root=project,confirm=True)
     assert len(installed_packages(project))==20

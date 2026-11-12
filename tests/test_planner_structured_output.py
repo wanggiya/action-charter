@@ -8,17 +8,17 @@ from pydantic import ValidationError
 
 from tests.test_planner_conversation import project, Client, turn, read, plan
 from tests.test_calculation_planner_repair import PROMPT, ready
-from geoagent_harness.model import SharedModelClient, ModelClientError
-from geoagent_harness.model.schemas import ModelRequest, ChatMessage, ModelResult
-from geoagent_harness.model.settings import ModelSettings, load_model_settings, ModelSettingsError
-from geoagent_harness.interface_api.conversation import Reply
-from geoagent_harness.planner.agent import PlannerAgentError, _schema_findings
-from geoagent_harness.planner.decoder_schema import decoder_schema
+from geoagent_harness.platform.model_gateway.client import SharedModelClient, ModelClientError
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ChatMessage, ModelResult
+from geoagent_harness.platform.model_settings import ModelSettings, load_model_settings, ModelSettingsError
+from geoagent_harness.task_actions.conversation import Reply
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError, _schema_findings
+from geoagent_harness.agents.roles.planner.decoder_schema import decoder_schema
 
 
 @pytest.mark.parametrize('exclusion', ['No PostgreSQL or PostGIS operations.', 'Without PostGIS operations.'])
 def test_csv_schema_focus_ignores_explicit_spatial_exclusions(exclusion):
-    from geoagent_harness.planner.prompt_scope import schema_scope
+    from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
     allowed = ['inspect_csv', 'aggregate_csv', 'inspect_vector', 'validate_postgis_layer']
     message = 'Inspect visualization_regions.csv. ' + exclusion
     assert schema_scope(message, allowed) == allowed[:2]
@@ -191,8 +191,8 @@ def test_http_json_and_length_failures_report_specific_safe_diagnostics(project,
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.http.server import _handler
+    import geoagent_harness.task_actions.conversation as service
     original=service.conversation_turn
     class Broken(Client):
         def complete(self,request):
@@ -229,8 +229,8 @@ def test_registry_binds_required_gates_without_granting_authority(project):
 
 
 def test_compact_calculation_contract_keeps_all_expression_variants_and_limits():
-    from geoagent_harness.planner.prompt_scope import compact_calculation_schema
-    from geoagent_harness.tabular.schemas import CalculateColumns
+    from geoagent_harness.agents.roles.planner.prompt_scope import compact_calculation_schema
+    from geoagent_harness.contracts.tabular import CalculateColumns
     source=CalculateColumns.model_json_schema();compact=compact_calculation_schema(source)
     assert len(json.dumps(compact))<len(json.dumps(source))*0.6
     assert compact['$defs']['DerivedColumn']['properties']['expression']=={'$ref':'#/$defs/Expression'}
@@ -241,7 +241,7 @@ def test_compact_calculation_contract_keeps_all_expression_variants_and_limits()
 
 
 def test_reuse_constraints_are_root_only_and_do_not_mutate_the_base():
-    from geoagent_harness.planner.reuse_claims import constrain_reuse_claims
+    from geoagent_harness.agents.roles.planner.reuse_claims import constrain_reuse_claims
     base={'type':'object','additionalProperties':False,'properties':{
         'reused_recipe_ids':{'type':'array','items':{'type':'string'}},
         'arguments':{'type':'object','properties':{'reused_recipe_ids':{'type':'string'}}},

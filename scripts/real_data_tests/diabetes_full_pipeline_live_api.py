@@ -42,11 +42,13 @@ from diabetes_reference import CODES, read_book, reference, sha  # noqa: E402
 from diabetes_test_flow import EXPORTED, SELECTED, make_plan  # noqa: E402
 from postgres_workflow_acceptance import rejection  # noqa: E402
 
-from geoagent_harness.approvals import plan_sha256  # noqa: E402
-from geoagent_harness.interface_api import server as api  # noqa: E402
-from geoagent_harness.interface_api.workflow import WorkflowRequest, authorize_workflow, prepare_workflow  # noqa: E402
-from geoagent_harness.mcp_server.settings import MCPSettings  # noqa: E402
-from geoagent_harness.postgres.service import inspect  # noqa: E402
+from geoagent_harness.core.policy.approvals.service import plan_sha256  # noqa: E402
+from geoagent_harness.apps.http import server as api  # noqa: E402
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.task_actions.workflow import prepare_workflow  # noqa: E402
+from geoagent_harness.platform.settings import MCPSettings  # noqa: E402
+from geoagent_harness.data.databases.postgres.service import inspect  # noqa: E402
 
 stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 TABLE = f"diabetes_full_{stamp}"

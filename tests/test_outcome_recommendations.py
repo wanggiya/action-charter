@@ -4,10 +4,10 @@ import json
 from types import SimpleNamespace
 import pytest
 from tests.test_planner_conversation import project, ID, Client, read, turn, plan
-from geoagent_harness.interface_api.conversation import conversation_turn, TurnRequest
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.planner.outcome_recommendations import record_outcome, recommendations, reset, rank_recipes
-from geoagent_harness.recipe_catalog.successful import contracts, _connection
+from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.agents.roles.planner.outcome_recommendations import record_outcome, recommendations, reset, rank_recipes
+from geoagent_harness.capabilities.recipes.catalog.successful import contracts, _connection
 
 
 def record(root, identity='a'*32, skill='inspect_csv', result=True):
@@ -47,7 +47,7 @@ def test_validation_failure_and_contract_change(project,monkeypatch):
     record_outcome(project,record(project,result=False))
     assert recommendations(project,ID,['inspect_csv'])[0]['score']==-0.2
     current=contracts(project);current['inspect_csv']['contract_sha256']='0'*64
-    monkeypatch.setattr('geoagent_harness.planner.outcome_recommendations.contracts',lambda _:current)
+    monkeypatch.setattr('geoagent_harness.agents.roles.planner.outcome_recommendations.contracts',lambda _:current)
     assert recommendations(project,ID,['inspect_csv'])==[]
 
 
@@ -64,7 +64,7 @@ def test_no_execution_or_incomplete_evidence(project):
 
 
 def test_limit_is_bounded_and_no_eviction(project,monkeypatch):
-    monkeypatch.setattr('geoagent_harness.planner.outcome_recommendations.LIMIT',1)
+    monkeypatch.setattr('geoagent_harness.agents.roles.planner.outcome_recommendations.LIMIT',1)
     assert record_outcome(project,record(project))=='recorded'
     assert record_outcome(project,record(project,identity='d'*32))=='full'
     assert recommendations(project,ID,['inspect_csv'])[0]['verified_passes']==1
@@ -104,7 +104,7 @@ def test_recipe_evidence_only_breaks_relevance_ties():
 
 
 def test_receipt_reports_supplied_order_not_model_adoption(project):
-    from geoagent_harness.planner.outcome_recommendations import ranking_receipt
+    from geoagent_harness.agents.roles.planner.outcome_recommendations import ranking_receipt
     record_outcome(project,record(project))
     items=recommendations(project,ID,['inspect_csv'])
     assert items[0]['contract_sha256']==contracts(project)['inspect_csv']['contract_sha256']
@@ -166,14 +166,14 @@ def test_ordinary_csv_decoder_is_typed_and_full_proposal_excludes_actions(projec
     ('Remove the selection and skip filtering. Inspect sample_orders.csv.',set()),
     ('Select a file to inspect.',set())])
 def test_table_request_coverage_is_narrow_and_respects_negation(message,expected):
-    from geoagent_harness.planner.request_coverage import requested_table_operations
+    from geoagent_harness.agents.roles.planner.request_coverage import requested_table_operations
     assert requested_table_operations(message)==expected
 
 
 def test_inspection_only_reply_cannot_claim_requested_selection(project):
     inspection={'summary':'Inspect CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Read metadata','arguments':{'path':'sample_orders.csv'}}]}
     client=Client({'message':'Ready','plan':inspection},{'message':'Ready again','plan':inspection})
-    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
     with pytest.raises(PlannerAgentError) as caught:
         turn(project,client,'Inspect sample_orders.csv and select only order_id and region into a fresh CSV.')
     assert 'select_csv_columns' in str(getattr(caught.value,'findings',[]))
@@ -182,7 +182,7 @@ def test_inspection_only_reply_cannot_claim_requested_selection(project):
 
 @pytest.mark.parametrize('broad_selection',[False,True])
 def test_automatic_simple_selection_focuses_schema_not_authority(project,broad_selection):
-    from geoagent_harness.operations.registry import argument_models
+    from geoagent_harness.capabilities.registry.registry import argument_models
     client=Client({'message':'Proposed only','plan':{'summary':'Select CSV fields','steps':[
         {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'sample_orders.csv'}},
         {'step_id':'step_2','skill':'select_csv_columns','purpose':'Select','arguments':{'path':'sample_orders.csv','columns':['order_id','region']},'depends_on':['step_1']}]}})

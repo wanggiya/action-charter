@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from geoagent_harness.tabular.analytical_service import profile_table, recorded_analysis
-from geoagent_harness.discovery.csv import inspect
-from geoagent_harness.interface_api.inspection_planning import plan_for_request
+from geoagent_harness.data.tabular.analytical_service import profile_table, recorded_analysis
+from geoagent_harness.data.discovery.csv import inspect
+from geoagent_harness.task_actions.inspection_planning import plan_for_request
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_exact_profile_plan_and_safe_nested_path(dataset):
     assert len(plan.steps) == 1 and not plan.steps[0].requires_approval
     assert plan.steps[0].arguments['analysis']['codebook_path'] == 'data/input/codes.csv'
     assert plan.steps[0].arguments['path'] == 'data/input/test/visits.csv'
-    from geoagent_harness.intent.input import check_task_input
+    from geoagent_harness.data.discovery.input import check_task_input
     assert check_task_input(project_root=dataset,input_path='test/visits.csv') == 'data/input/test/visits.csv'
     for path in ['../visits.csv','test/../visits.csv','test//visits.csv','/etc/passwd','test\\visits.csv']:
         with pytest.raises(ValueError): profile_table(dataset,path)
@@ -68,7 +68,7 @@ def test_filter_and_source_bound_recorded_page(dataset):
     record={'run_id':'a'*32,'plan_sha256':'b'*64,'conversation_id':'c'*32,
             'steps':[{'step_id':'step_1','skill_id':'inspect_csv','status':'completed','arguments':{},'outcome':r}]}
     q={**options(),'filters':[{'column':'outcome','value':'<30'}], 'offset':0}
-    request=SimpleNamespace(confirmed_plan_sha256='b'*64, conversation_id='c'*32, step_id='step_1', table_options=__import__('geoagent_harness.tabular.analysis_contracts',fromlist=['AnalysisOptions']).AnalysisOptions.model_validate(q))
+    request=SimpleNamespace(confirmed_plan_sha256='b'*64, conversation_id='c'*32, step_id='step_1', table_options=__import__('geoagent_harness.contracts.analysis_options',fromlist=['AnalysisOptions']).AnalysisOptions.model_validate(q))
     page=recorded_analysis(dataset,record,request)
     assert page['table_analysis']['matched_row_count'] == 5000
     assert page['table_analysis']['table']['preview'][0]['id'] == '000000'
@@ -109,7 +109,7 @@ def test_source_replacement_and_cardinality_limits(dataset):
 
 
 def test_full_file_aggregate_export_and_validation(dataset):
-    from geoagent_harness.tabular.service import run_operation, validate_output
+    from geoagent_harness.data.tabular.service import run_operation, validate_output
     settings=SimpleNamespace(project_root=dataset,enable_write_tools=True,allow_overwrite=False)
     r=run_operation('aggregate_csv',{'path':'test/visits.csv','streaming':True,'by':['age','outcome'],
         'aggregations':[{'column':'id','function':'count','output_column':'encounters'},
@@ -160,7 +160,7 @@ def test_quality_zero_matches_and_reserved_group_output(tmp_path):
 
 
 def test_exact_quality_budget_never_returns_partial_metrics(tmp_path):
-    from geoagent_harness.tabular.analysis import Accumulator
+    from geoagent_harness.data.tabular.analysis import Accumulator
     acc=Accumulator(tmp_path,['id'],{'quality_columns':['id']})
     acc.exact_entries=500000
     with pytest.raises(ValueError,match='No partial checks'):
@@ -170,9 +170,9 @@ def test_exact_quality_budget_never_returns_partial_metrics(tmp_path):
 def test_quality_mcp_cli_share_contract_and_results(tmp_path):
     import asyncio
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
-    from geoagent_harness.mcp_server import tools
-    from geoagent_harness.mcp_server.server import mcp
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.task_actions import data_tools as tools
+    from geoagent_harness.apps.mcp.server import mcp
     (tmp_path/'data/input').mkdir(parents=True)
     (tmp_path/'data/input/q.csv').write_text('id,group\n1,A\n1,A\n2,B\n')
     opts={'quality_columns':['id'],'duplicate_key':['id'],'group_by':['group'],'distinct_columns':['id']}

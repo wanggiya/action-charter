@@ -1542,6 +1542,7 @@
 .statistical-figure figcaption {font-size:14px;line-height:1.6;margin-top:10px;color:var(--muted)}
 .statistics-assessment {margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
 .statistics-panel label>select {margin:8px 0;padding:9px 12px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;color-scheme:dark;font:inherit}
+.statistics-panel .statistics-export label>select {margin:0}
 .field-analysis-controls {display:flex;flex-wrap:wrap;gap:16px;margin:14px 0}
 .field-analysis-controls label {display:flex;flex:1 1 180px;flex-direction:column;gap:8px;min-width:0;font-size:14px}
 .field-analysis-controls select {width:100%;min-width:0;padding:9px 12px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:6px;font:inherit;color-scheme:dark}

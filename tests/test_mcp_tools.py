@@ -2,29 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.mcp_server.tools import (
-    TOOL_ALLOWLIST,
-    health_check,
-    inspect_vector_dataset,
-    plan_load_vector_to_postgis,
-    load_vector_to_postgis,
-    validate_postgis_layer,
-    compare_postgis_tables,
-    assess_postgis_change,
-)
-from geoagent_harness.skills.inspect_vector.service import (
-    InspectVectorError,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.task_actions.data_tools import TOOL_ALLOWLIST, health_check, inspect_vector_dataset, plan_load_vector_to_postgis, load_vector_to_postgis, validate_postgis_layer, compare_postgis_tables, assess_postgis_change
+from geoagent_harness.data.spatial.skills.inspect_vector.service import InspectVectorError
 
-from geoagent_harness.skills.load_vector_to_postgis.service import (
-    LoadVectorError,
-)
-from geoagent_harness.verifier.postgis import (
-    PostGISVerificationError,
-)
+from geoagent_harness.data.spatial.skills.load_vector_to_postgis.service import LoadVectorError
+from geoagent_harness.core.verification.postgis import PostGISVerificationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INPUT_ROOT = PROJECT_ROOT / "data" / "input"
@@ -190,7 +173,7 @@ def test_mcp_comparison_builds_exact_request(
     settings: MCPSettings,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import geoagent_harness.mcp_server.tools as module
+    import geoagent_harness.task_actions.data_tools as module
 
     observed = {}
 
@@ -229,7 +212,7 @@ def test_mcp_change_assessment_composes_comparison(
     settings: MCPSettings,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import geoagent_harness.mcp_server.tools as module
+    import geoagent_harness.task_actions.data_tools as module
 
     observed = {}
 

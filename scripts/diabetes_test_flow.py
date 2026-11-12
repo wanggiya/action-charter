@@ -1,6 +1,6 @@
 """Operator-reviewed real-data acceptance plans; these definitions grant no authority."""
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.postgres.service import connection_sha256
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.data.databases.postgres.service import connection_sha256
 from diabetes_reference import CODES
 
 SELECTED=['encounter_id','patient_nbr','age','gender','race','time_in_hospital','readmitted',*CODES,'weight','payer_code','medical_specialty']
@@ -27,7 +27,7 @@ def make_plan(settings,*,sample='data/input/test/diabetic_sample_5000.csv',codeb
             step(5,'import_csv_to_postgres','Create a fresh encounter table from the validated decoded records, not the grouped summary',{'connection_sha256':connection_sha256(settings),'target_schema':'agent_sandbox','target_table':table,'source_step':'step_3','columns':columns,'key_columns':['encounter_id'],'null_values':[''],'soft_delete_marker':'is_deleted'},depends=['step_3','step_4']),
             step(6,'export_postgres_to_csv','Export the validated new table and preserve null semantics',{'target_schema':'agent_sandbox','target_table':table,'source_step':'step_5','columns':EXPORTED,'target_path':output+'_roundtrip.csv','null_token':'\\N'})]})
     if streaming:
-        from geoagent_harness.planner.schemas import PlanStep
+        from geoagent_harness.contracts.planning import PlanStep
         for item in result.plan.steps[1:4]:item.arguments['streaming']=True
         imported=result.plan.steps[4];exported=result.plan.steps[5]
         check=PlanStep.model_validate(step(5,'validate_postgres_import','Validate every mapped value, NULL policy and key without a database write',dict(imported.arguments),False,depends=['step_3','step_4']))

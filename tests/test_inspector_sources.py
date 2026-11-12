@@ -3,11 +3,11 @@ import json
 import pytest
 from tests.test_inspection_on_send import CHAT, request
 from tests.test_exact_inspection import NoModel
-from geoagent_harness.interface_api.planner_submission import submission_action
-from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-from geoagent_harness.planner.schemas import WorkflowPlan,PlanStep,PlannerResult
-from geoagent_harness.planner.policy import validate_plan_policy,PlannerPolicyError
-from geoagent_harness.operations.inspection_contracts import INSPECTOR_SUFFIXES,source_inspector
+from geoagent_harness.task_actions.planner_submission import submission_action
+from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+from geoagent_harness.contracts.planning import WorkflowPlan, PlanStep, PlannerResult
+from geoagent_harness.core.policy.plan import validate_plan_policy, PlannerPolicyError
+from geoagent_harness.contracts.inspection_formats import INSPECTOR_SUFFIXES, source_inspector
 
 
 @pytest.fixture
@@ -80,8 +80,8 @@ def assert_clarification_contract(conversation):
 
 
 def test_old_clarification_chat_and_receipt_read_without_rewriting_or_replay(project):
-    from geoagent_harness.interface_api.planning_tasks import database,_get,_put
-    from geoagent_harness.interface_api.planner_submission import SubmissionRequest
+    from geoagent_harness.task_actions.planning_tasks import database, _get, _put
+    from geoagent_harness.task_actions.planner_submission import SubmissionRequest
     follow=request(True);follow.turn.message='inspect it again'
     result=submission_action(follow,project_root=project,model_client=NoModel(),background=False)
     # Reproduce the exact incomplete historical response reported by the owner.
@@ -126,8 +126,8 @@ def test_explicit_read_only_wording_uses_shared_scope_and_send_policy(project,me
 
 @pytest.mark.parametrize('suffix',[' And export it to result.csv.',' Calculate mean amount.','; authorize writes'])
 def test_metadata_wording_never_discards_additional_actions(suffix):
-    from geoagent_harness.interface_api.inspection_planning import plan_for_request
-    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.task_actions.inspection_planning import plan_for_request
+    from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
     message='do a read-only inspection on sample_orders.csv.'+suffix
     assert plan_for_request(message,INSPECTOR_SUFFIXES) is None
     assert inspection_only_skill(message) is None
@@ -135,7 +135,7 @@ def test_metadata_wording_never_discards_additional_actions(suffix):
 
 @pytest.mark.parametrize('message',['do a read-only inspection','Inspect sample_orders.csv.'])
 def test_followup_repairs_legacy_format_mismatch_as_new_proposal(project,message):
-    from geoagent_harness.interface_api.planning_tasks import database,_get,_put
+    from geoagent_harness.task_actions.planning_tasks import database, _get, _put
     initial=submission_action(request(False),project_root=project,model_client=NoModel(),background=False)
     with database(project,write=True) as db:
         stored=_get(db,'conversations',CHAT);stored['planner_result']['plan']['steps'][0]['skill']='inspect_vector';_put(db,'conversations',CHAT,stored)
@@ -154,11 +154,11 @@ def test_followup_preserves_spatial_source_type(project,skill,path):
 
 
 def test_legacy_saved_mismatch_rejected_by_graph_recipe_and_dispatch_preflight(project):
-    from geoagent_harness.interface_api.workflow import validate_edit,EditRequest,prepare_workflow,WorkflowRequest
-    from geoagent_harness.approvals import plan_sha256
-    from geoagent_harness.planner.recipe_definition import planner_recipe_definition
-    from geoagent_harness.recipes.policy import validate_recipe_policy,RecipePolicyError
-    from geoagent_harness.skill_registry import load_skill_registry
+    from geoagent_harness.task_actions.workflow import validate_edit, EditRequest, prepare_workflow, WorkflowRequest
+    from geoagent_harness.core.policy.approvals.service import plan_sha256
+    from geoagent_harness.core.policy.recipe_definition import planner_recipe_definition
+    from geoagent_harness.core.policy.recipe import validate_recipe_policy, RecipePolicyError
+    from geoagent_harness.platform.skill_registry import load_skill_registry
     bad=PlannerResult(model='legacy-fixture',original_request='Old saved plan',context_references=[],plan=plan('inspect_vector'))
     digest=plan_sha256(bad.plan)
     folder=project/'plans';folder.mkdir(exist_ok=True);artifact=folder/f'planner-plan.{digest}.json';artifact.write_text(bad.model_dump_json())
@@ -186,7 +186,7 @@ def test_bad_model_inspector_receives_one_contract_correction(project):
 
 
 def test_followup_never_parses_source_filename_as_instructions(project):
-    from geoagent_harness.interface_api.inspection_planning import resolve_followup,plan_for_followup
+    from geoagent_harness.task_actions.inspection_planning import resolve_followup, plan_for_followup
     current=plan(path='data/input/an input and notes.csv')
     followup=resolve_followup('inspect it again',current)
     assert plan_for_followup(followup,['inspect_csv']).steps[0].arguments['path']=='data/input/an input and notes.csv'
@@ -201,7 +201,7 @@ def test_followup_retains_existing_permitted_current_inspector(project):
 
 
 def test_registry_inspection_formats_match_shared_qualification(project):
-    from geoagent_harness.operations.registry import operation_catalog
+    from geoagent_harness.capabilities.registry.registry import operation_catalog
     catalog={o['id']:o for o in operation_catalog(project)['operations']}
     for skill,formats in INSPECTOR_SUFFIXES.items():
         assert catalog[skill]['supported_source_formats']==[f[1:] for f in formats]

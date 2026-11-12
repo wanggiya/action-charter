@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.spatial_contracts import VectorSpatialDataContract
+from geoagent_harness.contracts.spatial.schemas import VectorSpatialDataContract
 
 
 def valid_contract_payload() -> dict:

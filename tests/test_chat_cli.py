@@ -4,13 +4,13 @@ from pathlib import Path
 from shutil import copytree
 import httpx,pytest
 from typer.testing import CliRunner
-from geoagent_harness.cli import app
-from geoagent_harness.chat.client import ChatClient,ChatError
-from geoagent_harness.chat.views import saved_view,render_view,clean
-from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-from geoagent_harness.interface_api.planner_submission import submission_action,SubmissionRequest
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.tabular.dataset_service import profile_dataset
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.apps.chat.client import ChatClient, ChatError
+from geoagent_harness.apps.chat.views import saved_view, render_view, clean
+from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+from geoagent_harness.task_actions.planner_submission import submission_action, SubmissionRequest
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
 
 ID='e'*32
 @pytest.fixture
@@ -79,7 +79,7 @@ def saved_state(project):
 def test_result_views_match_recorded_frontend_facts_without_reads(project,monkeypatch):
     state,r=saved_state(project)
     def forbidden(*args,**kw):raise AssertionError('Viewing cannot scan, dispatch or invoke a model')
-    monkeypatch.setattr('geoagent_harness.tabular.dataset_service.profile_dataset',forbidden)
+    monkeypatch.setattr('geoagent_harness.data.tabular.dataset_service.profile_dataset',forbidden)
     for view in ['overview','columns','table','chart','groups','checks']:
         value=saved_view(state,view)
         assert value['source_sha256']==r['source_sha256'] and value['recorded_only'] and not value['execution_performed']
@@ -113,7 +113,7 @@ def test_transport_no_remote_proxy_redirect_or_automatic_retry(monkeypatch):
 
 
 def test_terminal_field_and_group_charts_use_recorded_denominators(project):
-    from geoagent_harness.chat.views import grouped_chart
+    from geoagent_harness.apps.chat.views import grouped_chart
     state,r=saved_state(project)
     field=saved_view(state,'chart',field='region')
     output=render_view(field)

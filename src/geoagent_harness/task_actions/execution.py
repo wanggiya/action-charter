@@ -7,53 +7,27 @@ import re
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any
-from geoagent_harness.redaction import redact_value
-from geoagent_harness.skill_registry import load_skill_registry
-from geoagent_harness.mcp_server.settings import load_settings
-from geoagent_harness.write_policy import (
-    effective as effective_write_settings,
-    snapshot as write_policy_snapshot,
-)
-from geoagent_harness.recipes import (
-    RecipeApprovalError,
-    RecipeEvidenceStorageError,
-    RecipePolicyError,
-    RecipeStorageError,
-    load_recipe,
-    load_recipe_evidence,
-    load_recipe_run_result,
-    recipe_evidence_sha256,
-    recipe_run_result_sha256,
-    recipe_sha256,
-    load_recipe_approval,
-    verify_recipe_approval,
-    build_recipe_execution_envelope,
-)
-from .storage_paths import runtime_store_path, ensure_state_root
-from .common import InterfaceApiError, _trusted_root, _bounded_outcome
-from .contracts import (
-    InterfaceApprovalDecision,
-    InterfaceApprovalVerificationRequest,
-    InterfaceExecutionPreviewRequest,
-    InterfaceRecipeExecutionRequest,
-    InterfacePlanApprovalPreparationRequest,
-    InterfacePlanApprovalDecisionRequest,
-    InterfacePlanApprovalVerificationRequest,
-)
+from geoagent_harness.contracts.redaction import redact_value
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.platform.settings import load_settings
+from geoagent_harness.core.policy.write_policy import effective as effective_write_settings, snapshot as write_policy_snapshot
+from geoagent_harness.capabilities.recipes.execution import RecipeApprovalError, load_recipe_approval, verify_recipe_approval
+from geoagent_harness.capabilities.recipes.execution import RecipeEvidenceStorageError, load_recipe_evidence, load_recipe_run_result, recipe_evidence_sha256, recipe_run_result_sha256
+from geoagent_harness.capabilities.recipes.execution import RecipePolicyError
+from geoagent_harness.capabilities.recipes.execution import RecipeStorageError, load_recipe
+from geoagent_harness.capabilities.recipes.execution import recipe_sha256
+from geoagent_harness.capabilities.recipes.execution import build_recipe_execution_envelope
+from geoagent_harness.platform.paths import runtime_store_path, ensure_state_root
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.project import _trusted_root
+from geoagent_harness.platform.outcomes import _bounded_outcome
+from geoagent_harness.contracts.actions import InterfaceApprovalDecision, InterfaceApprovalVerificationRequest, InterfaceExecutionPreviewRequest, InterfaceRecipeExecutionRequest, InterfacePlanApprovalPreparationRequest, InterfacePlanApprovalDecisionRequest, InterfacePlanApprovalVerificationRequest
 
 import tempfile
 from threading import Lock
-from geoagent_harness.task_history import record_task_attempt_state
-from .approved_recipe import run_approved_recipe as execute_approved_recipe
-from .artifacts import (
-    prepare_interface_plan_approval,
-    record_interface_plan_approval,
-    verify_interface_plan_approval,
-    prepare_interface_recipe_approval,
-    record_interface_recipe_approval,
-    verify_interface_recipe_approval,
-    SAFE_RECIPE_FILENAME,
-)
+from geoagent_harness.core.ledger.task_history import record_task_attempt_state
+from geoagent_harness.task_actions.approved_recipe import run_approved_recipe as execute_approved_recipe
+from geoagent_harness.task_actions.artifacts import prepare_interface_plan_approval, record_interface_plan_approval, verify_interface_plan_approval, prepare_interface_recipe_approval, record_interface_recipe_approval, verify_interface_recipe_approval, SAFE_RECIPE_FILENAME
 
 MAX_INTERFACE_EXECUTION_ATTEMPTS = 200
 _EXECUTION_LOCK = Lock()
@@ -498,8 +472,9 @@ def execute_interface_recipe(
     record_task_attempt_state(root=runtime_store_path(root, "task-history"), task_id=request.task_id,
                               attempt_sha256=progress_key, state="running")
 
-    from geoagent_harness.tabular.schemas import is_table_write
-    from geoagent_harness.tabular.service import read_bytes as read_table_bytes, TabularError
+    from geoagent_harness.contracts.tabular import is_table_write
+    from geoagent_harness.data.tabular.service import read_bytes as read_table_bytes
+    from geoagent_harness.contracts.paths import TabularError
     table_targets = {
         step.step_id: step.arguments["target_path"]
         for step in envelope.steps if is_table_write(step.skill_id)
@@ -550,7 +525,7 @@ def execute_interface_recipe(
                                     "status": "present_after_failure"})
         with _EXECUTION_LOCK:
             state = _EXECUTION_PROGRESS[progress_key]
-            from geoagent_harness.recipes.control import ExecutionCancelled
+            from geoagent_harness.platform.execution_control import ExecutionCancelled
             cancelled = isinstance(execution_error, ExecutionCancelled)
             state["status"] = "cancelled" if cancelled else "failed"
             for pending in state['steps']:
@@ -623,3 +598,49 @@ def execute_interface_recipe(
         "evidence_recorded": True,
         "report_written": True,
     }
+
+
+# Existing HTTP coordination extracted without transport dependencies.
+from geoagent_harness.core.ledger.task_history import attach_task_artifact
+
+class InterfaceProgressUnavailable(InterfaceApiError):
+    """Only a recorded-progress load failed; cache errors retain their old boundary."""
+
+
+def interface_execution_progress(project_root, digest):
+    with _EXECUTION_LOCK:
+        progress = _EXECUTION_PROGRESS.get(digest)
+        payload = json.loads(json.dumps(progress)) if progress is not None else None
+    if payload is None:
+        try:
+            payload = _load_execution_progress(project_root, digest)
+        except (InterfaceApiError, OSError, ValueError, json.JSONDecodeError) as exc:
+            raise InterfaceProgressUnavailable("execution progress is unavailable") from exc
+        if payload is not None:
+            with _EXECUTION_LOCK:
+                _EXECUTION_PROGRESS[digest] = payload
+    return payload
+
+def execute_interface_recipe_with_task_references(execution_request, *, project_root, recipe_root=None, approval_root=None, task_root=None, execute_recipe):
+    response = execute_recipe(execution_request, project_root=project_root, recipe_root=recipe_root, approval_root=approval_root)
+    response['task_references'] = []
+    if execution_request.task_id is not None:
+        for key in ('run_result_path', 'evidence_path'):
+            try:
+                path = Path(response[key])
+                relative = path.relative_to(_trusted_root(project_root)).as_posix() if path.is_absolute() else path.as_posix()
+                linked = attach_task_artifact(root=task_root if task_root is not None else runtime_store_path(_trusted_root(project_root), 'task-history'), task_id=execution_request.task_id, project_root=_trusted_root(project_root), artifact_path=relative)
+            except (ValueError, KeyError):
+                linked = {'status': 'failed', 'reason': 'Run completed, but durable task reference was unavailable'}
+            response['task_references'].append(linked)
+        response['task_references'].append(attach_task_artifact(root=task_root if task_root is not None else runtime_store_path(_trusted_root(project_root), 'task-history'), task_id=execution_request.task_id, project_root=_trusted_root(project_root), artifact_path='approvals/' + execution_request.approval_filename))
+    return response
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+interface_execution_inventory = _task_entrypoint(interface_execution_inventory, audit=False)
+prepare_interface_execution_preview = _task_entrypoint(prepare_interface_execution_preview, audit=False)
+execute_interface_recipe = _task_entrypoint(execute_interface_recipe)
+interface_execution_progress = _task_entrypoint(interface_execution_progress, audit=False)
+execute_interface_recipe_with_task_references = _task_entrypoint(execute_interface_recipe_with_task_references)

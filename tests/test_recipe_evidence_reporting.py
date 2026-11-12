@@ -4,12 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipes.evidence_reporting import (
-    RecipeEvidenceReportError,
-    recipe_evidence_report_path,
-    render_recipe_evidence_report,
-    write_recipe_evidence_report,
-)
+from geoagent_harness.capabilities.recipes.execution.evidence_reporting import RecipeEvidenceReportError, recipe_evidence_report_path, render_recipe_evidence_report, write_recipe_evidence_report
 from tests.test_recipe_evidence_schemas import (
     evidence as example_evidence,
 )

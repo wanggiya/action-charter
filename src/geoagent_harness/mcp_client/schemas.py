@@ -1,14 +1,4 @@
-"""Structured MCP client results."""
-
-from __future__ import annotations
-
-from pydantic import BaseModel, ConfigDict
-
-
-class MCPToolCallResult(BaseModel):
-    """One validated MCP tool response."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    tool_name: str
-    result: dict
+"""Compatibility alias for geoagent_harness.contracts.mcp."""
+import sys
+from geoagent_harness.contracts import mcp as _implementation
+sys.modules[__name__] = _implementation

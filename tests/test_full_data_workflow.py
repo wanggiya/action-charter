@@ -5,8 +5,9 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.tabular.service import run_operation,validate_output,TabularError
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.tabular.service import run_operation, validate_output
+from geoagent_harness.contracts.paths import TabularError
 
 
 @pytest.fixture
@@ -50,7 +51,7 @@ def test_large_preparation_ancestor_and_aggregation(settings):
 
 
 def test_streaming_failure_cancellation_and_collision_never_publish_partial(settings,monkeypatch):
-    from geoagent_harness.tabular import streaming
+    from geoagent_harness.data.tabular import streaming
     args={'path':'rows.csv','columns':['id'],'target_path':'data/output/target.csv','streaming':True}
     def stop():raise RuntimeError('cancelled')
     monkeypatch.setattr(streaming,'checkpoint',stop)
@@ -68,7 +69,7 @@ def test_streaming_failure_cancellation_and_collision_never_publish_partial(sett
 
 
 def import_args(settings,data):
-    from geoagent_harness.postgres.service import connection_sha256
+    from geoagent_harness.data.databases.postgres.service import connection_sha256
     (settings.input_root/'mapped.csv').write_bytes(data)
     return {'path':'mapped.csv','source_sha256':hashlib.sha256(data).hexdigest(),'connection_sha256':connection_sha256(settings),
         'target_schema':'agent_sandbox','target_table':'fresh','columns':[
@@ -78,7 +79,7 @@ def import_args(settings,data):
 
 
 def test_complete_preflight_null_mapping_and_schema_without_connection(settings,monkeypatch):
-    from geoagent_harness.postgres import service
+    from geoagent_harness.data.databases.postgres import service
     def forbidden(*a,**k):raise AssertionError('No database connection in mapping preflight')
     monkeypatch.setattr(service,'_transaction',forbidden)
     args=import_args(settings,b'id,value,label\n001,?,?\n002,1.50,text\n')
@@ -95,7 +96,7 @@ def test_complete_preflight_null_mapping_and_schema_without_connection(settings,
 
 
 def test_handoff_uses_actual_schema_status_and_does_not_read_sources():
-    from geoagent_harness.recipes.handoff import handoff
+    from geoagent_harness.capabilities.recipes.execution.handoff import handoff
     record={'run_id':'r','plan_sha256':'a'*64,'status':'failed','steps':[{'step_id':'step_1','skill_id':'import_csv_to_postgres','status':'validated_success',
         'outcome':{'target_schema':'agent_sandbox','target_table':'fresh','column_metadata':[{'name':'id','type':'text','nullable':False}],
         'key_constraints':[{'kind':'primary','columns':['id']}],'row_count':10001,'table_sha256':'b'*64,'committed':True,
@@ -108,9 +109,9 @@ def test_handoff_uses_actual_schema_status_and_does_not_read_sources():
 
 
 def test_streaming_strategy_bound_only_before_review_and_explicit_false_preserved(settings):
-    from geoagent_harness.planner.bindings import bind_streaming_preparation
-    from geoagent_harness.planner.schemas import WorkflowPlan,PlanStep
-    from geoagent_harness.tabular.strategy import assess_table
+    from geoagent_harness.data.tabular.bindings import bind_streaming_preparation
+    from geoagent_harness.contracts.planning import WorkflowPlan, PlanStep
+    from geoagent_harness.data.tabular.strategy import assess_table
     path=settings.input_root/'large.csv'
     with path.open('wb') as f:
         f.write(b'id,value\n');f.truncate(9*1024**2)
@@ -128,7 +129,7 @@ def test_streaming_strategy_bound_only_before_review_and_explicit_false_preserve
 
 
 def test_database_receipt_trims_preview_before_dropping_schema():
-    from geoagent_harness.interface_api.workflow_runs import fit_database_receipt
+    from geoagent_harness.task_actions.workflow_runs import fit_database_receipt
     schema=[{'name':'id','type':'text','nullable':False}]
     value={'column_metadata':schema,'executed_ddl':'CREATE TABLE test (id text);',
            'preview':[{'id':'x'*1000} for _ in range(20)]}
@@ -139,7 +140,7 @@ def test_database_receipt_trims_preview_before_dropping_schema():
 
 
 def test_terminal_report_follows_selected_historical_run_without_execution():
-    from geoagent_harness.chat.workspace import Workspace
+    from geoagent_harness.apps.chat.workspace import Workspace
     calls=[]
     class Client:
         def post(self,path,payload):

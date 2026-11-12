@@ -2,9 +2,9 @@
 import re
 from time import monotonic
 
-from geoagent_harness.planner.schemas import WorkflowPlan,PlanStep,PlannerResult
-from geoagent_harness.discovery.source import relative_path
-from .inspection_policy import source_skill
+from geoagent_harness.contracts.planning import WorkflowPlan, PlanStep, PlannerResult
+from geoagent_harness.contracts.paths import relative_path
+from geoagent_harness.workspaces.sandbox.inspection import source_skill
 
 # Separate from the older inspection contract so an already-running process
 # cannot advertise analytical routing that was added after it started.
@@ -30,7 +30,7 @@ def plan_for_request(message,available):
         r'save to (?P<target>[^\s;]+\.csv)\.?\s*', message, re.I)
     if aggregate and 'aggregate_csv' in available:
         try:
-            from geoagent_harness.tabular.schemas import Aggregate
+            from geoagent_harness.contracts.tabular import Aggregate
             metrics = [{'column':aggregate['count'],'function':'count','output_column':aggregate['count_out']}]
             if aggregate['mean']:
                 metrics.append({'column':aggregate['mean'],'function':'mean','output_column':aggregate['mean_out']})
@@ -51,7 +51,7 @@ def plan_for_request(message,available):
         r'(?:no writes\.?\s*)?', message, re.I)
     if profile and 'inspect_csv' in available:
         try:
-            from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
+            from geoagent_harness.contracts.analysis_options import AnalysisOptions
             analysis = {'codebook_path': relative_path(profile['codebook'], 'input') if profile['codebook'] else None}
             for field, group in [('group_by', 'groups'), ('numeric_columns', 'numeric'), ('distinct_columns', 'distinct')]:
                 analysis[field] = [s.strip() for s in profile[group].split(',')] if profile[group] else []
@@ -63,7 +63,7 @@ def plan_for_request(message,available):
             PlanStep(step_id='step_1', skill='inspect_csv', purpose='Profile the full table with source-linked code definitions',
                 arguments={'path':path, 'delimiter':'\t' if path.endswith('.tsv') else ',',
                            'analysis': options.model_dump(mode='json', exclude_none=True)}, depends_on=[])])
-    from geoagent_harness.planner.request_coverage import metadata_request_text
+    from geoagent_harness.agents.roles.planner.request_coverage import metadata_request_text
     match=PATTERN.fullmatch(metadata_request_text(message))
     if not match:return None
     try:
@@ -84,11 +84,11 @@ def plan_for_request(message,available):
 def save_turn(root,path,state,request,base,selected,available,models,plan):
     # Use the existing revision lease, policy and persistence. Called only inside
     # conversation_turn's active-turn guard; never from a model reply.
-    from . import conversation as c
-    from .planning_tasks import write_turn
+    from geoagent_harness.task_actions import conversation as c
+    from geoagent_harness.task_actions.planning_tasks import write_turn
     started=monotonic()
-    from geoagent_harness.planner.bindings import bind_required_gates
-    from geoagent_harness.skill_registry import load_skill_registry
+    from geoagent_harness.data.tabular.bindings import bind_required_gates
+    from geoagent_harness.platform.skill_registry import load_skill_registry
     bind_required_gates(plan,load_skill_registry(root))
     if base:
         for step in plan.steps:
@@ -100,13 +100,13 @@ def save_turn(root,path,state,request,base,selected,available,models,plan):
     result=PlannerResult(model='deterministic-inspection-v1' if read_only else 'deterministic-table-v1',original_request=request.message,
         context_references=[],plan=plan)
     c._check(result,root)
-    from geoagent_harness.planner.policy import validate_plan_policy
+    from geoagent_harness.core.policy.plan import validate_plan_policy
     validate_plan_policy(plan,available_skills=set(available))
     changed=base is None or c.plan_sha256(base.plan)!=c.plan_sha256(plan)
     with c._LOCK:
         latest=c._read(path,request.conversation_id, project_root=root)
         if latest.revision!=request.expected_revision:
-            from .common import InterfaceApiError
+            from geoagent_harness.contracts.errors import InterfaceApiError
             raise InterfaceApiError('Conversation changed; reload before sending')
         provenance={'task_id':state.active_task_id,'conversation_id':request.conversation_id if state.active_task_id else None}
         read_only = all(s.skill.startswith('inspect_') for s in plan.steps)
@@ -164,7 +164,7 @@ def clarification_usage(usage, *, message_count, available_count):
     diagnostic = (usage or {}).get('model_request') or {}
     if diagnostic.get('stage') != 'inspection_clarification' or diagnostic.get('model_calls') != 0:
         return usage
-    from .conversation import MAX_PROMPT_BYTES, PLANNER_CONTRACT_REVISION
+    from geoagent_harness.task_actions.conversation import MAX_PROMPT_BYTES, PLANNER_CONTRACT_REVISION
     return {'omitted_messages':max(0,message_count-2),'excerpts_truncated':False,
             'prompt_bytes':0,'prompt_limit_bytes':MAX_PROMPT_BYTES, **usage,
             'model_request':{'planner_contract':PLANNER_CONTRACT_REVISION,
@@ -174,12 +174,12 @@ def clarification_usage(usage, *, message_count, available_count):
 
 def save_clarification(root,path,state,request,selected,models,question):
     """Persist a question without replacing a plan or dispatching any operation."""
-    from . import conversation as c
-    from .planning_tasks import write_turn
+    from geoagent_harness.task_actions import conversation as c
+    from geoagent_harness.task_actions.planning_tasks import write_turn
     with c._LOCK:
         latest=c._read(path,request.conversation_id,project_root=root)
         if latest.revision!=request.expected_revision:
-            from .common import InterfaceApiError
+            from geoagent_harness.contracts.errors import InterfaceApiError
             raise InterfaceApiError('Conversation changed; reload before sending')
         provenance={'task_id':state.active_task_id,'conversation_id':request.conversation_id if state.active_task_id else None}
         state.messages.extend([c.Entry(role='user',content=request.message,selected_skill_ids=selected,**provenance),

@@ -1,20 +1,9 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Reusable typed skill registry."""
 
-from geoagent_harness.skill_registry.schemas import (
-    SkillAccess,
-    SkillDefinition,
-    SkillKind,
-    SkillRegistry,
-    SkillStatus,
-)
+from geoagent_harness.contracts.skill_registry import SkillAccess, SkillDefinition, SkillKind, SkillRegistry, SkillStatus
 
-from geoagent_harness.skill_registry.service import (
-    MAX_SKILL_REGISTRY_BYTES,
-    SkillRegistryError,
-    load_skill_registry,
-    parse_skill_registry,
-    skill_registry_path,
-)
+from geoagent_harness.platform.skill_registry import MAX_SKILL_REGISTRY_BYTES, SkillRegistryError, load_skill_registry, parse_skill_registry, skill_registry_path
 
 
 __all__ = [

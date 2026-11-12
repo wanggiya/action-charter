@@ -2,10 +2,10 @@
 import json
 import httpx
 import pytest
-from geoagent_harness.model import SharedModelClient,ModelClientError
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.model.schemas import ModelRequest,ChatMessage
-from geoagent_harness.model import telemetry as d
+from geoagent_harness.platform.model_gateway.client import SharedModelClient, ModelClientError
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ChatMessage
+from geoagent_harness.platform.model_gateway import telemetry as d
 
 ID='a'*32
 @pytest.fixture
@@ -89,9 +89,9 @@ def test_diagnostics_http_read_and_review_failure_contract(tmp_path,monkeypatch)
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    from geoagent_harness.interface_api import conversation
-    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.apps.http.server import _handler
+    from geoagent_harness.task_actions import conversation
+    from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
     with d.scope(tmp_path,ID):pass
     def fail(*a,**kw):
         raise PlannerAgentError('Planner plan failed deterministic policy after one correction attempt',findings=['Role requested revision'],correction_attempted=True) from ValueError('Executor work-order review requests correction: use valid inputs')
@@ -113,7 +113,7 @@ def test_diagnostics_http_read_and_review_failure_contract(tmp_path,monkeypatch)
 
 
 def test_configuration_failure_and_unknown_memory_are_not_invented(tmp_path,monkeypatch):
-    from geoagent_harness.model.settings import ModelSettingsError
+    from geoagent_harness.platform.model_settings import ModelSettingsError
     monkeypatch.setattr(d,'resources',lambda:{'api_rss_bytes':None,'system_available_bytes':None})
     with pytest.raises(ModelSettingsError):
         with d.scope(tmp_path,ID):raise ModelSettingsError('MODEL_NAME is required')

@@ -4,10 +4,10 @@ import hashlib
 from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
-from geoagent_harness.postgres.schemas import ARGUMENTS,ImportCSV,ExportCSV,ChangeRows
-from geoagent_harness.postgres import service
-from geoagent_harness.postgres.policy import validate_steps
-from geoagent_harness.mcp_server.settings import MCPSettings
+from geoagent_harness.contracts.postgres import ARGUMENTS, ImportCSV, ExportCSV, ChangeRows
+from geoagent_harness.data.databases.postgres import service
+from geoagent_harness.core.policy.postgres import validate_steps
+from geoagent_harness.platform.settings import MCPSettings
 
 ROOT=Path(__file__).parents[1]
 @pytest.fixture
@@ -20,9 +20,9 @@ def args(settings):
  return {'connection_sha256':service.connection_sha256(settings),'target_schema':'agent_sandbox','target_table':'visits','path':'data/input/sample.csv','source_sha256':hashlib.sha256(data).hexdigest(),'columns':[{'source':'id','name':'id','type':'text'},{'source':'amount','name':'amount','type':'numeric'}]}
 
 def test_registry_and_exact_gates(settings):
- from geoagent_harness.operations.registry import operation_catalog,argument_models
- from geoagent_harness.skill_registry import load_skill_registry
- from geoagent_harness.recipes.dispatcher import _validate_registered_skill
+ from geoagent_harness.capabilities.registry.registry import operation_catalog, argument_models
+ from geoagent_harness.platform.skill_registry import load_skill_registry
+ from geoagent_harness.capabilities.recipes.execution.dispatcher import _validate_registered_skill
  registry=load_skill_registry(ROOT);catalog={o['id']:o for o in operation_catalog(ROOT)['operations']}
  for id in ARGUMENTS:
   assert id in argument_models(ROOT)
@@ -75,7 +75,7 @@ def test_exact_numeric_mapping_and_no_silent_id_coercion():
 
 
 def test_export_file_boundary_and_semantic_validation(settings):
- from geoagent_harness.postgres.files import publish,read_output
+ from geoagent_harness.data.databases.postgres.files import publish, read_output
  data=b'id,amount\n001,\\N\n002,2.50\n';path='data/output/selected.csv'
  publish(settings.project_root,path,data)
  assert read_output(settings.project_root,path)==data
@@ -91,10 +91,10 @@ def test_export_file_boundary_and_semantic_validation(settings):
 
 def test_database_read_only_workflow_uses_shared_adapter(tmp_path,monkeypatch):
  import shutil
- from geoagent_harness.interface_api import server as api
- from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,execute_workflow
- from geoagent_harness.planner.schemas import PlannerResult
- from geoagent_harness.approvals import plan_sha256
+ from geoagent_harness.apps.http import server as api
+ from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, execute_workflow
+ from geoagent_harness.contracts.planning import PlannerResult
+ from geoagent_harness.core.policy.approvals.service import plan_sha256
  (tmp_path/'context').mkdir();shutil.copyfile(ROOT/'context/SKILLS_INDEX.yaml',tmp_path/'context/SKILLS_INDEX.yaml')
  monkeypatch.setenv('ENABLE_WRITE_TOOLS','false')
  plan=PlannerResult(agent_id='planner',model='fixture',original_request='Discover configured sandbox tables',context_references=[],plan={'summary':'Discover tables','steps':[{'step_id':'step_1','skill':'discover_postgres_tables','purpose':'Discover ordinary tables','arguments':{'target_schema':'agent_sandbox'},'requires_approval':False,'validation_required':False}]})
@@ -108,7 +108,7 @@ def test_database_read_only_workflow_uses_shared_adapter(tmp_path,monkeypatch):
 
 
 def test_same_chat_bindings_and_authority_attempts(settings):
- from geoagent_harness.postgres.bindings import bind
+ from geoagent_harness.data.databases.postgres.bindings import bind
  arguments=args(settings);digest=arguments.pop('source_sha256');arguments.pop('connection_sha256')
  step=SimpleNamespace(step_id='step_1',skill='import_csv_to_postgres',arguments=arguments)
  state={'analytical_session':{'observations':[{'result':{'dataset_profile':{'source':'data/input/sample.csv','source_sha256':digest}}}]}}
@@ -121,7 +121,7 @@ def test_same_chat_bindings_and_authority_attempts(settings):
 
 
 def test_postgres_schema_focus_does_not_bloat_unrelated_csv():
- from geoagent_harness.planner.prompt_scope import schema_scope
+ from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
  available=list(ARGUMENTS)+['inspect_csv','calculate_csv_columns','join_csv']
  assert schema_scope('Import visits.csv into PostgreSQL',available)==['validate_postgres_import','import_csv_to_postgres','inspect_csv']
  assert schema_scope('Soft delete the selected PostgreSQL rows',available)==['inspect_postgres_table','soft_delete_postgres_rows']

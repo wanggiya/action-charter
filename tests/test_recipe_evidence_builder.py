@@ -7,15 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipes import (
-    ArtifactRole,
-    RecipeEvidenceError,
-    RecipeRunResult,
-    build_recipe_run_evidence,
-)
-from geoagent_harness.skill_registry import (
-    SkillRegistry,
-)
+from geoagent_harness.contracts.recipe_evidence import ArtifactRole
+from geoagent_harness.capabilities.recipes.execution.evidence import RecipeEvidenceError, build_recipe_run_evidence
+from geoagent_harness.contracts.recipes import RecipeRunResult
+from geoagent_harness.contracts.skill_registry import SkillRegistry
 
 
 DIGEST = "a" * 64

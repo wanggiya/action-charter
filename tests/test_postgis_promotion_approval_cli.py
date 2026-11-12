@@ -2,7 +2,7 @@ import json
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
 
 class FakeResult:
@@ -18,7 +18,7 @@ class FakeResult:
 
 
 def test_cli_records_without_execution(monkeypatch):
-    import geoagent_harness.postgis.promotion.approval as module
+    import geoagent_harness.data.databases.postgis.promotion.approval as module
 
     monkeypatch.setattr(module, "load_postgis_promotion_plan_result", lambda *a, **k: object())
     monkeypatch.setattr(module, "create_postgis_promotion_approval", lambda **k: object())

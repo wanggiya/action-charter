@@ -3,9 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.recipe_proposals import (
-    RecipeProposal,
-)
+from geoagent_harness.capabilities.recipes.proposals.schemas import RecipeProposal
 
 
 def conversion_payload() -> dict:

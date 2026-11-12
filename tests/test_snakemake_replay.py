@@ -9,23 +9,14 @@ from types import SimpleNamespace
 import pytest
 import asyncio
 
-import geoagent_harness.snakemake_export.replay as replay_module
+import geoagent_harness.agents.runtime.snakemake_replay as replay_module
 
-from geoagent_harness.recipes.evidence_schemas import (
-    RecipeExecutionRecord,
-)
-from geoagent_harness.recipes.schemas import (
-    RecipeRunResult,
-    RecipeStepExecutionResult,
-    RecipeStepRunResult,
-)
-from geoagent_harness.snakemake_export import (
-    SnakemakeRecipeExportPlan,
-    SnakemakeReplayError,
-    SnakemakeReplaySettings,
-    generate_snakemake_recipe_export,
-    run_approved_recipe_replay,
-)
+from geoagent_harness.contracts.recipe_evidence import RecipeExecutionRecord
+from geoagent_harness.contracts.recipes import RecipeRunResult, RecipeStepExecutionResult, RecipeStepRunResult
+from geoagent_harness.data.export.snakemake.schemas import SnakemakeRecipeExportPlan
+from geoagent_harness.agents.runtime.snakemake_replay import SnakemakeReplayError, run_approved_recipe_replay
+from geoagent_harness.platform.replay_settings import SnakemakeReplaySettings
+from geoagent_harness.data.export.snakemake.generator import generate_snakemake_recipe_export
 
 
 DIGEST = "a" * 64
@@ -60,9 +51,7 @@ def generated_export(
 
 
 def executor_result():
-    from geoagent_harness.executor.schemas import (
-        ExecutorRecipeRunResult,
-    )
+    from geoagent_harness.agents.roles.executor.schemas import ExecutorRecipeRunResult
 
     execution = RecipeStepExecutionResult(
         step_id="step_2",

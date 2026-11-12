@@ -1,19 +1,10 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Structured, non-executing Planner Agent."""
-from geoagent_harness.planner.service import plan_task
+from geoagent_harness.agents.roles.planner.service import plan_task
 
-from geoagent_harness.planner.agent import (
-    PlannerAgentError,
-    run_planner_agent,
-)
-from geoagent_harness.planner.policy import (
-    PlannerPolicyError,
-    validate_plan_policy,
-)
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    PlanStep,
-    WorkflowPlan,
-)
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError, run_planner_agent
+from geoagent_harness.core.policy.plan import PlannerPolicyError, validate_plan_policy
+from geoagent_harness.contracts.planning import PlannerResult, PlanStep, WorkflowPlan
 
 __all__ = [
     "PlannerAgentError",

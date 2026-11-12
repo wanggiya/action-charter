@@ -19,10 +19,10 @@ def run(value):
     from pathlib import Path
     from tempfile import TemporaryDirectory
     from importlib.metadata import version
-    from geoagent_harness.operations.packages import parse_package,package_sha,ProjectionArguments
-    from geoagent_harness.capabilities.text import execute_text,reference_value,verify_frame
-    from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.tabular.service import read_frame
+    from geoagent_harness.contracts.operation_packages import parse_package, package_sha, ProjectionArguments
+    from geoagent_harness.data.tabular.text import execute_text, reference_value, verify_frame
+    from geoagent_harness.platform.settings import load_settings
+    from geoagent_harness.data.tabular.service import read_frame
     p=parse_package(value)
     if p.adapter!='csv_text_transform' or version('pandas')!='3.0.5':raise ValueError('Unsupported adapter/runtime')
     def encoded(rows):

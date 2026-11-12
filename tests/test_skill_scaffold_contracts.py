@@ -2,17 +2,11 @@
 
 from pathlib import Path
 
-from geoagent_harness.skill_registry import (
-    SkillAccess,
-    SkillKind,
-    SkillRegistry,
-)
-from geoagent_harness.skill_scaffolding import (
-    SkillScaffoldRequest,
-    generate_skill_scaffold,
-    plan_skill_scaffold,
-    validate_skill_scaffold_contract,
-)
+from geoagent_harness.contracts.skill_registry import SkillAccess, SkillKind, SkillRegistry
+from geoagent_harness.capabilities.skills.scaffolding.schemas import SkillScaffoldRequest
+from geoagent_harness.capabilities.skills.scaffolding.generator import generate_skill_scaffold
+from geoagent_harness.capabilities.skills.scaffolding.planner import plan_skill_scaffold
+from geoagent_harness.capabilities.skills.scaffolding.contracts import validate_skill_scaffold_contract
 
 
 def generated_bundle(

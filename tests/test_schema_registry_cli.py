@@ -5,7 +5,7 @@ import json
 from click import unstyle
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
 
 runner = CliRunner()

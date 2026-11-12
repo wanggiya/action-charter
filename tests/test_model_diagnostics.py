@@ -4,10 +4,11 @@ from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from threading import Thread
 import pytest
-from geoagent_harness.interface_api.server import _handler
-from geoagent_harness.model import ModelClientError, ModelSettingsError
-from geoagent_harness.model.diagnostics import inspect_model_configuration, model_failure
-from geoagent_harness.failures import FailureCategory, RetryDisposition
+from geoagent_harness.apps.http.server import _handler
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_settings import ModelSettingsError
+from geoagent_harness.platform.model_gateway.diagnostics import inspect_model_configuration, model_failure
+from geoagent_harness.contracts.failures import FailureCategory, RetryDisposition
 
 @pytest.mark.parametrize('error, code', [
     (ModelSettingsError('MODEL_NAME is required'), 'model_name_missing'),
@@ -49,7 +50,7 @@ def test_configuration_status_inspects_settings_not_connectivity_or_model_qualit
     (ModelClientError.unavailable(), 'model_unavailable'),
 ])
 def test_intent_http_returns_actionable_failure_and_process_configuration(tmp_path, monkeypatch, error, expected_code):
-    import geoagent_harness.intent.service as service
+    import geoagent_harness.agents.roles.intent.service as service
     def fail(**_kwargs): raise error
     monkeypatch.setattr(service, 'reason_task_intent', fail)
     monkeypatch.delenv('MODEL_NAME', raising=False)

@@ -4,17 +4,15 @@ from pathlib import Path
 import shutil
 from unittest.mock import patch
 import pytest
-from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
-from geoagent_harness.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
-from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
-from geoagent_harness.interface_api.server import (
-    InterfaceApiError, InterfacePlanApprovalPreparationRequest, InterfacePlanApprovalDecisionRequest,
-    InterfacePlanApprovalVerificationRequest, InterfacePlanRecipeCompilationRequest, InterfacePlanRecipeSaveRequest,
-    prepare_interface_plan_approval, record_interface_plan_approval, verify_interface_plan_approval,
-    compile_interface_plan_recipe, save_interface_plan_recipe,
-)
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent
+from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.contracts.actions import InterfacePlanApprovalPreparationRequest, InterfacePlanApprovalDecisionRequest, InterfacePlanApprovalVerificationRequest, InterfacePlanRecipeCompilationRequest, InterfacePlanRecipeSaveRequest
+from geoagent_harness.task_actions.artifacts import prepare_interface_plan_approval, record_interface_plan_approval, verify_interface_plan_approval, compile_interface_plan_recipe, save_interface_plan_recipe
 
 PROJECT = Path(__file__).resolve().parents[1]
 
@@ -37,7 +35,7 @@ def test_intent_plan_decision_recipe_join(tmp_path: Path, skill: str, history: b
     reviewed = save_reviewed_intent(payload=payload,project_root=tmp_path,confirmed_intent_sha256=inspected['intent_sha256'],reviewer='operator',reason='Exact inspection intent')
     def planner(**kwargs):
         return PlannerResult(model='fixture',original_request=kwargs['original_request'],context_references=[],plan=WorkflowPlan(summary='Inspect metadata',steps=[PlanStep(step_id='step_1',skill=skill,purpose='Read exact metadata',arguments={'path':path},requires_approval=decision!='not_required')]))
-    with patch('geoagent_harness.intent.handoff.plan_task',side_effect=planner) as model:
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=planner) as model:
         handoff = plan_reviewed_intent(project_root=tmp_path,filename=reviewed['review_filename'],allowed_skill_ids=[skill])
     stored = save_reviewed_intent_plan(project_root=tmp_path,filename=reviewed['review_filename'],planner_result=PlannerResult.model_validate(handoff['planner_result']),confirmed_plan_sha256=handoff['plan_sha256'])
     basis = dict(plan_filename=stored['plan_filename'],confirmed_plan_sha256=stored['plan_sha256'])

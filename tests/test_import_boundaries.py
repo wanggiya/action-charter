@@ -12,9 +12,7 @@ def test_mcp_client_imports_in_clean_process() -> None:
             sys.executable,
             "-c",
             (
-                "from geoagent_harness.mcp_client "
-                "import MCPReadOnlyClient, "
-                "MCPExecutorClient"
+                'from geoagent_harness.platform.internal_mcp.client import MCPReadOnlyClient\nfrom geoagent_harness.platform.internal_mcp.executor import MCPExecutorClient'
             ),
         ],
         capture_output=True,
@@ -32,8 +30,7 @@ def test_executor_service_imports_in_clean_process() -> None:
             sys.executable,
             "-c",
             (
-                "from geoagent_harness.executor.service "
-                "import execute_approved_plan"
+                'from geoagent_harness.agents.roles.executor.service import execute_approved_plan'
             ),
         ],
         capture_output=True,
@@ -50,11 +47,7 @@ def test_executor_schema_import_does_not_load_gis_stack() -> None:
             sys.executable,
             "-c",
             (
-                "import sys; "
-                "from geoagent_harness.executor.schemas "
-                "import ExecutorRecipeRunResult; "
-                "assert 'geopandas' not in sys.modules; "
-                "assert 'pyogrio' not in sys.modules"
+                "import sys; from geoagent_harness.agents.roles.executor.schemas import ExecutorRecipeRunResult; assert 'geopandas' not in sys.modules; assert 'pyogrio' not in sys.modules"
             ),
         ],
         capture_output=True,
@@ -72,10 +65,7 @@ def test_executor_schema_import_does_not_load_raster_stack(
             sys.executable,
             "-c",
             (
-                "import sys; "
-                "from geoagent_harness.executor.schemas "
-                "import ExecutorRecipeRunResult; "
-                "assert 'rasterio' not in sys.modules"
+                "import sys; from geoagent_harness.agents.roles.executor.schemas import ExecutorRecipeRunResult; assert 'rasterio' not in sys.modules"
             ),
         ],
         capture_output=True,
@@ -93,9 +83,7 @@ def test_skill_adapter_package_does_not_load_rasterio(
             sys.executable,
             "-c",
             (
-                "import sys; "
-                "import geoagent_harness.skill_adapters; "
-                "assert 'rasterio' not in sys.modules"
+                "import sys; import geoagent_harness.data.spatial.adapters; assert 'rasterio' not in sys.modules"
             ),
         ],
         capture_output=True,

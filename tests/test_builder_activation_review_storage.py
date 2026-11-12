@@ -12,14 +12,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderActivationReviewDecisionStorageError,
-    builder_activation_review_sha256,
-    create_builder_activation_review_decision,
-    load_builder_activation_review_decision,
-    persist_builder_activation_review_decision,
-)
-from geoagent_harness.cli import app
+from geoagent_harness.evolution.builder.activation_review_storage import BuilderActivationReviewDecisionStorageError, builder_activation_review_sha256, load_builder_activation_review_decision, persist_builder_activation_review_decision
+from geoagent_harness.evolution.builder.activation_review import create_builder_activation_review_decision
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_activation_review import (
     prepared_persisted_verification,
 )

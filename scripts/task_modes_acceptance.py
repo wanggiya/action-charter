@@ -19,13 +19,17 @@ import psycopg
 from postgres_workflow_acceptance import docker
 from diabetes_reference import read_book,sha,CODES
 from diabetes_test_flow import make_plan,SELECTED,EXPORTED
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.write_policy import session
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.task_actions.conversation import conversation_turn
+from geoagent_harness.task_actions.conversation import TurnRequest
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.task_actions.workflow_runs import RunRequest
+from geoagent_harness.task_actions.workflow_runs import run_action
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.write_policy import session
 
 REPO=Path(__file__).resolve().parents[1]
 def main():

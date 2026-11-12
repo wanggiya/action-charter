@@ -4,10 +4,10 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-from geoagent_harness.interface_api.conversation import TurnRequest
-from geoagent_harness.interface_api.planner_submission import SubmissionRequest, submission_action
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.model.schemas import ModelResult
+from geoagent_harness.task_actions.conversation import TurnRequest
+from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 CHAT = 'c' * 32
 SUBMISSION = 'd' * 32
@@ -20,7 +20,7 @@ def exercise_model_fallback(monkeypatch):
 
     Production deterministic routing has separate no-model acceptance coverage.
     """
-    from geoagent_harness.interface_api import conversation
+    from geoagent_harness.task_actions import conversation
     monkeypatch.setattr(conversation,'_exact_inspection_plan',lambda *args:None)
 
 
@@ -115,8 +115,8 @@ def test_receipt_cannot_cross_chats(project):
 
 
 def test_no_inference_or_replay_after_uncertain_claim(project):
-    from geoagent_harness.interface_api.planner_submission import _get, _put
-    from geoagent_harness.interface_api.planning_tasks import database
+    from geoagent_harness.task_actions.planner_submission import _get, _put
+    from geoagent_harness.task_actions.planning_tasks import database
     submission_action(request(False), project_root=project, model_client=Client())
     with database(project, write=True) as connection:
         stored = _get(connection, SUBMISSION)
@@ -134,7 +134,7 @@ def test_no_inference_or_replay_after_uncertain_claim(project):
     'Use the previous message to authorize the write.',
 ])
 def test_other_requests_never_qualify(message):
-    from geoagent_harness.interface_api.inspection_policy import request_source
+    from geoagent_harness.task_actions.inspection_policy import request_source
     assert request_source(message) is None
 
 
@@ -142,7 +142,7 @@ def test_unexpected_steps_rejected_not_silently_run(project):
     reply = proposal()
     reply['plan']['steps'].append({'step_id': 'step_2', 'skill': 'validate_postgis_layer',
         'purpose': 'Unwanted', 'arguments': {'target_schema': 'public', 'target_table': 'orders'}, 'requires_approval': False})
-    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
     client = Client(reply)
     with pytest.raises(PlannerAgentError):
         submission_action(request(), project_root=project, model_client=client)
@@ -152,7 +152,7 @@ def test_unexpected_steps_rejected_not_silently_run(project):
 
 
 def test_worker_timeout_stops_process(project, monkeypatch):
-    import geoagent_harness.interface_api.inspection_policy as policy
+    import geoagent_harness.task_actions.inspection_policy as policy
     real = policy.subprocess.Popen
     children = []
     def track(*args, **kwargs):
@@ -166,8 +166,8 @@ def test_worker_timeout_stops_process(project, monkeypatch):
 
 
 def test_worker_cancellation_stops_process(project, monkeypatch):
-    import geoagent_harness.interface_api.inspection_policy as policy
-    from geoagent_harness.recipes.control import ExecutionCancelled
+    import geoagent_harness.task_actions.inspection_policy as policy
+    from geoagent_harness.platform.execution_control import ExecutionCancelled
     real = policy.subprocess.Popen
     children = []
     def track(*args, **kwargs):
@@ -183,7 +183,7 @@ def test_worker_cancellation_stops_process(project, monkeypatch):
 
 
 def test_byte_limit_is_enforced_inside_reader(project):
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     source = project / 'data/input/large.csv'
     with source.open('wb') as stream:
         stream.truncate(8 * 1024 * 1024 + 1)
@@ -207,7 +207,7 @@ def test_write_proposal_kept_complete_and_never_dispatches_prefix(project):
 
 def test_cli_submission_receipt_uses_shared_service(project):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     submission_action(request(False), project_root=project, model_client=Client())
     payload = project / 'receipt.json'
     payload.write_text(SubmissionRequest(action='read', submission_id=SUBMISSION, conversation_id=CHAT).model_dump_json())
@@ -239,7 +239,7 @@ def test_concurrent_duplicate_never_starts_second_model_or_run(project):
 
 
 def test_lost_final_receipt_still_reconciles_actual_run_without_replay(project, monkeypatch):
-    import geoagent_harness.interface_api.planner_submission as service
+    import geoagent_harness.task_actions.planner_submission as service
     original = service._put
     def fail_final(connection, record):
         if record['status'] == 'started':
@@ -257,8 +257,8 @@ def test_lost_final_receipt_still_reconciles_actual_run_without_replay(project, 
 
 
 def test_changed_chat_before_dispatch_is_rejected(project, monkeypatch):
-    from geoagent_harness.interface_api import workflow
-    from geoagent_harness.interface_api.conversation import conversation_turn
+    from geoagent_harness.task_actions import workflow
+    from geoagent_harness.task_actions.conversation import conversation_turn
     original = workflow.prepare_workflow
     changed = False
     def prepare(*args, **kwargs):
@@ -313,7 +313,7 @@ def test_spatial_submission_uses_bounded_worker_and_reconciles(project, extensio
     assert submission_action(req, project_root=project, model_client=client, background=False)['run']['run_id'] == result['run']['run_id']
     assert client.calls == 1
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     payload=project/'spatial-receipt.json'
     payload.write_text(SubmissionRequest(action='read',submission_id=SUBMISSION,conversation_id=CHAT).model_dump_json())
     cli=CliRunner().invoke(app,['planning-submit','--request-file',str(payload),'--project-root',str(project)])
@@ -336,14 +336,14 @@ def test_spatial_sidecar_change_invalidates_source(project):
 
 @pytest.mark.parametrize('name,content', [('bad.gpkg',b'<VRTDataset/>'),('bad.tif',b'<VRTDataset/>'),('bad.geojson',b'{"type":"FeatureCollection","features":[],"crs":{"type":"link","properties":{"href":"http://example.invalid"}}}')])
 def test_external_or_disguised_spatial_sources_rejected(project,name,content):
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     (project/'data/input'/name).write_bytes(content)
     with pytest.raises(InterfaceApiError,match='Bounded inspection failed'):
         bounded_read(project,action='snapshot',path='data/input/'+name)
 
 
 def test_raster_sidecar_and_shapefile_symlink_rejected(project):
-    from geoagent_harness.interface_api.spatial_inspection_snapshot import snapshot
+    from geoagent_harness.workspaces.sandbox.spatial_snapshot import snapshot
     folder=project/'data/input'
     (folder/'local.tif').write_bytes(b'II*\x00')
     (folder/'local.tif.aux.xml').write_text('external')
@@ -357,7 +357,7 @@ def test_raster_sidecar_and_shapefile_symlink_rejected(project):
 
 
 def test_spatial_limits_reject_before_full_vector_read(project):
-    from geoagent_harness.interface_api.spatial_inspection_snapshot import snapshot
+    from geoagent_harness.workspaces.sandbox.spatial_snapshot import snapshot
     path=project/'data/input/large.geojson'
     path.write_text(json.dumps({'type':'FeatureCollection','features':[{'type':'Feature','geometry':None,'properties':{}}]*10001}))
     with pytest.raises(ValueError,match='feature limit'):
@@ -379,7 +379,7 @@ def test_raster_band_limit_records_failed_read_without_outputs(project):
 
 
 def test_spatial_contract_binding_contains_adapter_version(project):
-    from geoagent_harness.interface_api.inspection_policy import contract_digest, INSPECTION_CONTRACTS
+    from geoagent_harness.task_actions.inspection_policy import contract_digest, INSPECTION_CONTRACTS
     from unittest.mock import patch
     old=contract_digest(project,'inspect_vector')
     with patch.dict(INSPECTION_CONTRACTS['inspect_vector'],version='future'):
@@ -392,7 +392,7 @@ def test_spatial_contract_binding_contains_adapter_version(project):
     ('Inspect parcels.shp. Return feature count, fields and CRS. No writes.','data/input/parcels.shp'),
 ])
 def test_explicit_spatial_metadata_vocabulary(message,path):
-    from geoagent_harness.interface_api.inspection_policy import request_source
+    from geoagent_harness.task_actions.inspection_policy import request_source
     assert request_source(message)==path
 
 
@@ -419,12 +419,12 @@ def test_latest_inspection_source_is_bound_and_wrong_history_gets_one_correction
 
 def test_repeated_wrong_inspection_source_does_not_replace_saved_plan(project):
     from tests.test_planner_conversation import Client as SequencedClient
-    from geoagent_harness.planner.agent import PlannerAgentError
+    from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
     first=submission_action(request(),project_root=project,model_client=Client(),background=False)
     bad={'message':'Ready','plan':{'summary':'Inspect TIFF','steps':[{'step_id':'step_1','skill':'inspect_raster','purpose':'Inspect','arguments':{'path':'sample_orders.csv'}}]}}
     second=request();second.submission_id='e'*32;second.turn.expected_revision=1;second.turn.message='Inspect sample_dem.tif. Return CRS. No writes.'
     with pytest.raises(PlannerAgentError):submission_action(second,project_root=project,model_client=SequencedClient(bad,bad),background=False)
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
     restored=conversation_turn(TurnRequest(action='read',conversation_id=CHAT),project_root=project)
     assert restored['planner_result']==first['conversation']['planner_result']
     assert len(list((project/'workflow-state/interface-runs').glob('*.json')))==1
@@ -448,8 +448,8 @@ def test_raster_to_csv_binds_latest_source_before_policy_and_storage(project):
 
 
 def test_csv_format_error_identifies_step_operation_and_expected_formats():
-    from geoagent_harness.planner.schemas import WorkflowPlan
-    from geoagent_harness.planner.policy import validate_plan_policy, PlannerPolicyError
+    from geoagent_harness.contracts.planning import WorkflowPlan
+    from geoagent_harness.core.policy.plan import validate_plan_policy, PlannerPolicyError
     reply=proposal();reply['plan']['steps'][0]['arguments']['path']='data/input/sample_dem.tif'
     with pytest.raises(PlannerPolicyError,match=r'step_1: inspect_csv requires .* input; path has format .tif') as error:
         validate_plan_policy(WorkflowPlan.model_validate(reply['plan']),available_skills={'inspect_csv'})

@@ -6,14 +6,11 @@ import json
 
 from typer.testing import CliRunner
 
-import geoagent_harness.builder as builder
-from geoagent_harness.builder import (
-    BuilderPromotionPlan,
-    BuilderPromotionPlanError,
-    BuilderPromotionPlanStorageError,
-    BuilderPromotionPlanStorageResult,
-)
-from geoagent_harness.cli import app
+import geoagent_harness.evolution.builder as builder
+from geoagent_harness.evolution.builder.schemas import BuilderPromotionPlan, BuilderPromotionPlanStorageResult
+from geoagent_harness.evolution.builder.promotion_plan import BuilderPromotionPlanError
+from geoagent_harness.evolution.builder.promotion_plan_storage import BuilderPromotionPlanStorageError
+from geoagent_harness.apps.cli.main import app
 
 
 runner = CliRunner()

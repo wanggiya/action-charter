@@ -15,7 +15,7 @@ def main():
     import numpy as np
     import rasterio
     from rasterio.transform import from_origin
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     cases=[]
     with TemporaryDirectory(prefix='actioncharter-spatial-measurements-') as directory:
         root=Path(directory);(root/'data/input').mkdir(parents=True)

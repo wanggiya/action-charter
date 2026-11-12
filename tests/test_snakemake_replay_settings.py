@@ -4,11 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.snakemake_export import (
-    SnakemakeReplayConfiguration,
-    SnakemakeReplaySettingsError,
-    load_snakemake_replay_settings,
-)
+from geoagent_harness.data.export.snakemake.schemas import SnakemakeReplayConfiguration
+from geoagent_harness.platform.replay_settings import SnakemakeReplaySettingsError, load_snakemake_replay_settings
 
 
 def test_replay_settings_load_trusted_roots() -> None:

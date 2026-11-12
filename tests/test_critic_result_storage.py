@@ -6,13 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.critic import (
-    CriticResultStorageError,
-    build_critic_result_record,
-    critic_result_record_sha256,
-    load_critic_result_record,
-    persist_critic_result_record,
-)
+from geoagent_harness.platform.storage.critic_record_storage import CriticResultStorageError, critic_result_record_sha256, load_critic_result_record, persist_critic_result_record
+from geoagent_harness.platform.storage.critic_records import build_critic_result_record
 from tests.test_critic_result_records import critic_result
 
 

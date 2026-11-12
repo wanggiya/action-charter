@@ -6,18 +6,10 @@ from datetime import datetime, timezone
 
 import pytest
 
-from geoagent_harness.approvals import (
-    ApprovalRecord,
-    plan_sha256,
-)
-from geoagent_harness.executor import (
-    ExecutorPolicyError,
-    build_execution_envelope,
-)
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    WorkflowPlan,
-)
+from geoagent_harness.core.policy.approvals.schemas import ApprovalRecord
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.agents.roles.executor.policy import ExecutorPolicyError, build_execution_envelope
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan
 
 NOW = datetime(
     2026,

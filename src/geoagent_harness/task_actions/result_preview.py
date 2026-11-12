@@ -2,7 +2,8 @@
 import hashlib
 import json
 
-from geoagent_harness.tabular.service import TabularError, read_bytes, read_frame
+from geoagent_harness.contracts.paths import TabularError
+from geoagent_harness.data.tabular.service import read_bytes, read_frame
 
 
 def recorded_frame(root, record, request):

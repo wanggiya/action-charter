@@ -1,12 +1,14 @@
 from pathlib import Path
 from datetime import timedelta
 import pytest
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import PostGISInspectionResult
-from geoagent_harness.postgis.rollback.plan import persist_postgis_rollback_plan, postgis_rollback_plan_sha256
-from geoagent_harness.postgis.rollback.approval import create_postgis_rollback_approval, persist_postgis_rollback_approval, postgis_rollback_approval_sha256
-from geoagent_harness.postgis.rollback.execution import execute_postgis_rollback, persist_postgis_rollback_execution, postgis_rollback_execution_sha256
-from geoagent_harness.postgis.rollback.verification import *
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISInspectionResult
+from geoagent_harness.data.databases.postgis.rollback.plan.storage import persist_postgis_rollback_plan, postgis_rollback_plan_sha256
+from geoagent_harness.data.databases.postgis.rollback.approval.service import create_postgis_rollback_approval
+from geoagent_harness.data.databases.postgis.rollback.approval.storage import persist_postgis_rollback_approval, postgis_rollback_approval_sha256
+from geoagent_harness.data.databases.postgis.rollback.execution.service import execute_postgis_rollback
+from geoagent_harness.data.databases.postgis.rollback.execution.storage import persist_postgis_rollback_execution, postgis_rollback_execution_sha256
+from geoagent_harness.data.databases.postgis.rollback.verification import *
 from tests.test_postgis_rollback_plan import NOW, create_plan
 from tests.test_postgis_rollback_approval_execution import FakeTransaction, missing_like
 
@@ -42,7 +44,7 @@ def test_archive_remaining_fails_closed(tmp_path):
 
 def test_execution_scope_mismatch_is_rejected(tmp_path):
     plan,pf,pr,approval,af,ar,ex,ef,er,settings=evidence(tmp_path)
-    from geoagent_harness.postgis.rollback.execution import persist_postgis_rollback_execution
+    from geoagent_harness.data.databases.postgis.rollback.execution.storage import persist_postgis_rollback_execution
     tampered = ex.model_copy(update={
         'approved_step_ids':['step_4_restore_candidate','unexpected'],
     })

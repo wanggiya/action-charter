@@ -8,13 +8,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderActivationPlanStorageError,
-    builder_activation_plan_sha256,
-    load_builder_activation_plan,
-    persist_builder_activation_plan,
-)
-from geoagent_harness.cli import app
+from geoagent_harness.evolution.builder.activation_plan_storage import BuilderActivationPlanStorageError, builder_activation_plan_sha256, load_builder_activation_plan, persist_builder_activation_plan
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_activation_plan import (
     prepared_activation_plan,
 )

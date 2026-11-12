@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.agent_manifest import load_agent_manifest
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
 
 AGENTS_ROOT = Path(__file__).resolve().parents[1] / "agents"
 

@@ -6,11 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.snakemake_export import (
-    SnakemakeExportGenerationError,
-    SnakemakeRecipeExportPlan,
-    generate_snakemake_recipe_export,
-)
+from geoagent_harness.data.export.snakemake.generator import SnakemakeExportGenerationError, generate_snakemake_recipe_export
+from geoagent_harness.data.export.snakemake.schemas import SnakemakeRecipeExportPlan
 
 
 DIGEST = "a" * 64

@@ -3,13 +3,13 @@ import json
 from pathlib import Path
 import shutil
 import pytest
-from geoagent_harness.model.schemas import ModelResult,ModelRequest,ChatMessage
-from geoagent_harness.orchestrator.task_agents import Coordinator,finish_run
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.planner.schemas import PlannerResult
+from geoagent_harness.platform.model_gateway.schemas import ModelResult, ModelRequest, ChatMessage
+from geoagent_harness.agents.runtime.orchestrator.task_agents import Coordinator, finish_run
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.contracts.planning import PlannerResult
 
 ROOT=Path(__file__).parents[1];ID='a'*32
 @pytest.fixture
@@ -97,7 +97,7 @@ def test_report_uses_saved_mode_and_bounded_original_context(project):
 
 
 def test_legacy_assessment_cannot_replace_captured_single_mode(project,monkeypatch):
- from geoagent_harness.interface_api import workflow_runs,run_assessment
+ from geoagent_harness.task_actions import workflow_runs, run_assessment
  record={'run_id':'e'*32,'status':'completed','agent_coordination':{'mode':'single'},'critic_review':{'status':'complete','finding':'Saved self-review'}}
  monkeypatch.setattr(workflow_runs,'_read',lambda directory,identity,**kwargs:record)
  class ForbiddenClient:

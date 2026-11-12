@@ -4,12 +4,12 @@ import json
 import pytest
 
 from tests.test_reusable_recipes_and_runs import project, use, execution, Model
-from geoagent_harness.recipe_catalog import composition as recipes
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action,_directory,_read,_write
-from geoagent_harness.interface_api.run_assessment import assess_run,evidence,review_conversation_run
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.planner.bindings import allocate_csv_outputs,refresh_automatic_targets
-from geoagent_harness.model import ModelClientError
+from geoagent_harness.task_actions import recipe_catalog as recipes
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action, _directory, _read, _write
+from geoagent_harness.task_actions.run_assessment import assess_run, evidence, review_conversation_run
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.data.tabular.bindings import allocate_csv_outputs, refresh_automatic_targets
+from geoagent_harness.platform.model_gateway.client import ModelClientError
 
 
 def run(project):
@@ -76,7 +76,7 @@ def test_critic_failure_never_changes_execution_or_retries(project,kind):
         def complete(self,request):
             self.calls+=1
             if kind=='timeout':raise ModelClientError.timeout()
-            from geoagent_harness.model.schemas import ModelResult
+            from geoagent_harness.platform.model_gateway.schemas import ModelResult
             value={} if kind=='schema' else assessment(record,deterministic_status='failed') if kind=='false_status' else assessment(record,reusable_method={
                 'title':'Invented','purpose':'Unavailable method','operations':['arbitrary_python'],'limitations':['Unverified.']})
             return ModelResult(model='fixture',content=json.dumps(value))
@@ -135,7 +135,7 @@ def test_critic_discards_assessment_if_evidence_changes(project):
 
 
 def test_planner_recipe_schema_feedback_is_bounded(project):
-    from geoagent_harness.planner.recipe_authoring import prepare_recipe
+    from geoagent_harness.agents.roles.planner.recipe_authoring import prepare_recipe
     plan,_=recipes.compose([use(project)],project)
     candidate=recipes.catalog(project)['recipe_clean_csv'].model_dump(mode='json')
     author=Model({},candidate)
@@ -147,9 +147,9 @@ def test_planner_recipe_schema_feedback_is_bounded(project):
 
 
 def test_backend_reviews_enabled_runs_without_browser_or_execution_lease(project,monkeypatch):
-    from geoagent_harness.interface_api import run_assessment
-    from geoagent_harness.interface_api.workflow_runs import _lease
-    from geoagent_harness.model.schemas import ModelResult
+    from geoagent_harness.task_actions import run_assessment
+    from geoagent_harness.task_actions.workflow_runs import _lease
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
     import os
     calls=[]
     class Critic:
@@ -197,7 +197,7 @@ def test_only_explicit_critic_retry_repeats_inference_not_operations(project):
 
 
 def test_critic_annotation_enriches_own_success_without_changing_baseline(project):
-    from geoagent_harness.recipe_catalog import successful
+    from geoagent_harness.capabilities.recipes.catalog import successful
     _,record=run(project)
     before=successful.inventory(project)[0]
     model=Model(assessment(record,reusable_method={'title':'Clean columns','purpose':'Select and fill missing values.',
@@ -210,7 +210,7 @@ def test_critic_annotation_enriches_own_success_without_changing_baseline(projec
     assert annotation['run_id']==record['run_id'] and annotation['execution_authority_granted'] is False
     assert annotation['evidence_kind']=='model_annotation_not_validation'
     assert successful.inventory(project,conversation_id='a'*32)==[]
-    from geoagent_harness.planner.successful_retrieval import retrieve
+    from geoagent_harness.capabilities.recipes.retrieval import retrieve
     snippets,_=retrieve(project,None,'clean csv',{'select_csv_columns','handle_csv_missing'})
     assert snippets[0]['advisory_method_note']['execution_authority_granted'] is False
     assert snippets[0]['advisory_method_note']['evidence_kind']=='model_annotation_not_validation'
@@ -221,7 +221,7 @@ def test_critic_annotation_enriches_own_success_without_changing_baseline(projec
 
 
 def test_critic_annotation_index_failure_preserves_assessment_and_baseline(project,monkeypatch):
-    from geoagent_harness.recipe_catalog import successful
+    from geoagent_harness.capabilities.recipes.catalog import successful
     _,record=run(project)
     before=successful.inventory(project)
     monkeypatch.setattr(successful,'annotate',lambda *args:(_ for _ in ()).throw(OSError('sensitive storage message')))
@@ -236,7 +236,7 @@ def test_selected_vector_export_includes_its_declared_inspection_dependency(proj
     from pathlib import Path
     from shutil import copytree
     copytree(Path(__file__).parents[1]/'context',project/'context',dirs_exist_ok=True)
-    from geoagent_harness.operations.registry import planning_dependencies
+    from geoagent_harness.capabilities.registry.registry import planning_dependencies
     assert planning_dependencies(['vector_attributes_to_csv','aggregate_csv'],project)==['vector_attributes_to_csv','aggregate_csv','inspect_vector']
     plan={'summary':'Inspect, extract attributes and aggregate regions','assumptions':[],'steps':[
         {'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect the source','arguments':{'path':'data/input/points.geojson'},'requires_approval':False,'validation_required':False,'expected_artifacts':[]},
@@ -255,7 +255,7 @@ def test_selected_vector_export_includes_its_declared_inspection_dependency(proj
 
 
 def test_planner_input_grounding_checks_only_supplied_safe_references(project,tmp_path):
-    from geoagent_harness.interface_api.conversation import _input_references
+    from geoagent_harness.task_actions.conversation import _input_references
     secret=tmp_path/'outside.csv';secret.write_text('private')
     (project/'data/input/linked.csv').symlink_to(secret)
     result=_input_references('Inspect points.geojson, linked.csv, ../../outside.csv and missing.csv.',project)
@@ -266,7 +266,7 @@ def test_planner_input_grounding_checks_only_supplied_safe_references(project,tm
 
 def test_explicit_inspection_cannot_be_silently_omitted_from_a_transform_proposal():
     from types import SimpleNamespace
-    from geoagent_harness.planner.request_coverage import validate_calculation_coverage, RequestedOperationOmission
+    from geoagent_harness.agents.roles.planner.request_coverage import validate_calculation_coverage, RequestedOperationOmission
     plan=SimpleNamespace(steps=[SimpleNamespace(skill='calculate_csv_columns')])
     with pytest.raises(RequestedOperationOmission,match='inspect_csv'):
         validate_calculation_coverage(plan,'Inspect orders.csv, then calculate doubled = amount * 2.')
@@ -306,10 +306,10 @@ def test_occupied_model_csv_target_is_corrected_before_review_without_overwrite(
 @pytest.mark.parametrize('failure',['timeout','invalid'])
 def test_review_diagnostics_are_critic_and_preserve_durable_execution(project,failure):
     import httpx
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
-    from geoagent_harness.model.telemetry import scope,read
-    from geoagent_harness.model.catalog import select_review_timeout,ReviewTimeoutSelection
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
+    from geoagent_harness.platform.model_gateway.telemetry import scope, read
+    from geoagent_harness.platform.model_gateway.catalog import select_review_timeout, ReviewTimeoutSelection
     _,record=run(project)
     before_outputs={p.name:p.read_bytes() for p in (project/'data/output').glob('*.csv')}
     select_review_timeout(project,ReviewTimeoutSelection(seconds=30,expected_revision=0))
@@ -337,10 +337,10 @@ def test_review_diagnostics_are_critic_and_preserve_durable_execution(project,fa
 @pytest.mark.parametrize('execution_fails',[False,True])
 def test_worker_keeps_execution_status_separate_from_review_timeout(project,monkeypatch,execution_fails):
     import os,httpx
-    from geoagent_harness.interface_api import workflow_runs,workflow,run_assessment
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
-    from geoagent_harness.model.telemetry import read
+    from geoagent_harness.task_actions import workflow_runs, workflow, run_assessment
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
+    from geoagent_harness.platform.model_gateway.telemetry import read
     _,record=run(project)
     record['conversation_id']='e'*32
     _write(_directory(project),record)

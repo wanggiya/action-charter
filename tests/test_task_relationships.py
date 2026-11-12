@@ -5,17 +5,17 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.approvals.schemas import ApprovalRecord
-from geoagent_harness.approvals.service import plan_sha256
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.task_history.relationships import inspect_task_relationships
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.approvals.schemas import ApprovalRecord
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.core.ledger.task_history.relationships import inspect_task_relationships
 
 class TaskRelationshipTests(unittest.TestCase):
     def test_recipe_approval_uses_current_policy_without_granting_authority(self):
-        from geoagent_harness.recipes.schemas import WorkflowRecipe, RecipeApprovalRecord
-        from geoagent_harness.recipes.digest import recipe_sha256
-        from geoagent_harness.skill_registry import load_skill_registry
+        from geoagent_harness.contracts.recipes import WorkflowRecipe, RecipeApprovalRecord
+        from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
+        from geoagent_harness.platform.skill_registry import load_skill_registry
         registry=load_skill_registry(Path(__file__).resolve().parents[1])
         for mode in ["approved", "denied", "expired", "wrong_scope", "wrong_recipe"]:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
@@ -37,8 +37,8 @@ class TaskRelationshipTests(unittest.TestCase):
                 self.assertFalse(result["execution_authorized"])
 
     def test_outcome_matches_recipe_and_complete_embedded_result(self):
-        from geoagent_harness.recipes.schemas import WorkflowRecipe
-        from geoagent_harness.recipes.digest import recipe_sha256
+        from geoagent_harness.contracts.recipes import WorkflowRecipe
+        from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
         for mode in ["exact", "wrong_recipe", "wrong_skill", "wrong_evidence", "missing_evidence", "altered"]:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 project=Path(directory); root=project / "task-history"
@@ -68,8 +68,8 @@ class TaskRelationshipTests(unittest.TestCase):
                 else:self.assertEqual(observed["outcome_relationships"][0]["relationship"],"exact_recorded_outcome" if mode=="exact" else "unlinked")
 
     def test_recipe_requires_complete_source_definition_not_just_id(self):
-        from geoagent_harness.planner.recipe_definition import planner_recipe_definition
-        from geoagent_harness.recipes.digest import recipe_sha256
+        from geoagent_harness.core.policy.recipe_definition import planner_recipe_definition
+        from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
         for mode in ["exact", "arguments", "request", "outputs", "altered", "missing_plan"]:
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 project=Path(directory); root=project / "task-history"

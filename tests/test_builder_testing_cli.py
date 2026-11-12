@@ -6,12 +6,10 @@ import json
 
 from typer.testing import CliRunner
 
-import geoagent_harness.builder as builder
-from geoagent_harness.builder import (
-    BuilderCandidateTestAssessment,
-    BuilderCandidateTestingError,
-)
-from geoagent_harness.cli import app
+import geoagent_harness.evolution.builder as builder
+from geoagent_harness.evolution.builder.schemas import BuilderCandidateTestAssessment
+from geoagent_harness.evolution.builder.testing import BuilderCandidateTestingError
+from geoagent_harness.apps.cli.main import app
 
 
 runner = CliRunner()

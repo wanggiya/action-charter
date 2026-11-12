@@ -5,14 +5,11 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from geoagent_harness.mcp_client import READ_ONLY_TOOL_ALLOWLIST
-from geoagent_harness.mcp_server.server import mcp
-from geoagent_harness.mcp_server.settings import MCPSettings, load_settings
-from geoagent_harness.mcp_server.tools import (
-    TOOL_ALLOWLIST,
-    assess_spatial_data_contract,
-)
-from geoagent_harness.skill_registry import load_skill_registry
+from geoagent_harness.platform.internal_mcp.client import READ_ONLY_TOOL_ALLOWLIST
+from geoagent_harness.apps.mcp.server import mcp
+from geoagent_harness.platform.settings import MCPSettings, load_settings
+from geoagent_harness.task_actions.data_tools import TOOL_ALLOWLIST, assess_spatial_data_contract
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

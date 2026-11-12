@@ -6,16 +6,16 @@ import sqlite3
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.workspace import CONFIG_NAME, RUNTIME_STORES, WorkspaceError, WorkspaceLayout
-from geoagent_harness.workspace_migration import migrate, verify, rollback, inventory
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.platform.workspace import CONFIG_NAME, RUNTIME_STORES, WorkspaceError, WorkspaceLayout
+from geoagent_harness.platform.workspace_migration import migrate, verify, rollback, inventory
 from tests.test_task_agents import project
 from tests.test_workspace_layout import _inspect, configure
 
 
 def test_verified_offline_migration_reopens_chat_run_and_leaves_source_only(project, tmp_path_factory):
-    from geoagent_harness.interface_api.conversation import conversation_turn, TurnRequest
-    from geoagent_harness.interface_api.workflow_runs import run_action, RunRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
     original = _inspect(project)
     run = original['run']
     # Include a historical Builder package and explicit logical evidence link.
@@ -72,7 +72,7 @@ def test_old_explicit_root_writes_also_block_rollback(tmp_path):
 
 
 def test_unsafe_archive_manifest_cannot_move_arbitrary_paths(tmp_path):
-    from geoagent_harness.workspace_migration import MANIFEST
+    from geoagent_harness.platform.workspace_migration import MANIFEST
     project = tmp_path / 'project'; project.mkdir()
     state = tmp_path / 'state'
     migrate(project, state, apply=True, offline=True)
@@ -84,8 +84,8 @@ def test_unsafe_archive_manifest_cannot_move_arbitrary_paths(tmp_path):
 
 
 def test_new_session_after_migration_revokes_previous_authority(project, tmp_path_factory, monkeypatch):
-    from geoagent_harness.write_policy import session, check, WritePolicyError
-    from geoagent_harness.recipes.approval import load_recipe_approval
+    from geoagent_harness.core.policy.write_policy import session, check, WritePolicyError
+    from geoagent_harness.core.policy.recipe_approval import load_recipe_approval
     from tests.test_reusable_recipes_and_runs import execution
     from tests.test_workspace_authority import export_plan
     monkeypatch.setenv('ENABLE_WRITE_TOOLS', 'true')
@@ -158,7 +158,7 @@ def test_unsafe_or_unconfirmed_migrations_do_not_change_source(tmp_path, kind):
 
 
 def test_active_launcher_blocks_migration_without_config_change(tmp_path):
-    from geoagent_harness.write_policy import session
+    from geoagent_harness.core.policy.write_policy import session
     project = tmp_path / 'project'; project.mkdir()
     with session(project):
         with pytest.raises(WorkspaceError, match='in use'):
@@ -214,9 +214,9 @@ def test_cli_migration_preview_and_confirmed_cutover(tmp_path):
 
 def test_reviewed_context_and_intent_survive_migration_and_still_recheck_history(tmp_path):
     from tests.test_intent_review import IntentReviewTests
-    from geoagent_harness.intent.review import save_reviewed_intent, load_reviewed_intent
-    from geoagent_harness.intent.inventory import reviewed_context_inventory
-    from geoagent_harness.task_history import append_task_event
+    from geoagent_harness.agents.roles.intent.review import save_reviewed_intent, load_reviewed_intent
+    from geoagent_harness.agents.roles.intent.inventory import reviewed_context_inventory
+    from geoagent_harness.core.ledger.task_history.service import append_task_event
     fixture = IntentReviewTests(); fixture.setUp()
     try:
         project = fixture.root

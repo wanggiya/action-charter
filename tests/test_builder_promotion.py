@@ -8,15 +8,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import geoagent_harness.builder as builder
-from geoagent_harness.builder import (
-    BuilderPromotionError,
-    builder_promotion_plan_sha256,
-    persist_builder_promotion_plan,
-    plan_builder_promotion,
-    promote_builder_candidate,
-)
-from geoagent_harness.cli import app
+import geoagent_harness.evolution.builder as builder
+from geoagent_harness.evolution.builder.promotion import BuilderPromotionError, promote_builder_candidate
+from geoagent_harness.evolution.builder.promotion_plan_storage import builder_promotion_plan_sha256, persist_builder_promotion_plan
+from geoagent_harness.evolution.builder.promotion_plan import plan_builder_promotion
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_promotion_plan import (
     prepared_promotion,
 )

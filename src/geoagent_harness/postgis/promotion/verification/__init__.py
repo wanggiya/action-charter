@@ -1,4 +1,5 @@
-from .schemas import PostGISPromotionVerificationResult
-from .service import PostGISPromotionVerificationError, verify_postgis_promotion
-from .storage import PostGISPromotionVerificationStorageError, load_postgis_promotion_verification, persist_postgis_promotion_verification, postgis_promotion_verification_sha256
+"""Compatibility exports; native code imports the explicit layer owners."""
+from geoagent_harness.data.databases.postgis.promotion.verification.schemas import PostGISPromotionVerificationResult
+from geoagent_harness.data.databases.postgis.promotion.verification.service import PostGISPromotionVerificationError, verify_postgis_promotion
+from geoagent_harness.data.databases.postgis.promotion.verification.storage import PostGISPromotionVerificationStorageError, load_postgis_promotion_verification, persist_postgis_promotion_verification, postgis_promotion_verification_sha256
 __all__=["PostGISPromotionVerificationError","PostGISPromotionVerificationResult","verify_postgis_promotion","PostGISPromotionVerificationStorageError","load_postgis_promotion_verification","persist_postgis_promotion_verification","postgis_promotion_verification_sha256"]

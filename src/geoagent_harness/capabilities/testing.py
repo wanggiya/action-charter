@@ -8,9 +8,9 @@ import sys
 
 
 def test_text_package(package, timeout_seconds=20):
-    from geoagent_harness.operations.packages import canonical, PackageError, package_sha
+    from geoagent_harness.contracts.operation_packages import canonical, PackageError, package_sha
     if sys.platform != 'linux':raise PackageError('The bounded acquisition test worker currently requires Linux resource limits')
-    source=str(Path(__file__).resolve().parents[2])
+    source=str(Path(__import__('geoagent_harness').__file__).resolve().parent.parent)
     command=[sys.executable,'-I','-B','-c',
         'import sys;sys.path.insert(0,sys.argv[1]);from geoagent_harness.capabilities.worker import main;main()',source]
     env={'PATH':str(Path(sys.executable).parent),'LANG':'C.UTF-8','OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1','PYTHONDONTWRITEBYTECODE':'1'}

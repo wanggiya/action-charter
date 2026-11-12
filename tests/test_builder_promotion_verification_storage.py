@@ -8,14 +8,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderPromotionVerificationStorageError,
-    builder_promotion_verification_sha256,
-    load_builder_promotion_verification,
-    persist_builder_promotion_verification,
-    verify_builder_promotion_bundle,
-)
-from geoagent_harness.cli import app
+from geoagent_harness.evolution.builder.promotion_verification_storage import BuilderPromotionVerificationStorageError, builder_promotion_verification_sha256, load_builder_promotion_verification, persist_builder_promotion_verification
+from geoagent_harness.evolution.builder.promotion_verification import verify_builder_promotion_bundle
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_promotion import (
     prepared_persisted_plan,
     promote,

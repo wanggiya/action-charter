@@ -1,15 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.builder import (
-    BuilderArtifactKind,
-    BuilderArtifactRequest,
-    BuilderFileProposal,
-    BuilderProposal,
-    BuilderRequest,
-    validate_builder_proposal,
-    BuilderCandidateTestRecord,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderArtifactKind, BuilderArtifactRequest, BuilderFileProposal, BuilderProposal, BuilderRequest, BuilderCandidateTestRecord
+from geoagent_harness.evolution.builder.policy import validate_builder_proposal
 
 
 def valid_request() -> BuilderRequest:

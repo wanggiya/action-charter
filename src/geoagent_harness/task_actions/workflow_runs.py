@@ -4,8 +4,8 @@ No worker is restarted automatically. Cancellation is observed between complete
 operations; an active write and its verification are allowed to finish.
 """
 from __future__ import annotations
-from .storage_paths import runtime_store_path, ensure_state_root
-from geoagent_harness.workspace import WorkspaceLayout
+from geoagent_harness.platform.paths import runtime_store_path, ensure_state_root
+from geoagent_harness.platform.workspace import WorkspaceLayout
 
 import fcntl
 import hashlib
@@ -14,25 +14,27 @@ import os
 import re
 import time
 import uuid
-from geoagent_harness.storage import repositories, RepositoryError
-from geoagent_harness.storage.files import FileJsonRecords
+from geoagent_harness.platform.storage import repositories
+from geoagent_harness.platform.storage import RepositoryError
+from geoagent_harness.platform.storage.files import FileJsonRecords
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock, Thread
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-from geoagent_harness.model import ModelClientError, ModelSettingsError
+from geoagent_harness.platform.model_gateway import ModelClientError
+from geoagent_harness.platform.model_gateway import ModelSettingsError
 
-from .workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import WorkflowRequest
 
 _LOCK = RLock()
 TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'validation_failed'}
 
 
-from .exploration_contracts import ChartAnalysis, ExplorationQuery
-from .spatial_views import SpatialViewOptions
-from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
+from geoagent_harness.task_actions.exploration_contracts import ChartAnalysis, ExplorationQuery
+from geoagent_harness.workspaces.sandbox.spatial_rendering import SpatialViewOptions
+from geoagent_harness.contracts.analysis_options import AnalysisOptions
 
 
 class RunRequest(BaseModel):
@@ -53,11 +55,13 @@ class RunRequest(BaseModel):
 
 
 def _now():
-    return datetime.now(timezone.utc).isoformat()
+    from geoagent_harness.platform.execution_services import execution_services
+    return execution_services().clock.now().isoformat()
 
 
 def _directory(root):
-    from .common import _trusted_root, InterfaceApiError
+    from geoagent_harness.platform.project import _trusted_root
+    from geoagent_harness.contracts.errors import InterfaceApiError
     root = _trusted_root(root)
     parent = runtime_store_path(root, 'workflow-state', 'interface-runs').parent
     directory = parent / 'interface-runs'
@@ -71,7 +75,7 @@ def _directory(root):
 
 
 def _lease(directory):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     fd = os.open(directory / 'active.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -93,12 +97,12 @@ def _write(directory, record, *, project_root=None):
     try:
         _store(directory, project_root=project_root).replace(record['run_id'] + '.json', content)
     except RepositoryError as error:
-        from .common import InterfaceApiError
+        from geoagent_harness.contracts.errors import InterfaceApiError
         raise InterfaceApiError(str(error)) from error
 
 
 def _read(directory, identity, *, project_root=None):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     if not identity:
         raise InterfaceApiError('Choose a workflow run')
     # Compatibility for private legacy callers; production always supplies the project.
@@ -135,7 +139,7 @@ def _read(directory, identity, *, project_root=None):
         finally:
             os.close(fd)
     if record.get('critic_review',{}).get('status')=='running':
-        from .run_assessment import review_in_progress
+        from geoagent_harness.task_actions.run_assessment import review_in_progress
         if not review_in_progress(directory):
             record['critic_review']={**record['critic_review'],'status':'unavailable','finding':'Critic review was interrupted. Recorded results are preserved; no model call or operation was retried.'}
             _write(directory,record, project_root=root)
@@ -228,18 +232,18 @@ class _Observer:
         self.project_root = project_root
 
     def checkpoint(self):
-        from geoagent_harness.recipes.control import ExecutionCancelled
+        from geoagent_harness.platform.execution_control import ExecutionCancelled
         with _LOCK:
             record = _read(self.directory, self.identity, project_root=self.project_root)
             if record['cancel_requested']:
                 raise ExecutionCancelled('Cancelled before the next operation; completed outputs are retained')
 
     def progress(self, step_id, skill_id, status, outcome=None, validation=None):
-        from .common import _bounded_outcome
+        from geoagent_harness.platform.outcomes import _bounded_outcome
         with _LOCK:
             record = _read(self.directory, self.identity, project_root=self.project_root)
             if status == 'running' and record['cancel_requested']:
-                from geoagent_harness.recipes.control import ExecutionCancelled
+                from geoagent_harness.platform.execution_control import ExecutionCancelled
                 raise ExecutionCancelled('Cancelled before operation dispatch')
             for step in record['steps']:
                 if step['step_id'] == step_id and step['skill_id'] == skill_id:
@@ -253,7 +257,7 @@ class _Observer:
                         bounded = _bounded_outcome(fit_database_receipt(fit_table_preview(outcome)))
                         limit = 48000 if skill_id in {'validate_postgres_import','import_csv_to_postgres','inspect_postgres_table','export_postgres_to_csv'} else 128000 if isinstance(bounded,dict) and isinstance(bounded.get('table_analysis'),dict) else 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
                         if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
-                            from geoagent_harness.skills.inspect_vector.preview import fit_recorded_geometry
+                            from geoagent_harness.data.spatial.skills.inspect_vector.preview import fit_recorded_geometry
                             bounded = fit_recorded_geometry(bounded)
                             limit = 12000
                         step['outcome'] = bounded if len(json.dumps(bounded).encode())<=limit else {'preview_omitted':True,'reason':'Intermediate result exceeds the recorded preview budget; inspect durable evidence'}
@@ -267,10 +271,10 @@ class _Observer:
 
 
 def _worker_impl(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
-    from .inspection_policy import active_inspection
+    from geoagent_harness.task_actions.inspection_policy import active_inspection
     inspection_token = active_inspection.set(inspection_binding)
-    from geoagent_harness.recipes.control import observer, ExecutionCancelled
-    from .workflow import execute_workflow, execution_failure_payload
+    from geoagent_harness.platform.execution_control import observer, ExecutionCancelled
+    from geoagent_harness.task_actions.workflow import execute_workflow, execution_failure_payload
     token = observer.set(_Observer(directory, identity, project_root=root))
     try:
         with _LOCK:
@@ -278,7 +282,7 @@ def _worker_impl(root, directory, identity, workflow, fd, review_outcome=False, 
             record['status'] = 'running'
             _write(directory, record, project_root=root)
         observer.get().checkpoint()
-        from geoagent_harness.model.telemetry import phase
+        from geoagent_harness.platform.model_gateway.telemetry import phase
         with phase('executor','execution'):
             result = execute_workflow(workflow, project_root=root)
         with _LOCK:
@@ -319,7 +323,7 @@ def _worker_impl(root, directory, identity, workflow, fd, review_outcome=False, 
         _retain_record(root, directory, _read(directory, identity, project_root=root))
     with _LOCK:captured_record=_read(directory,identity, project_root=root)
     if captured_record.get('agent_coordination'):
-        from geoagent_harness.orchestrator.task_agents import finish_run
+        from geoagent_harness.agents.runtime.orchestrator.task_agents import finish_run
         try:completed=finish_run(root,captured_record)
         except Exception:completed=None
         with _LOCK:
@@ -337,18 +341,18 @@ def _worker_impl(root, directory, identity, workflow, fd, review_outcome=False, 
             _write(directory,current, project_root=root)
         return
     if review_outcome:
-        from .run_assessment import assess_run
+        from geoagent_harness.task_actions.run_assessment import assess_run
         # Execution is already final/durable and its lease released. Assessment
         # cannot hold up a later operation, grant authority or restart a worker.
         assess_run(root,identity)
 
 
 def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspection_binding=None):
-    from geoagent_harness.model.telemetry import scope,phase
+    from geoagent_harness.platform.model_gateway.telemetry import scope, phase
     try:conversation_id=_read(directory,identity, project_root=root).get('conversation_id')
     except Exception:conversation_id=None
     if not conversation_id:return _worker_impl(root,directory,identity,workflow,fd,review_outcome,inspection_binding)
-    from geoagent_harness.model.catalog import request_selection
+    from geoagent_harness.platform.model_gateway.catalog import request_selection
     with scope(root,conversation_id,independent=True) as telemetry,request_selection(root):
         telemetry['record']['workflow_run_id']=identity
         result=_worker_impl(root,directory,identity,workflow,fd,review_outcome,inspection_binding)
@@ -361,12 +365,12 @@ def _worker(root, directory, identity, workflow, fd, review_outcome=False, inspe
 
 
 def _retain_record(root, directory, record):
-    from geoagent_harness.planner.outcome_recommendations import record_outcome
+    from geoagent_harness.agents.roles.planner.outcome_recommendations import record_outcome
     try:
         record['recommendation_evidence'] = record_outcome(root, record)
     except Exception:
         record['recommendation_evidence'] = 'unavailable'
-    from geoagent_harness.recipe_catalog.successful import retain
+    from geoagent_harness.capabilities.recipes.catalog.successful import retain
     try:
         receipt = retain(root, record)
     except Exception:
@@ -381,14 +385,16 @@ def _retain_record(root, directory, record):
 
 def _recovery(root, record):
     """Prepare a new proposal, never replay a write with old authority."""
-    from geoagent_harness.approvals import load_planner_result
-    from .workflow import EditRequest, validate_edit
-    from .common import InterfaceApiError
+    from geoagent_harness.core.policy.approvals import load_planner_result
+    from geoagent_harness.contracts.actions import EditRequest
+    from geoagent_harness.capabilities.workflow import validate_edit
+    from geoagent_harness.contracts.errors import InterfaceApiError
     result = repositories(root).documents('plans').load(record['plan_filename']).model_copy(deep=True)
     if any(step.skill in {'export_snakemake_workflow', 'verify_snakemake_export', 'generate_report', 'soft_delete_postgres_rows', 'restore_postgres_rows'} for step in result.plan.steps):
         raise InterfaceApiError('This workflow needs target-specific recovery review; use Planner to revise it')
     suffix = uuid.uuid4().hex[:12]
-    from geoagent_harness.skill_registry import load_skill_registry, SkillAccess
+    from geoagent_harness.platform.skill_registry import load_skill_registry
+    from geoagent_harness.contracts.skill_registry import SkillAccess
     registry=load_skill_registry(root)
     read_only=all(registry.get_skill(s.skill).access==SkillAccess.READ_ONLY for s in result.plan.steps)
     if read_only:
@@ -418,7 +424,7 @@ def _latest_scoped_run(directory, request, *, project_root=None):
     Inspect metadata without reconciling/writing unrelated runs. A bounded lookup
     failure is unavailable evidence, never a claim that no run exists.
     """
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     if not request.conversation_id or not request.confirmed_plan_sha256:
         raise InterfaceApiError('Latest run lookup requires the exact conversation and plan')
     started = time.monotonic()
@@ -446,8 +452,9 @@ def _latest_scoped_run(directory, request, *, project_root=None):
 
 
 def run_action(request: RunRequest, *, project_root: Path, background=True, inspection_binding=None, submission_run_id=None):
-    from .common import _trusted_root, InterfaceApiError
-    from .workflow import prepare_workflow
+    from geoagent_harness.platform.project import _trusted_root
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.task_actions.workflow import prepare_workflow
     root = _trusted_root(project_root)
     directory = _directory(root)
     if request.action == 'latest':
@@ -460,7 +467,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         if (not request.conversation_id or request.conversation_id != record.get('conversation_id')
                 or request.confirmed_plan_sha256 != record['plan_sha256']):
             raise InterfaceApiError('Execution assistance requires the matching chat and plan')
-        from geoagent_harness.model import load_model_settings
+        from geoagent_harness.platform.model_gateway import load_model_settings
         try:
             model_name = load_model_settings().model
         except ModelSettingsError as error:
@@ -471,11 +478,11 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         previous = record.get('execution_assistance') or {}
         if previous.get('request_sha256') == identity and not request.retry_assessment:
             return {**previous, 'cached': True}
-        from .execution_assistance import assist
+        from geoagent_harness.task_actions.execution_assistance import assist
         try:
             response = assist(root,record,request)
         except (ModelClientError, ModelSettingsError) as error:
-            from geoagent_harness.model.diagnostics import model_failure
+            from geoagent_harness.platform.model_gateway.diagnostics import model_failure
             failure = model_failure(error)
             raise InterfaceApiError(f"{failure['error']}. {failure['retry_guidance']} Recorded workflow is preserved.") from error
         except ValueError as error:
@@ -488,7 +495,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
     if request.action=='assess':
         with _LOCK:record=_read(directory,request.run_id, project_root=root)
         if record.get('agent_coordination'):return record  # Reopening assessment never changes a frozen agent topology or calls another model.
-        from .run_assessment import assess_run
+        from geoagent_harness.task_actions.run_assessment import assess_run
         return assess_run(root,request.run_id,retry=request.retry_assessment)
     if request.action in {'preview', 'explore', 'spatial_view', 'table_analysis'}:
         # Capture scope under the run lock; CSV I/O must not hold up progress,
@@ -496,7 +503,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         with _LOCK:
             record = _read(directory, request.run_id, project_root=root)
         if request.action == 'table_analysis':
-            from geoagent_harness.tabular.analytical_service import recorded_analysis
+            from geoagent_harness.data.tabular.analytical_service import recorded_analysis
             try:
                 return recorded_analysis(root, record, request)
             except ValueError as error:
@@ -504,13 +511,13 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         if request.action == 'spatial_view':
             if request.spatial is None:
                 raise InterfaceApiError('Choose spatial viewing options')
-            from .spatial_views import spatial_result
+            from geoagent_harness.task_actions.spatial_views import spatial_result
             return spatial_result(root, record, request)
-        from .result_preview import preview_result
-        from geoagent_harness.tabular.service import TabularError
+        from geoagent_harness.task_actions.result_preview import preview_result
+        from geoagent_harness.contracts.paths import TabularError
         try:
             if request.action == 'explore':
-                from .result_exploration import explore_result
+                from geoagent_harness.task_actions.result_exploration import explore_result
                 return explore_result(root, record, request)
             return preview_result(root, record, request)
         except TabularError as error:
@@ -524,7 +531,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         if request.action != 'start':
             record = _read(directory, request.run_id, project_root=root)
             if request.action=='report':
-                from geoagent_harness.recipes.handoff import handoff
+                from geoagent_harness.capabilities.recipes.execution.handoff import handoff
                 return {**(record.get('agent_report') or {}),'handoff':handoff(record)}
             if request.action == 'cancel' and record['status'] not in TERMINAL:
                 record['cancel_requested'] = True
@@ -547,7 +554,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
         if review.get('workflow_kind') == 'snakemake_export':
             raise InterfaceApiError('Snakemake export uses its existing synchronous execution path')
         if inspection_binding is not None:
-            from .inspection_policy import check_dispatch
+            from geoagent_harness.task_actions.inspection_policy import check_dispatch
             check_dispatch(root, review, inspection_binding)
         if submission_run_id is not None and (directory / (submission_run_id + '.json')).exists():
             raise InterfaceApiError('Submission already has an execution record; inspect it rather than restarting')
@@ -570,7 +577,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
                 'steps':[{'step_id':s['step_id'],'skill_id':s['skill'],'status':'queued','arguments':s['arguments'],
                           'depends_on':s.get('depends_on',[]),'outcome':None,'validation_outcome':None} for s in review['steps']]}
             # Only a matching own-chat snapshot can become automatic planning context.
-            from geoagent_harness.recipe_catalog.successful import capture_basis
+            from geoagent_harness.capabilities.recipes.catalog.successful import capture_basis
             try:
                 record['retention_basis'] = capture_basis(root, review['steps'])
             except Exception:
@@ -581,9 +588,9 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
             record['successful_recipe'] = {'status': 'pending'}
             record['conversation_id']=None
             if request.conversation_id:
-                from .planning_tasks import conversation_record
-                from geoagent_harness.planner.schemas import PlannerResult
-                from geoagent_harness.approvals import plan_sha256
+                from geoagent_harness.task_actions.planning_tasks import conversation_record
+                from geoagent_harness.contracts.planning import PlannerResult
+                from geoagent_harness.core.policy.approvals import plan_sha256
                 chat=conversation_record(root,request.conversation_id)
                 if chat and chat.get('planner_result') and plan_sha256(PlannerResult.model_validate(chat['planner_result']).plan)==review['plan_sha256']:
                     record['conversation_id']=request.conversation_id
@@ -596,12 +603,17 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
             raise
     if background:
         try:
-            from contextvars import copy_context
-            context = copy_context()
-            Thread(target=context.run, args=(_worker,root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding), daemon=True).start()
+            from geoagent_harness.platform.execution_services import execution_services
+            execution_services().queue.submit(_worker, root, directory, record['run_id'], request.workflow,
+                                               fd, request.review_outcome, inspection_binding)
         except BaseException:
             os.close(fd)
             raise
         return record
     _worker(root,directory,record['run_id'],request.workflow,fd,request.review_outcome,inspection_binding)
     return run_action(RunRequest(action='read',run_id=record['run_id']),project_root=root)
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+run_action = _task_entrypoint(run_action, audit=lambda arguments: arguments["request"].action not in ['latest', 'list', 'read', 'report'])

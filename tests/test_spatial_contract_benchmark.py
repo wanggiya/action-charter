@@ -7,10 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.spatial_contracts import (
-    assess_spatial_data_contract,
-    load_spatial_data_contract,
-)
+from geoagent_harness.contracts.spatial.service import assess_spatial_data_contract
+from geoagent_harness.contracts.spatial.storage import load_spatial_data_contract
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

@@ -5,64 +5,24 @@ records together; legacy JSON and former shared-task records remain preserved.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
 import json
 from pathlib import Path
-import re
-from geoagent_harness.storage import repositories, RepositoryError
-from geoagent_harness.storage.sqlite import connection as sqlite_connection, adapt_legacy
+from geoagent_harness.platform.storage.sqlite import adapt_legacy
+from geoagent_harness.platform.storage.metadata import IDENTITY, MAX_RECORD_BYTES, MAX_RECORDS, MAX_DATABASE_BYTES, validate_identity as _identity, raw_database as database, transaction, read_record, write_record
 
-MAX_RECORD_BYTES = 2_000_000
-MAX_RECORDS = 128
-MAX_DATABASE_BYTES = 64_000_000
 # Compatibility for private helpers receiving a raw legacy transaction.
 as_transaction = adapt_legacy
 
-IDENTITY = re.compile(r'^[a-f0-9]{32}$')
-
 
 def _error(message):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     return InterfaceApiError(message)
 
 
-def _identity(value):
-    if not isinstance(value, str) or not IDENTITY.fullmatch(value):
-        raise _error('Invalid planning task identity')
-    return value
-
-
-@contextmanager
-def database(root: Path, *, write=False):
-    """Legacy raw-connection API; production actions use transaction()."""
-    try:
-        with sqlite_connection(root, write=write) as connection:
-            yield connection
-    except RepositoryError as error:
-        raise _error(str(error)) from error
-
-
-@contextmanager
-def transaction(root: Path, *, write=False):
-    try:
-        with repositories(root).transaction(write=write) as unit:
-            yield unit
-    except RepositoryError as error:
-        raise _error(str(error)) from error
-
-
 def _get(connection, table, identity):
-    _identity(identity)
-    if connection is None:
+    value = read_record(connection, table, identity)
+    if value is None:
         return None
-    raw = adapt_legacy(connection).records(table).get(identity)
-    if raw is None:
-        return None
-    if len(raw.encode()) > MAX_RECORD_BYTES:
-        raise _error('Planning task record exceeds its byte bound')
-    value = json.loads(raw)
-    if not isinstance(value, dict) or value.get('task_id' if table in {'tasks','memories'} else 'conversation_id') != identity:
-        raise _error('Planning task record identity changed')
     if table == 'memories' and ((value.get('context_usage') or {}).get('model_request') or {}).get('stage') == 'analytical_exploration':
         # One early analytical writer omitted provenance on its final user/assistant
         # pair. Repair only this known shape, corroborated by the same chat record.
@@ -78,7 +38,7 @@ def _get(connection, table, identity):
                     and own.get('messages')==messages):
                 value['messages']=[*messages[:-2],*[dict(m,task_id=identity,conversation_id=identity) for m in pair]]
     if table in {'tasks','memories'}:
-        from .conversation import PlanningTaskState
+        from geoagent_harness.task_actions.conversation import PlanningTaskState
         value = PlanningTaskState.model_validate(value).model_dump(mode='json')
         if any(not IDENTITY.fullmatch(item) for item in value['conversation_ids']) or any(
             item['task_id'] != identity or item['conversation_id'] not in value['conversation_ids'] for item in value['messages']
@@ -88,13 +48,7 @@ def _get(connection, table, identity):
 
 
 def _put(connection, table, identity, value):
-    _identity(identity)
-    content = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
-    if len(content.encode()) > MAX_RECORD_BYTES:
-        raise _error('Planning task record exceeds its byte bound')
-    if _get(connection, table, identity) is None and adapt_legacy(connection).records(table).count() >= MAX_RECORDS:
-        raise _error('Planning task storage limit reached')
-    adapt_legacy(connection).records(table).put(identity, content)
+    write_record(connection, table, identity, value, existing_reader=_get)
 
 
 def conversation_record(root, identity):
@@ -165,7 +119,7 @@ def write_turn(root, state, *, expected_revision, expected_task_revision, restor
         memory = _get(connection, 'memories', state['conversation_id'])
         if (latest and latest['revision'] != expected_revision) or (memory and memory['revision'] != expected_task_revision):
             raise _error('Conversation changed; reload before sending')
-        from .chat_history import archive
+        from geoagent_harness.platform.storage.chat_snapshots import archive
         archive(connection,latest)
         _put(connection, 'memories', state['conversation_id'], _memory(state))
         _put(connection, 'conversations', state['conversation_id'], state)

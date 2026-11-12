@@ -9,12 +9,13 @@ from threading import Barrier
 
 import pytest
 
-from geoagent_harness.storage import RepositoryError, repositories, using_repository_provider
-from geoagent_harness.storage.provider import LocalRepositories
+from geoagent_harness.platform.storage.contracts import RepositoryError
+from geoagent_harness.platform.storage.provider import repositories, using_repository_provider
+from geoagent_harness.platform.storage.provider import LocalRepositories
 from geoagent_harness.task_actions import planning_tasks
-from geoagent_harness.task_actions.common import InterfaceApiError
+from geoagent_harness.contracts.errors import InterfaceApiError
 from geoagent_harness.task_actions.conversation import Conversation
-from geoagent_harness.workspace import WorkspaceLayout
+from geoagent_harness.platform.workspace import WorkspaceLayout
 
 SOURCE = Path(__file__).parents[1]
 CHAT = 'c' * 32
@@ -147,7 +148,7 @@ def test_read_transaction_is_a_coherent_snapshot(project):
 
 
 def test_mutable_run_bytes_atomic_failure_and_immutable_plan_gate(project, monkeypatch):
-    from geoagent_harness.storage import files
+    from geoagent_harness.platform.storage import files
     store=repositories(project).runs();store.ensure()
     name='a'*32+'.json'
     content='{"run_id": "'+'a'*32+'", "status": "completed", "label": "北"}'
@@ -206,7 +207,7 @@ def test_provider_override_is_scoped_and_actions_use_only_interfaces(project):
 
 def test_repository_boundary_owns_sql_instead_of_shared_actions():
     files=list((SOURCE/'src/geoagent_harness/task_actions').glob('*.py'))
-    files += [SOURCE/'src/geoagent_harness'/name for name in ['model/catalog.py','model/telemetry.py','tabular/dataset_views.py','capabilities/service.py']]
+    files += [SOURCE/'src/geoagent_harness'/name for name in ['platform/model_gateway/catalog.py','platform/model_gateway/telemetry.py','data/tabular/dataset_views.py','agents/roles/planner/acquisition.py']]
     for path in files:
         for node in ast.walk(ast.parse(path.read_text())):
             assert not (isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and node.func.attr in {'execute','executemany'}), (path.name,node.lineno)
@@ -219,10 +220,10 @@ def test_repository_boundary_owns_sql_instead_of_shared_actions():
 def test_provider_reaches_saved_plans_and_background_run_worker(project, monkeypatch):
     """Instrument the real local adapter, including copied background context."""
     import time
-    from geoagent_harness.approvals import plan_sha256
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.core.policy.approvals.service import plan_sha256
+    from geoagent_harness.contracts.planning import PlannerResult
     from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
-    from geoagent_harness.task_actions.contracts import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.contracts.actions import InterfaceReviewedPlanSaveRequest
     from geoagent_harness.task_actions.workflow import prepare_workflow, WorkflowRequest
     from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
     monkeypatch.chdir(project)

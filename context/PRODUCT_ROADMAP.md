@@ -1,6 +1,6 @@
 # ActionCharter active roadmap
 
-Updated: 2026-11-05. Task: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
+Updated: 2026-11-11. Original consolidation: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
 
 This is the navigation and dependency map for future work, not a capability claim or
 execution instruction. [Working method](../docs/product-direction/WORKING_METHOD.md)
@@ -15,6 +15,7 @@ Older checkpoint labels identify history, not new delivery tasks.
 
 | Task | Implemented scope / remaining gate | Evidence or specification |
 |---|---|---|
+| P0 bug #81 | Recorded inspection quality reports: legacy facts and explicit missing checks; bounded basic profiling for new scans, shared MD/PDF. Full fixture suite 2,816 passed, final 10 report checks, frontend/strict gates and isolated browser/API/CLI/PTY passed; owner report acceptance pending. No new inferential method or authority | [Scope and owner validation](../docs/INSPECTION_QUALITY_REPORTS.md) |
 | P0-1 | Documentation/package grouping delivered (PR #59) | [Working method](../docs/product-direction/WORKING_METHOD.md#step-1-tasks-phase-0) |
 | P0-2 | Workspace resolver and guarded offline cutover delivered; real owner checkout remains unmigrated | [Workspace storage](../docs/WORKSPACE_STORAGE.md) |
 | P0-3 | Shared PostGIS lifecycle delivered; no new live-database acceptance | [Lifecycle](../docs/POSTGIS_LIFECYCLE.md) |
@@ -22,13 +23,20 @@ Older checkpoint labels identify history, not new delivery tasks.
 | P0-5 | Local storage repository contracts delivered; specialized stores remain separate | [Repositories](../docs/STORAGE_REPOSITORIES.md) |
 | P0-6 | Frontend workspace/state split delivered; existing layout preserved | [Frontend workspaces](../docs/FRONTEND_WORKSPACES.md) |
 | P0-7 | Active roadmap/archive consolidation complete; original text/hash verified, documentation audit and full tests passed | [History and preservation record](../docs/development/ROADMAP_HISTORY.md) |
+| P0-2b | R2 configuration complete; opt-in local stable identity #79 automatically verified (2,796 tests, 816.47 s; frontend/strict checks and both legacy/stable-ID browser journeys passed). [Owner cutover plan ready](../docs/OWNER_WORKSPACE_CUTOVER_PLAN.md): 26.46 MiB runtime, six development-session links block current preview; synthetic rehearsal passed. Real backup/cutover pending explicit approval; cross-filesystem source/container provisioning remains future work | [Identity](../docs/PROJECT_IDENTITY.md), [configuration](../docs/PLATFORM_CONFIGURATION.md), [working method](../docs/product-direction/WORKING_METHOD.md#step-1-tasks-phase-0) |
+| P0-5b | Local specialized contracts implemented and automatically verified: 2,736 tests (750.12 s), frontend/strict gate and isolated browser/API/CLI/terminal pass; owner manual acceptance deferred | [Ledger contracts, #77](../docs/LEDGER_CONTRACTS.md) |
+| R1–R12 | R1–R8 automatically verified; R9/R10 reuse P0-3/P0-6 with criteria reconciled. R12 implementation/automated gates complete (#78); local identity #79 is automatically verified; R11 #80 retirement and automated gates complete: 290 removed, 117 supported boundaries retained; 2,808 tests (859.92 s), frontend/source checks and isolated stable-ID browser/API/CLI/terminal passed. Owner startup/read-only/refresh recovery passed; only manual Execution History and terminal continuity remain required. Fresh-file write test optional. Real cutover separately pending approval | [Reconciliation](../docs/LEDGER_CONTRACTS.md#r9-and-r10-reconciliation), [combined acceptance](../docs/R_SERIES_ACCEPTANCE.md) |
 
-Next is a **Phase 0 acceptance and remaining-work audit**, not an automatic move to
-Phase 1. Inspect the source-only-root requirement, dependency-layer violations and
-compatibility coverage. Reconcile the draft [R1–R11 restructure plan](../docs/product-direction/RESTRUCTURE_PLAN.md)
-with completed P0 tasks before choosing the next issue. The old scan is dated
-2026-11-02; P0-3/P0-4/P0-5/P0-6 overlap portions of R9/R5/R3/R10, but do not prove
-all layer moves or shim removal complete. No blanket package move is approved here.
+R1 now supplies the dependency gate; R2–R5 provide shared settings, metadata,
+data and task-action foundations. R6 separates remaining policy/ledger/data/role
+responsibilities and moves native implementations into their layers. Strict checking
+now passes with zero upward and dynamic-import debt; this alone does not finish Phase 0.
+R6 automated gates pass; R7 has extracted CLI command groups while preserving shared
+services, command contracts and optional imports; its automated gates pass. R8 HTTP extraction and automated gates are complete. R8 routers and R12 server seams stay separate;
+R9/R10 criteria reuse the PostGIS lifecycle and frontend workspace split. P0-5b supplies
+the local ledger/concurrency boundary; R12 now adds trusted context and local service
+ports; 2,771 tests (793.66 s), frontend/strict gate and final isolated fixture
+browser/API/CLI/terminal pass. [R12 evidence](../docs/EXECUTION_CONTEXT.md). [R11 retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete adapters while retaining 117 supported boundaries; required automated gates pass. The [acceptance record](../docs/R_SERIES_ACCEPTANCE.md#acceptance-record) has owner startup/read-only/recovery passes and two remaining manual checks; no new R-series code planned without a demonstrated regression.
 Real checkout cutover remains owner-controlled; disposable migration evidence is
 not proof that the owner checkout is source-only. Phase 0 exits only when the full
 tests pass, the source-only-root gate is met and the layer check has no violations.

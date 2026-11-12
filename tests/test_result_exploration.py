@@ -5,10 +5,10 @@ import pytest
 from typer.testing import CliRunner
 from tests.test_tabular_workflow import project
 from tests.test_result_preview import recorded
-from geoagent_harness.interface_api.exploration_contracts import ExplorationQuery, ChartAnalysis, ResultViewSpec
-from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.cli import app
+from geoagent_harness.task_actions.exploration_contracts import ExplorationQuery, ChartAnalysis, ResultViewSpec
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.apps.cli.main import app
 
 
 def explore(project, content=b'id,region,amount\n001,North,10\n002,South,\n003,North,20\n', **query):

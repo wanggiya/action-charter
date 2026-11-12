@@ -19,9 +19,7 @@ import pytest
 import geoagent_harness
 
 
-from geoagent_harness.builder.schemas import (
-    BuilderCandidateManifest,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderCandidateManifest
 
 CANDIDATE_ROOT = Path("/candidate")
 CANDIDATE_SOURCE = (

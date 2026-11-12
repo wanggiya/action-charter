@@ -5,10 +5,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.skills.convert_raster.schemas import (
-    ConvertRasterArguments,
-    RasterResampling,
-)
+from geoagent_harness.data.spatial.skills.convert_raster.schemas import ConvertRasterArguments
+from geoagent_harness.data.spatial.adapters.raster_conversion import RasterResampling
 
 
 def test_arguments_are_strict() -> None:

@@ -3,17 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.geoserver.inspection import GeoServerInspectionRequest
-from geoagent_harness.geoserver.publication import (
-    GeoServerPublicationError,
-    GeoServerPublicationPlanRequest,
-    create_geoserver_publication_approval,
-    execute_geoserver_publication,
-    plan_geoserver_publication,
-    publication_approval_sha256,
-    verify_geoserver_publication,
-)
-from geoagent_harness.mcp_server.settings import MCPSettings
+from geoagent_harness.data.spatial.geoserver.inspection.schemas import GeoServerInspectionRequest
+from geoagent_harness.data.spatial.geoserver.publication.service import GeoServerPublicationError, create_geoserver_publication_approval, execute_geoserver_publication, plan_geoserver_publication, publication_approval_sha256, verify_geoserver_publication
+from geoagent_harness.data.spatial.geoserver.publication import GeoServerPublicationPlanRequest
+from geoagent_harness.platform.settings import MCPSettings
 
 
 class FakeClient:

@@ -2,11 +2,11 @@
 import json
 from pathlib import Path
 import pytest
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.context_pack import build_context_pack
-from geoagent_harness.model.schemas import ModelResult
-from geoagent_harness.planner.agent import PlannerAgentError, run_planner_agent
-from geoagent_harness.planner.prompt import build_planner_request
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.agents.memory.context_pack.builder import build_context_pack
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError, run_planner_agent
+from geoagent_harness.agents.roles.planner.prompt import build_planner_request
 
 ROOT = Path(__file__).resolve().parents[1]
 

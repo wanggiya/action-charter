@@ -3,12 +3,13 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 import pytest
-from geoagent_harness.model import ModelResult
-from geoagent_harness.intent.service import reason_task_intent, IntentError
-from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent, load_reviewed_intent
-from geoagent_harness.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
-from geoagent_harness.intent.inventory import reviewed_context_inventory
-from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.agents.roles.intent.service import reason_task_intent
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent, load_reviewed_intent
+from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
+from geoagent_harness.agents.roles.intent.inventory import reviewed_context_inventory
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
 
 class FakeIntent:
     def __init__(self, citations=None): self.citations = citations or []; self.calls = 0
@@ -21,7 +22,7 @@ class FakeIntent:
 
 def test_no_history_lifecycle_is_explicit_and_has_no_work_authority(tmp_path: Path):
     model = FakeIntent()
-    with patch('geoagent_harness.intent.service.load_reviewed_context', side_effect=AssertionError('must not load history')):
+    with patch('geoagent_harness.agents.roles.intent.service.load_reviewed_context', side_effect=AssertionError('must not load history')):
         result = reason_task_intent(project_root=tmp_path, review_filename=None, request='Inspect metadata', model_client=model)
     assert result['review_filename'] is result['context_sha256'] is None
     assert not (tmp_path/'task-history').exists() and model.calls == 1
@@ -33,9 +34,9 @@ def test_no_history_lifecycle_is_explicit_and_has_no_work_authority(tmp_path: Pa
         source = json.loads(kwargs['original_request'])
         assert source['context_sha256'] is None
         return PlannerResult(model='fake', original_request=kwargs['original_request'], context_references=[], plan=WorkflowPlan(summary='Inspect metadata', steps=[PlanStep(step_id='step_1',skill='inspect_vector',purpose='Inspect',arguments={'path':'data/input/sample.geojson'},requires_approval=True)]))
-    with patch('geoagent_harness.intent.handoff.plan_task', side_effect=planner):
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task', side_effect=planner):
         handoff = plan_reviewed_intent(project_root=tmp_path, filename=saved['review_filename'], allowed_skill_ids=['inspect_vector'])
-    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
+    with patch('geoagent_harness.platform.skill_registry.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
         stored = save_reviewed_intent_plan(project_root=tmp_path, filename=saved['review_filename'], planner_result=PlannerResult.model_validate(handoff['planner_result']), confirmed_plan_sha256=handoff['plan_sha256'])
     assert stored['context_sha256'] is None and stored['plan_saved'] is True
     assert stored['approval_performed'] is stored['execution_performed'] is stored['model_called'] is False
@@ -52,7 +53,7 @@ def test_no_history_citations_and_mixed_context_identity_are_rejected(tmp_path: 
 
 
 def test_api_requires_explicit_null_context_and_keeps_authority_fields_out():
-    from geoagent_harness.interface_api.server import InterfaceIntentRequest
+    from geoagent_harness.apps.http.server import InterfaceIntentRequest
     from pydantic import ValidationError
     payload = dict(action='reason_task_intent', review_filename=None, request='Inspect metadata')
     assert InterfaceIntentRequest.model_validate(payload).review_filename is None
@@ -65,8 +66,8 @@ def test_http_reasoning_accepts_explicit_history_free_request(tmp_path: Path, mo
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    import geoagent_harness.intent.service as service
+    from geoagent_harness.apps.http.server import _handler
+    import geoagent_harness.agents.roles.intent.service as service
     fake = FakeIntent()
     monkeypatch.setattr(service, 'load_model_settings', lambda: None)
     monkeypatch.setattr(service, 'SharedModelClient', lambda settings: fake)

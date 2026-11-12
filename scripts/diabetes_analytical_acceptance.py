@@ -8,11 +8,16 @@ import shutil
 import tempfile
 import time
 
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import EditRequest, WorkflowRequest, validate_edit, prepare_workflow, authorize_workflow, execute_workflow
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.tabular.analytical_service import profile_table
-from geoagent_harness.write_policy import session
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import EditRequest
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import validate_edit
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.task_actions.workflow import execute_workflow
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.data.tabular.analytical_service import profile_table
+from geoagent_harness.core.policy.write_policy import session
 
 
 def main():

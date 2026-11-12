@@ -6,4 +6,4 @@ if [[ ! -x "$project_root/.venv/bin/python" ]]; then
   exit 2
 fi
 export PYTHONPATH="$project_root/src${PYTHONPATH:+:$PYTHONPATH}"
-exec "$project_root/.venv/bin/python" -m geoagent_harness.chat.workspace "$@"
+exec "$project_root/.venv/bin/python" -m geoagent_harness.apps.chat.workspace "$@"

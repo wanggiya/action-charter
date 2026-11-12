@@ -1,19 +1,9 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Shared model runtime integration."""
 
-from geoagent_harness.model.client import (
-    ModelClientError,
-    SharedModelClient,
-)
-from geoagent_harness.model.schemas import (
-    ChatMessage,
-    ModelRequest,
-    ModelResult,
-)
-from geoagent_harness.model.settings import (
-    ModelSettings,
-    ModelSettingsError,
-    load_model_settings,
-)
+from geoagent_harness.platform.model_gateway.client import ModelClientError, SharedModelClient
+from geoagent_harness.platform.model_gateway.schemas import ChatMessage, ModelRequest, ModelResult
+from geoagent_harness.platform.model_settings import ModelSettings, ModelSettingsError, load_model_settings
 
 __all__ = [
     "ChatMessage",

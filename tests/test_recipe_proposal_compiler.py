@@ -4,14 +4,9 @@ from pathlib import Path
 import yaml
 import pytest
 
-from geoagent_harness.recipe_proposals import (
-    RecipeCompilationError,
-    RecipeProposal,
-    compile_recipe_proposal,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
+from geoagent_harness.capabilities.recipes.proposals.compiler import RecipeCompilationError, compile_recipe_proposal
+from geoagent_harness.capabilities.recipes.proposals.schemas import RecipeProposal
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

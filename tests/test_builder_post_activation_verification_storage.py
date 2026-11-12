@@ -8,13 +8,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderPostActivationVerificationStorageError,
-    builder_trust_evidence_sha256,
-    load_builder_trust_evidence,
-    persist_builder_trust_evidence,
-)
-from geoagent_harness.cli import app
+from geoagent_harness.evolution.builder.post_activation_verification_storage import BuilderPostActivationVerificationStorageError, builder_trust_evidence_sha256, load_builder_trust_evidence, persist_builder_trust_evidence
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_post_activation_verification import (
     prepared_activated_bundle,
     verify,

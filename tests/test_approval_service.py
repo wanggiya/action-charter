@@ -7,17 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.approvals import (
-    ApprovalError,
-    create_approval,
-    load_approval,
-    plan_sha256,
-    verify_approval,
-)
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    WorkflowPlan,
-)
+from geoagent_harness.core.policy.approvals.service import ApprovalError, create_approval, load_approval, plan_sha256, verify_approval
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

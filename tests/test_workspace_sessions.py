@@ -15,11 +15,11 @@ from tests.test_task_agents import project
 from tests.test_workspace_layout import configure
 from tests.test_workspace_authority import export_plan
 from tests.test_reusable_recipes_and_runs import execution
-from geoagent_harness import write_policy as policy
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import execute_workflow
-from geoagent_harness.task_history.service import history_directory,load_task_events,TaskHistoryError
-from geoagent_harness.workspace import CONFIG_NAME
+from geoagent_harness.core.policy import write_policy as policy
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import execute_workflow
+from geoagent_harness.core.ledger.task_history.service import history_directory, load_task_events, TaskHistoryError
+from geoagent_harness.platform.workspace import CONFIG_NAME
 
 
 def backup(source,destination):
@@ -37,7 +37,7 @@ def test_relocated_session_executes_and_other_process_observes_same_policy(proje
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
     state=tmp_path_factory.mktemp('session-state');configure(project,state)
     with policy.session(project,enabled=True) as owner:
-        result=child(project,'from geoagent_harness.write_policy import snapshot; import json,sys; print(json.dumps(snapshot(sys.argv[1])))')
+        result=child(project,'from geoagent_harness.core.policy.write_policy import snapshot; import json,sys; print(json.dumps(snapshot(sys.argv[1])))')
         assert result.returncode==0,result.stderr
         assert json.loads(result.stdout)['session_id']==owner['session_id']
         request=execution(project,export_plan('session-output.csv'))
@@ -54,7 +54,7 @@ def test_live_configuration_change_blocks_reads_writes_and_second_process(projec
         for read in (policy.snapshot,policy.ticket):
             with pytest.raises(policy.WritePolicyError,match='changed during an active'):
                 read(project)
-        code='from geoagent_harness.write_policy import session; import sys\nwith session(sys.argv[1],enabled=True): pass'
+        code='from geoagent_harness.core.policy.write_policy import session; import sys\nwith session(sys.argv[1],enabled=True): pass'
         denied=child(project,code)
         assert denied.returncode!=0 and 'Another API' in denied.stderr
         assert not (project/'other-state').exists()
@@ -74,7 +74,7 @@ def test_missing_relocated_policy_never_silently_creates_empty_authority(project
 
 def test_offline_policy_copy_preserves_history_but_new_session_revokes_old_approval(project,tmp_path_factory,monkeypatch):
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
-    from geoagent_harness.recipes.approval import load_recipe_approval
+    from geoagent_harness.core.policy.recipe_approval import load_recipe_approval
     with policy.session(project,enabled=True) as before:
         request=execution(project,export_plan('not-executed.csv'))
         approval=load_recipe_approval(project/'approvals'/request.recipe_approval_filename,approval_root=project/'approvals')
@@ -104,17 +104,21 @@ def test_active_legacy_lease_blocks_relocated_start(project,tmp_path_factory):
 
 
 def test_task_history_api_cli_and_offline_copy_keep_exact_event_chain(project,tmp_path_factory):
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     recorded=api.record_interface_task_event(api.InterfaceTaskEventRequest(action='record_task_event',
         event_type='request',summary='Inspect only'),project_root=project)
     identity=recorded['task_id']
     old_context=api.inspect_interface_task_context(project_root=project,task_id=identity)
-    from geoagent_harness.context_retrieval import retrieve_task_context,save_reviewed_context,load_reviewed_context,ContextReviewError
+    from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+    from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context, load_reviewed_context, ContextReviewError
     retrieved=retrieve_task_context(root=project/'task-history',query='Inspect',task_ids=[identity])
     review=save_reviewed_context(history_root=project/'task-history',review_root=project/'reviewed-contexts',
         query='Inspect',task_ids=[identity],confirmed_context_sha256=retrieved['context_sha256'],reviewer='fixture',reason='Read-only context')
     before={p.name:p.read_bytes() for p in (project/'task-history'/identity).glob('*.json')}
     state=tmp_path_factory.mktemp('history-copy');shutil.copytree(project/'task-history',state/'task-history')
+    # R12 audit claims are project state too; a partial hand-copy must not
+    # silently create a fresh ledger and lose duplicate-event protection.
+    shutil.copytree(project/'workflow-state',state/'workflow-state')
     configure(project,state)
     assert api.inspect_interface_task_context(project_root=project,task_id=identity)==old_context
     restored=load_reviewed_context(review_root=project/'reviewed-contexts',filename=review['review_filename'],history_root=history_directory(project))
@@ -156,7 +160,7 @@ def test_unsafe_owner_directory_rejects_without_creating_policy(tmp_path,monkeyp
 
 
 def test_crashed_owner_releases_lease_and_restart_is_new_read_only_session(project):
-    code='from geoagent_harness.write_policy import session; import os,sys\nwith session(sys.argv[1],enabled=True) as state:\n print(state["session_id"],flush=True)\n os._exit(0)'
+    code='from geoagent_harness.core.policy.write_policy import session; import os,sys\nwith session(sys.argv[1],enabled=True) as state:\n print(state["session_id"],flush=True)\n os._exit(0)'
     crashed=child(project,code)
     assert crashed.returncode==0,crashed.stderr
     assert policy.snapshot(project) is None

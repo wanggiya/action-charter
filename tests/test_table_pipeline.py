@@ -11,13 +11,10 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.tabular.source_contracts import (
-    BATCH_BYTES, BATCH_ROWS, TABLE_SUFFIXES, TableRow, TableBatch, row_batches,
-    table_format_catalog,
-)
-from geoagent_harness.tabular.analysis_contracts import TableSourceDescriptor
-from geoagent_harness.tabular.analytical_service import profile_table
-from geoagent_harness.tabular.inspection import TableInspection, inspect_table
+from geoagent_harness.contracts.table_sources import BATCH_BYTES, BATCH_ROWS, TABLE_SUFFIXES, TableRow, TableBatch, row_batches, table_format_catalog
+from geoagent_harness.contracts.analysis_options import TableSourceDescriptor
+from geoagent_harness.data.tabular.analytical_service import profile_table
+from geoagent_harness.data.tabular.inspection import TableInspection, inspect_table
 
 
 @pytest.mark.parametrize('field,group,values',[
@@ -64,8 +61,8 @@ def test_one_pipeline_repeats_across_unrelated_tables_and_all_readers(tmp_path,m
         old_identity={k:reference[k] for k in ('sources','query','delimiter')}
         assert hashlib.sha256(json.dumps(old_identity,sort_keys=True).encode()).hexdigest()==reference['reference_id']
     assert len(calls)==6 and set(calls)=={'csv','tsv','json','jsonl','xlsx'}
-    from geoagent_harness.mcp_server import tools
-    from geoagent_harness.cli import app
+    from geoagent_harness.task_actions import data_tools as tools
+    from geoagent_harness.apps.cli.main import app
     settings=SimpleNamespace(project_root=tmp_path,input_root=folder)
     mcp=tools.profile_table('rows.json',spec,settings=settings)['table_analysis']['statistics']
     reply=CliRunner().invoke(app,['inspect-table','rows.xlsx','--options',json.dumps(spec),'--project-root',str(tmp_path)])
@@ -116,11 +113,11 @@ def test_descriptor_preserves_native_facts_and_explicit_compatibility_view(tmp_p
 
 
 def test_registry_cli_and_mcp_discovery_share_the_authoritative_reader_contract(tmp_path):
-    from geoagent_harness.cli import app
-    from geoagent_harness.operations.registry import operation_catalog,TableMetadata
-    from geoagent_harness.mcp_server import tools
-    from geoagent_harness.mcp_client import READ_ONLY_TOOL_ALLOWLIST
-    from geoagent_harness.mcp_server.server import create_mcp_server
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.capabilities.registry.registry import operation_catalog, TableMetadata
+    from geoagent_harness.task_actions import data_tools as tools
+    from geoagent_harness.platform.internal_mcp.client import READ_ONLY_TOOL_ALLOWLIST
+    from geoagent_harness.apps.mcp.server import create_mcp_server
     import asyncio
     # Use the real trusted registry packaged by the project, not an invented adapter catalog.
     repository=Path(__file__).parents[1];root=tmp_path/'project';root.mkdir()

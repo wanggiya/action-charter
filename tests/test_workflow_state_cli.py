@@ -7,11 +7,8 @@ from pathlib import Path
 from click import unstyle
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.workflow_state import (
-    create_initial_state,
-    write_initial_state,
-)
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.core.ledger.workflow_state.service import create_initial_state, write_initial_state
 
 
 runner = CliRunner()

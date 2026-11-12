@@ -4,17 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.agent_manifest import (
-    load_agent_manifest,
-)
-from geoagent_harness.model import (
-    ModelRequest,
-    ModelResult,
-)
-from geoagent_harness.recipe_proposals import (
-    RecipeProposalAgentError,
-    generate_recipe_proposal,
-)
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ModelResult
+from geoagent_harness.agents.roles.planner.recipe_proposal import RecipeProposalAgentError, generate_recipe_proposal
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

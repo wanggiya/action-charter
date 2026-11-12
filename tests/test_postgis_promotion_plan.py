@@ -3,14 +3,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import PostGISColumn, PostGISInspectionRequest
-from geoagent_harness.postgis.promotion.plan import (
-    PostGISPromotionPlanError,
-    PostGISPromotionPlanRequest,
-    plan_postgis_promotion,
-    postgis_promotion_plan_sha256,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISColumn, PostGISInspectionRequest
+from geoagent_harness.data.databases.postgis.promotion.plan.service import PostGISPromotionPlanError, plan_postgis_promotion, postgis_promotion_plan_sha256
+from geoagent_harness.data.databases.postgis.promotion.plan.schemas import PostGISPromotionPlanRequest
 
 
 class FakeReader:
@@ -103,7 +99,7 @@ def test_operation_choreography_cannot_be_reordered(settings):
         payload["operations"][4],
         payload["operations"][3],
     )
-    from geoagent_harness.postgis.promotion.plan import PostGISPromotionPlan
+    from geoagent_harness.data.databases.postgis.promotion.plan.schemas import PostGISPromotionPlan
 
     with pytest.raises(ValidationError, match="choreography"):
         PostGISPromotionPlan.model_validate(payload)

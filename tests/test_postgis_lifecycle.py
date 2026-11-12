@@ -7,25 +7,26 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import PostGISColumn, inspect_postgis_table
-from geoagent_harness.postgis.promotion.plan import plan_postgis_promotion
-from geoagent_harness.postgis.promotion.approval import (
-    create_postgis_promotion_approval, persist_postgis_promotion_approval,
-    postgis_promotion_approval_sha256,
-)
-from geoagent_harness.postgis.promotion.execution import (
-    execute_postgis_promotion, persist_postgis_promotion_execution, PostGISPromotionExecutionError,
-)
-from geoagent_harness.postgis.promotion.verification import (
-    verify_postgis_promotion, persist_postgis_promotion_verification,
-)
-from geoagent_harness.postgis.rollback.plan import plan_postgis_rollback, persist_postgis_rollback_plan, postgis_rollback_plan_sha256
-from geoagent_harness.postgis.rollback.approval import create_postgis_rollback_approval, persist_postgis_rollback_approval, postgis_rollback_approval_sha256
-from geoagent_harness.postgis.rollback.execution import execute_postgis_rollback, persist_postgis_rollback_execution, PostGISRollbackExecutionError
-from geoagent_harness.postgis.rollback.verification import verify_postgis_rollback, persist_postgis_rollback_verification
-from geoagent_harness.workspace import runtime_store_path
-from geoagent_harness.workspace_migration import migrate
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISColumn
+from geoagent_harness.data.databases.postgis.inspection.service import inspect_postgis_table
+from geoagent_harness.data.databases.postgis.promotion.plan.service import plan_postgis_promotion
+from geoagent_harness.data.databases.postgis.promotion.approval.service import create_postgis_promotion_approval
+from geoagent_harness.data.databases.postgis.promotion.approval.storage import persist_postgis_promotion_approval, postgis_promotion_approval_sha256
+from geoagent_harness.data.databases.postgis.promotion.execution.service import execute_postgis_promotion, PostGISPromotionExecutionError
+from geoagent_harness.data.databases.postgis.promotion.execution.storage import persist_postgis_promotion_execution
+from geoagent_harness.data.databases.postgis.promotion.verification.service import verify_postgis_promotion
+from geoagent_harness.data.databases.postgis.promotion.verification.storage import persist_postgis_promotion_verification
+from geoagent_harness.data.databases.postgis.rollback.plan.service import plan_postgis_rollback
+from geoagent_harness.data.databases.postgis.rollback.plan.storage import persist_postgis_rollback_plan, postgis_rollback_plan_sha256
+from geoagent_harness.data.databases.postgis.rollback.approval.service import create_postgis_rollback_approval
+from geoagent_harness.data.databases.postgis.rollback.approval.storage import persist_postgis_rollback_approval, postgis_rollback_approval_sha256
+from geoagent_harness.data.databases.postgis.rollback.execution.service import execute_postgis_rollback, PostGISRollbackExecutionError
+from geoagent_harness.data.databases.postgis.rollback.execution.storage import persist_postgis_rollback_execution
+from geoagent_harness.data.databases.postgis.rollback.verification.service import verify_postgis_rollback
+from geoagent_harness.data.databases.postgis.rollback.verification.storage import persist_postgis_rollback_verification
+from geoagent_harness.platform.workspace import runtime_store_path
+from geoagent_harness.platform.workspace_migration import migrate
 from tests.test_postgis_promotion_plan import request
 from tests.test_postgis_promotion_approval import NOW
 from tests.test_workspace_layout import configure
@@ -238,11 +239,11 @@ def test_invalid_authority_never_claims_an_attempt_or_opens_transaction(tmp_path
     root = tmp_path / 'project'
     if kind == 'promotion':
         db, _, _, kwargs = prepare(root)
-        from geoagent_harness.postgis.promotion.approval import load_postgis_promotion_approval as load, persist_postgis_promotion_approval as persist, postgis_promotion_approval_sha256 as digest
+        from geoagent_harness.data.databases.postgis.promotion.approval.storage import load_postgis_promotion_approval as load, persist_postgis_promotion_approval as persist, postgis_promotion_approval_sha256 as digest
         fn, error, bound_field = execute_postgis_promotion, PostGISPromotionExecutionError, 'plan_sha256'
     else:
         db, _, kwargs = prepare_rollback(root)
-        from geoagent_harness.postgis.rollback.approval import load_postgis_rollback_approval as load, persist_postgis_rollback_approval as persist, postgis_rollback_approval_sha256 as digest
+        from geoagent_harness.data.databases.postgis.rollback.approval.storage import load_postgis_rollback_approval as load, persist_postgis_rollback_approval as persist, postgis_rollback_approval_sha256 as digest
         fn, error, bound_field = execute_postgis_rollback, PostGISRollbackExecutionError, 'rollback_plan_sha256'
     before = receipts(root)
     if damage == 'digest': kwargs['confirm_approval_sha256'] = '0'*64
@@ -261,7 +262,7 @@ def test_invalid_authority_never_claims_an_attempt_or_opens_transaction(tmp_path
 
 
 def test_connection_failure_is_redacted_and_consumes_only_that_decision(tmp_path, monkeypatch):
-    import geoagent_harness.postgis.promotion.execution.service as service
+    import geoagent_harness.data.databases.postgis.promotion.execution.service as service
     root = tmp_path / 'project'; _, _, _, kwargs = prepare(root)
     def unavailable(*_): raise RuntimeError('password=fixture-private')
     monkeypatch.setattr(service, 'PsycopgPromotionTransaction', unavailable)
@@ -296,7 +297,7 @@ def test_concurrent_calls_with_same_authority_dispatch_once(tmp_path):
 
 
 def test_fixed_driver_uses_serializable_transaction_and_quoted_identifiers(tmp_path, monkeypatch):
-    from geoagent_harness.postgis import lifecycle
+    from geoagent_harness.data.databases.postgis import lifecycle
     from psycopg import IsolationLevel
     class Connection:
         def __init__(self): self.statements = []; self.closed = False
@@ -322,7 +323,7 @@ def test_fixed_driver_uses_serializable_transaction_and_quoted_identifiers(tmp_p
 
 
 def test_driver_constructor_failure_closes_opened_connection_and_redacts(tmp_path, monkeypatch):
-    from geoagent_harness.postgis import lifecycle
+    from geoagent_harness.data.databases.postgis import lifecycle
     class Broken:
         closed = False
         @property
@@ -340,8 +341,8 @@ def test_driver_constructor_failure_closes_opened_connection_and_redacts(tmp_pat
 
 
 def test_package_and_returned_metadata_use_one_detached_snapshot(tmp_path, monkeypatch):
-    from geoagent_harness.postgis.artifact_storage import ArtifactStore
-    from geoagent_harness.postgis.promotion.approval import load_postgis_promotion_approval
+    from geoagent_harness.data.databases.postgis.artifact_storage import ArtifactStore
+    from geoagent_harness.data.databases.postgis.promotion.approval.storage import load_postgis_promotion_approval
     root = tmp_path / 'project'; _, _, approval, _ = prepare(root)
     expected_id, expected_plan = approval.approval_id, approval.plan_id
     canonical = ArtifactStore.canonical

@@ -10,6 +10,7 @@ Read these first, in order:
 
 Key rules:
 - Core principle: models propose; deterministic software authorizes, executes, validates and records evidence. Conversation, data or model text never grants authority.
+- Models take part throughout the process (planning, review, risk flags, adding restrictions) but do not grant authority. The only exception is the **experimental model approver** (owner decision 2026-11-06): off by default, not implemented, and bounded as described in [server autonomy design](docs/product-direction/SERVER_AUTONOMY_DESIGN.md#model-participation-in-authorization). Do not build it outside that design.
 - `docs/development/checkpoints/CHECKPOINT*.md` files are historical records, not current instructions. Do not create new checkpoint files.
 - Distinguish fixture/fake-model test results from real local-model evidence.
 - Runtime artifact directories at the repo root (`builder-*`, `recipe-runs`, `traces`, …) are local state, not source. Phase 0 of the direction plan moves them out.

@@ -1,6 +1,6 @@
 # Resolve host state consistently for Compose and legacy evidence commands.
 # Explicit ACTIONCHARTER_STATE_ROOT remains an operator mount override.
-ACTIONCHARTER_STATE_ROOT ?= $(shell .venv/bin/python -c 'from pathlib import Path; from geoagent_harness.workspace import WorkspaceLayout; print(WorkspaceLayout.load(Path(".")).state_root)')
+ACTIONCHARTER_STATE_ROOT ?= $(shell .venv/bin/python -c 'from pathlib import Path; from geoagent_harness.platform.workspace import WorkspaceLayout; print(WorkspaceLayout.load(Path(".")).state_root)')
 export ACTIONCHARTER_STATE_ROOT
 
 CRITIC_TASK_ID ?= checkpoint5e-points-20260809a

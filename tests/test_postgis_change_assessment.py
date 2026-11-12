@@ -3,22 +3,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.postgis.change_assessment import (
-    PostGISChangeAssessment,
-    PostGISChangeDisposition,
-    assess_postgis_change,
-)
-from geoagent_harness.postgis.comparison import (
-    PostGISComparisonResult,
-    PostGISDifference,
-)
-from geoagent_harness.postgis.inspection import (
-    PostGISColumn,
-    PostGISGeometryColumn,
-    PostGISInspectionResult,
-)
-from geoagent_harness.skill_registry import load_skill_registry
-from geoagent_harness.verifier.postgis import LayerExtent
+from geoagent_harness.data.databases.postgis.change_assessment.schemas import PostGISChangeAssessment, PostGISChangeDisposition
+from geoagent_harness.data.databases.postgis.change_assessment.service import assess_postgis_change
+from geoagent_harness.data.databases.postgis.comparison.schemas import PostGISComparisonResult, PostGISDifference
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISColumn, PostGISGeometryColumn, PostGISInspectionResult
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.core.verification.postgis import LayerExtent
 
 
 def inspection(table: str) -> PostGISInspectionResult:

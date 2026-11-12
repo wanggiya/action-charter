@@ -1,0 +1,2444 @@
+{
+  "geoagent_harness.redaction": {
+    "owner": "geoagent_harness.contracts.redaction",
+    "package": false,
+    "sha256": "b06ae15eb35a4ea71ff391ed52d9058f4f131459eb78c851e4458e99d7310c39",
+    "kind": "alias"
+  },
+  "geoagent_harness.workspace_migration": {
+    "owner": "geoagent_harness.platform.workspace_migration",
+    "package": false,
+    "sha256": "6f30bbab8c156e058dfa4ecc1ed34dcc2bd6acdeb937620dfd6b7cf9d69548e8",
+    "kind": "alias"
+  },
+  "geoagent_harness.write_policy": {
+    "owner": "geoagent_harness.core.policy.write_policy",
+    "package": false,
+    "sha256": "3ca212369a05ffd30447ea29795fd08080a955658d13f0867f7af15f2ca95c8a",
+    "kind": "alias"
+  },
+  "geoagent_harness.failures": {
+    "owner": "geoagent_harness.contracts.failures",
+    "package": false,
+    "sha256": "03785abb8139ec24018443e159406cf0539a4f7034d58462acd55fecbbce7a2a",
+    "kind": "alias"
+  },
+  "geoagent_harness.trace": {
+    "owner": "geoagent_harness.core.ledger.trace",
+    "package": false,
+    "sha256": "11a4c6d220ad691e70becc245c0d1060bf304c0ee56142b762adb6be545a254f",
+    "kind": "alias"
+  },
+  "geoagent_harness.schemas": {
+    "owner": "geoagent_harness.contracts.workflow",
+    "package": false,
+    "sha256": "158ce9f733df4235c7d0ee06cc8df9968c7be1e14532ee02223f8aeac53ceb56",
+    "kind": "alias"
+  },
+  "geoagent_harness.workspace": {
+    "owner": "geoagent_harness.platform.workspace",
+    "package": false,
+    "sha256": "da8a3a63d110f9bc6d4e1ce575d3d5af5f7f6a16e2886d386d4ad20138ef2684",
+    "kind": "alias"
+  },
+  "geoagent_harness.agent_manifest": {
+    "owner": "geoagent_harness.agents.runtime.manifest",
+    "package": false,
+    "sha256": "e36b8f6fa02cdf29e24d6e8828479a4d87a5a6bed68637027e3ed2b8ab12ed77",
+    "kind": "alias"
+  },
+  "geoagent_harness.reporting": {
+    "owner": "geoagent_harness.data.tabular.reporting",
+    "package": false,
+    "sha256": "e8bd82eb85ab5ceeaae69949a062194e98e9dfd85f588467ca2a4837e3dd77cd",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.promotion": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.promotion",
+    "package": false,
+    "sha256": "a234ecf7265d55bcbfd9c1bbb83c4968ec0e91ca700cd0dd6a6b2e1c538825f2",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.storage": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.storage",
+    "package": false,
+    "sha256": "2a5ca48f0e5719d4eebb1b9eb791252f8290f3a2baa0d461d62c855f9a7870d7",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.promotion_plan": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.promotion_plan",
+    "package": false,
+    "sha256": "654d1da52da8168fa5993f8257288fb3a91f250bfb832a604eac7881e45d9eb1",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions": {
+    "owner": "geoagent_harness.capabilities.skills.definitions",
+    "package": true,
+    "sha256": "2496963227e8fc808728e3aebdf0f41f6d78730c04604d158776ba7cf228811d",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skill_definitions.scaffolding": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.scaffolding",
+    "package": false,
+    "sha256": "824e80a84446515d8b85a65e13eb5d4854ee59ee433f69228374118b685a796c",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.generation": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.generation",
+    "package": false,
+    "sha256": "f45b11a5aaf48f5595516f8e022b4c2d901d4497437a2e2a9780819a7401e8ec",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.materialization": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.materialization",
+    "package": false,
+    "sha256": "685a826739f82d1b08d38f78080c65191fa35716b5fc456d2e7fdbc22845e8cd",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.schemas": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.schemas",
+    "package": false,
+    "sha256": "b8161a666266a413f1f228c57880086db1ccc0142067bac519306d8204513e29",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.policy": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.policy",
+    "package": false,
+    "sha256": "289b85bd05d1b681fcf6b7a9a5f7adae87ec99ed213edc141fef4083274b84e1",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.promotion_service": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.promotion_service",
+    "package": false,
+    "sha256": "b34287f1acd2d9ae7c60e0cd01277e701da9fe48afaadf69d5bd754b00947049",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.contracts": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.contracts",
+    "package": false,
+    "sha256": "589692e5eac811215da42ada54249ce79d3124460fc48b4a7eb55006efa51138",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.test_evidence": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.test_evidence",
+    "package": false,
+    "sha256": "8082dc238500b2c96a964e73985c246c5208405fd7fd2c0f38bfd65aa20b2aa3",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.catalog": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.catalog",
+    "package": false,
+    "sha256": "93ba508cd2bee64871fa68e774e1b8059b682ee8dfcaa09145db66cf64f6df6e",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_actions.storage_paths": {
+    "owner": "geoagent_harness.platform.paths",
+    "package": false,
+    "sha256": "f4e064027782c170aa328e88f2734e650c3baa42c1a98d3d01f815b4d8641432",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_actions.spatial_inspection_snapshot": {
+    "owner": "geoagent_harness.workspaces.sandbox.spatial_snapshot",
+    "package": false,
+    "sha256": "bc1554920f0846403bdbac5894e3bc9ad7efea6d85077a9f27c4a3a0d9c10114",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_actions.inspection_worker": {
+    "owner": "geoagent_harness.workspaces.sandbox.inspection_worker",
+    "package": false,
+    "sha256": "4e2d8b137cd4c7b77ed6b7f76b123883f0be8109ef295c4f92643206a76aee01",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_actions.contracts": {
+    "owner": "geoagent_harness.contracts.actions",
+    "package": false,
+    "sha256": "4f8ee1a25e4e90583028f87dd7beb41b673ea3365a55b7a358b56168425ac358",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export": {
+    "owner": "geoagent_harness.data.export.snakemake",
+    "package": true,
+    "sha256": "58b3ad173ad266b8460b2829a15733759c42a0d8df707e0e72732ec77f229335",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.snakemake_export.planner": {
+    "owner": "geoagent_harness.data.export.snakemake.planner",
+    "package": false,
+    "sha256": "c346624b6416f191315dae39c07e454475fb3700649e1d5122ca31a2fd58abe7",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export.generator": {
+    "owner": "geoagent_harness.data.export.snakemake.generator",
+    "package": false,
+    "sha256": "8891e23d52fd8d865400934478a0a2612f6cf0375f77d7549eab50c30a3d97bd",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export.schemas": {
+    "owner": "geoagent_harness.data.export.snakemake.schemas",
+    "package": false,
+    "sha256": "b008abf78838348f6aff54368e5ec3bf606f316467d5ba8222668ce11c76142b",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export.contracts": {
+    "owner": "geoagent_harness.data.export.snakemake.contracts",
+    "package": false,
+    "sha256": "5f2c5bf0cd7a9bbde733b9d4825a51bd6ab792339e18156f40220c76b5c9ff66",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export.replay": {
+    "owner": "geoagent_harness.agents.runtime.snakemake_replay",
+    "package": false,
+    "sha256": "971a331fc6b759d40978805dab05f8a90e3cc960ee9b9f621ee79698caa53428",
+    "kind": "alias"
+  },
+  "geoagent_harness.snakemake_export.settings": {
+    "owner": "geoagent_harness.platform.replay_settings",
+    "package": false,
+    "sha256": "69502ed588118bcc6e7aaf08c21ef019590c5ff01b4cbb9e33534ae7c6914055",
+    "kind": "alias"
+  },
+  "geoagent_harness.context_pack": {
+    "owner": "geoagent_harness.agents.memory.context_pack",
+    "package": true,
+    "sha256": "5f51b4d27ed22b3e59af669097ccf8c08ca63fea728bb536329e30e0e96a7dff",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.context_pack.redaction": {
+    "owner": "geoagent_harness.contracts.context_redaction",
+    "package": false,
+    "sha256": "cf9e898fe21d05bb48df96c81d3ee0de43045153e9d4524fc03ebbfe798c321c",
+    "kind": "alias"
+  },
+  "geoagent_harness.context_pack.schemas": {
+    "owner": "geoagent_harness.agents.memory.context_pack.schemas",
+    "package": false,
+    "sha256": "1a602d790bc0dca6ee4c5d4d26293caf88fdace3eb6751d6e912d214a3d72562",
+    "kind": "alias"
+  },
+  "geoagent_harness.context_pack.builder": {
+    "owner": "geoagent_harness.agents.memory.context_pack.builder",
+    "package": false,
+    "sha256": "411c678a6c20f73093fea0847a3642dc0511011cebe69c5881396fe06d7f32ba",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_registry": {
+    "owner": "geoagent_harness.capabilities.registry.legacy_skills",
+    "package": true,
+    "sha256": "31a63c14564c48e50fcc63ae5535c4d950405da099c470f2a37179ee9f2578b5",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skill_registry.service": {
+    "owner": "geoagent_harness.platform.skill_registry",
+    "package": false,
+    "sha256": "b57d2abf0d2c31799bce8b889f714370de6424466e610deea05512a2e7525faf",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_registry.schemas": {
+    "owner": "geoagent_harness.contracts.skill_registry",
+    "package": false,
+    "sha256": "0eab348c554f7c6d6e2cf62e54912feba2ab1b23f03d7d92a90a1eedf94daa64",
+    "kind": "alias"
+  },
+  "geoagent_harness.executor": {
+    "owner": "geoagent_harness.agents.roles.executor",
+    "package": true,
+    "sha256": "0b9acca96e0bbb9fdb4497bcdfdffb56024e2c19067024c58f6a45a6b61136e6",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.executor.service": {
+    "owner": "geoagent_harness.agents.roles.executor.service",
+    "package": false,
+    "sha256": "86842d30f56f04822e9cd173a7bb04d78eefde0b861f6d998ab7f739881a228c",
+    "kind": "alias"
+  },
+  "geoagent_harness.executor.schemas": {
+    "owner": "geoagent_harness.agents.roles.executor.schemas",
+    "package": false,
+    "sha256": "49731070e91a85681892c3bff1d5fc4921aac6ad7f78ece3b40e74d1d83b5949",
+    "kind": "alias"
+  },
+  "geoagent_harness.executor.policy": {
+    "owner": "geoagent_harness.agents.roles.executor.policy",
+    "package": false,
+    "sha256": "0383d2606e7d13c3d445e6c98fee3c24295fc119d5592db63b74bac9289791d2",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.storage": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.storage",
+    "package": false,
+    "sha256": "e96ec68ff1b8629294539d4e4ea913b870a0dbccd5d70204ba404aab51fb30b5",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals",
+    "package": true,
+    "sha256": "eaedd2dbc3b536a13f78a869385727cfc07281dd01f02f9430dfcf8172012679",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.recipe_proposals.templates": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.templates",
+    "package": false,
+    "sha256": "b1d6f28fcd04febd316ac018891531ebc899711f46029d4326f4bd35f8245f84",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.rendering": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.rendering",
+    "package": false,
+    "sha256": "3bcc65d46b4e534a56ae4b50666e27efaf18ff0d8812e07a1823355c94ba9639",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.prompt": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.prompt",
+    "package": false,
+    "sha256": "4959d1fe5e14cf05cf031064c02df44fd998f26afb0b66949794e3e4aebaf32e",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.runtime": {
+    "owner": "geoagent_harness.agents.runtime.recipe_proposal",
+    "package": false,
+    "sha256": "1c7ee1c6baf923410b3ccdba3d422cc1c4ef51071183034bd4df3ea5de16cdc9",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.review_storage": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.review_storage",
+    "package": false,
+    "sha256": "cf96c472868025b4e6608ca5ce53d258da1b68fd0c4eb83d85dbfa50309638a4",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.schemas": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.schemas",
+    "package": false,
+    "sha256": "5dfda308730d459583afe097bdb9c8f84a3000a74f30e04ca8a39646fd17d32a",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.agent": {
+    "owner": "geoagent_harness.agents.roles.planner.recipe_proposal",
+    "package": false,
+    "sha256": "931b0e0b7d8dd8367ea4e29f8048e6b58d71376d54d383addd5b37c764c19672",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.operator_save": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.operator_save",
+    "package": false,
+    "sha256": "7442aeff37323fd3620a185c285187f0ac1726307dbfb24bb9205231a78c365e",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.assessment": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.assessment",
+    "package": false,
+    "sha256": "e5b561c4f18d6614b6ba5651914735511758846f9d4cadca833a895efc85a86b",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_proposals.compiler": {
+    "owner": "geoagent_harness.capabilities.recipes.proposals.compiler",
+    "package": false,
+    "sha256": "5dfca9e82ced752d584644e39518256d8be96cef2ab4793afd1aee6630b22714",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_projection": {
+    "owner": "geoagent_harness.apps.interface_projection",
+    "package": true,
+    "sha256": "c9528c2ab93c728199dc0a91f0a1f49c31d9fc19e3ca2710601a46a542e1cc0c",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.interface_projection.service": {
+    "owner": "geoagent_harness.apps.interface_projection.service",
+    "package": false,
+    "sha256": "3082003b760a5f83bead497ae35aff10c23b56c2cb7c93b07739c4f8751b97a5",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_projection.schemas": {
+    "owner": "geoagent_harness.apps.interface_projection.schemas",
+    "package": false,
+    "sha256": "5cb0dd233752c1edcaef6ca56c4856ca1a20bb1e65194dbae24fd2738cea96bd",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_client": {
+    "owner": "geoagent_harness.platform.internal_mcp",
+    "package": true,
+    "sha256": "54d8307aaa983056a7504e82d2f57cac7e63ba742cdaec125e13ee667f4aa715",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.mcp_client.executor": {
+    "owner": "geoagent_harness.platform.internal_mcp.executor",
+    "package": false,
+    "sha256": "ad1b19eeb861544378039eba834e5caff3daa530037ff3d27c5e3cc61d84fb80",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_client.schemas": {
+    "owner": "geoagent_harness.contracts.mcp",
+    "package": false,
+    "sha256": "1413dc60b834c8f3be3efb212dc5d43fd60242aec6bc99793f722ce42d57859b",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_client.client": {
+    "owner": "geoagent_harness.platform.internal_mcp.client",
+    "package": false,
+    "sha256": "7b62bfb2b0641cb4e11ccb93397aa6a11f782a17c93a634adba5157f69672616",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_client.settings": {
+    "owner": "geoagent_harness.platform.client_settings",
+    "package": false,
+    "sha256": "e5b7cd43fa6431261c256fba35b4ff2bd3a8078446a0dcd18743e5266022f344",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_scaffolding.storage": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding.storage",
+    "package": false,
+    "sha256": "01fd4d183e432867c04348940a9c5c8d840aa487dfb61adf6a56b214dbb0d1f7",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_scaffolding": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding",
+    "package": true,
+    "sha256": "5a479a6c01b39558346bd17e5bf3f409e06694fe3c4bdc1aa70414006cd99230",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skill_scaffolding.planner": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding.planner",
+    "package": false,
+    "sha256": "dd1f7b137f0488f422b5a517649288800cef210a90d0afc6c38d2a3c6a4fab69",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_scaffolding.generator": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding.generator",
+    "package": false,
+    "sha256": "c85efa6f217946a4bfa8bdadab0855bc3fd3bd31f299dce8f4583cd704b59d41",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_scaffolding.schemas": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding.schemas",
+    "package": false,
+    "sha256": "0ac201ac816613dab000fa055048cf25a479311d7c830a320463a3f254ec44c0",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_scaffolding.contracts": {
+    "owner": "geoagent_harness.capabilities.skills.scaffolding.contracts",
+    "package": false,
+    "sha256": "72dcaac4daf073d7951f51a34aa533445af29c088465511f5a6f322571005046",
+    "kind": "alias"
+  },
+  "geoagent_harness.intent.inventory": {
+    "owner": "geoagent_harness.agents.roles.intent.inventory",
+    "package": false,
+    "sha256": "e36a716e591ea013026ae8da454d57d18a17c85a71d5e5d9fcadf6567242408a",
+    "kind": "alias"
+  },
+  "geoagent_harness.intent.handoff": {
+    "owner": "geoagent_harness.agents.roles.intent.handoff",
+    "package": false,
+    "sha256": "08760b678bd64d81223bdbcf668cb1f571ea6365c01640274a81c4ee125140fd",
+    "kind": "alias"
+  },
+  "geoagent_harness.intent": {
+    "owner": "geoagent_harness.agents.roles.intent",
+    "package": true,
+    "sha256": "edfcd94caa280c48d64e45b444c500b1b54abd0ebbe6b565a4b38d586d677c4b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.intent.review": {
+    "owner": "geoagent_harness.agents.roles.intent.review",
+    "package": false,
+    "sha256": "5696dcf30b291d88ac3de1064866df2c85deaeb6bde725272c44bb9292d8f07d",
+    "kind": "alias"
+  },
+  "geoagent_harness.intent.service": {
+    "owner": "geoagent_harness.agents.roles.intent.service",
+    "package": false,
+    "sha256": "5fbf6431269433ee32cc408d0226dc8f08d16ae2321426d18127b426bbdde05a",
+    "kind": "alias"
+  },
+  "geoagent_harness.intent.input": {
+    "owner": "geoagent_harness.data.discovery.input",
+    "package": false,
+    "sha256": "690ef01db946053ed3b8437a4e5f2fbc4876cd7141121fba5966f8cd91eca0d7",
+    "kind": "alias"
+  },
+  "geoagent_harness.schema_registry": {
+    "owner": "geoagent_harness.contracts.schema_registry",
+    "package": true,
+    "sha256": "533116f15c5b4683b01bb57203def457851ca8b6e9fbf39189f43dd4c9d69e9c",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.schema_registry.migration": {
+    "owner": "geoagent_harness.contracts.schema_registry.migration",
+    "package": false,
+    "sha256": "3a610b230f9d2fc8dd0d1f9f55d43cd68ae312602e60dffda394e3359d8ee7d0",
+    "kind": "alias"
+  },
+  "geoagent_harness.schema_registry.schemas": {
+    "owner": "geoagent_harness.contracts.schema_registry.schemas",
+    "package": false,
+    "sha256": "c850d79fb452bdf4fdd9f730fb0ef1bc021884927b4ef0f39249163975e64116",
+    "kind": "alias"
+  },
+  "geoagent_harness.schema_registry.validation": {
+    "owner": "geoagent_harness.contracts.schema_registry.validation",
+    "package": false,
+    "sha256": "63946515cd028037fb92013082a4200f13dbd2cc1745eaf462231bf014650e39",
+    "kind": "alias"
+  },
+  "geoagent_harness.schema_registry.registry": {
+    "owner": "geoagent_harness.contracts.schema_registry.registry",
+    "package": false,
+    "sha256": "a767ed6bcf001dab579e560a6839d4281fcaeb0e28e0975a29312886dd20a3b9",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.bindings": {
+    "owner": "geoagent_harness.data.tabular.bindings",
+    "package": false,
+    "sha256": "e31391a535b59a35ee27614b5af7bfb48aa30eb7623d48da6a27aaf295460b1c",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.recipe_discovery_loop": {
+    "owner": "geoagent_harness.agents.roles.planner.recipe_discovery_loop",
+    "package": false,
+    "sha256": "845d08f4ad7762a0d801828b88606df6571acbcd4005a2c80b8a8adeee2b5d35",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner": {
+    "owner": "geoagent_harness.agents.roles.planner",
+    "package": true,
+    "sha256": "52b5f46175ddb963c0c53c4aeded9f7a16fda62e1b78d1bb3843e1216855ea21",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.planner.calculation_prompt": {
+    "owner": "geoagent_harness.agents.roles.planner.calculation_prompt",
+    "package": false,
+    "sha256": "474bf0ed986007a33573db0af3c6266013c666489fde9c6ff50a6be5e3bf7fd5",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.recipe_authoring": {
+    "owner": "geoagent_harness.agents.roles.planner.recipe_authoring",
+    "package": false,
+    "sha256": "1588746d0c12e931eb96b7e0b51ba3d2c40cb47d3fe363fed8959dc108dab8c8",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.reuse_claims": {
+    "owner": "geoagent_harness.agents.roles.planner.reuse_claims",
+    "package": false,
+    "sha256": "78b98ce0912a8010e32054789be89978fb2b9f46aa0b63fa007f4466a5927915",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.request_coverage": {
+    "owner": "geoagent_harness.agents.roles.planner.request_coverage",
+    "package": false,
+    "sha256": "172debec1027b9535b4d48cc315691e9e4dd23e6f95ffa981ba423775ec7f0a2",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.outcome_recommendations": {
+    "owner": "geoagent_harness.agents.roles.planner.outcome_recommendations",
+    "package": false,
+    "sha256": "33b7fc3d30a43ce97c056f207fa1859afc1e3d4c9199100aab093fc62640e20e",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.response_diagnostics": {
+    "owner": "geoagent_harness.agents.roles.planner.response_diagnostics",
+    "package": false,
+    "sha256": "87bf0188ec77c0f98b69bf275f6580b815bf80105f9d29082a87b5c7e57a5469",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.service": {
+    "owner": "geoagent_harness.agents.roles.planner.service",
+    "package": false,
+    "sha256": "6985901826f81dd67192517b4e2c41d744e45d5d9a5caf2ce7fc6751a74c199b",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.decoder_schema": {
+    "owner": "geoagent_harness.agents.roles.planner.decoder_schema",
+    "package": false,
+    "sha256": "a9fd6e94e5aa339469d5e49c975d331354e6d5b7cf7b4a36ee926c76084d0669",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.topology": {
+    "owner": "geoagent_harness.contracts.graph",
+    "package": false,
+    "sha256": "3f1010ce906ee86384fe6bb0f96b8b75757c0eb894f8c0aebe67b28395fb60d5",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.prompt": {
+    "owner": "geoagent_harness.agents.roles.planner.prompt",
+    "package": false,
+    "sha256": "0205e0fd05acf6bc7d11443842765448f4821112b0593a8185f3e776da2437b8",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.effort_budget": {
+    "owner": "geoagent_harness.agents.roles.planner.effort_budget",
+    "package": false,
+    "sha256": "b5363f368d283951ada76e43f83161a19a71554463352fd19221d504d6e25ed5",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.successful_retrieval": {
+    "owner": "geoagent_harness.capabilities.recipes.retrieval",
+    "package": false,
+    "sha256": "cb4e87a05c656a63307ecd49fe9e7c4c90ed4954003a7f32b242695c6fff0f85",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.prompt_scope": {
+    "owner": "geoagent_harness.agents.roles.planner.prompt_scope",
+    "package": false,
+    "sha256": "872348b37bf98f0b318d12e3c8e1920e17547d56f12ea2865049c63b0c78cb55",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.schemas": {
+    "owner": "geoagent_harness.contracts.planning",
+    "package": false,
+    "sha256": "a551b1f2530013e5fdf042677a5bb93bc89fda90085e41c08166edc9d38323b8",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.policy": {
+    "owner": "geoagent_harness.core.policy.plan",
+    "package": false,
+    "sha256": "1fa1db4228695785f3ac908fe2360447f89753118230c62a55a00a981500c9bb",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.agent": {
+    "owner": "geoagent_harness.agents.roles.planner.agent",
+    "package": false,
+    "sha256": "fbd25041f63b49b9b27d160af458a2aec96e5a5b7ee02a360f4d8d4aac436266",
+    "kind": "alias"
+  },
+  "geoagent_harness.planner.recipe_definition": {
+    "owner": "geoagent_harness.capabilities.workflow",
+    "package": false,
+    "sha256": "3a5a0ef57ba6ee3d7f7b2d9ba9452cc7ab09af65d2af20f29f2c80f824d41d12",
+    "kind": "alias"
+  },
+  "geoagent_harness.workflow_state": {
+    "owner": "geoagent_harness.core.ledger.workflow_state",
+    "package": true,
+    "sha256": "54f3c16bde7cb85736c96cbe57adbda8c6147bf36e36c7d72a99f42ee3b215ed",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.workflow_state.service": {
+    "owner": "geoagent_harness.core.ledger.workflow_state.service",
+    "package": false,
+    "sha256": "40af82a830d3ee18cfd042d169c711564e1b5f34854c17db9da66f840c72dd8e",
+    "kind": "alias"
+  },
+  "geoagent_harness.workflow_state.schemas": {
+    "owner": "geoagent_harness.core.ledger.workflow_state.schemas",
+    "package": false,
+    "sha256": "a7d2235982992d3183690a0bce9b65ef4ef82f9e626d9a5feb9436a9ca34b2fd",
+    "kind": "alias"
+  },
+  "geoagent_harness.workflow_state.resume": {
+    "owner": "geoagent_harness.core.ledger.workflow_state.resume",
+    "package": false,
+    "sha256": "25d7298c1677b1d796c691e2822faaf718f1e44674fc0d3278d6cd9a0a6ff2fb",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.server": {
+    "owner": "geoagent_harness.apps.mcp.server",
+    "package": false,
+    "sha256": "591c60ebc02b510fa58540f73ab55ff6570b2ad65fb46181eb63042244f8c257",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server": {
+    "owner": "geoagent_harness.apps.mcp",
+    "package": true,
+    "sha256": "0af55d4088d64dc64612362c510affbf8f7bb4d38cde44bd6acf49d25956077b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.mcp_server.__main__": {
+    "owner": "geoagent_harness.apps.mcp.__main__",
+    "package": false,
+    "sha256": "4380981377e8d324ada37d4b8ac4529ca1a0ff2e0609d2219d5d5354939137cb",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.approved_workflow": {
+    "owner": "geoagent_harness.task_actions.approved_workflow",
+    "package": false,
+    "sha256": "c753570743edcef4cbe63deab2d8ef46ce294c57eea5c137040a29346185602b",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.transport": {
+    "owner": "geoagent_harness.apps.mcp.transport",
+    "package": false,
+    "sha256": "42ba05a2e8673cce9362f86a46e76927bb79bf673b9dd7c163cee7dd4ca8f856",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.schemas": {
+    "owner": "geoagent_harness.contracts.tool_results",
+    "package": false,
+    "sha256": "1cd203b1ed98f0d6b59b3bcf7d3395e4dbea3e5862cfa44a767e2c769b49f0da",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.tools": {
+    "owner": "geoagent_harness.task_actions.data_tools",
+    "package": false,
+    "sha256": "5fed26189dd9c70241b70b516c753e59777361c7940b378174ad9f0e4ae1b43b",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.approved_recipe": {
+    "owner": "geoagent_harness.task_actions.approved_recipe",
+    "package": false,
+    "sha256": "9486467d37970d96cfb57245e5dfb915d96b90265aec2adf4679898d63b717e2",
+    "kind": "alias"
+  },
+  "geoagent_harness.mcp_server.settings": {
+    "owner": "geoagent_harness.platform.settings",
+    "package": false,
+    "sha256": "5a13107367d59f93ddcfb9edf578ad83ef3de26865ea8d44388febbf33000d42",
+    "kind": "alias"
+  },
+  "geoagent_harness.orchestrator.task_agents": {
+    "owner": "geoagent_harness.agents.runtime.orchestrator.task_agents",
+    "package": false,
+    "sha256": "7f5dfef5f2d67c8f6940df76df017cb25b295f54c5821aee62c19650bd7d93d1",
+    "kind": "alias"
+  },
+  "geoagent_harness.orchestrator": {
+    "owner": "geoagent_harness.agents.runtime.orchestrator",
+    "package": true,
+    "sha256": "23754deab7bab501b8a501e361acdd4d1797d00dfb9c3ea3b42a54a9a9eb644b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.orchestrator.workflow": {
+    "owner": "geoagent_harness.agents.runtime.orchestrator.workflow",
+    "package": false,
+    "sha256": "6b01c1550ce85531627cb99b8cfd9cb6c4a866f4a6eda952b3753e24bafd52ac",
+    "kind": "alias"
+  },
+  "geoagent_harness.model.telemetry": {
+    "owner": "geoagent_harness.platform.model_gateway.telemetry",
+    "package": false,
+    "sha256": "81b95b0cd3f843cb1684200670c9e08991f6e4d33763af06344a4459c26e4710",
+    "kind": "alias"
+  },
+  "geoagent_harness.model": {
+    "owner": "geoagent_harness.platform.model_gateway",
+    "package": true,
+    "sha256": "9b77205f066cf235434aed95cf8c4422e8b9f6622e27a29c48d92b6fc2c51115",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.model.schemas": {
+    "owner": "geoagent_harness.platform.model_gateway.schemas",
+    "package": false,
+    "sha256": "584ac7e66ba312732072a2283de25e8f23d3ecaaa7eb6637d5d8c16e5e01671a",
+    "kind": "alias"
+  },
+  "geoagent_harness.model.client": {
+    "owner": "geoagent_harness.platform.model_gateway.client",
+    "package": false,
+    "sha256": "014f2876b7a73e12ab6234f2928e8e3b4f2ff7a9bd981449dd813861c6b0522d",
+    "kind": "alias"
+  },
+  "geoagent_harness.model.diagnostics": {
+    "owner": "geoagent_harness.platform.model_gateway.diagnostics",
+    "package": false,
+    "sha256": "48d60cf360770300e2f5d0b5e464bb10dda4237e60ebf62a8ca3fa8495cf4fb0",
+    "kind": "alias"
+  },
+  "geoagent_harness.model.catalog": {
+    "owner": "geoagent_harness.platform.model_gateway.catalog",
+    "package": false,
+    "sha256": "8771aacf60f08957f919c93f26c0941dc0710036ea512ba91be3f4afbcfecfd5",
+    "kind": "alias"
+  },
+  "geoagent_harness.model.settings": {
+    "owner": "geoagent_harness.platform.model_settings",
+    "package": false,
+    "sha256": "4df957256639e185f8360c149848ad93b6305dced425fa4876b117cc386442a3",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic": {
+    "owner": "geoagent_harness.agents.roles.critic",
+    "package": true,
+    "sha256": "6837caa69f949eff654a73d27ad1e921270c6ae1a9d9a81da13904ace3f3f987",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.critic.service": {
+    "owner": "geoagent_harness.agents.roles.critic.service",
+    "package": false,
+    "sha256": "673c1138c0e116f302af3e99d10f7b1da1838d30caa2e1a716fe4a3fd6e8bae8",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.records": {
+    "owner": "geoagent_harness.platform.storage.critic_records",
+    "package": false,
+    "sha256": "369bfbd2b4a2d7ccae9845046d5f00e98635af7266c5e2faaeb20bd30d18551b",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.prompt": {
+    "owner": "geoagent_harness.agents.roles.critic.prompt",
+    "package": false,
+    "sha256": "60504d4828879b6ff3a2297685723f7af72e740e17bbc0c4e26fd2dcc66896a0",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.schemas": {
+    "owner": "geoagent_harness.contracts.critic",
+    "package": false,
+    "sha256": "ac3b44b8b0e0c6d2cbd2c603254a104eae95ae7130e51ae66027d0a05a51b4a8",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.record_storage": {
+    "owner": "geoagent_harness.platform.storage.critic_record_storage",
+    "package": false,
+    "sha256": "6b86d9ef73b7d6233a3fcec5475f61ee3b0a924e4d5f66e858ac9a5ed55e66df",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.agent": {
+    "owner": "geoagent_harness.agents.roles.critic.agent",
+    "package": false,
+    "sha256": "5611e289d0b96fb7d1cd8f5fcbec78d199cfb935a267b8e36a797f60e42092cd",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.evidence": {
+    "owner": "geoagent_harness.platform.evidence",
+    "package": false,
+    "sha256": "a00d09cdeb3a104765771f2ed0357857c2a1c8df7cca48e31c430092be259849",
+    "kind": "alias"
+  },
+  "geoagent_harness.critic.recipe_trace": {
+    "owner": "geoagent_harness.agents.roles.critic.recipe_trace",
+    "package": false,
+    "sha256": "00eeafc96c9b24af939ef3fb07ab2249363628b1ef4ab0d26588ce73eef2f39f",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular": {
+    "owner": "geoagent_harness.data.tabular",
+    "package": true,
+    "sha256": "fe8041c3925b1573802bdca9264af776b02c23a0d055598383ccbab9ede0e0b8",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.tabular.source_contracts": {
+    "owner": "geoagent_harness.contracts.table_sources",
+    "package": false,
+    "sha256": "220e6ed9cae562dfc4d1bfc47b37b62a8c1c33ae53898430a5e07401a0ee052c",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.analytical_service": {
+    "owner": "geoagent_harness.data.tabular.analytical_service",
+    "package": false,
+    "sha256": "1f445c9bd7493b1f09394f64ed352eb01df234c3721b10fdfa263145bfcf2b10",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.analyst": {
+    "owner": "geoagent_harness.agents.runtime.analyst",
+    "package": false,
+    "sha256": "b90eb7bd1d64f56a36386d7639c38569265d543311324cff5853105022c74d93",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.dataset_views": {
+    "owner": "geoagent_harness.data.tabular.dataset_views",
+    "package": false,
+    "sha256": "0d092354d3370798457b7dfd3c8f402b967ef5d7fdc142784e8af5458538654d",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.dataset_service": {
+    "owner": "geoagent_harness.data.tabular.dataset_service",
+    "package": false,
+    "sha256": "b55163fb5f9df8d2f0ec80d73e4d5edb980e675c9890c80b4be5230e9e64c3e8",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.service": {
+    "owner": "geoagent_harness.data.tabular.service",
+    "package": false,
+    "sha256": "04786ff731e5a79aef7ad0740535fbd38c85c2e2d00d2629aa04daeda68d5bbd",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.inspection": {
+    "owner": "geoagent_harness.data.tabular.inspection",
+    "package": false,
+    "sha256": "67149ad031e0ce8628f1ca67f725f9b05136926260651e7e9c726bb9c07ec903",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.dataset_profile": {
+    "owner": "geoagent_harness.data.tabular.dataset_profile",
+    "package": false,
+    "sha256": "2d863793e45f508701cff15e74af333d68d2ec53c12e4eb2e0655241d5c813ad",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.streaming": {
+    "owner": "geoagent_harness.data.tabular.streaming",
+    "package": false,
+    "sha256": "afc54ffa4b96ac3348c9c09d4086e2160b249d9a22e63ddd7bbd449361f77b5d",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.statistics": {
+    "owner": "geoagent_harness.data.tabular.statistics",
+    "package": false,
+    "sha256": "10a9a776cb0cf0ddc264ba2ae68d6672449bd3fbbbbf58a448dfa5542d54cdf8",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.decoding": {
+    "owner": "geoagent_harness.data.tabular.decoding",
+    "package": false,
+    "sha256": "e22d20475570dfc015062b8b914cce2cc483693f76e761d8ef09698bfce6374d",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.schemas": {
+    "owner": "geoagent_harness.contracts.tabular",
+    "package": false,
+    "sha256": "335d30ec5ee864a4ee5d4b07982ed2f8b63e03ae8fdf2468c993348a44fe0e87",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.analysis_contracts": {
+    "owner": "geoagent_harness.contracts.analysis_options",
+    "package": false,
+    "sha256": "5aedad50d5116aa2aa8a7fa68ea851f6eda8c9f049467d54d6e42e4e017824ea",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.field_guidance": {
+    "owner": "geoagent_harness.data.tabular.field_guidance",
+    "package": false,
+    "sha256": "b92758fc91f5021a390e615cf2a3d82022ec2c4856cb949b8a89691370685f89",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.policy": {
+    "owner": "geoagent_harness.data.tabular.policy",
+    "package": false,
+    "sha256": "47edbde9bab6ecd26459abf81529a6323545a7d331437bc5b37f5e255ddf9e96",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.strategy": {
+    "owner": "geoagent_harness.data.tabular.strategy",
+    "package": false,
+    "sha256": "dbb11af8675284d3819681f921c6169ce556a958870ec17c8d913792295a2840",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.table_sources": {
+    "owner": "geoagent_harness.data.tabular.table_sources",
+    "package": false,
+    "sha256": "526bdd793225c613112c11c684cf96326a457ef2ca68a02ed367f8bd4f19ff94",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.grouping": {
+    "owner": "geoagent_harness.data.tabular.grouping",
+    "package": false,
+    "sha256": "bc333cf1e51cff3a5df72436c89917be6c6bdd9b76cdcbf2597cba535d5fbbdf",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.cli": {
+    "owner": "geoagent_harness.apps.cli.tabular",
+    "package": false,
+    "sha256": "375d2c22600f341f5e9c29e40587d83aa71305dea7be56b34db2ea589199472d",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.readiness": {
+    "owner": "geoagent_harness.data.tabular.readiness",
+    "package": false,
+    "sha256": "6e38210f514f27d50c9628ba07ea6e3f382a3d9a56c49935b5f21ce3a6143c1e",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.analysis": {
+    "owner": "geoagent_harness.data.tabular.analysis",
+    "package": false,
+    "sha256": "5ae484caa8428bb2223e010af78fe15cb12d1f43bf19da4759fae25834f55436",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.calculations": {
+    "owner": "geoagent_harness.data.tabular.calculations",
+    "package": false,
+    "sha256": "37ccd50f4f8c500571eb65c24cdf46304e3813d9b722f88b48c26a2bfaa6a053",
+    "kind": "alias"
+  },
+  "geoagent_harness.tabular.analysis_goals": {
+    "owner": "geoagent_harness.data.tabular.analysis_goals",
+    "package": false,
+    "sha256": "1676a797ad873f9faf66edccfe082084d423ef87710f5c564155f85969b13182",
+    "kind": "alias"
+  },
+  "geoagent_harness.chat": {
+    "owner": "geoagent_harness.apps.chat",
+    "package": true,
+    "sha256": "3b39eeaff50e49545ce1ba103a6279cce13fbd6c5b461ded586f294623046cbc",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.chat.views": {
+    "owner": "geoagent_harness.apps.chat.views",
+    "package": false,
+    "sha256": "439424e1663c83d5ce0e02fde84dc1b726da5c2958259d1f9d487dcec01b6769",
+    "kind": "alias"
+  },
+  "geoagent_harness.chat.client": {
+    "owner": "geoagent_harness.apps.chat.client",
+    "package": false,
+    "sha256": "c65d602a51ab3f80f55bb9c4efa99c3c92234a889fafdc57c4f93e998566a535",
+    "kind": "alias"
+  },
+  "geoagent_harness.chat.workspace": {
+    "owner": "geoagent_harness.apps.chat.workspace",
+    "package": false,
+    "sha256": "dc3909a7ce8457da5b915de44ea79aeb462e0e080d2f85ead74743742ffde412",
+    "kind": "alias"
+  },
+  "geoagent_harness.chat.cli": {
+    "owner": "geoagent_harness.apps.chat.cli",
+    "package": false,
+    "sha256": "cc5d9410dae88c385945f09e0bede617697d5292893f1d5f5f3b1f96c81e1532",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_history": {
+    "owner": "geoagent_harness.core.ledger.task_history",
+    "package": true,
+    "sha256": "60a7a4692b4e6425e90da00ac05ea80e04efd992f02a1463b7c75bd396fe8376",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.task_history.relationships": {
+    "owner": "geoagent_harness.core.ledger.task_history.relationships",
+    "package": false,
+    "sha256": "1943215e2c3ba4158e3a91132f51b759aabb0bb1ce51da8f2e53b05d9094f777",
+    "kind": "alias"
+  },
+  "geoagent_harness.task_history.service": {
+    "owner": "geoagent_harness.core.ledger.task_history.service",
+    "package": false,
+    "sha256": "bfab40586811357fef18407e58a014dcf65b16df81e4a4ca2a9f3bb394d32f8b",
+    "kind": "alias"
+  },
+  "geoagent_harness.geoserver": {
+    "owner": "geoagent_harness.data.spatial.geoserver",
+    "package": true,
+    "sha256": "c73c283dd0187bcdb68cce60a580d5dd8dba6dd90acb4e3b05313cebf62a0ac0",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.approvals": {
+    "owner": "geoagent_harness.core.policy.approvals",
+    "package": true,
+    "sha256": "951e32eff468d551c4903a5fb0d708103bd9450dd307867e4bd90ee2ab56ce6b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.approvals.service": {
+    "owner": "geoagent_harness.core.policy.approvals.service",
+    "package": false,
+    "sha256": "a347f44651d4d339eb52c0b6a7215f3aaa211a51aee5dbe219471eae781d3d8d",
+    "kind": "alias"
+  },
+  "geoagent_harness.approvals.schemas": {
+    "owner": "geoagent_harness.core.policy.approvals.schemas",
+    "package": false,
+    "sha256": "c8897793a6160b3d1742da4f2166a55dd650fda7e4d0a40538dfcbddabaf3297",
+    "kind": "alias"
+  },
+  "geoagent_harness.context_retrieval": {
+    "owner": "geoagent_harness.agents.memory.context_retrieval",
+    "package": true,
+    "sha256": "46bd1f8df135845f7ec684bec6b3c8218d01f3a0aad2a06b1ba65dd2fbf5e48b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.context_retrieval.review": {
+    "owner": "geoagent_harness.agents.memory.context_retrieval.review",
+    "package": false,
+    "sha256": "934494c153692e9c253f644eaf5c97143a8cfee907b2a82468fd89cfd30d6f83",
+    "kind": "alias"
+  },
+  "geoagent_harness.context_retrieval.service": {
+    "owner": "geoagent_harness.agents.memory.context_retrieval.service",
+    "package": false,
+    "sha256": "e3231598c6c356d34671c5b03fe432f1bff44099e49e5e8129c7e5ec9c2921eb",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.planner_submission": {
+    "owner": "geoagent_harness.task_actions.planner_submission",
+    "package": false,
+    "sha256": "cac9bef535c91b348df4ddcb0aeff083bddc59d74eddb691c9f4ebf0ea0d6bbb",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.storage_paths": {
+    "owner": "geoagent_harness.platform.paths",
+    "package": false,
+    "sha256": "f4e064027782c170aa328e88f2734e650c3baa42c1a98d3d01f815b4d8641432",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.result_preview": {
+    "owner": "geoagent_harness.task_actions.result_preview",
+    "package": false,
+    "sha256": "aa5b62dca9d4c755ffb29e069a32ca6368b30e76f68b38f8d24dae1fa30ed1f0",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.result_exploration": {
+    "owner": "geoagent_harness.task_actions.result_exploration",
+    "package": false,
+    "sha256": "227fd53305cc624ff198e76eacfdc1a3da6b5ba3a5c5565dba4d6fd5a3e785e1",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.spatial_views": {
+    "owner": "geoagent_harness.task_actions.spatial_views",
+    "package": false,
+    "sha256": "e080f446a7a11efa9cace74612a2e669fae46cfd8484ce5810cef546cc3a0982",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.spatial_inspection_snapshot": {
+    "owner": "geoagent_harness.workspaces.sandbox.spatial_snapshot",
+    "package": false,
+    "sha256": "bc1554920f0846403bdbac5894e3bc9ad7efea6d85077a9f27c4a3a0d9c10114",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.workflow": {
+    "owner": "geoagent_harness.task_actions.workflow",
+    "package": false,
+    "sha256": "b628d410c8191d971a18baf690e97bc90e33b78fa8e99cf3394069b0d3566439",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.planning_tasks": {
+    "owner": "geoagent_harness.task_actions.planning_tasks",
+    "package": false,
+    "sha256": "c85097a760d0c5fefefa11b5ff456672cbe1fd800e15f5830e2011a8526773ba",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.method_memory": {
+    "owner": "geoagent_harness.task_actions.method_memory",
+    "package": false,
+    "sha256": "0b6c10fd339ce2413c0a50b075e78fa6caf635aeb09568db19d9113979ef54d3",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.method_helper": {
+    "owner": "geoagent_harness.task_actions.method_helper",
+    "package": false,
+    "sha256": "d72ba4fde671e94941d89cd8309d2dcc6ed5839020362aa49e8e3444723f5552",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.exploration_contracts": {
+    "owner": "geoagent_harness.task_actions.exploration_contracts",
+    "package": false,
+    "sha256": "52a8f842b2671aef1d70bfc5af63bdc631c1b89a849b72e1a44551dbae989ad9",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.execution_assistance": {
+    "owner": "geoagent_harness.task_actions.execution_assistance",
+    "package": false,
+    "sha256": "22da6e74ed8dbeab06694ce4379489b9148fd9d5627d880503835426d0cf0abf",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.inspection_worker": {
+    "owner": "geoagent_harness.workspaces.sandbox.inspection_worker",
+    "package": false,
+    "sha256": "4e2d8b137cd4c7b77ed6b7f76b123883f0be8109ef295c4f92643206a76aee01",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.chat_history": {
+    "owner": "geoagent_harness.task_actions.chat_history",
+    "package": false,
+    "sha256": "ff48851a7f339b6469f30a4f0cc7adbf86a09b2da68199cd117fae8905401187",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.workflow_runs": {
+    "owner": "geoagent_harness.task_actions.workflow_runs",
+    "package": false,
+    "sha256": "c8feec3443a5f84650c52c06b8d17527f4d94312d4cd65b066fe5e906fa2a26b",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.run_assessment": {
+    "owner": "geoagent_harness.task_actions.run_assessment",
+    "package": false,
+    "sha256": "f12f89b4d0c8b364acffc42ed32c568a537542c3d1c82d79805c90198880525b",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.inspection_policy": {
+    "owner": "geoagent_harness.task_actions.inspection_policy",
+    "package": false,
+    "sha256": "27656c5731311a7259249edc8e393d04102b1dac196cbbb9554996bdc646b27b",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.command_actions": {
+    "owner": "geoagent_harness.task_actions.command_actions",
+    "package": false,
+    "sha256": "888cafe6061a94187e70e08c1fee5e45afa9a12f95e3f02864f98e133820bbbe",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.conversation": {
+    "owner": "geoagent_harness.task_actions.conversation",
+    "package": false,
+    "sha256": "f509a1e0ff34072195fb4fbacdc6ba9e1ec6ed209831cd5eb3509661eb025e2c",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.snakemake_workflow": {
+    "owner": "geoagent_harness.task_actions.snakemake_workflow",
+    "package": false,
+    "sha256": "aabf67eb7fbf16b2ee770bb2d81fa0b6f08730bc83ad9dd8955205392b5b1bf8",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.inspection_planning": {
+    "owner": "geoagent_harness.task_actions.inspection_planning",
+    "package": false,
+    "sha256": "71ec1192031679bab20e11db01bbd3e26cb3d82f4214060e45fd17a9b1128e1d",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills": {
+    "owner": "geoagent_harness.data.spatial.skills",
+    "package": true,
+    "sha256": "f9bfb0d4289af3e79f590ada6f29ff4664347175ede08ab00019d0a8315a8d40",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.spatial_contracts.storage": {
+    "owner": "geoagent_harness.contracts.spatial.storage",
+    "package": false,
+    "sha256": "e3e222969a5c1f9df178b8ba6fdaf377198bf3a1d3c76a82a19fbf9fee779dba",
+    "kind": "alias"
+  },
+  "geoagent_harness.spatial_contracts": {
+    "owner": "geoagent_harness.contracts.spatial",
+    "package": true,
+    "sha256": "3465409844a33e8d3af8f0461f710554e41503886d8fc9ff85bc5db54d2a3aa7",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.spatial_contracts.service": {
+    "owner": "geoagent_harness.contracts.spatial.service",
+    "package": false,
+    "sha256": "a40ccd7fe2b7bd6b7a63509e6e09e233b99647cbbb1e41bb38a3ed8458f27053",
+    "kind": "alias"
+  },
+  "geoagent_harness.spatial_contracts.schemas": {
+    "owner": "geoagent_harness.contracts.spatial.schemas",
+    "package": false,
+    "sha256": "4663e9b7d04555f87844063b67bea0728ebc66b7c540efd38f058c692ee4adaf",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.storage": {
+    "owner": "geoagent_harness.core.ledger.recipe_storage",
+    "package": false,
+    "sha256": "dc04ea2e487c1710fa69187a76fe9cedb76d5c77d3e524938b343aae901d1982",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.inventory": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.inventory",
+    "package": false,
+    "sha256": "4e9692a259fac6eb22d0107ba2fd23312d0c6cf52b8f5fbb3171148a5fdca297",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.handoff": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.handoff",
+    "package": false,
+    "sha256": "994801312fe4400d405c03f4838a7c5e15745dae5d73eb91ff0bf8b5645f9513",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes": {
+    "owner": "geoagent_harness.capabilities.recipes.execution",
+    "package": true,
+    "sha256": "1230a09b78198fd248cdb0c1db9ac8bb48c56efc5a534a9b4f465c14d404d379",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.recipes.runner": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.runner",
+    "package": false,
+    "sha256": "f55ab794b8ba188222bc31fb8778b71acc5f253d563bab57d8c336f52530d121",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.evidence_reporting": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.evidence_reporting",
+    "package": false,
+    "sha256": "0b640ea3a159a7762e57e7a0dea267dd9e6277b70d6dc72e74b3828b99555da5",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.dispatcher": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.dispatcher",
+    "package": false,
+    "sha256": "b701badef7a72acc2c4ca1dc8ae2d3364c2450fef45e2559a345f41b74e742ca",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.schemas": {
+    "owner": "geoagent_harness.contracts.recipes",
+    "package": false,
+    "sha256": "c365a4b21edc43353ad97a515c1a9cc7ed1d1f781febeaf8d8e7bf6fd8e2874d",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.digest": {
+    "owner": "geoagent_harness.core.ledger.recipe_identity",
+    "package": false,
+    "sha256": "95acdf1b69a666aed31efbecb3e5c54dac46366a72fd2664f73aae61846bf449",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.evidence_persistence": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.evidence_persistence",
+    "package": false,
+    "sha256": "6bc27b4f57972d9708448c21691f4557638326e68963e1f9960de3c21f9ff117",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.policy": {
+    "owner": "geoagent_harness.core.policy.recipe",
+    "package": false,
+    "sha256": "f863d2a6132bc2fd553e9058cdfea686c2fe9d4c2381ba56fd5c43f7f615a4d3",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.evidence_storage": {
+    "owner": "geoagent_harness.core.ledger.recipe_evidence",
+    "package": false,
+    "sha256": "4824d6afac70c915419a18ada203e23a0136b4c07231fe6529fa6e7bf959ad5e",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.approval": {
+    "owner": "geoagent_harness.core.policy.recipe_approval",
+    "package": false,
+    "sha256": "3f8f0d4597c897e95b03e6cc6af8a8b67a01358b57cb931c0c7122e0387bc3ac",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.observations": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.observations",
+    "package": false,
+    "sha256": "4f6353b2e5a5be8e4f39e725da80971046a77898800751f32a37546a0c5d447d",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.evidence": {
+    "owner": "geoagent_harness.capabilities.recipes.execution.evidence",
+    "package": false,
+    "sha256": "2d10fe2fa1fd76c79c4a3060ed9efa3b01c11638cd98577f468e34650e995c53",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.control": {
+    "owner": "geoagent_harness.platform.execution_control",
+    "package": false,
+    "sha256": "38aeb656620905981dc5fde8635de47611d0d7964fb51800630167194fec8bf5",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.execution": {
+    "owner": "geoagent_harness.core.policy.recipe_execution",
+    "package": false,
+    "sha256": "02cb7f4e3dca8488fc5c9a8aba0b44a191dea38e6d15dc8e1a40511704f9d13d",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipes.evidence_schemas": {
+    "owner": "geoagent_harness.contracts.recipe_evidence",
+    "package": false,
+    "sha256": "022dd648b39f8e7acef7c68fef333d928882bc8149c82d334b0e7b13259600b2",
+    "kind": "alias"
+  },
+  "geoagent_harness.operational_history": {
+    "owner": "geoagent_harness.core.ledger.operational_history",
+    "package": true,
+    "sha256": "3ad52164f4f97a829e42c69ba2953496b252ebd9aa91aabc37c1b709c91642ca",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.operational_history.service": {
+    "owner": "geoagent_harness.core.ledger.operational_history.service",
+    "package": false,
+    "sha256": "bc0b98c17d4441b799853c2fa9157fe84029f9dd6d2750d3236b6864ccbc7dc4",
+    "kind": "alias"
+  },
+  "geoagent_harness.operational_history.observers": {
+    "owner": "geoagent_harness.core.ledger.operational_history.observers",
+    "package": false,
+    "sha256": "180ff09380a1b0a166b1025e23e513cdcea250dcd9ee86637eb47cbc92db7aed",
+    "kind": "alias"
+  },
+  "geoagent_harness.operational_history.schemas": {
+    "owner": "geoagent_harness.core.ledger.operational_history.schemas",
+    "package": false,
+    "sha256": "78392801aac2dd09401c7384b72231572f1a4396b59356f0479d0f3897cc3492",
+    "kind": "alias"
+  },
+  "geoagent_harness.capabilities.text": {
+    "owner": "geoagent_harness.data.tabular.text",
+    "package": false,
+    "sha256": "d303eac903fe005f8435df16f00ff1e53433439a40c96611a906faae4af21cc1",
+    "kind": "alias"
+  },
+  "geoagent_harness.capabilities.service": {
+    "owner": "geoagent_harness.agents.roles.planner.acquisition",
+    "package": false,
+    "sha256": "14f9f540ff1b265cc0ac68d748e6510876fc0d28ae87809bc55c65be04abaae1",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox": {
+    "owner": "geoagent_harness.workspaces.sandbox",
+    "package": true,
+    "sha256": "d5b9be815add3f49f9fb13a34eac071b397026e4ab828e23b8c86e7ac45a31da",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.sandbox.manager": {
+    "owner": "geoagent_harness.workspaces.sandbox.manager",
+    "package": false,
+    "sha256": "438ac6a9e59b99262dd2050d47a039c21e32a65da43d45f195cbbd7f6cedb446",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.inspection": {
+    "owner": "geoagent_harness.workspaces.sandbox.inspection",
+    "package": false,
+    "sha256": "6928cd42f045b3faad5289b310acfb2a6f1efcb46d3204fd44cca90e1a9ab40c",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.spatial_rendering": {
+    "owner": "geoagent_harness.workspaces.sandbox.spatial_rendering",
+    "package": false,
+    "sha256": "ef21b867ef905d6524b3e0cef8893f79c35634b0153283137b1abee87f78c40b",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.worker": {
+    "owner": "geoagent_harness.workspaces.sandbox.worker",
+    "package": false,
+    "sha256": "51794d50948d1c5fde687d162e4b04f837dc780f17a2b6f1dfaaf6d82e72bbdd",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.inspection_worker": {
+    "owner": "geoagent_harness.workspaces.sandbox.inspection_worker",
+    "package": false,
+    "sha256": "4e2d8b137cd4c7b77ed6b7f76b123883f0be8109ef295c4f92643206a76aee01",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.contracts": {
+    "owner": "geoagent_harness.workspaces.sandbox.contracts",
+    "package": false,
+    "sha256": "a255bf1a9fb1dacf7dc1b9ad342f8bac9aa06dfd805128823b3e1a242c010bcb",
+    "kind": "alias"
+  },
+  "geoagent_harness.sandbox.spatial_snapshot": {
+    "owner": "geoagent_harness.workspaces.sandbox.spatial_snapshot",
+    "package": false,
+    "sha256": "bc1554920f0846403bdbac5894e3bc9ad7efea6d85077a9f27c4a3a0d9c10114",
+    "kind": "alias"
+  },
+  "geoagent_harness.releases.storage": {
+    "owner": "geoagent_harness.core.ledger.releases.storage",
+    "package": false,
+    "sha256": "2e8fe0c0e634c164b111031233fe8e7e68ce202484ad1afdeaf48e6f25d41e84",
+    "kind": "alias"
+  },
+  "geoagent_harness.releases": {
+    "owner": "geoagent_harness.core.ledger.releases",
+    "package": true,
+    "sha256": "582f3dbfb101e2437893356eb15110a7c215db844763accffac6c32b80b0cde9",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.releases.schemas": {
+    "owner": "geoagent_harness.core.ledger.releases.schemas",
+    "package": false,
+    "sha256": "06240f64f704365aa7a57269f26aac512102c1a631f903caa0811e71a2dbd466",
+    "kind": "alias"
+  },
+  "geoagent_harness.releases.assessment": {
+    "owner": "geoagent_harness.core.ledger.releases.assessment",
+    "package": false,
+    "sha256": "24bbbacf07d217b0cf0b9c154a1c8d8e50160d2794e3a18a3cffc283bf16eb65",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.spatial": {
+    "owner": "geoagent_harness.data.discovery.spatial",
+    "package": false,
+    "sha256": "35dce063a112c5dd53769e152be29899210c2b6b632b19c5c0aa17bb8200f4b0",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery": {
+    "owner": "geoagent_harness.data.discovery",
+    "package": true,
+    "sha256": "dfd7cd74169bac64125882e91e75c24c03c527bb060ce665aa32b2ab94b95294",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.discovery.csv": {
+    "owner": "geoagent_harness.data.discovery.csv",
+    "package": false,
+    "sha256": "f51c3be39f0abdad40f5e749fa19f10fa5799c9f250e5fde64a136be6b5b781d",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.service": {
+    "owner": "geoagent_harness.data.discovery.service",
+    "package": false,
+    "sha256": "4e3cc4ccb38043d80d75eb1f205c057e608f6c52c6fdbac2472d56e389d5d209",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.raster_metadata": {
+    "owner": "geoagent_harness.data.discovery.raster_metadata",
+    "package": false,
+    "sha256": "8c8bf270da08559e2eb3712bb06579b27ceaf1f9ae7cf244ba83a2aacbfe9f90",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.source": {
+    "owner": "geoagent_harness.data.discovery.source",
+    "package": false,
+    "sha256": "2a4346c419e12e53b2ef87e6f1a538c5f2a0cf990614e0e9f97580d62d37170d",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.spatial_contracts": {
+    "owner": "geoagent_harness.data.discovery.spatial_contracts",
+    "package": false,
+    "sha256": "db427c33886ef40db1c3041b62ae260aaaf788c644885c3c53b5de924c0ff0e5",
+    "kind": "alias"
+  },
+  "geoagent_harness.discovery.cli": {
+    "owner": "geoagent_harness.apps.cli.discovery",
+    "package": false,
+    "sha256": "ececfc13b8719d6e7b6e07f3344b84fa114ac492eef067e35f0ced2861dc0aed",
+    "kind": "alias"
+  },
+  "geoagent_harness.pilot_demo": {
+    "owner": "geoagent_harness.apps.pilot_demo",
+    "package": true,
+    "sha256": "35debf34aad90607f5a4fe6953a0730971a45455bc42a1a45a57ee247222697b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.pilot_demo.service": {
+    "owner": "geoagent_harness.apps.pilot_demo.service",
+    "package": false,
+    "sha256": "ede360f8222fc2037f9c309657fec2b5d2a56d2c0dfdd4bb3ba96e8167890627",
+    "kind": "alias"
+  },
+  "geoagent_harness.pilot_demo.schemas": {
+    "owner": "geoagent_harness.apps.pilot_demo.schemas",
+    "package": false,
+    "sha256": "eee16e357c8af1ef79312be03f6ed7fb6761ba74b33fbc8bbf520765ff63cb62",
+    "kind": "alias"
+  },
+  "geoagent_harness.verifier": {
+    "owner": "geoagent_harness.core.verification",
+    "package": true,
+    "sha256": "58a79e31f4d73c774bb91d3e982e359e2de971fe2817c982e632bc81b30aa5e7",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.verifier.postgis": {
+    "owner": "geoagent_harness.core.verification.postgis",
+    "package": false,
+    "sha256": "bd5d7eca4033a4d2d38ec8793e8874a2c5b3fb5e53daf4e771e6efec171a62a0",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.promotion": {
+    "owner": "geoagent_harness.evolution.builder.promotion",
+    "package": false,
+    "sha256": "afc42bcc9ea9cc9652044e79ece5a2bde18c2789d8053fd57b6383b55c8f8ae8",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.storage": {
+    "owner": "geoagent_harness.evolution.builder.storage",
+    "package": false,
+    "sha256": "18a1f7706f800bb02626148dad1d686e4f420aec8265adf1068d77477d3e9547",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.activation": {
+    "owner": "geoagent_harness.evolution.builder.activation",
+    "package": false,
+    "sha256": "4df10eae46e614b11e86a9630b31b0d696919bac5effcd9df580aa7677275cfd",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.activation_review_storage": {
+    "owner": "geoagent_harness.evolution.builder.activation_review_storage",
+    "package": false,
+    "sha256": "bf5fe3695037bd039404c40f180f814f0bddeece45df1c8cceae0ce772a4ebfb",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.promotion_plan": {
+    "owner": "geoagent_harness.evolution.builder.promotion_plan",
+    "package": false,
+    "sha256": "7ac60d582239fd68ff4dd648230f287de6774829c474b2ed46c717307d2fa5b2",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder": {
+    "owner": "geoagent_harness.evolution.builder",
+    "package": true,
+    "sha256": "d58e79161fed97d950852e11917e8a68002b2182b0841699c60855bfba8f14d5",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.builder.review_decision": {
+    "owner": "geoagent_harness.evolution.builder.review_decision",
+    "package": false,
+    "sha256": "61b73732bb3c060fad3e07835bf125723079fd66e03afaf8d19e871cd89523d8",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.review": {
+    "owner": "geoagent_harness.evolution.builder.review",
+    "package": false,
+    "sha256": "87eb7be224b2771f0887182bb6ff644bd657254dbb52c5d2e0ea344dda7223b3",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.service": {
+    "owner": "geoagent_harness.evolution.builder.service",
+    "package": false,
+    "sha256": "01d1094ad1196dc6e93a6771c53524df6d9b6ca587d421757e181bb447d6e131",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.promotion_verification_storage": {
+    "owner": "geoagent_harness.evolution.builder.promotion_verification_storage",
+    "package": false,
+    "sha256": "2ead1386b5542bb627f6377929f43a22111df2b4c276bc78846817bb2a6a0377",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.inspection": {
+    "owner": "geoagent_harness.evolution.builder.inspection",
+    "package": false,
+    "sha256": "65e23a20a2a6199ed8673b39799a5026ac140b55f51753f52db9f7724d28a617",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.activation_plan": {
+    "owner": "geoagent_harness.evolution.builder.activation_plan",
+    "package": false,
+    "sha256": "9a6c1cd9b19bb4c7f1d9dc3d771053e05d79cf8d5ab73af235a6f1369967a4ed",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.promotion_verification": {
+    "owner": "geoagent_harness.evolution.builder.promotion_verification",
+    "package": false,
+    "sha256": "3c9b9f98a90d148e4a0d41f979d0066e71d57c611a1300e8a4d4f5f1aaf8c5b6",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.prompt": {
+    "owner": "geoagent_harness.evolution.builder.prompt",
+    "package": false,
+    "sha256": "c5883dda48cb68d3084fd93527b3a1413df52612568cb88a39c4ea7723a6621c",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.activation_plan_storage": {
+    "owner": "geoagent_harness.evolution.builder.activation_plan_storage",
+    "package": false,
+    "sha256": "c39ce833b8bd40b8666c1d0a786d54ff1aaeb913e8b16189c089399781892e61",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.materialization": {
+    "owner": "geoagent_harness.evolution.builder.materialization",
+    "package": false,
+    "sha256": "d602bdde8c3629bd69e46c93b2f81987884901a3aedfd39e28e771965fcf58b6",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.post_activation_verification": {
+    "owner": "geoagent_harness.evolution.builder.post_activation_verification",
+    "package": false,
+    "sha256": "313c8ccc2c932f4d68b1636747a7f0d9988bf2883388e7685c8e8ceea8ad6d1e",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.review_storage": {
+    "owner": "geoagent_harness.evolution.builder.review_storage",
+    "package": false,
+    "sha256": "876b3ec1d0fbacda7798dfda4051c638a269f114971dd36e3d6ae903087b476c",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.request_loader": {
+    "owner": "geoagent_harness.evolution.builder.request_loader",
+    "package": false,
+    "sha256": "1259a08ecf959e67fdc190ae1419dd2b004529410d50e1fa9e07356368d96cb1",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.schemas": {
+    "owner": "geoagent_harness.evolution.builder.schemas",
+    "package": false,
+    "sha256": "86b477704de26353f3d08a59903d4e3eff36a5ed4f92685d8f49f4c4299f95e7",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.review_decision_storage": {
+    "owner": "geoagent_harness.evolution.builder.review_decision_storage",
+    "package": false,
+    "sha256": "490fb7e02a20d400b4e5f9f8654f0b6943815f2343ec4ec05f232091de71b210",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.policy": {
+    "owner": "geoagent_harness.evolution.builder.policy",
+    "package": false,
+    "sha256": "a340a32285e4ddd781d87f9c3bd58e5dfad2663f3161dfbe3f4f66d2d0d80d9a",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.agent": {
+    "owner": "geoagent_harness.evolution.builder.agent",
+    "package": false,
+    "sha256": "db9d14fbc5ef5e39e9a69bb997c254f37c1202ffe53bbe6a06e85b30e4e9a7b6",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.promotion_plan_storage": {
+    "owner": "geoagent_harness.evolution.builder.promotion_plan_storage",
+    "package": false,
+    "sha256": "8aeca1abfc3f8c834b7b194a17a43094f8ff9ae5e37160f5791528a5397aef33",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.testing": {
+    "owner": "geoagent_harness.evolution.builder.testing",
+    "package": false,
+    "sha256": "a74700b47a74dd9275714c10bf2cf6effe9a1878daae55c61283d1750260b0b3",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.test_evidence": {
+    "owner": "geoagent_harness.evolution.builder.test_evidence",
+    "package": false,
+    "sha256": "84171e0af2d2e544d86e4a4fe0845009c1fa186d85147d21da39523e6a77ef0f",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.activation_review": {
+    "owner": "geoagent_harness.evolution.builder.activation_review",
+    "package": false,
+    "sha256": "d066e16a5e8aad1acc4c9d54b7fe434e2ee1777b039503313b356b250561a303",
+    "kind": "alias"
+  },
+  "geoagent_harness.builder.post_activation_verification_storage": {
+    "owner": "geoagent_harness.evolution.builder.post_activation_verification_storage",
+    "package": false,
+    "sha256": "d0dc3077774f6ac84626aaefd54f0d2074c6fb4366c83e2dbe720988da0b486b",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.files": {
+    "owner": "geoagent_harness.platform.storage.files",
+    "package": false,
+    "sha256": "d5314bff899cad97c8fca65246b030275eb8b3176561c29601c1403430d19e94",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.operation_packages": {
+    "owner": "geoagent_harness.platform.storage.operation_packages",
+    "package": false,
+    "sha256": "88c04b6a58c729ae786245a9d44ff871856cdde2d1571ac70479337c257c6d7a",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage": {
+    "owner": "geoagent_harness.platform.storage",
+    "package": true,
+    "sha256": "bbd02a70256b5cec61e4ed148b564417a0584cd70fa1701f64168083c77170bc",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.storage.metadata": {
+    "owner": "geoagent_harness.platform.storage.metadata",
+    "package": false,
+    "sha256": "306ac829ccb04bd27dd9a80e74d9d2cb358a17c26f4d657c37fb1626295a87f1",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.completed_runs": {
+    "owner": "geoagent_harness.platform.storage.completed_runs",
+    "package": false,
+    "sha256": "2a31f77dfcbdcaabd741651fb278171f54bde7cce826ccf22046864688b9b8bc",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.chat_snapshots": {
+    "owner": "geoagent_harness.platform.storage.chat_snapshots",
+    "package": false,
+    "sha256": "f3c7bcc87b1616cec6701d83b1b65d9a801276bbc0795b1145711a8694e27718",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.sqlite": {
+    "owner": "geoagent_harness.platform.storage.sqlite",
+    "package": false,
+    "sha256": "e04efae3cd3ae01b3edf0098eeb4264ebb24837219b89efc983e358c084ea0e9",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.critic_records": {
+    "owner": "geoagent_harness.platform.storage.critic_records",
+    "package": false,
+    "sha256": "369bfbd2b4a2d7ccae9845046d5f00e98635af7266c5e2faaeb20bd30d18551b",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.provider": {
+    "owner": "geoagent_harness.platform.storage.provider",
+    "package": false,
+    "sha256": "bbdf8e4b606f43ea8c39462a4416b2685ec48b338885f704bebc421fe0c56f6e",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.contracts": {
+    "owner": "geoagent_harness.platform.storage.contracts",
+    "package": false,
+    "sha256": "ca113ab55f118c75edeba8cd106e52d2307e005136e0f1e3f5c5517143143874",
+    "kind": "alias"
+  },
+  "geoagent_harness.storage.critic_record_storage": {
+    "owner": "geoagent_harness.platform.storage.critic_record_storage",
+    "package": false,
+    "sha256": "6b86d9ef73b7d6233a3fcec5475f61ee3b0a924e4d5f66e858ac9a5ed55e66df",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis": {
+    "owner": "geoagent_harness.data.databases.postgis",
+    "package": true,
+    "sha256": "d1d27988562c2ae7ea92ad132c119896bde812c8686a9c2d06ab602272a5a825",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.lifecycle": {
+    "owner": "geoagent_harness.data.databases.postgis.lifecycle",
+    "package": false,
+    "sha256": "48d5ed62480044a0f018eba04ca90de44b419d49614691d5dccbd1af7e27a5f2",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.artifact_storage": {
+    "owner": "geoagent_harness.data.databases.postgis.artifact_storage",
+    "package": false,
+    "sha256": "dd22dd7d60f979e3982c0d7c10c87cce7d1c9859cff09fd213c0f32bf8d9d6da",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.fixed_operations": {
+    "owner": "geoagent_harness.data.databases.postgis.fixed_operations",
+    "package": false,
+    "sha256": "7431e29c3fdd7cac09e2a718e103b87a364d2249a009a0d78996dd502855d8ec",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.attempts": {
+    "owner": "geoagent_harness.data.databases.postgis.attempts",
+    "package": false,
+    "sha256": "26fad7458f72ef6f9e582fdeb5d09ca67401b68d67df201ee5672cc16b39c48e",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_adapters": {
+    "owner": "geoagent_harness.data.spatial.adapters",
+    "package": true,
+    "sha256": "1412a1854ab38d0417b5ab60ed28ecf928565f812bfa33548528de2f31715092",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skill_adapters.builder_runner_example": {
+    "owner": "geoagent_harness.data.spatial.adapters.builder_runner_example",
+    "package": false,
+    "sha256": "475a45c8bcfd502d8e0e46746e09e4fcf538f51a7241586752615304f1109417",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_adapters.raster_conversion": {
+    "owner": "geoagent_harness.data.spatial.adapters.raster_conversion",
+    "package": false,
+    "sha256": "3049ca18922aee22b25366686d12d1c7d036be067b69d109c394dcbc3012c71d",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_adapters.raster_inspection": {
+    "owner": "geoagent_harness.data.spatial.adapters.raster_inspection",
+    "package": false,
+    "sha256": "306b7cf255c72a316d2c0ba683a7aa612a928c7bf7c715a130f0150fca03e9d6",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog": {
+    "owner": "geoagent_harness.capabilities.recipes.catalog",
+    "package": true,
+    "sha256": "3b038909d2139d09c65e817605d2ca20e85ba587a8dbfe6078763eb920cb9039",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.recipe_catalog.service": {
+    "owner": "geoagent_harness.capabilities.recipes.catalog.service",
+    "package": false,
+    "sha256": "8f2c0a13f34a30e2421d9de3fc03315cca206e2987a4637d67855131364a413d",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog.schemas": {
+    "owner": "geoagent_harness.capabilities.recipes.catalog.schemas",
+    "package": false,
+    "sha256": "2f4e23e698a2c54c6e5e4574012f89395a499823804e789e1c88a26be0bb3193",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog.successful": {
+    "owner": "geoagent_harness.capabilities.recipes.catalog.successful",
+    "package": false,
+    "sha256": "1a360870ed5767cc2cbd1eec82edca9b8430767d662edc6b87e95bbbe4bf5ed3",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog.composition": {
+    "owner": "geoagent_harness.task_actions.recipe_catalog",
+    "package": false,
+    "sha256": "b2761470fc51e2b178e7a2db99a0462a5fe661a699618892da563b51dbba5cc7",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog.recipe_builder": {
+    "owner": "geoagent_harness.apps.compatibility.recipe_builder",
+    "package": false,
+    "sha256": "4fa2853747c45f6c739b12b8619c6f957b3da7057abf5613be8e2058bc76ac00",
+    "kind": "alias"
+  },
+  "geoagent_harness.recipe_catalog.discovery": {
+    "owner": "geoagent_harness.capabilities.recipes.catalog.discovery",
+    "package": false,
+    "sha256": "2774c68e34a6a994853a86d72c1c2fef486a6d8b0f58c8e9959790868c64f7e2",
+    "kind": "alias"
+  },
+  "geoagent_harness.testing": {
+    "owner": "geoagent_harness.apps.testing",
+    "package": true,
+    "sha256": "697525075107250f4e5e9843ef752d9fa56df20718282c67d7c18df0db8c5110",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.testing.raster": {
+    "owner": "geoagent_harness.apps.testing.raster",
+    "package": false,
+    "sha256": "a373a1231f93729fc23d1b43fb20f9558c37cb82de1039cf19fe26c4883c3ffc",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.storage": {
+    "owner": "geoagent_harness.capabilities.registry.storage",
+    "package": false,
+    "sha256": "f568467e651249eec2456c9df487b177d0e34677d941828c971129f9dda8ad97",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations": {
+    "owner": "geoagent_harness.capabilities.registry",
+    "package": true,
+    "sha256": "c520d3aacc2e45147dc1be812db2c10e5af797ac235bf670ca9631a9aed45119",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.operations.packages": {
+    "owner": "geoagent_harness.capabilities.registry.packages",
+    "package": false,
+    "sha256": "451395799e3d4e0a02fa7aba0e1689ececd86c0b4d8210f283744c01e56089fa",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.registry": {
+    "owner": "geoagent_harness.capabilities.registry.registry",
+    "package": false,
+    "sha256": "58092c03af85584e6be501b5783cff66ed41e2bcdc094c3991592ce748f4892f",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.api": {
+    "owner": "geoagent_harness.capabilities.registry.api",
+    "package": false,
+    "sha256": "ebb131035db801dff95ce9ea117ddd3531c42042220d2b4239c62e36aac3ca65",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.cli": {
+    "owner": "geoagent_harness.apps.cli.operations",
+    "package": false,
+    "sha256": "8fb0c46b1474c67d70e218b33a90d5eba1ee41595fb05a6d0e077f23219141f2",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.discovery": {
+    "owner": "geoagent_harness.capabilities.registry.discovery",
+    "package": false,
+    "sha256": "d7ad3d68cc1a44695dd1a2bed5198d937fda993556a8d8c8160924206a96e3cf",
+    "kind": "alias"
+  },
+  "geoagent_harness.operations.inspection_contracts": {
+    "owner": "geoagent_harness.contracts.inspection_formats",
+    "package": false,
+    "sha256": "62672a9845e96a3f230107997814f4203316a213813972d596dcc83b9855a6e0",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.bindings": {
+    "owner": "geoagent_harness.data.databases.postgres.bindings",
+    "package": false,
+    "sha256": "cfd05bf8c154b391e3409fa90e2edbfa548a4f0a8a61419fb85e1436193764b0",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.files": {
+    "owner": "geoagent_harness.data.databases.postgres.files",
+    "package": false,
+    "sha256": "ada9ff6773b363bf43caf58db0dc78c007be5f3cbcd25ffde4e9895f0700d28e",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres": {
+    "owner": "geoagent_harness.data.databases.postgres",
+    "package": true,
+    "sha256": "4bfa00fbadf7f09cad59ebef0acd03c406da8d1c2852c96670a9ce6629bb9e2c",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgres.service": {
+    "owner": "geoagent_harness.data.databases.postgres.service",
+    "package": false,
+    "sha256": "2dc66e52f02c97db5ff4e386ad88837aff6c1987837e8e6c215ccbb1a6626563",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.schemas": {
+    "owner": "geoagent_harness.contracts.postgres",
+    "package": false,
+    "sha256": "568ef57f8429ea30572b449022413e804f85488b2ef4bcaee60fc88b946868cf",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.policy": {
+    "owner": "geoagent_harness.core.policy.postgres",
+    "package": false,
+    "sha256": "c24fea6f2eb3ba77b935e2309a7dc96f33ca5e05fc990ef79b508200950c0051",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.cli": {
+    "owner": "geoagent_harness.apps.cli.postgres",
+    "package": false,
+    "sha256": "a2536e7b3027a04da84b6dde26eb0574a108a61511733fd7ae0a3b3ec145d38b",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgres.preflight": {
+    "owner": "geoagent_harness.data.databases.postgres.preflight",
+    "package": false,
+    "sha256": "e8a8bbc7835344418837559d30003f16d1055d8cc24bf1eba8ae32925f93b7b4",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.adapters": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.adapters",
+    "package": true,
+    "sha256": "016844f85ffbdc409571f41911edfa96aaf153e7d766e16270f07664813f7868",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skill_definitions.adapters.raster_conversion": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.adapters.raster_conversion",
+    "package": false,
+    "sha256": "921cb7f5ee0592ba70c458126eca16f8f4cfb525c36550133c7be87c26088f78",
+    "kind": "alias"
+  },
+  "geoagent_harness.skill_definitions.adapters.raster_inspection": {
+    "owner": "geoagent_harness.capabilities.skills.definitions.adapters.raster_inspection",
+    "package": false,
+    "sha256": "2457f7b27b21c70b6cd34bf0d76421b0cc812230553cf16528d6bb11146ba042",
+    "kind": "alias"
+  },
+  "geoagent_harness.geoserver.publication": {
+    "owner": "geoagent_harness.data.spatial.geoserver.publication",
+    "package": true,
+    "sha256": "e8dd9412cfd352282fb739b531efafb8b5d98b1eb03ba2593c6bdec928731a58",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.geoserver.publication.service": {
+    "owner": "geoagent_harness.data.spatial.geoserver.publication.service",
+    "package": false,
+    "sha256": "501a50c236a9935be4a37f4fb7acee3616fe3f5c609c8c83abc3902e91e948b1",
+    "kind": "alias"
+  },
+  "geoagent_harness.geoserver.publication.schemas": {
+    "owner": "geoagent_harness.data.spatial.geoserver.publication.schemas",
+    "package": false,
+    "sha256": "17150c56206e17f78ca72600bc37d9cc17ac8d43b1ecc320bc0c81de62dc9c40",
+    "kind": "alias"
+  },
+  "geoagent_harness.geoserver.inspection": {
+    "owner": "geoagent_harness.data.spatial.geoserver.inspection",
+    "package": true,
+    "sha256": "dce8c1a16a7ffe7680942c39a4796d9c3ee3676bf5d8a710c7f22b18c589f5bf",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.geoserver.inspection.service": {
+    "owner": "geoagent_harness.data.spatial.geoserver.inspection.service",
+    "package": false,
+    "sha256": "dccc1bbeb08ef01f7f926dee5977a40318436ffa5f504ac194f197261a02d002",
+    "kind": "alias"
+  },
+  "geoagent_harness.geoserver.inspection.schemas": {
+    "owner": "geoagent_harness.data.spatial.geoserver.inspection.schemas",
+    "package": false,
+    "sha256": "0ef2b7c46cbd610f4bb910f6f23ba7b56da9adef72132161f56abd91b3115c24",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.inspect_vector": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_vector",
+    "package": true,
+    "sha256": "4d5d7cc574fd6e2cf12858efa50b1ed24122b81be0347f2f57e2a58f44609136",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skills.inspect_vector.service": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_vector.service",
+    "package": false,
+    "sha256": "5717af60cc73a1796facb9d1edeb48828cb6b1514d45edc6e4fe3f1734c43f89",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.inspect_vector.preview": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_vector.preview",
+    "package": false,
+    "sha256": "499ceefa78ce99bb9ccdc94c8e60b08eadcb780fe68818b6d1934f973144e41d",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.load_vector_to_postgis": {
+    "owner": "geoagent_harness.data.spatial.skills.load_vector_to_postgis",
+    "package": true,
+    "sha256": "0cc1b41a176744a1ad5fca300e732245ee62ccc132b010c98d5b34d56f2c40b2",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skills.load_vector_to_postgis.service": {
+    "owner": "geoagent_harness.data.spatial.skills.load_vector_to_postgis.service",
+    "package": false,
+    "sha256": "b9d37ca56e15b348aa1ed699f39c397bb3fd70da849a3d4b0871ea133de9bfb7",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.inspect_raster": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_raster",
+    "package": true,
+    "sha256": "0f867799fd9f71ebfcdeac7936f1bffd7065abfa8e5f8a1f04d214f88ee2bfd5",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skills.inspect_raster.service": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_raster.service",
+    "package": false,
+    "sha256": "ca00e7d1011ebcd210031a4ca63b129e029ce2551dd3731d2f4050cdcc4c05cc",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.inspect_raster.schemas": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_raster.schemas",
+    "package": false,
+    "sha256": "2fd6049cd64bff000de49a3c6cd88f14203f7ede2fed7e4dec5d7156fe6d48e9",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.inspect_raster.policy": {
+    "owner": "geoagent_harness.data.spatial.skills.inspect_raster.policy",
+    "package": false,
+    "sha256": "7e45b0bd9c9aa750e98caa82c304e8796385040ef73dfc6e917a56e800ce5b0b",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_vector": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_vector",
+    "package": true,
+    "sha256": "5ef1081383f54466bba65e119ce3f4eebd7aee64f505f0f1961a6ce6c3ded33c",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skills.convert_vector.service": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_vector.service",
+    "package": false,
+    "sha256": "18e74c5cedecbdab318bd08fc5391f165345fb92429f037870185fe235a67c41",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_vector.schemas": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_vector.schemas",
+    "package": false,
+    "sha256": "f5677d2f835141f7349c055e449a861825f97da823c3b1f5023333606a18c934",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_vector.policy": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_vector.policy",
+    "package": false,
+    "sha256": "080c8399dec786d21ab2588667c17a0772d27d728f46ff1158fb522f96df0b44",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_vector.validation": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_vector.validation",
+    "package": false,
+    "sha256": "a0f9d69f1cfd8282baa22f55d97ff85a9c46d0a976ada06877abb72a2fa56752",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_raster": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_raster",
+    "package": true,
+    "sha256": "2adbfb0f7deb3bb45745d0122e0a01008c374583630623e2927680a1d77a373b",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.skills.convert_raster.service": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_raster.service",
+    "package": false,
+    "sha256": "bcf192e37f2d5d62f6ab237afde7044ad70eccef5048fa94315182b552a69732",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_raster.schemas": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_raster.schemas",
+    "package": false,
+    "sha256": "a9586e8a81144a2c070a96c8cfaf682159d9e882cbba7d58fe1df9db265a62c5",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_raster.policy": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_raster.policy",
+    "package": false,
+    "sha256": "546ffe0577449660b1255e04e06a5ee532631e1698301f1a8791a73e878910d1",
+    "kind": "alias"
+  },
+  "geoagent_harness.skills.convert_raster.validation": {
+    "owner": "geoagent_harness.data.spatial.skills.convert_raster.validation",
+    "package": false,
+    "sha256": "eba28a30765617a9d218b887d0694144c0dfeb34e26ecdf00c20ea462c96c30e",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback",
+    "package": true,
+    "sha256": "539a034125e7c429d4ee504e4360ddad3f21f024c35bc21bc4a966d0140569f2",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.promotion": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion",
+    "package": true,
+    "sha256": "58e6208262db09f691e071e704e078b4d5712ca1de3bee663074fdadf2ae3058",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.change_assessment": {
+    "owner": "geoagent_harness.data.databases.postgis.change_assessment",
+    "package": true,
+    "sha256": "ea8100ae61cb355d527487f199cfbce23acb9f5199bfa4ace05ae75bcf526f00",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.change_assessment.service": {
+    "owner": "geoagent_harness.data.databases.postgis.change_assessment.service",
+    "package": false,
+    "sha256": "4263ee3e0328f8385b3339b09fb894f5bdf289ee425995c8a08842b78a59bd37",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.change_assessment.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.change_assessment.schemas",
+    "package": false,
+    "sha256": "bdaa7ad744b25a7d90a0188d8d41238734261593cc87f9185c45c5ac32bc58e8",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.inspection": {
+    "owner": "geoagent_harness.data.databases.postgis.inspection",
+    "package": true,
+    "sha256": "f623d545ed25f1a749c3b7dc00f4b6a617d7a3c0caa8c2c99911c1b3f521b4b1",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.inspection.service": {
+    "owner": "geoagent_harness.data.databases.postgis.inspection.service",
+    "package": false,
+    "sha256": "5f3a944130b4972a258c50d93bc5711755f6d5334c43eeec9037d83f507bd391",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.inspection.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.inspection.schemas",
+    "package": false,
+    "sha256": "4552ed3a715b1ecec88806f223000ba6396e220ded8246e255517ac893ba142a",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.comparison": {
+    "owner": "geoagent_harness.data.databases.postgis.comparison",
+    "package": true,
+    "sha256": "a0d290f2bf9bc0dbb1ce359f9de39fe036a35a4deb3d1420c6badecd352a93b1",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.comparison.service": {
+    "owner": "geoagent_harness.data.databases.postgis.comparison.service",
+    "package": false,
+    "sha256": "234db2e8dfb3525589cdc00a1071511d9344675fd725fc58db68f510b9d9cd38",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.comparison.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.comparison.schemas",
+    "package": false,
+    "sha256": "1ab9163800e17eec49e108764acb667338d1cb3ab024f22b4bfffd81344f2121",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.approval.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.approval.storage",
+    "package": false,
+    "sha256": "2352951990b423c05a047c140a51fd05d1d17cfe07675fcea97f20c97a81d995",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.approval": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.approval",
+    "package": true,
+    "sha256": "5296fabbc3d824fa99ad9c221cad742ad68b6f289c5811ddfb3c39974f0f0802",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.rollback.approval.service": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.approval.service",
+    "package": false,
+    "sha256": "355f3f92b09be680538c8651e873bd4bf062be8833f2eacaec090c86c2b14531",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.approval.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.approval.schemas",
+    "package": false,
+    "sha256": "349110f86df376e59fb046d1553d63306987ece1e17f8c5440ea34503ce403cc",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.execution.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.execution.storage",
+    "package": false,
+    "sha256": "b9318e3f60570fe9a9f8a8b614dce38f7854067c8e79b7bca3a1f4ac91d30171",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.execution": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.execution",
+    "package": true,
+    "sha256": "082e57109696f82d27a1c14390aba0fe1b70b583976d66592974353f29f99670",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.rollback.execution.service": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.execution.service",
+    "package": false,
+    "sha256": "7b6988586887475abfdf1efef332315be6126ec104e74959bc7ab67d56f476f1",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.execution.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.execution.schemas",
+    "package": false,
+    "sha256": "a2b3066f9d993ee281e090593a27be2dbb26a62a8566bb4a44c468979764ef95",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.plan.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.plan.storage",
+    "package": false,
+    "sha256": "69681feeeb27c7757eecd932d4cfcef844564c3e47f4b88ecfb968b4a6a0eb78",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.plan": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.plan",
+    "package": true,
+    "sha256": "415c354347de7f15047a8bb72925eb5ae2c29cd3bf5f30208adc03608edee976",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.rollback.plan.service": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.plan.service",
+    "package": false,
+    "sha256": "a9af80bccf7ab5f24816152f734b208751b7bc09f5ac414e68e642149d913172",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.plan.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.plan.schemas",
+    "package": false,
+    "sha256": "9e3beaf44534a6cf835b833ccba6c0300f24030a47e27e2dbe2eea26f10ab78c",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.verification.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.verification.storage",
+    "package": false,
+    "sha256": "a58e7f960cb9bde154e2ff513e07297e1b15084fd57d3a2edab0b4baf05b82fb",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.verification": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.verification",
+    "package": true,
+    "sha256": "038d0df60e1a0f1b11b96ea53b4eb012f107728f1c58add85e454e7eee9a2d1d",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.rollback.verification.service": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.verification.service",
+    "package": false,
+    "sha256": "a5dadd994326bb2afdf36b63a96381b25edc8a51e7c34083886839dacc47c650",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.rollback.verification.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.rollback.verification.schemas",
+    "package": false,
+    "sha256": "992b238365ea537f8891eada3c792a3cc3bf0ec12b5b298ad6d0ab325ee23093",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.approval.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.approval.storage",
+    "package": false,
+    "sha256": "2405fd9939cc0453f6872485d0eb3430b6ce2bc0f1d680d9fedd26552978f90a",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.approval": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.approval",
+    "package": true,
+    "sha256": "52a75d40f3b303f064b1a073f6b6d3cff27432479fd40cbb56cee99b82177beb",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.promotion.approval.service": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.approval.service",
+    "package": false,
+    "sha256": "8675cc708b477c11f4f03772855c9c028fc189f113e75b4e5a5ecc579299967d",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.approval.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.approval.schemas",
+    "package": false,
+    "sha256": "f20fe3b3f190a72eb5bce4e9ca70c22b89216720a0441261f6ab94c5d94441a9",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.execution.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.execution.storage",
+    "package": false,
+    "sha256": "d6527cc18c9bc6d38ff767c1668a7669594dc191e596788408abf87052cc0cc6",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.execution": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.execution",
+    "package": true,
+    "sha256": "7e4a29fd72dc24d099cfded434d7bb2e5229d6c6f395888c319654bd82ea518e",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.promotion.execution.service": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.execution.service",
+    "package": false,
+    "sha256": "3f3a463e9ab863e4253c53d929ffef4ddc2b3c0e13e94ce6f10ae21ccd68a583",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.execution.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.execution.schemas",
+    "package": false,
+    "sha256": "de6e5b88bfc637b766e723655fdd79521181af97ef8348071d40c517e4414cfc",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.plan": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.plan",
+    "package": true,
+    "sha256": "94ef68f6a4c5f8bd1da3565c3691d8ba41d78898eb6d2971a2535292938d35a7",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.promotion.plan.service": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.plan.service",
+    "package": false,
+    "sha256": "47266cfbb70c5990f1ad09f95c0e98ea2069a6b4054d2b24cd105908c07e1e7f",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.plan.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.plan.schemas",
+    "package": false,
+    "sha256": "fd858d4753ce4021e9e7c3d574e9a5ffd925d088b3c8a09965fc701b2d4d6d36",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.verification.storage": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.verification.storage",
+    "package": false,
+    "sha256": "32f677f77d754452184367674fa2141850f29c0e335801275184ac2f35e36f30",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.verification": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.verification",
+    "package": true,
+    "sha256": "7ce6fb846e614414ab7bf178b9b16069828b91e22e543c89345513caf40afd74",
+    "kind": "package_exports"
+  },
+  "geoagent_harness.postgis.promotion.verification.service": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.verification.service",
+    "package": false,
+    "sha256": "2ce49e2626d4a408c37dea22ada8f0a9e49b7480220160457cba90bedd06ef6c",
+    "kind": "alias"
+  },
+  "geoagent_harness.postgis.promotion.verification.schemas": {
+    "owner": "geoagent_harness.data.databases.postgis.promotion.verification.schemas",
+    "package": false,
+    "sha256": "f80c1fbb498162cf6fd30930333a386cf783da2b17a13b037df772361b0cdae9",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.recipe_catalog": {
+    "owner": "geoagent_harness.task_actions.recipe_catalog",
+    "package": false,
+    "sha256": "b2761470fc51e2b178e7a2db99a0462a5fe661a699618892da563b51dbba5cc7",
+    "kind": "alias"
+  },
+  "geoagent_harness.data.discovery.cli": {
+    "owner": "geoagent_harness.apps.cli.discovery",
+    "package": false,
+    "sha256": "b4f4a13178d950435351e917051762eec5ec86116982264f5adb71ab965775d4",
+    "kind": "alias"
+  },
+  "geoagent_harness.data.tabular.cli": {
+    "owner": "geoagent_harness.apps.cli.tabular",
+    "package": false,
+    "sha256": "43078134da89a5d63cb21ccbc1076664e537cfeb7aa550634d82ce92a03c64aa",
+    "kind": "alias"
+  },
+  "geoagent_harness.data.databases.postgres.cli": {
+    "owner": "geoagent_harness.apps.cli.postgres",
+    "package": false,
+    "sha256": "6115a244fa7c692aef18192ba7063fe48c1aef46c14884b0cee9f3923f415286",
+    "kind": "alias"
+  },
+  "geoagent_harness.capabilities.registry.cli": {
+    "owner": "geoagent_harness.apps.cli.operations",
+    "package": false,
+    "sha256": "d2bcf6dca90adfc5ffb645c2a690cbcb0e93dd315633ba606dff5d42235b63b1",
+    "kind": "alias"
+  },
+  "geoagent_harness.workspace_cli": {
+    "owner": "geoagent_harness.apps.cli.workspace",
+    "package": false,
+    "sha256": "32f604578fe0349c557c2478a10a9fae5043c6904053f444d6f34e5a1be1715c",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.planning_tasks_cli": {
+    "owner": "geoagent_harness.apps.cli.planning_tasks",
+    "package": false,
+    "sha256": "050a8a0c6335a99b8111bd7c2ad3f33c60a9cf4908f287fa5aeca1aae883f20e",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.method_memory_cli": {
+    "owner": "geoagent_harness.apps.cli.method_memory",
+    "package": false,
+    "sha256": "25c9c86964b8950fc92330379431fa717e4563b8a177f52b579aceaf1fd8fb4a",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.workflow_tools_cli": {
+    "owner": "geoagent_harness.apps.cli.workflow_tools",
+    "package": false,
+    "sha256": "ba7aacf8068472253093be4612b737d80bb00e716bc6e23063adc2f165d95262",
+    "kind": "alias"
+  },
+  "geoagent_harness.cli": {
+    "owner": "geoagent_harness.apps.cli.main",
+    "package": false,
+    "sha256": "70203b38b7c157d5489bdaff5af70c4fce9f5b90fb838fe7dafe0bc58d1cd8f1",
+    "kind": "alias"
+  },
+  "geoagent_harness.interface_api.server": {
+    "owner": "geoagent_harness.apps.http.server",
+    "package": false,
+    "kind": "alias",
+    "sha256": "17b4a873ddff2fded71fea9105f5d917d962efaa63356dcd03e881a40d1c54a6"
+  },
+  "geoagent_harness.interface_api.resource_catalogs": {
+    "owner": "geoagent_harness.task_actions.resource_catalogs",
+    "package": false,
+    "kind": "alias",
+    "sha256": "17a455380df4c35fed7ea7bc65384cf96db636f11e007e808b9f424291a872bc"
+  },
+  "geoagent_harness.interface_api.critic_review": {
+    "owner": "geoagent_harness.task_actions.critic_review",
+    "package": false,
+    "kind": "alias",
+    "sha256": "97a4005befe6fc5b3ff5a7b62cfc6d3be70ae782e53cb228dcba3164d7e7fa2e"
+  },
+  "geoagent_harness.interface_api.release_review": {
+    "owner": "geoagent_harness.task_actions.release_review",
+    "package": false,
+    "kind": "alias",
+    "sha256": "7171732154662505587866bae3e81d2b49d38f69f6d02d34a215daed931e54f3"
+  },
+  "geoagent_harness.interface_api.legacy_planning": {
+    "owner": "geoagent_harness.task_actions.legacy_planning",
+    "package": false,
+    "kind": "alias",
+    "sha256": "8491ad5f936dbde0307929515d3bd778b7cc97f36d61ce4105cf5374c52062cf"
+  },
+  "geoagent_harness.interface_api.legacy_export": {
+    "owner": "geoagent_harness.task_actions.legacy_export",
+    "package": false,
+    "kind": "alias",
+    "sha256": "749fbeb9ac3af81adb31b56d6ede6fd740331b6c0f3545ec8c4d1487236e8e6d"
+  },
+  "geoagent_harness.interface_api.task_context": {
+    "owner": "geoagent_harness.task_actions.task_context",
+    "package": false,
+    "kind": "alias",
+    "sha256": "874be17b5c0703ab14ae62203a663da3c850009de8482824bc8d74a869ef1a05"
+  }
+}

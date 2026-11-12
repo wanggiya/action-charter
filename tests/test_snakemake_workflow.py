@@ -13,10 +13,10 @@ result = _helpers.result
 stored_request = _helpers.stored_request
 execute_request = _helpers.execute_request
 authorization_request = _helpers.authorization_request
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import EditRequest, WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow, validate_edit, inspection_inventory
-from geoagent_harness.interface_api.snakemake_workflow import EXPORT, VERIFY
-from geoagent_harness.planner.schemas import PlanStep
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import EditRequest, WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow, validate_edit, inspection_inventory
+from geoagent_harness.task_actions.snakemake_workflow import EXPORT, VERIFY
+from geoagent_harness.contracts.planning import PlanStep
 
 
 def complete_source(project, monkeypatch):
@@ -133,9 +133,9 @@ def test_expired_source_approval_is_historical_only_and_new_export_authority_req
     # Advance current verification time: historical source authority is checked at its
     # recorded start, and must not be renewed into fresh recipe execution authority.
     review = prepare_workflow(request, project_root=project)
-    from geoagent_harness.recipes.approval import verify_recipe_approval, load_recipe_approval
-    from geoagent_harness.recipes.storage import load_recipe
-    from geoagent_harness.skill_registry import load_skill_registry
+    from geoagent_harness.core.policy.recipe_approval import verify_recipe_approval, load_recipe_approval
+    from geoagent_harness.core.ledger.recipe_storage import load_recipe
+    from geoagent_harness.platform.skill_registry import load_skill_registry
     state = api._load_execution_progress(project, review['source_attempt_sha256'])
     old_approval = load_recipe_approval(project / 'approvals' / state['approval_filename'], approval_root=project / 'approvals')
     recipe = load_recipe(project / 'workflow-recipes' / state['recipe_filename'], recipe_root=project / 'workflow-recipes')
@@ -178,8 +178,8 @@ def test_export_symlink_rejected_without_touching_target(project, monkeypatch):
 
 
 def test_conversational_planner_appends_snakemake_using_saved_source_reference(project, monkeypatch):
-    from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-    from geoagent_harness.model.schemas import ModelResult
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
     from shutil import copytree, copyfile
     repository = Path(__file__).parents[1]
     copytree(repository / "context", project / "context", dirs_exist_ok=True)
@@ -209,7 +209,7 @@ def test_materialized_legacy_graph_dependencies_keep_source_scope(project, monke
 
 
 def test_approval_binds_reviewed_source_evidence_not_only_plan_digest(project, monkeypatch):
-    import geoagent_harness.interface_api.snakemake_workflow as module
+    import geoagent_harness.task_actions.snakemake_workflow as module
     source, source_request, _ = complete_source(project, monkeypatch)
     request = export_request(project, source, source_request)
     review = prepare_workflow(request, project_root=project)

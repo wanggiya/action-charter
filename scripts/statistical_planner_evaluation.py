@@ -6,17 +6,21 @@ import tempfile
 import time
 from pathlib import Path
 
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow
-from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-from geoagent_harness.model import SharedModelClient
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.tabular.analytical_service import profile_table
+from geoagent_harness.task_actions.conversation import TurnRequest
+from geoagent_harness.task_actions.conversation import conversation_turn
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow_runs import RunRequest
+from geoagent_harness.task_actions.workflow_runs import run_action
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.data.tabular.analytical_service import profile_table
 
 
 def execute(root, state):
-    from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveRequest,save_interface_reviewed_plan
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.apps.http.server import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.apps.http.server import save_interface_reviewed_plan
+    from geoagent_harness.contracts.planning import PlannerResult
     result=state['planner_result'];sha=result['plan_sha256']
     proposal=PlannerResult.model_validate({k:result[k] for k in PlannerResult.model_fields if k in result})
     save_interface_reviewed_plan(InterfaceReviewedPlanSaveRequest(action='save_reviewed_plan',planner_result=proposal,confirmed_plan_sha256=sha,allowed_skill_ids=['inspect_csv']),project_root=root)

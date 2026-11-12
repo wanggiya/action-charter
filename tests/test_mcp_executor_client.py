@@ -6,18 +6,11 @@ import asyncio
 
 import pytest
 
-from geoagent_harness.executor.schemas import (
-    ExecutionEnvelope,
-)
-from geoagent_harness.mcp_client import (
-    MCPClientError,
-    MCPClientSettings,
-    MCPExecutorClient,
-)
-from geoagent_harness.recipes import (
-    RecipeExecutionEnvelope,
-    RecipeExecutionStep,
-)
+from geoagent_harness.contracts.execution import ExecutionEnvelope
+from geoagent_harness.platform.internal_mcp.client import MCPClientError
+from geoagent_harness.platform.client_settings import MCPClientSettings
+from geoagent_harness.platform.internal_mcp.executor import MCPExecutorClient
+from geoagent_harness.contracts.recipes import RecipeExecutionEnvelope, RecipeExecutionStep
 
 def recipe_envelope() -> RecipeExecutionEnvelope:
     return RecipeExecutionEnvelope(

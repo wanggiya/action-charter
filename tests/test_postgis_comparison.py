@@ -3,18 +3,12 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.comparison import (
-    PostGISComparisonError,
-    PostGISComparisonRequest,
-    compare_postgis_tables,
-)
-from geoagent_harness.postgis.inspection import (
-    PostGISColumn,
-    PostGISInspectionRequest,
-)
-from geoagent_harness.skill_registry import load_skill_registry
-from geoagent_harness.verifier.postgis import LayerExtent
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.comparison.service import PostGISComparisonError, compare_postgis_tables
+from geoagent_harness.data.databases.postgis.comparison.schemas import PostGISComparisonRequest
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISColumn, PostGISInspectionRequest
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.core.verification.postgis import LayerExtent
 
 
 def request() -> PostGISComparisonRequest:

@@ -10,10 +10,10 @@ import rasterio
 from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
-from geoagent_harness.interface_api.inspection_policy import bounded_read
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.interface_api.spatial_views import SpatialViewOptions, spatial_result
-from geoagent_harness.interface_api.workflow_runs import RunRequest
+from geoagent_harness.task_actions.inspection_policy import bounded_read
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.task_actions.spatial_views import SpatialViewOptions, spatial_result
+from geoagent_harness.task_actions.workflow_runs import RunRequest
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ def test_preview_size_never_becomes_complete_raster_statistics(root):
 
 def test_cli_reads_same_record_without_executing(root):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     raster_source(root)
     record,_=source_record(root,'data/input/image.tif','inspect_raster')
     folder=root/'workflow-state/interface-runs';folder.mkdir(parents=True)
@@ -137,7 +137,7 @@ def test_cli_reads_same_record_without_executing(root):
 def test_concurrent_view_budget_refuses_extra_worker_and_releases_slot(root,monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
-    import geoagent_harness.interface_api.inspection_policy as policy
+    import geoagent_harness.workspaces.sandbox.inspection as policy
     raster_source(root);_,query=source_record(root,'data/input/image.tif','inspect_raster')
     entered,finish=Event(),Event()
     def hold(*args,**kwargs):
@@ -155,10 +155,10 @@ def test_concurrent_view_budget_refuses_extra_worker_and_releases_slot(root,monk
 
 
 def test_planner_map_context_includes_recorded_raster_without_reading_pixels(root,monkeypatch):
-    from geoagent_harness.interface_api.result_exploration import view_context,validate_view
-    from geoagent_harness.interface_api.exploration_contracts import ResultViewSpec
+    from geoagent_harness.task_actions.result_exploration import view_context, validate_view
+    from geoagent_harness.task_actions.exploration_contracts import ResultViewSpec
     record={'run_id':'f'*32,'plan_sha256':'e'*64,'steps':[{'step_id':'step_1','skill_id':'inspect_raster','status':'completed','outcome':{'width':2,'height':2,'crs':'EPSG:4326'}}]}
-    import geoagent_harness.interface_api.run_assessment as assessment
+    import geoagent_harness.task_actions.run_assessment as assessment
     monkeypatch.setattr(assessment,'latest_conversation_run',lambda *args:record)
     context=view_context(root,'c'*32,object())
     assert context['results'][0]['views']==['Map']
@@ -169,9 +169,9 @@ def test_planner_map_context_includes_recorded_raster_without_reading_pixels(roo
 
 
 def test_planner_map_context_accepts_metadata_only_vector_without_reading_geometry(root,monkeypatch):
-    from geoagent_harness.interface_api.result_exploration import view_context,validate_view
-    from geoagent_harness.interface_api.exploration_contracts import ResultViewSpec
-    import geoagent_harness.interface_api.run_assessment as assessment
+    from geoagent_harness.task_actions.result_exploration import view_context, validate_view
+    from geoagent_harness.task_actions.exploration_contracts import ResultViewSpec
+    import geoagent_harness.task_actions.run_assessment as assessment
     record={'run_id':'f'*32,'plan_sha256':'e'*64,'steps':[{'step_id':'step_1','skill_id':'inspect_vector','status':'completed',
         'outcome':{'layers':[{'name':'boundaries','feature_count':None,'crs':'EPSG:4326'}]}}]}
     monkeypatch.setattr(assessment,'latest_conversation_run',lambda *args:record)

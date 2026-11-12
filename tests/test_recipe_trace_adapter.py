@@ -4,12 +4,9 @@ from datetime import datetime, timezone
 
 import pytest
 
-from geoagent_harness.critic.recipe_trace import (
-    RecipeTraceAdapterError,
-    build_recipe_trace_candidate,
-    render_recipe_trace_report,
-)
-from geoagent_harness.recipes import RecipeApprovalRecord, RecipeRunEvidence, WorkflowRecipe
+from geoagent_harness.agents.roles.critic.recipe_trace import RecipeTraceAdapterError, build_recipe_trace_candidate, render_recipe_trace_report
+from geoagent_harness.contracts.recipes import RecipeApprovalRecord, WorkflowRecipe
+from geoagent_harness.contracts.recipe_evidence import RecipeRunEvidence
 
 
 NOW = datetime(2026, 9, 22, 12, 0, tzinfo=timezone.utc)

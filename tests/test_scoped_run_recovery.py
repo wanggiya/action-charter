@@ -1,8 +1,8 @@
 """Recover exact saved scope independently of the global inventory window."""
 import os
 import pytest
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action,_write,_directory
-from geoagent_harness.interface_api.server import InterfaceApiError
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action, _write, _directory
+from geoagent_harness.contracts.errors import InterfaceApiError
 
 CHAT='a'*32;PLAN='b'*64
 
@@ -44,15 +44,15 @@ def test_corrupt_or_over_budget_lookup_is_unavailable_not_missing(tmp_path,monke
     directory=_directory(tmp_path);path=directory/(record(1)['run_id']+'.json');path.write_text('broken')
     with pytest.raises(InterfaceApiError,match='unreadable receipt'):lookup(tmp_path)
     path.unlink();_write(directory,record(1))
-    import geoagent_harness.interface_api.workflow_runs as module
+    import geoagent_harness.task_actions.workflow_runs as module
     ticks=iter([0,4]);monkeypatch.setattr(module.time,'monotonic',lambda:next(ticks,4))
     with pytest.raises(InterfaceApiError,match='exceeded its budget'):lookup(tmp_path)
 
 
 @pytest.mark.parametrize('foreign',[False,True])
 def test_terminal_reuses_scoped_lookup_without_execution_or_authority(foreign):
-    from geoagent_harness.chat.workspace import Workspace
-    from geoagent_harness.chat.client import ChatError
+    from geoagent_harness.apps.chat.workspace import Workspace
+    from geoagent_harness.apps.chat.client import ChatError
     recovered=record(1,chat='c'*32 if foreign else CHAT)
     class Client:
         def __init__(self):self.calls=[]

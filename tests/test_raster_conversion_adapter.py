@@ -4,19 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.skill_adapters.raster_conversion import (
-    RasterConversionError,
-    RasterResampling,
-    convert_raster,
-    plan_raster_conversion,
-    validate_raster_conversion,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.spatial.adapters.raster_conversion import RasterConversionError, RasterResampling, convert_raster, plan_raster_conversion, validate_raster_conversion
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def settings(

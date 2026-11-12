@@ -3,10 +3,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 import pytest
-from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
-from geoagent_harness.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
-from geoagent_harness.intent.service import IntentError
-from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent
+from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent, save_reviewed_intent_plan
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
 
 
 def reviewed_raster(root):
@@ -23,10 +23,10 @@ def planner(**kwargs):
 
 def test_raster_handoff_and_storage_preserve_exact_scope(tmp_path: Path):
     filename = reviewed_raster(tmp_path)
-    with patch('geoagent_harness.intent.handoff.plan_task',side_effect=planner) as model:
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=planner) as model:
         result = plan_reviewed_intent(project_root=tmp_path,filename=filename,allowed_skill_ids=['inspect_raster'])
     assert model.call_count == 1 and result['execution_performed'] is False
-    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry',return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_raster')])):
+    with patch('geoagent_harness.platform.skill_registry.load_skill_registry',return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_raster')])):
         stored = save_reviewed_intent_plan(project_root=tmp_path,filename=filename,planner_result=PlannerResult.model_validate(result['planner_result']),confirmed_plan_sha256=result['plan_sha256'])
     assert stored['plan_saved'] is True
     assert stored['execution_performed'] is stored['approval_performed'] is stored['model_called'] is False
@@ -37,14 +37,14 @@ def test_raster_handoff_and_storage_preserve_exact_scope(tmp_path: Path):
 
 def test_wrong_capability_rejected_before_model_and_wrong_path_after_model(tmp_path: Path):
     filename = reviewed_raster(tmp_path)
-    with patch('geoagent_harness.intent.handoff.plan_task') as model:
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task') as model:
         for skills in (['inspect_vector'],['inspect_vector','inspect_raster'],['convert_raster']):
             with pytest.raises(IntentError):
                 plan_reviewed_intent(project_root=tmp_path,filename=filename,allowed_skill_ids=skills)
         model.assert_not_called()
     def wrong(**kwargs):
         result = planner(**kwargs); result.plan.steps[0].arguments['path']='data/input/other.tif'; return result
-    with patch('geoagent_harness.intent.handoff.plan_task',side_effect=wrong):
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=wrong):
         with pytest.raises(IntentError,match='arguments must equal'):
             plan_reviewed_intent(project_root=tmp_path,filename=filename,allowed_skill_ids=['inspect_raster'])
     assert not (tmp_path/'plans').exists()

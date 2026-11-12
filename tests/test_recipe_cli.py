@@ -4,7 +4,7 @@ from click import unstyle
 from typer.testing import CliRunner
 from typer.main import get_command
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 from click.utils import strip_ansi
 
 import json

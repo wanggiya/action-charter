@@ -7,12 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.pilot_demo import (
-    PilotDemoError,
-    PilotDemoNextAction,
-    assess_pilot_demo_readiness,
-    load_pilot_demo_definition,
-)
+from geoagent_harness.apps.pilot_demo.service import PilotDemoError, assess_pilot_demo_readiness, load_pilot_demo_definition
+from geoagent_harness.apps.pilot_demo.schemas import PilotDemoNextAction
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

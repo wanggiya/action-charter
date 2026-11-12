@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 
 import pytest
-from geoagent_harness.discovery.spatial import inspect,probe,package
-from geoagent_harness.interface_api.inspection_policy import bounded_read
+from geoagent_harness.data.discovery.spatial import inspect, probe, package
+from geoagent_harness.task_actions.inspection_policy import bounded_read
 
 
 @pytest.fixture
@@ -116,7 +116,7 @@ def test_replacement_during_hash_rejected_and_cancel_never_verifies(root):
     def replace(_):
         new=path.with_suffix('.other');new.write_bytes(path.read_bytes());new.replace(path)
     with pytest.raises(ValueError,match='changed'):inspect(root,'terrain.tif',on_metadata=replace)
-    from geoagent_harness.recipes.control import ExecutionCancelled
+    from geoagent_harness.platform.execution_control import ExecutionCancelled
     def stop():raise ExecutionCancelled('operator stopped')
     with pytest.raises(ExecutionCancelled):inspect(root,'terrain.tif',checkpoint=stop)
 
@@ -138,7 +138,7 @@ def test_metadata_supports_extra_bands_but_display_bounds_are_separate(root):
 
 def test_cli_uses_same_spatial_discovery_worker(root):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     raster(root)
     reply=CliRunner().invoke(app,['discover-dataset','terrain.tif','--project-root',str(root)])
     assert reply.exit_code==0,reply.output
@@ -168,7 +168,7 @@ def test_nan_nodata_remains_json_safe(root):
 
 
 def test_restart_preserves_incomplete_metadata_without_replaying(root):
-    from geoagent_harness.interface_api.workflow_runs import _write,_read
+    from geoagent_harness.task_actions.workflow_runs import _write, _read
     raster(root)
     partial=probe(root,'terrain.tif')['metadata']
     directory=root/'workflow-state/interface-runs';directory.mkdir(parents=True)
@@ -253,7 +253,7 @@ def test_wide_band_and_tag_metadata_truncates_without_losing_main_result(root):
 
 def test_unicode_wkt_respects_serialized_budget(root):
     import rasterio
-    from geoagent_harness.discovery.raster_metadata import technical_metadata
+    from geoagent_harness.data.discovery.raster_metadata import technical_metadata
     path=raster(root)
     class CRS:
         def to_wkt(self):return '測'*3000

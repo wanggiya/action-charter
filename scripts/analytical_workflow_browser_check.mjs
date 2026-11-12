@@ -10,19 +10,27 @@ const repo=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const root=await mkdtemp(resolve(tmpdir(),'actioncharter-analysis-'));
 const stateRoot=process.env.ACTIONCHARTER_TEST_RELOCATED_STATE?resolve(root,'.actioncharter-state'):root;
 if(stateRoot!==root)await writeFile(resolve(root,'actioncharter.workspace.json'),JSON.stringify({version:1,state_root:stateRoot}));
+const stableProjectId=process.env.ACTIONCHARTER_TEST_STABLE_IDENTITY?await new Promise((done,reject)=>{
+ const code="import json,sys;from pathlib import Path;from geoagent_harness.platform.project_identity import initialize;print(json.dumps(initialize(Path(sys.argv[1]),offline=True)))";
+ mkdir(stateRoot,{recursive:true,mode:0o700}).then(()=>{
+  const proc=spawn(resolve(repo,'.venv/bin/python'),['-c',code,root],{cwd:repo,env:{...process.env,PYTHONPATH:resolve(repo,'src')}});
+  let output='',error='';proc.stdout.on('data',v=>output+=v);proc.stderr.on('data',v=>error+=v);
+  proc.on('error',reject);proc.on('exit',status=>{if(status!==0){reject(new Error(error));return;}try{done(JSON.parse(output).project_id);}catch(e){reject(e);}});
+ },reject);
+}):null;
 process.env.PLAYWRIGHT_BROWSERS_PATH=resolve(repo,'interface/.playwright-browsers');
 process.env.LD_LIBRARY_PATH=[resolve(repo,'interface/.browser-system-libs/runtime/usr/lib',process.arch==='arm64'?'aarch64-linux-gnu':'x86_64-linux-gnu'),process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
 const {chromium}=await import(pathToFileURL(resolve(repo,'interface/node_modules/playwright/index.mjs')).href);
-let child,browser,apiPort,chartChat;const errors=[],calls=[],providerCalls=[];
+let child,browser,apiPort,chartChat,page;const errors=[],calls=[],providerCalls=[],failedResponses=[];
 const cli=async(args)=>new Promise((done,reject)=>{
- const proc=spawn(resolve(repo,'.venv/bin/python'),['-m','geoagent_harness.cli','chat','--api-url',`http://127.0.0.1:${apiPort}`,...args],{cwd:repo,env:process.env});
+ const proc=spawn(resolve(repo,'.venv/bin/python'),['-m','geoagent_harness.apps.cli.main','chat','--api-url',`http://127.0.0.1:${apiPort}`,...args],{cwd:repo,env:process.env});
  let out='',err='';proc.stdout.on('data',v=>out+=v);proc.stderr.on('data',v=>err+=v);
  proc.on('error',reject);proc.on('exit',code=>code===0?done(JSON.parse(out)):reject(new Error(`CLI exit ${code}: ${err} ${out}`)));
 });
 const models=createServer((req,res)=>{providerCalls.push(req.url);res.setHeader('Content-Type','application/json');res.end(JSON.stringify({models:(req.url==='/api/ps'?[{name:'fixture:small',size:100}]:[{name:'fixture:small',size:100},{name:'fixture:other',size:200}])}));});
 await new Promise(done=>models.listen(0,'127.0.0.1',done));
 const frontend=createServer(async(req,res)=>{try{
- if(req.url.startsWith('/api/')){const chunks=[];for await(const c of req)chunks.push(c);const body=Buffer.concat(chunks);calls.push({url:req.url,method:req.method,body:body.length?JSON.parse(body):null});const upstream=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body}:{})});res.writeHead(upstream.status,{'Content-Type':'application/json'});res.end(await upstream.text());return;}
+ if(req.url.startsWith('/api/')){const chunks=[];for await(const c of req)chunks.push(c);const body=Buffer.concat(chunks);calls.push({url:req.url,method:req.method,body:body.length?JSON.parse(body):null});const upstream=await fetch(`http://127.0.0.1:${apiPort}${req.url}`,{method:req.method,headers:{'Content-Type':'application/json'},...(req.method==='POST'?{body}:{})});const responseText=await upstream.text();if(upstream.status>=400)failedResponses.push({url:req.url,status:upstream.status,body:responseText.slice(0,1200)});res.writeHead(upstream.status,{'Content-Type':'application/json'});res.end(responseText);return;}
  const pathname=new URL(req.url,'http://localhost').pathname;
  const file=pathname.startsWith('/assets/')?resolve(repo,'interface/dist','.'+pathname):resolve(repo,'interface/dist/index.html');
  res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html'})[extname(file)]??'application/octet-stream');res.end(await readFile(file));
@@ -40,7 +48,7 @@ try{
  await writeFile(resolve(root,'data/input/guided_measurements.csv'),'record_id,temperature,region\n001,12.5,North\n002,17.5,South\n003,20.5,North\n004,25.5,South\n');
  await writeFile(resolve(root,'data/input/statistical_wide.csv'),Array.from({length:9},(_,j)=>`x${j}`).join(',')+'\n'+Array.from({length:3},(_,i)=>Array.from({length:9},(_,j)=>i*(j+1)).join(',')).join('\n')+'\n');
  browser=await chromium.launch({headless:true,args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1600,height:1000}});page.on('pageerror',e=>errors.push(e.message));
+ page=await browser.newPage({viewport:{width:1600,height:1000}});page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());
  page.setDefaultTimeout(15000);
  await page.goto(origin);console.log('audit: app loaded');
@@ -239,6 +247,9 @@ try{
   await page.locator('[data-operation-skill="aggregate_csv"]').waitFor();
   assert.equal(await page.locator('.topbar button.execute-button').isDisabled(),true);
   await page.getByRole('switch',{name:'⚠ Allow writes',exact:true}).click();
+  // Authorization follows the acknowledged availability change, not a concurrent
+  // toggle request. Keep this sequence valid under audit/disk/CI latency.
+  await page.locator('#toolbar-write-state').filter({hasText:'Writes: ON'}).waitFor();
   await page.getByRole('button',{name:'Authorize',exact:true}).first().click();
   await page.locator('.workflow-authorization-form textarea').fill('Only the fresh temporary aggregate CSV.');
   await page.locator('.workflow-authorization-form button[type=submit]').click();
@@ -477,6 +488,27 @@ try{
   await page.waitForFunction(()=>document.querySelector('.topbar .execute-button')?.disabled===false);
   await page.locator('.topbar .execute-button').click();
   await page.getByRole('button',{name:'Outcome',exact:true}).click();
+  // Metadata-only inspection reports use the same saved facts in UI/CLI/MD/PDF.
+  await page.getByRole('tab',{name:'Report',exact:true}).click();
+  const basicReport=page.getByRole('region',{name:'Workflow handoff',exact:true});
+  await basicReport.getByText('Recorded inspection quality',{exact:true}).waitFor();
+  assert.ok((await basicReport.innerText()).includes('Once-only values'));
+  assert.ok((await basicReport.innerText()).includes('Sample standard deviation'));
+  const reportCalls=calls.filter(c=>c.body?.action==='start'||c.body?.action==='table_analysis').length;
+  const basicMdEvent=page.waitForEvent('download');
+  await basicReport.getByRole('button',{name:'Download workflow report',exact:true}).click();
+  const basicMd=await basicMdEvent;
+  const basicText=await readFile(await basicMd.path(),'utf8');
+  assert.ok(basicText.includes('temperature')&&basicText.includes('Whole-row duplicates'));
+  const basicRunCall=calls.findLast(c=>c.body?.action==='report');
+  const basicCli=await cli(['report',basicRunCall.body.run_id,'--kind','json']);
+  assert.equal(basicCli.handoff.analytical_markdown,basicText);
+  await basicReport.getByLabel('Workflow report format').selectOption('pdf');
+  const basicPdfEvent=page.waitForEvent('download');
+  await basicReport.getByRole('button',{name:'Download workflow report',exact:true}).click();
+  assert.equal((await readFile(await (await basicPdfEvent).path())).subarray(0,5).toString(),'%PDF-');
+  assert.equal(calls.filter(c=>c.body?.action==='start'||c.body?.action==='table_analysis').length,reportCalls);
+  await page.getByRole('tab',{name:'Overview',exact:true}).click();
   const starterHints=page.getByRole('region',{name:'Suggested statistical fields',exact:true});
   await starterHints.getByText('Prepare a descriptive analysis',{exact:true}).click();
   await starterHints.getByLabel('Suggested numerical field').selectOption('temperature');
@@ -841,7 +873,11 @@ try{
   }
  }
  assert.equal(calls.filter(c=>c.url.includes('/authorize')).length,process.env.ACTIONCHARTER_AUDIT_ONLY?0:1);
- console.log(JSON.stringify({status:'passed',relocatedState:stateRoot!==root,pageErrors:errors,modelDiscovery:providerCalls.length,authorizationCalls:calls.filter(c=>c.url.includes('/authorize')).length,isolatedRoot:true}));
-}catch(error){console.error(error);console.error(JSON.stringify({lastCalls:calls.slice(-5),errors}));
+ if(stableProjectId){
+  assert.equal(JSON.parse(await readFile(resolve(root,'.actioncharter-project.json'),'utf8')).project_id,stableProjectId);
+  if(stateRoot!==root)assert.deepEqual(JSON.parse(await readFile(resolve(stateRoot,'.actioncharter-owner.json'),'utf8')),{version:2,project_id:stableProjectId});
+ }
+ console.log(JSON.stringify({status:'passed',relocatedState:stateRoot!==root,stableIdentity:Boolean(stableProjectId),pageErrors:errors,modelDiscovery:providerCalls.length,authorizationCalls:calls.filter(c=>c.url.includes('/authorize')).length,isolatedRoot:true}));
+}catch(error){console.error(error);console.error(JSON.stringify({lastCalls:calls.filter(c=>!c.url.includes('/write-policy')).slice(-10),errors,failedResponses:failedResponses.slice(-8)}));if(page){try{console.error((await page.locator('body').innerText()).slice(-7000));await page.screenshot({path:'/tmp/actioncharter-analytical-failure.png'});}catch{}}
  if(apiPort){try{const response=await fetch(`http://127.0.0.1:${apiPort}/api/v1/workflow/runs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})});const inventory=await response.json();console.error(JSON.stringify({fixtureRuns:(inventory.runs??inventory.records??[]).slice(0,4).map(r=>({run_id:r.run_id,status:r.status,finding:r.finding,failed_step_id:r.failed_step_id}))}));}catch{}}
  throw error;}finally{frontend.closeAllConnections();models.closeAllConnections();await browser?.close();child?.kill('SIGTERM');await new Promise(done=>frontend.close(done));await new Promise(done=>models.close(done));await rm(root,{recursive:true,force:true});}

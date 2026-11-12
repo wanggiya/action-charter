@@ -3,8 +3,8 @@ import json
 import geopandas as gpd
 import pytest
 from shapely.geometry import Point, LineString
-from geoagent_harness.skills.inspect_vector.preview import point_preview
-from geoagent_harness.skills.inspect_vector.service import inspect_vector
+from geoagent_harness.data.spatial.skills.inspect_vector.preview import point_preview
+from geoagent_harness.data.spatial.skills.inspect_vector.service import inspect_vector
 
 
 def test_snapshot_records_known_points_and_digest(tmp_path):
@@ -50,7 +50,7 @@ def test_only_nonpoint_or_empty_data_is_unavailable():
 
 def test_geometry_snapshot_preserves_boundaries_holes_multipart_and_attributes():
     from shapely.geometry import Polygon, MultiPolygon, MultiLineString
-    from geoagent_harness.skills.inspect_vector.preview import geometry_preview
+    from geoagent_harness.data.spatial.skills.inspect_vector.preview import geometry_preview
     polygon = Polygon([(0,0),(5,0),(5,5),(0,5),(0,0)], holes=[[(1,1),(2,1),(2,2),(1,2),(1,1)]])
     frame = gpd.GeoDataFrame({'name':['boundary','roads','islands']}, geometry=[polygon,MultiLineString([[(0,0),(1,1)],[(3,3),(4,4)]]),MultiPolygon([polygon])],crs=4326)
     result = geometry_preview(frame,'boundaries')
@@ -63,7 +63,7 @@ def test_geometry_snapshot_preserves_boundaries_holes_multipart_and_attributes()
 
 
 def test_geometry_snapshot_vertex_budget_rejects_whole_feature():
-    from geoagent_harness.skills.inspect_vector.preview import geometry_preview
+    from geoagent_harness.data.spatial.skills.inspect_vector.preview import geometry_preview
     frame=gpd.GeoDataFrame(geometry=[LineString([(i/100,0) for i in range(3000)]),Point(1,1)],crs=4326)
     result=geometry_preview(frame,'fixture')
     assert result['vertices']==1 and result['skipped_features']==1
@@ -72,7 +72,7 @@ def test_geometry_snapshot_vertex_budget_rejects_whole_feature():
 
 
 def test_durable_geometry_projection_keeps_whole_features_and_an_explicit_budget():
-    from geoagent_harness.skills.inspect_vector.preview import geometry_preview, fit_recorded_geometry
+    from geoagent_harness.data.spatial.skills.inspect_vector.preview import geometry_preview, fit_recorded_geometry
     frame=gpd.GeoDataFrame({f'field_{i}':['x'*120]*25 for i in range(10)},geometry=[Point(i,0) for i in range(25)],crs=4326)
     original=geometry_preview(frame,'fixture')
     assert len(json.dumps(original).encode())>12000

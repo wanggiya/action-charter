@@ -5,16 +5,16 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from tests.test_tabular_workflow import project, pipeline, saved
-from geoagent_harness import write_policy as policy
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
-from geoagent_harness.planner.recipe_definition import planner_recipe_definition
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.recipes.approval import create_recipe_approval, verify_recipe_approval
-from geoagent_harness.recipes.digest import canonical_recipe_json, recipe_sha256
-from geoagent_harness.recipes.policy import validate_recipe_policy
-from geoagent_harness.recipes.schemas import WorkflowRecipe
-from geoagent_harness.skill_registry import load_skill_registry
+from geoagent_harness.core.policy import write_policy as policy
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
+from geoagent_harness.core.policy.recipe_definition import planner_recipe_definition
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.recipe_approval import create_recipe_approval, verify_recipe_approval
+from geoagent_harness.core.ledger.recipe_identity import canonical_recipe_json, recipe_sha256
+from geoagent_harness.core.policy.recipe import validate_recipe_policy
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 def report_plan():
@@ -38,7 +38,7 @@ def authorize(project):
 
 
 def test_evidence_write_with_conservative_gates_authorizes_without_dispatch(project,monkeypatch):
-    from geoagent_harness.recipes import dispatcher
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
     def forbidden(**kwargs):
         pytest.fail('Authorization must not contact a database or dispatch an operation')
     monkeypatch.setattr(dispatcher,'validate_postgis_layer',forbidden)
@@ -54,8 +54,8 @@ def test_evidence_write_with_conservative_gates_authorizes_without_dispatch(proj
 
 
 def test_report_execution_uses_fixture_validation_and_retains_session_bounds(project,monkeypatch):
-    from geoagent_harness.recipes import dispatcher
-    from geoagent_harness.verifier.postgis import PostGISValidationResult
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
+    from geoagent_harness.core.verification.postgis import PostGISValidationResult
     observed=[]
     def validate(**kwargs):
         observed.append(kwargs['target_table'])

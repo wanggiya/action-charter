@@ -5,13 +5,8 @@ from pathlib import Path
 import geopandas as gpd
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.skills.convert_vector import (
-    ConvertVectorError,
-    convert_vector,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.spatial.skills.convert_vector.service import ConvertVectorError, convert_vector
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

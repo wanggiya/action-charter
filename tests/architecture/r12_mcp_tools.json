@@ -1,0 +1,2069 @@
+[
+  {
+    "annotations": null,
+    "description": "Return redacted readiness and security state.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {},
+      "title": "health_checkArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "health_check",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Read ordinary table names in an allowed schema. Never writes or authorizes.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "target_schema": {
+          "default": "agent_sandbox",
+          "title": "Target Schema",
+          "type": "string"
+        }
+      },
+      "title": "discover_postgres_tablesArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "discover_postgres_tables",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Bounded exact all-row snapshot/count/nulls and preview, including soft-deleted records.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "preview_rows": {
+          "default": 5,
+          "title": "Preview Rows",
+          "type": "integer"
+        },
+        "target_schema": {
+          "title": "Target Schema",
+          "type": "string"
+        },
+        "target_table": {
+          "title": "Target Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_schema",
+        "target_table"
+      ],
+      "title": "inspect_postgres_tableArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "inspect_postgres_table",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Read-only full-source cast/null/key mapping validation; no database write or authority.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "Column": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+              "title": "Name",
+              "type": "string"
+            },
+            "null_values": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Null Values"
+            },
+            "nullable": {
+              "default": true,
+              "title": "Nullable",
+              "type": "boolean"
+            },
+            "source": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            },
+            "type": {
+              "default": "text",
+              "enum": [
+                "text",
+                "bigint",
+                "numeric",
+                "boolean"
+              ],
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "name"
+          ],
+          "title": "Column",
+          "type": "object"
+        },
+        "ImportCSV": {
+          "additionalProperties": false,
+          "properties": {
+            "columns": {
+              "items": {
+                "$ref": "#/$defs/Column"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "title": "Columns",
+              "type": "array"
+            },
+            "connection_profile": {
+              "const": "configured",
+              "default": "configured",
+              "title": "Connection Profile",
+              "type": "string"
+            },
+            "connection_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Connection Sha256",
+              "type": "string"
+            },
+            "delimiter": {
+              "default": ",",
+              "enum": [
+                ",",
+                "\t"
+              ],
+              "title": "Delimiter",
+              "type": "string"
+            },
+            "key_columns": {
+              "items": {
+                "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+                "type": "string"
+              },
+              "maxItems": 10,
+              "title": "Key Columns",
+              "type": "array"
+            },
+            "mode": {
+              "const": "create",
+              "default": "create",
+              "title": "Mode",
+              "type": "string"
+            },
+            "null_values": {
+              "items": {
+                "maxLength": 200,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Null Values",
+              "type": "array"
+            },
+            "path": {
+              "anyOf": [
+                {
+                  "maxLength": 960,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Path"
+            },
+            "soft_delete_marker": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Soft Delete Marker"
+            },
+            "source_sha256": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source Sha256"
+            },
+            "source_step": {
+              "anyOf": [
+                {
+                  "pattern": "^step_[1-9][0-9]*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source Step"
+            },
+            "target_schema": {
+              "default": "agent_sandbox",
+              "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+              "title": "Target Schema",
+              "type": "string"
+            },
+            "target_table": {
+              "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+              "title": "Target Table",
+              "type": "string"
+            }
+          },
+          "required": [
+            "target_table",
+            "connection_sha256",
+            "columns"
+          ],
+          "title": "ImportCSV",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "arguments": {
+          "$ref": "#/$defs/ImportCSV"
+        }
+      },
+      "required": [
+        "arguments"
+      ],
+      "title": "validate_postgres_importArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "validate_postgres_import",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Discover supported files and bounded CSV headers in one input folder; no raw rows, recursion or writes.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "directory": {
+          "title": "Directory",
+          "type": "string"
+        }
+      },
+      "required": [
+        "directory"
+      ],
+      "title": "discover_inputsArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "discover_inputs",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Assess this operation's byte/row strategy; runtime limits remain authoritative, no execution approval.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "operation": {
+          "default": "profile",
+          "enum": [
+            "profile",
+            "quality",
+            "group",
+            "select_csv_columns",
+            "join_csv",
+            "calculate_csv_columns",
+            "statistical_model"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "assess_tableArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "assess_table",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Read or calculate a chat-bound selected-column/group view, with exact count percentages. No LLM, writes or workflow dispatch.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "DatasetViewRequest": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "default": "read",
+              "enum": [
+                "read",
+                "calculate"
+              ],
+              "title": "Action",
+              "type": "string"
+            },
+            "columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "minItems": 0,
+              "title": "Columns",
+              "type": "array"
+            },
+            "conversation_id": {
+              "pattern": "^[a-f0-9]{32}$",
+              "title": "Conversation Id",
+              "type": "string"
+            },
+            "expected_revision": {
+              "minimum": 0,
+              "title": "Expected Revision",
+              "type": "integer"
+            },
+            "limit": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "offset": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            },
+            "profile_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Profile Sha256",
+              "type": "string"
+            },
+            "source_sha256": {
+              "pattern": "^[a-f0-9]{64}$",
+              "title": "Source Sha256",
+              "type": "string"
+            },
+            "view": {
+              "default": "groups",
+              "enum": [
+                "groups",
+                "table"
+              ],
+              "title": "View",
+              "type": "string"
+            }
+          },
+          "required": [
+            "conversation_id",
+            "expected_revision",
+            "source_sha256",
+            "profile_sha256"
+          ],
+          "title": "DatasetViewRequest",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/DatasetViewRequest"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "title": "explore_dataset_viewArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "explore_dataset_view",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "All-field observed types, candidate roles, numeric distributions and codebook categories; isolated read-only job.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "DatasetOptions": {
+          "additionalProperties": false,
+          "properties": {
+            "codebook_path": {
+              "anyOf": [
+                {
+                  "maxLength": 960,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Codebook Path"
+            },
+            "distinct_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Distinct Columns",
+              "type": "array"
+            },
+            "filters": {
+              "items": {
+                "$ref": "#/$defs/TableFilter"
+              },
+              "maxItems": 6,
+              "title": "Filters",
+              "type": "array"
+            },
+            "group_by": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 3,
+              "title": "Group By",
+              "type": "array"
+            },
+            "missing_values": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "maxProperties": 100,
+              "title": "Missing Values",
+              "type": "object"
+            },
+            "numeric_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Numeric Columns",
+              "type": "array"
+            },
+            "preview_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Preview Columns",
+              "type": "array"
+            },
+            "preview_limit": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Preview Limit",
+              "type": "integer"
+            },
+            "preview_offset": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Preview Offset",
+              "type": "integer"
+            },
+            "role_overrides": {
+              "additionalProperties": {
+                "enum": [
+                  "numerical",
+                  "count",
+                  "categorical",
+                  "ordered_category",
+                  "identifier",
+                  "text",
+                  "uncertain"
+                ],
+                "type": "string"
+              },
+              "maxProperties": 100,
+              "title": "Role Overrides",
+              "type": "object"
+            }
+          },
+          "title": "DatasetOptions",
+          "type": "object"
+        },
+        "TableFilter": {
+          "additionalProperties": false,
+          "properties": {
+            "column": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Column",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 4096,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "column",
+            "value"
+          ],
+          "title": "TableFilter",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DatasetOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "profile_datasetArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "profile_dataset",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Read analytical/technical handoff from recorded workflow evidence; no source scan, model call or execution.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "title": "workflow_reportArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "workflow_report",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Search registered operations, typed arguments/results, source readers, effects and requirements. Discovery grants no execution authority.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "default": "",
+          "title": "Query",
+          "type": "string"
+        }
+      },
+      "title": "list_operation_contractsArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "list_operation_contracts",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Full-file CSV/TSV/XLSX/flat JSON/JSONL profiles, quality/duplicate checks and grouped distinct counts; optional codebook, no dataset writes.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "AnalysisOptions": {
+          "additionalProperties": false,
+          "properties": {
+            "codebook_path": {
+              "anyOf": [
+                {
+                  "maxLength": 960,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Codebook Path"
+            },
+            "count_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Count Columns",
+              "type": "array"
+            },
+            "distinct_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Distinct Columns",
+              "type": "array"
+            },
+            "duplicate_key": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Duplicate Key",
+              "type": "array"
+            },
+            "duplicate_rows": {
+              "default": false,
+              "title": "Duplicate Rows",
+              "type": "boolean"
+            },
+            "filters": {
+              "items": {
+                "$ref": "#/$defs/TableFilter"
+              },
+              "maxItems": 6,
+              "title": "Filters",
+              "type": "array"
+            },
+            "group_by": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 3,
+              "title": "Group By",
+              "type": "array"
+            },
+            "limit": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            },
+            "missing_values": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "maxProperties": 16,
+              "title": "Missing Values",
+              "type": "object"
+            },
+            "numeric_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Numeric Columns",
+              "type": "array"
+            },
+            "offset": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            },
+            "profile_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Profile Columns",
+              "type": "array"
+            },
+            "quality_columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Quality Columns",
+              "type": "array"
+            },
+            "source_options": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TableSourceOptions"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "statistics": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StatisticsSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "title": "AnalysisOptions",
+          "type": "object"
+        },
+        "RegressionSpec": {
+          "additionalProperties": false,
+          "properties": {
+            "cluster_column": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cluster Column"
+            },
+            "confidence_level": {
+              "default": 0.95,
+              "maximum": 0.999,
+              "minimum": 0.8,
+              "title": "Confidence Level",
+              "type": "number"
+            },
+            "covariance": {
+              "default": "nonrobust",
+              "enum": [
+                "nonrobust",
+                "HC3",
+                "cluster"
+              ],
+              "title": "Covariance",
+              "type": "string"
+            },
+            "intercept": {
+              "default": true,
+              "title": "Intercept",
+              "type": "boolean"
+            },
+            "outcome": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Outcome",
+              "type": "string"
+            },
+            "predictors": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 12,
+              "minItems": 1,
+              "title": "Predictors",
+              "type": "array"
+            }
+          },
+          "required": [
+            "outcome",
+            "predictors"
+          ],
+          "title": "RegressionSpec",
+          "type": "object"
+        },
+        "StatisticsSpec": {
+          "additionalProperties": false,
+          "properties": {
+            "by": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "title": "By",
+              "type": "array"
+            },
+            "columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 24,
+              "title": "Columns",
+              "type": "array"
+            },
+            "ddof": {
+              "default": 1,
+              "enum": [
+                0,
+                1
+              ],
+              "title": "Ddof",
+              "type": "integer"
+            },
+            "methods": {
+              "items": {
+                "enum": [
+                  "describe",
+                  "pearson",
+                  "spearman",
+                  "covariance",
+                  "linear_regression"
+                ],
+                "type": "string"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "Methods",
+              "type": "array"
+            },
+            "missing_policy": {
+              "default": "error",
+              "enum": [
+                "error",
+                "complete_cases"
+              ],
+              "title": "Missing Policy",
+              "type": "string"
+            },
+            "percentiles": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 11,
+              "minItems": 1,
+              "title": "Percentiles",
+              "type": "array"
+            },
+            "question": {
+              "anyOf": [
+                {
+                  "maxLength": 400,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "User analysis question; untrusted context, not evidence or authority",
+              "title": "Question"
+            },
+            "regression": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RegressionSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "title": "StatisticsSpec",
+          "type": "object"
+        },
+        "TableFilter": {
+          "additionalProperties": false,
+          "properties": {
+            "column": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Column",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 4096,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "column",
+            "value"
+          ],
+          "title": "TableFilter",
+          "type": "object"
+        },
+        "TableSourceOptions": {
+          "additionalProperties": false,
+          "description": "Explicit selection only; no macros, formulas or arbitrary reader options.",
+          "properties": {
+            "cell_range": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}:[A-Z]{1,3}[1-9][0-9]{0,6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cell Range"
+            },
+            "header_row": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Header Row",
+              "type": "integer"
+            },
+            "records_key": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Records Key"
+            },
+            "sheet": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sheet"
+            }
+          },
+          "title": "TableSourceOptions",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "profile_tableArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "profile_table",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Describe numeric fields, Pearson/Spearman/covariance matrices or OLS coefficients/P-values/R-squared. Read-only; explicit variables and missing policy.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "RegressionSpec": {
+          "additionalProperties": false,
+          "properties": {
+            "cluster_column": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cluster Column"
+            },
+            "confidence_level": {
+              "default": 0.95,
+              "maximum": 0.999,
+              "minimum": 0.8,
+              "title": "Confidence Level",
+              "type": "number"
+            },
+            "covariance": {
+              "default": "nonrobust",
+              "enum": [
+                "nonrobust",
+                "HC3",
+                "cluster"
+              ],
+              "title": "Covariance",
+              "type": "string"
+            },
+            "intercept": {
+              "default": true,
+              "title": "Intercept",
+              "type": "boolean"
+            },
+            "outcome": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Outcome",
+              "type": "string"
+            },
+            "predictors": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 12,
+              "minItems": 1,
+              "title": "Predictors",
+              "type": "array"
+            }
+          },
+          "required": [
+            "outcome",
+            "predictors"
+          ],
+          "title": "RegressionSpec",
+          "type": "object"
+        },
+        "StatisticsSpec": {
+          "additionalProperties": false,
+          "properties": {
+            "by": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 2,
+              "title": "By",
+              "type": "array"
+            },
+            "columns": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 24,
+              "title": "Columns",
+              "type": "array"
+            },
+            "ddof": {
+              "default": 1,
+              "enum": [
+                0,
+                1
+              ],
+              "title": "Ddof",
+              "type": "integer"
+            },
+            "methods": {
+              "items": {
+                "enum": [
+                  "describe",
+                  "pearson",
+                  "spearman",
+                  "covariance",
+                  "linear_regression"
+                ],
+                "type": "string"
+              },
+              "maxItems": 5,
+              "minItems": 1,
+              "title": "Methods",
+              "type": "array"
+            },
+            "missing_policy": {
+              "default": "error",
+              "enum": [
+                "error",
+                "complete_cases"
+              ],
+              "title": "Missing Policy",
+              "type": "string"
+            },
+            "percentiles": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 11,
+              "minItems": 1,
+              "title": "Percentiles",
+              "type": "array"
+            },
+            "question": {
+              "anyOf": [
+                {
+                  "maxLength": 400,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "User analysis question; untrusted context, not evidence or authority",
+              "title": "Question"
+            },
+            "regression": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RegressionSpec"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "title": "StatisticsSpec",
+          "type": "object"
+        },
+        "TableSourceOptions": {
+          "additionalProperties": false,
+          "description": "Explicit selection only; no macros, formulas or arbitrary reader options.",
+          "properties": {
+            "cell_range": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}:[A-Z]{1,3}[1-9][0-9]{0,6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cell Range"
+            },
+            "header_row": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Header Row",
+              "type": "integer"
+            },
+            "records_key": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Records Key"
+            },
+            "sheet": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sheet"
+            }
+          },
+          "title": "TableSourceOptions",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "missing_values": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Values"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "source_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TableSourceOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "specification": {
+          "$ref": "#/$defs/StatisticsSpec"
+        }
+      },
+      "required": [
+        "path",
+        "specification"
+      ],
+      "title": "table_statisticsArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "table_statistics",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Inspect a full supported table source and suggest measurement/grouping/identifier candidates with evidence and cautions. Advisory, no statistics execution or write authority.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "TableSourceOptions": {
+          "additionalProperties": false,
+          "description": "Explicit selection only; no macros, formulas or arbitrary reader options.",
+          "properties": {
+            "cell_range": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}:[A-Z]{1,3}[1-9][0-9]{0,6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cell Range"
+            },
+            "header_row": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Header Row",
+              "type": "integer"
+            },
+            "records_key": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Records Key"
+            },
+            "sheet": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sheet"
+            }
+          },
+          "title": "TableSourceOptions",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "source_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TableSourceOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "recommend_table_fieldsArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "recommend_table_fields",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Numeric OLS with coefficients, standard errors, P-values, confidence intervals, R-squared and diagnostics; optional HC3/cluster covariance. Not causal inference.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "$defs": {
+        "RegressionSpec": {
+          "additionalProperties": false,
+          "properties": {
+            "cluster_column": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cluster Column"
+            },
+            "confidence_level": {
+              "default": 0.95,
+              "maximum": 0.999,
+              "minimum": 0.8,
+              "title": "Confidence Level",
+              "type": "number"
+            },
+            "covariance": {
+              "default": "nonrobust",
+              "enum": [
+                "nonrobust",
+                "HC3",
+                "cluster"
+              ],
+              "title": "Covariance",
+              "type": "string"
+            },
+            "intercept": {
+              "default": true,
+              "title": "Intercept",
+              "type": "boolean"
+            },
+            "outcome": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Outcome",
+              "type": "string"
+            },
+            "predictors": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 12,
+              "minItems": 1,
+              "title": "Predictors",
+              "type": "array"
+            }
+          },
+          "required": [
+            "outcome",
+            "predictors"
+          ],
+          "title": "RegressionSpec",
+          "type": "object"
+        },
+        "TableSourceOptions": {
+          "additionalProperties": false,
+          "description": "Explicit selection only; no macros, formulas or arbitrary reader options.",
+          "properties": {
+            "cell_range": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}:[A-Z]{1,3}[1-9][0-9]{0,6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cell Range"
+            },
+            "header_row": {
+              "default": 1,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Header Row",
+              "type": "integer"
+            },
+            "records_key": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Records Key"
+            },
+            "sheet": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sheet"
+            }
+          },
+          "title": "TableSourceOptions",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "missing_policy": {
+          "default": "error",
+          "enum": [
+            "error",
+            "complete_cases"
+          ],
+          "title": "Missing Policy",
+          "type": "string"
+        },
+        "missing_values": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Values"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "source_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TableSourceOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "specification": {
+          "$ref": "#/$defs/RegressionSpec"
+        }
+      },
+      "required": [
+        "path",
+        "specification"
+      ],
+      "title": "linear_regressionArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "linear_regression",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Read bounded local dataset characteristics and hash; never writes data.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "delimiter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delimiter"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "discover_datasetArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "discover_dataset",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Inspect an approved vector input dataset.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "inspect_vector_datasetArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "inspect_vector_dataset",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Inspect bounded metadata for one approved PostGIS table.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "target_schema": {
+          "title": "Target Schema",
+          "type": "string"
+        },
+        "target_table": {
+          "title": "Target Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_schema",
+        "target_table"
+      ],
+      "title": "inspect_postgis_tableArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "inspect_postgis_table",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Inspect one approved GeoServer publication target read-only.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "datastore": {
+          "title": "Datastore",
+          "type": "string"
+        },
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "workspace": {
+          "title": "Workspace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace",
+        "datastore",
+        "layer"
+      ],
+      "title": "inspect_geoserver_layerArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "inspect_geoserver_layer",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Plan, but do not execute, one exact GeoServer publication.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "datastore": {
+          "title": "Datastore",
+          "type": "string"
+        },
+        "layer": {
+          "title": "Layer",
+          "type": "string"
+        },
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "workspace": {
+          "title": "Workspace",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "workspace",
+        "datastore",
+        "layer"
+      ],
+      "title": "plan_geoserver_publicationArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "plan_geoserver_publication",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Compare two approved PostGIS relations without mutation.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "candidate_schema": {
+          "title": "Candidate Schema",
+          "type": "string"
+        },
+        "candidate_table": {
+          "title": "Candidate Table",
+          "type": "string"
+        },
+        "reference_schema": {
+          "title": "Reference Schema",
+          "type": "string"
+        },
+        "reference_table": {
+          "title": "Reference Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_schema",
+        "reference_table",
+        "candidate_schema",
+        "candidate_table"
+      ],
+      "title": "compare_postgis_tablesArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "compare_postgis_tables",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Classify deterministic PostGIS comparison evidence.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "candidate_schema": {
+          "title": "Candidate Schema",
+          "type": "string"
+        },
+        "candidate_table": {
+          "title": "Candidate Table",
+          "type": "string"
+        },
+        "reference_schema": {
+          "title": "Reference Schema",
+          "type": "string"
+        },
+        "reference_table": {
+          "title": "Reference Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference_schema",
+        "reference_table",
+        "candidate_schema",
+        "candidate_table"
+      ],
+      "title": "assess_postgis_changeArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "assess_postgis_change",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Plan an exact approved PostGIS relation promotion.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "archive_schema": {
+          "title": "Archive Schema",
+          "type": "string"
+        },
+        "archive_table": {
+          "title": "Archive Table",
+          "type": "string"
+        },
+        "candidate_schema": {
+          "title": "Candidate Schema",
+          "type": "string"
+        },
+        "candidate_table": {
+          "title": "Candidate Table",
+          "type": "string"
+        },
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "reference_schema": {
+          "title": "Reference Schema",
+          "type": "string"
+        },
+        "reference_table": {
+          "title": "Reference Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id",
+        "reference_schema",
+        "reference_table",
+        "candidate_schema",
+        "candidate_table",
+        "archive_schema",
+        "archive_table"
+      ],
+      "title": "plan_postgis_promotionArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "plan_postgis_promotion",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Assess an approved vector input against a contract.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "contract_file": {
+          "title": "Contract File",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "contract_file"
+      ],
+      "title": "assess_spatial_data_contractArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "assess_spatial_data_contract",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Create a non-executing PostGIS load plan.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "target_schema": {
+          "title": "Target Schema",
+          "type": "string"
+        },
+        "target_table": {
+          "title": "Target Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "target_schema",
+        "target_table"
+      ],
+      "title": "plan_load_vector_to_postgisArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "plan_load_vector_to_postgis",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Run only an exact server-verified approved workflow.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "approval_filename": {
+          "title": "Approval Filename",
+          "type": "string"
+        },
+        "execution_envelope": {
+          "additionalProperties": true,
+          "title": "Execution Envelope",
+          "type": "object"
+        },
+        "plan_filename": {
+          "title": "Plan Filename",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_envelope",
+        "plan_filename",
+        "approval_filename"
+      ],
+      "title": "run_approved_vector_postgis_workflow_toolArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "run_approved_vector_postgis_workflow",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Deterministically validate one PostGIS layer.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "expected_geometry_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Geometry Type"
+        },
+        "expected_row_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Row Count"
+        },
+        "expected_srid": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Srid"
+        },
+        "target_schema": {
+          "title": "Target Schema",
+          "type": "string"
+        },
+        "target_table": {
+          "title": "Target Table",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_schema",
+        "target_table"
+      ],
+      "title": "validate_postgis_layerArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "validate_postgis_layer",
+    "outputSchema": null,
+    "title": null
+  },
+  {
+    "annotations": null,
+    "description": "Run one exact server-verified approved recipe.",
+    "execution": null,
+    "icons": null,
+    "inputSchema": {
+      "properties": {
+        "approval_filename": {
+          "title": "Approval Filename",
+          "type": "string"
+        },
+        "execution_envelope": {
+          "additionalProperties": true,
+          "title": "Execution Envelope",
+          "type": "object"
+        },
+        "recipe_filename": {
+          "title": "Recipe Filename",
+          "type": "string"
+        }
+      },
+      "required": [
+        "execution_envelope",
+        "recipe_filename",
+        "approval_filename"
+      ],
+      "title": "run_approved_recipe_toolArguments",
+      "type": "object"
+    },
+    "meta": null,
+    "name": "run_approved_recipe",
+    "outputSchema": null,
+    "title": null
+  }
+]

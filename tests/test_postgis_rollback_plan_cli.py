@@ -2,7 +2,7 @@ import json
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
 
 class FakeStorageResult:
@@ -11,7 +11,7 @@ class FakeStorageResult:
 
 
 def test_cli_plans_and_persists_without_database_mutation(monkeypatch):
-    import geoagent_harness.postgis.rollback.plan as module
+    import geoagent_harness.data.databases.postgis.rollback.plan as module
 
     monkeypatch.setattr(module, "plan_postgis_rollback", lambda **kwargs: object())
     monkeypatch.setattr(

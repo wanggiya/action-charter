@@ -2,15 +2,9 @@
 
 from pathlib import Path
 
-from geoagent_harness.skills.inspect_raster.schemas import (
-    InspectRasterArguments,
-)
-from geoagent_harness.skills.inspect_raster.service import (
-    inspect_raster,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.data.spatial.skills.inspect_raster.schemas import InspectRasterArguments
+from geoagent_harness.data.spatial.skills.inspect_raster.service import inspect_raster
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_inspects_fixture_without_modification(

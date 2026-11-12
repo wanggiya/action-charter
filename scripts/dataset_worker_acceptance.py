@@ -2,8 +2,12 @@
 """Explicit real Docker boundary checks; all mutable fixtures/artifacts live in /tmp."""
 import argparse,csv,hashlib,json,math,os,shutil,socket,statistics,subprocess,tempfile,time,uuid
 from pathlib import Path
-from geoagent_harness.sandbox.manager import IMAGE,docker,launch_command,run_profile,SandboxError
-from geoagent_harness.tabular.dataset_service import profile_dataset
+from geoagent_harness.workspaces.sandbox.manager import IMAGE
+from geoagent_harness.workspaces.sandbox.manager import docker
+from geoagent_harness.workspaces.sandbox.manager import launch_command
+from geoagent_harness.workspaces.sandbox.manager import run_profile
+from geoagent_harness.workspaces.sandbox.manager import SandboxError
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
 
 
 def main():

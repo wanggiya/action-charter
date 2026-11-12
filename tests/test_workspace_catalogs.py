@@ -5,13 +5,14 @@ from shutil import copytree
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.operations.discovery import ScanRequest, scan_libraries
-from geoagent_harness.operations.packages import installed_packages, PackageError, package_sha
-from geoagent_harness.operations.registry import operation_catalog, argument_models
-from geoagent_harness.operations.storage import save_scan, read_scan, saved_scans
-from geoagent_harness.recipe_catalog import composition as recipes
-from geoagent_harness.workspace import WorkspaceError
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.capabilities.registry.discovery import ScanRequest, scan_libraries
+from geoagent_harness.platform.storage.operation_packages import installed_packages
+from geoagent_harness.contracts.operation_packages import PackageError, package_sha
+from geoagent_harness.capabilities.registry.registry import operation_catalog, argument_models
+from geoagent_harness.capabilities.registry.storage import save_scan, read_scan, saved_scans
+from geoagent_harness.task_actions import recipe_catalog as recipes
+from geoagent_harness.platform.workspace import WorkspaceError
 from tests.test_operation_discovery import project, Distribution, install, proposal, stored
 from tests.test_workspace_layout import configure
 
@@ -63,9 +64,8 @@ def test_external_snapshot_is_searchable_in_cli_without_import_or_install(projec
 
 
 def test_relocated_installed_adapter_requires_exact_authority_and_executes(project, tmp_path_factory):
-    from geoagent_harness.interface_api import server as api
-    from geoagent_harness.interface_api.workflow import (
-        WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow)
+    from geoagent_harness.apps.http import server as api
+    from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
     state = tmp_path_factory.mktemp('installed-state')
     configure(project, state)
     digest = install(project)

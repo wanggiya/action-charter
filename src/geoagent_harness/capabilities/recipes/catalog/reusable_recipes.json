@@ -1,0 +1,180 @@
+[
+  {
+    "id": "recipe_inspect_csv",
+    "version": "1.0.0",
+    "name": "Inspect CSV",
+    "description": "Read original CSV metadata and a bounded preview. Produces metadata, not a CSV artifact.",
+    "parameters": {
+      "path": {
+        "type": "string",
+        "description": "Original CSV path under data/input"
+      }
+    },
+    "steps": [
+      {
+        "step_id": "step_1",
+        "skill": "inspect_csv",
+        "purpose": "Inspect csv",
+        "arguments": {
+          "path": {
+            "$parameter": "path"
+          }
+        },
+        "depends_on": []
+      }
+    ],
+    "output_step": "step_1",
+    "output_contract": "metadata/csv-v1",
+    "tests": []
+  },
+  {
+    "id": "recipe_vector_attributes",
+    "version": "1.0.0",
+    "name": "Vector attributes to CSV",
+    "description": "Inspect GeoJSON and export its flat attributes, explicitly dropping geometry. CSV output can feed another recipe.",
+    "parameters": {
+      "path": {
+        "type": "string",
+        "description": "Original GeoJSON under data/input"
+      },
+      "target_path": {
+        "type": "string",
+        "description": "Fresh output CSV under data/output"
+      }
+    },
+    "steps": [
+      {
+        "step_id": "step_1",
+        "skill": "inspect_vector",
+        "purpose": "Inspect vector",
+        "arguments": {
+          "path": {
+            "$parameter": "path"
+          }
+        },
+        "depends_on": []
+      },
+      {
+        "step_id": "step_2",
+        "skill": "vector_attributes_to_csv",
+        "purpose": "Vector attributes to csv",
+        "arguments": {
+          "path": {
+            "$parameter": "path"
+          },
+          "target_path": {
+            "$parameter": "target_path"
+          }
+        },
+        "depends_on": [
+          "step_1"
+        ]
+      }
+    ],
+    "output_step": "step_2",
+    "output_contract": "table/csv-v1",
+    "tests": [
+      {
+        "files": {
+          "data/input/points.geojson": "{\"type\": \"FeatureCollection\", \"features\": [{\"type\": \"Feature\", \"properties\": {\"region\": \"North\", \"amount\": 10}, \"geometry\": {\"type\": \"Point\", \"coordinates\": [0, 0]}}]}"
+        },
+        "parameters": {
+          "path": "data/input/points.geojson",
+          "target_path": "data/output/attributes.csv"
+        },
+        "expected_csv": {
+          "data/output/attributes.csv": "amount,region\n10,North\n"
+        }
+      }
+    ]
+  },
+  {
+    "id": "recipe_clean_csv",
+    "version": "1.0.0",
+    "name": "Select columns and fill missing cells",
+    "description": "Select named columns, then fill explicitly chosen missing values. Reads an original CSV or a preceding recipe CSV output.",
+    "parameters": {
+      "source": {
+        "type": "csv_source",
+        "description": "Input CSV path, or {\"recipe_output\":\"earlier_alias\"}"
+      },
+      "columns": {
+        "type": "array",
+        "description": "Ordered columns to retain"
+      },
+      "fill_values": {
+        "type": "object",
+        "description": "Column names and explicit replacement values"
+      },
+      "selected_path": {
+        "type": "string",
+        "description": "Fresh intermediate CSV path"
+      },
+      "target_path": {
+        "type": "string",
+        "description": "Fresh cleaned CSV path"
+      }
+    },
+    "steps": [
+      {
+        "step_id": "step_1",
+        "skill": "select_csv_columns",
+        "purpose": "Select csv columns",
+        "arguments": {
+          "columns": {
+            "$parameter": "columns"
+          },
+          "target_path": {
+            "$parameter": "selected_path"
+          }
+        },
+        "depends_on": [],
+        "csv_source_parameter": "source"
+      },
+      {
+        "step_id": "step_2",
+        "skill": "handle_csv_missing",
+        "purpose": "Handle csv missing",
+        "arguments": {
+          "source_step": {
+            "$step": "step_1"
+          },
+          "method": "fill",
+          "fill_values": {
+            "$parameter": "fill_values"
+          },
+          "target_path": {
+            "$parameter": "target_path"
+          }
+        },
+        "depends_on": [
+          "step_1"
+        ]
+      }
+    ],
+    "output_step": "step_2",
+    "output_contract": "table/csv-v1",
+    "tests": [
+      {
+        "files": {
+          "data/input/orders.csv": "region,amount,unused\nNorth,10,x\n,20,y\n"
+        },
+        "parameters": {
+          "source": "data/input/orders.csv",
+          "columns": [
+            "region",
+            "amount"
+          ],
+          "fill_values": {
+            "region": "Unknown"
+          },
+          "selected_path": "data/output/selected.csv",
+          "target_path": "data/output/cleaned.csv"
+        },
+        "expected_csv": {
+          "data/output/cleaned.csv": "region,amount\nNorth,10\nUnknown,20\n"
+        }
+      }
+    ]
+  }
+]

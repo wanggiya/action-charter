@@ -3,10 +3,10 @@ import json
 from types import SimpleNamespace
 from unittest.mock import patch
 import pytest
-from geoagent_harness.intent.handoff import inspection_metadata_outputs, plan_reviewed_intent, save_reviewed_intent_plan
-from geoagent_harness.intent.review import inspect_intent_for_review, save_reviewed_intent
-from geoagent_harness.intent.service import IntentError
-from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
+from geoagent_harness.agents.roles.intent.handoff import inspection_metadata_outputs, plan_reviewed_intent, save_reviewed_intent_plan
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
 
 @pytest.mark.parametrize('labels', [
     ['Feature Count', 'Field names', 'coordinate reference system'],
@@ -52,10 +52,10 @@ def test_equivalent_review_can_plan_and_store_without_rewriting_immutable_intent
         assert source['reviewed_intent_untrusted']['requested_outputs'] == outputs
         assert source['canonical_requested_outputs'] == ['CRS','feature count','fields']
         return PlannerResult(model='fixture', original_request=kwargs['original_request'], context_references=[], plan=WorkflowPlan(summary='Inspect metadata', steps=[PlanStep(step_id='step_1', skill='inspect_vector', purpose='Inspect selected input', arguments={'path':'data/input/sample.geojson'}, requires_approval=False)]))
-    with patch('geoagent_harness.intent.handoff.plan_task', side_effect=planner):
+    with patch('geoagent_harness.agents.roles.intent.handoff.plan_task', side_effect=planner):
         handoff = plan_reviewed_intent(project_root=tmp_path, filename=stored['review_filename'], allowed_skill_ids=['inspect_vector'])
     result = PlannerResult.model_validate(handoff['planner_result'])
-    with patch('geoagent_harness.task_actions.artifacts.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
+    with patch('geoagent_harness.platform.skill_registry.load_skill_registry', return_value=SimpleNamespace(implemented_skills=lambda:[SimpleNamespace(id='inspect_vector')])):
         saved = save_reviewed_intent_plan(project_root=tmp_path, filename=stored['review_filename'], planner_result=result, confirmed_plan_sha256=handoff['plan_sha256'])
     assert saved['plan_saved'] and saved['execution_performed'] is False
     assert path.read_bytes() == original_bytes
@@ -68,7 +68,7 @@ def test_additional_output_is_blocked_before_calling_planner(tmp_path):
     # Exercise the actual handoff entry point, with a rechecked reviewed record
     # supplied by a fixture, to prove scope failure precedes inference/storage.
     record = {'intent':{'proposal':{'known_inputs':['data/input/sample.geojson'], 'requested_outputs':['fields','generate report']}}}
-    with patch('geoagent_harness.intent.handoff.load_reviewed_intent',return_value=record), patch('geoagent_harness.intent.handoff.plan_task') as planner:
+    with patch('geoagent_harness.agents.roles.intent.handoff.load_reviewed_intent',return_value=record), patch('geoagent_harness.agents.roles.intent.handoff.plan_task') as planner:
         with pytest.raises(IntentError, match='generate report'):
             plan_reviewed_intent(project_root=tmp_path, filename='fixture', allowed_skill_ids=['inspect_vector'])
         planner.assert_not_called()

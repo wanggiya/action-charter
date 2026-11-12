@@ -4,9 +4,9 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
-from geoagent_harness.model.client import ModelClientError
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
+from geoagent_harness.platform.model_gateway.client import ModelClientError
 
 PROMPT='Profile diabetic_data.csv using IDS_mapping.csv. Group by age, readmitted. Summarize time_in_hospital, number_inpatient. Count distinct patient_nbr, encounter_id. No writes.'
 CHAT='a'*32

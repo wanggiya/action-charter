@@ -11,7 +11,7 @@ import json
 import os
 import platform
 from pathlib import Path
-from shutil import copytree
+from shutil import copytree, ignore_patterns
 from tempfile import TemporaryDirectory
 from time import monotonic
 
@@ -82,7 +82,7 @@ class FixtureModel:
     """Harness self-test only; this is never reported as a model benchmark."""
     def __init__(self, plan): self.plan=plan
     def complete(self, request):
-        from geoagent_harness.model.schemas import ModelResult
+        from geoagent_harness.platform.model_gateway.schemas import ModelResult
         return ModelResult(model='deterministic-harness-fixture',content=json.dumps({'message':'Fixture proposal; nothing executed','plan':self.plan}))
 
 
@@ -103,10 +103,12 @@ class Measured:
 
 
 def save_review(root, response):
-    from geoagent_harness.planner.schemas import PlannerResult
-    from geoagent_harness.interface_api.server import save_interface_reviewed_plan, InterfaceReviewedPlanSaveRequest
-    from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow
-    from geoagent_harness.approvals import plan_sha256
+    from geoagent_harness.contracts.planning import PlannerResult
+    from geoagent_harness.apps.http.server import save_interface_reviewed_plan
+    from geoagent_harness.apps.http.server import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.task_actions.workflow import WorkflowRequest
+    from geoagent_harness.task_actions.workflow import prepare_workflow
+    from geoagent_harness.core.policy.approvals.service import plan_sha256
     result=PlannerResult.model_validate({key:value for key,value in response['planner_result'].items() if key in PlannerResult.model_fields})
     saved=save_interface_reviewed_plan(InterfaceReviewedPlanSaveRequest(action='save_reviewed_plan',planner_result=result,
         confirmed_plan_sha256=plan_sha256(result.plan),allowed_skill_ids=response['allowed_skill_ids']),project_root=root)
@@ -116,9 +118,12 @@ def save_review(root, response):
 
 
 def execute(root, response, *, check_gates=False):
-    from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow, authorize_workflow
-    from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-    from geoagent_harness import write_policy
+    from geoagent_harness.task_actions.workflow import WorkflowRequest
+    from geoagent_harness.task_actions.workflow import prepare_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow_runs import RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action
+    from geoagent_harness.core.policy import write_policy
     result,base,review=save_review(root,response)
     writes=bool(review['write_step_ids']); auth={}
     gate_checks={}
@@ -200,11 +205,12 @@ def summarize(attempts, repetitions, *, actual_model):
 
 
 def evaluate(*, model=None, endpoint='http://127.0.0.1:11434/v1', timeout=90, max_tokens=1024, repetitions=1, cases=None, output=None):
-    from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-    from geoagent_harness.planner.schemas import PlannerResult
-    from geoagent_harness import write_policy
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
+    from geoagent_harness.task_actions.conversation import TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn
+    from geoagent_harness.contracts.planning import PlannerResult
+    from geoagent_harness.core.policy import write_policy
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
     chosen=list(cases or CASES)
     unknown=set(chosen)-set(CASES)
     if unknown:raise ValueError('Unknown evaluation case')
@@ -230,7 +236,10 @@ def evaluate(*, model=None, endpoint='http://127.0.0.1:11434/v1', timeout=90, ma
             for repetition in range(repetitions):
                 order=['OFF','ON'] if (index+repetition)%2==0 else ['ON','OFF']
                 for side in order:
-                    root=parent/f'{case}-{repetition}-{side}';copytree(seed,root)
+                    root=parent/f'{case}-{repetition}-{side}'
+                    # Independent evaluation projects share seeded domain evidence,
+                    # not another project's private event identity/dispatch claims.
+                    copytree(seed,root,ignore=ignore_patterns('action-ledger.sqlite3','action-ledger.sqlite3-*'))
                     attempt={'case':case,'repetition':repetition+1,'recommendations':side,'order':order,'valid_plan':False,'correct_output':False,
                              'correction_attempted':False,'calls':[],'scripted_authorization':False}
                     report['attempts'].append(attempt);start=monotonic()

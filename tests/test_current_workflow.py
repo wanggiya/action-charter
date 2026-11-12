@@ -6,12 +6,10 @@ from shutil import copyfile
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import (
-    EditRequest, WorkflowRequest, validate_edit, prepare_workflow, execute_workflow, inspection_inventory,
-)
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import EditRequest, WorkflowRequest, validate_edit, prepare_workflow, execute_workflow, inspection_inventory
 
 PROJECT = Path(__file__).parents[1]
 
@@ -227,7 +225,7 @@ def authorization_request(request, review):
 
 
 def test_authorize_records_conservative_gate_without_execution(project):
-    from geoagent_harness.interface_api.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
     request = stored_request(project, result(extra_approval=True))
     review = prepare_workflow(request, project_root=project)
     authorization = authorize_workflow(authorization_request(request, review), project_root=project)
@@ -241,7 +239,7 @@ def test_authorize_records_conservative_gate_without_execution(project):
 
 
 def test_authorize_then_execute_write_reuses_exact_decisions(project, monkeypatch):
-    from geoagent_harness.interface_api.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
     monkeypatch.setenv('ENABLE_WRITE_TOOLS', 'true')
     request = stored_request(project, result(write=True))
     review = prepare_workflow(request, project_root=project)
@@ -258,7 +256,7 @@ def test_authorize_then_execute_write_reuses_exact_decisions(project, monkeypatc
 
 
 def test_changed_workflow_cannot_reuse_authorization(project):
-    from geoagent_harness.interface_api.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
     request = stored_request(project, result(extra_approval=True))
     review = prepare_workflow(request, project_root=project)
     authorization = authorize_workflow(authorization_request(request, review), project_root=project)
@@ -274,7 +272,7 @@ def test_changed_workflow_cannot_reuse_authorization(project):
 
 def test_expired_authorization_is_reverified_before_dispatch(project, monkeypatch):
     from datetime import datetime, timedelta, timezone
-    from geoagent_harness.interface_api.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
     request = stored_request(project, result(extra_approval=True))
     review = prepare_workflow(request, project_root=project)
     authorization = authorize_workflow(authorization_request(request, review), project_root=project)
@@ -329,7 +327,7 @@ def test_dependency_order_is_reviewed_and_used_for_actual_inspection(project):
 
 
 def test_disconnected_graph_changes_digest_and_cannot_reuse_approval(project):
-    from geoagent_harness.interface_api.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
     proposal = two_inspections()
     proposal.plan.steps[0].requires_approval = True
     original = stored_request(project, proposal)
@@ -347,7 +345,7 @@ def test_disconnected_graph_changes_digest_and_cannot_reuse_approval(project):
 
 
 def postgis_plan():
-    from geoagent_harness.planner.schemas import PlanStep
+    from geoagent_harness.contracts.planning import PlanStep
     proposal = result()
     proposal.plan.steps.extend([
         PlanStep(step_id='step_2', skill='load_vector_to_postgis', purpose='Load reviewed source', arguments={'path':'data/input/sample_points.geojson', 'target_schema':'agent_sandbox', 'target_table':'test_points'}, requires_approval=True, depends_on=['step_1']),
@@ -381,10 +379,10 @@ def test_disconnect_cannot_bypass_required_validation(project):
     ('PostGIS load failed; database details were redacted', 'postgis_load_failed'),
 ])
 def test_governed_failure_diagnostics_are_safe_and_specific(finding, code):
-    from geoagent_harness.interface_api.workflow import execution_failure_payload
-    from geoagent_harness.skills.load_vector_to_postgis.service import LoadVectorError
-    from geoagent_harness.recipes.runner import RecipeRunError
-    from geoagent_harness.mcp_server.approved_recipe import ApprovedRecipeError
+    from geoagent_harness.task_actions.workflow import execution_failure_payload
+    from geoagent_harness.data.spatial.skills.load_vector_to_postgis.service import LoadVectorError
+    from geoagent_harness.capabilities.recipes.execution.runner import RecipeRunError
+    from geoagent_harness.task_actions.approved_recipe import ApprovedRecipeError
     driver = RuntimeError('postgresql://operator:private-password@private-host/database SQL secret')
     cause = LoadVectorError(finding)
     cause.__cause__ = driver
@@ -405,8 +403,8 @@ def test_authorized_postgis_failure_has_actionable_http_response_without_live_da
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.workflow import authorize_workflow
-    service = importlib.import_module('geoagent_harness.skills.load_vector_to_postgis.service')
+    from geoagent_harness.task_actions.workflow import authorize_workflow
+    service = importlib.import_module('geoagent_harness.data.spatial.skills.load_vector_to_postgis.service')
     class MissingSchema:
         def schema_exists(self, schema): return False
         def table_exists(self, schema, table): raise AssertionError('Do not probe a missing schema')
@@ -415,7 +413,7 @@ def test_authorized_postgis_failure_has_actionable_http_response_without_live_da
     monkeypatch.setattr(service, 'SQLAlchemyPostGISAdapter', lambda settings: MissingSchema())
     monkeypatch.setenv('ENABLE_WRITE_TOOLS', 'true')
     proposal = result()
-    from geoagent_harness.planner.schemas import PlanStep
+    from geoagent_harness.contracts.planning import PlanStep
     proposal.plan.steps.extend([PlanStep.model_validate(step) for step in [
         {'step_id': 'step_2', 'skill': 'load_vector_to_postgis', 'purpose': 'Load exact source', 'arguments': {'path': 'data/input/sample_points.geojson', 'target_schema': 'agent_sandbox', 'target_table': 'test_points'}, 'requires_approval': True},
         {'step_id': 'step_3', 'skill': 'validate_postgis_layer', 'purpose': 'Validate layer', 'arguments': {'target_schema': 'agent_sandbox', 'target_table': 'test_points'}, 'validation_required': True},

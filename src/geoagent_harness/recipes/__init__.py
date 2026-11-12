@@ -1,89 +1,21 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Reusable, deterministic workflow recipes."""
 
-from geoagent_harness.recipes.digest import (
-    canonical_recipe_json,
-    recipe_sha256,
-)
-from geoagent_harness.recipes.policy import (
-    RecipePolicyError,
-    validate_recipe_policy,
-)
-from geoagent_harness.recipes.schemas import (
-    RecipeStep,
-    RecipeValidation,
-    WorkflowRecipe,
-    RecipeApprovalRecord,
-    RecipeApprovalVerification,
-    RecipeExecutionEnvelope,
-    RecipeExecutionStep,
-    ConvertVectorRecipeArguments,
-    ConvertRasterRecipeArguments,
-    GenerateReportRecipeArguments,
-    InspectVectorRecipeArguments,
-    LoadVectorToPostGISRecipeArguments,
-    RecipeStepExecutionResult,
-    RecipeRunResult,
-    RecipeStepRunResult,
-    RecipeApprovalInventory,
-    RecipeApprovalMatch,
-    InspectRasterRecipeArguments,
-    ValidatePostGISLayerRecipeArguments,
-)
+from geoagent_harness.core.ledger.recipe_identity import canonical_recipe_json, recipe_sha256
+from geoagent_harness.core.policy.recipe import RecipePolicyError, validate_recipe_policy
+from geoagent_harness.contracts.recipes import RecipeStep, RecipeValidation, WorkflowRecipe, RecipeApprovalRecord, RecipeApprovalVerification, RecipeExecutionEnvelope, RecipeExecutionStep, ConvertVectorRecipeArguments, ConvertRasterRecipeArguments, GenerateReportRecipeArguments, InspectVectorRecipeArguments, LoadVectorToPostGISRecipeArguments, RecipeStepExecutionResult, RecipeRunResult, RecipeStepRunResult, RecipeApprovalInventory, RecipeApprovalMatch, InspectRasterRecipeArguments, ValidatePostGISLayerRecipeArguments
 
-from geoagent_harness.recipes.storage import (
-    MAX_RECIPE_BYTES,
-    RecipeStorageError,
-    load_recipe,
-    load_recipe_draft,
-    recipe_path,
-    save_recipe,
-)
+from geoagent_harness.core.ledger.recipe_storage import MAX_RECIPE_BYTES, RecipeStorageError, load_recipe, load_recipe_draft, recipe_path, save_recipe
 
-from geoagent_harness.recipes.approval import (
-    MAX_RECIPE_APPROVAL_BYTES,
-    RecipeApprovalError,
-    create_recipe_approval,
-    load_recipe_approval,
-    verify_recipe_approval,
-)
+from geoagent_harness.core.policy.recipe_approval import MAX_RECIPE_APPROVAL_BYTES, RecipeApprovalError, create_recipe_approval, load_recipe_approval, verify_recipe_approval
 
-from geoagent_harness.recipes.execution import (
-    RecipeExecutionPolicyError,
-    build_recipe_execution_envelope,
-)
+from geoagent_harness.core.policy.recipe_execution import RecipeExecutionPolicyError, build_recipe_execution_envelope
 
-from geoagent_harness.recipes.evidence_schemas import (
-    ArtifactReference,
-    ArtifactRole,
-    LineageEdge,
-    RecipeRunEvidence,
-    RecipeExecutionRecord,
-    PersistedRecipeExecutionResult,
-    RecipeExecutionRecord,
-)
+from geoagent_harness.contracts.recipe_evidence import ArtifactReference, ArtifactRole, LineageEdge, RecipeRunEvidence, RecipeExecutionRecord, PersistedRecipeExecutionResult, RecipeExecutionRecord
 
-from geoagent_harness.recipes.evidence_storage import (
-    MAX_RECIPE_EVIDENCE_BYTES,
-    RecipeEvidenceStorageError,
-    canonical_recipe_evidence_json,
-    load_recipe_evidence,
-    recipe_evidence_path,
-    recipe_evidence_sha256,
-    write_recipe_evidence,
-    MAX_RECIPE_RUN_RESULT_BYTES,
-    load_recipe_run_result,
-    canonical_recipe_run_result_json,
-    recipe_run_result_path,
-    recipe_run_result_sha256,
-    write_recipe_run_result,
-)
+from geoagent_harness.core.ledger.recipe_evidence import MAX_RECIPE_EVIDENCE_BYTES, RecipeEvidenceStorageError, canonical_recipe_evidence_json, load_recipe_evidence, recipe_evidence_path, recipe_evidence_sha256, write_recipe_evidence, MAX_RECIPE_RUN_RESULT_BYTES, load_recipe_run_result, canonical_recipe_run_result_json, recipe_run_result_path, recipe_run_result_sha256, write_recipe_run_result
 
-from geoagent_harness.recipes.inventory import (
-    MAX_INVENTORY_APPROVALS,
-    MAX_INVENTORY_RECIPES,
-    RecipeInventoryError,
-    build_recipe_approval_inventory,
-)
+from geoagent_harness.capabilities.recipes.execution.inventory import MAX_INVENTORY_APPROVALS, MAX_INVENTORY_RECIPES, RecipeInventoryError, build_recipe_approval_inventory
 
 
 __all__ = [
@@ -155,30 +87,22 @@ def __getattr__(name: str):
     """Load GIS execution code only when explicitly requested."""
 
     if name == "RecipeDispatchError":
-        from geoagent_harness.recipes.dispatcher import (
-            RecipeDispatchError,
-        )
+        from geoagent_harness.capabilities.recipes.execution.dispatcher import RecipeDispatchError
 
         return RecipeDispatchError
 
     if name == "dispatch_recipe_step":
-        from geoagent_harness.recipes.dispatcher import (
-            dispatch_recipe_step,
-        )
+        from geoagent_harness.capabilities.recipes.execution.dispatcher import dispatch_recipe_step
 
         return dispatch_recipe_step
 
     if name == "RecipeRunError":
-        from geoagent_harness.recipes.runner import (
-            RecipeRunError,
-        )
+        from geoagent_harness.capabilities.recipes.execution.runner import RecipeRunError
 
         return RecipeRunError
 
     if name == "run_approved_recipe":
-        from geoagent_harness.recipes.runner import (
-            run_approved_recipe,
-        )
+        from geoagent_harness.capabilities.recipes.execution.runner import run_approved_recipe
 
         return run_approved_recipe
     
@@ -187,11 +111,7 @@ def __getattr__(name: str):
         "RecipeEvidenceError",
         "build_recipe_run_evidence",
     }:
-        from geoagent_harness.recipes.evidence import (
-            MAX_EVIDENCE_ARTIFACT_BYTES,
-            RecipeEvidenceError,
-            build_recipe_run_evidence,
-        )
+        from geoagent_harness.capabilities.recipes.execution.evidence import MAX_EVIDENCE_ARTIFACT_BYTES, RecipeEvidenceError, build_recipe_run_evidence
 
         evidence_exports = {
             "MAX_EVIDENCE_ARTIFACT_BYTES": (
@@ -211,9 +131,7 @@ def __getattr__(name: str):
         "RecipeEvidencePersistenceError",
         "persist_recipe_run",
     }:
-        from geoagent_harness.recipes import (
-            evidence_persistence,
-        )
+        from geoagent_harness.capabilities.recipes.execution import evidence_persistence
 
         return getattr(
             evidence_persistence,

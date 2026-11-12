@@ -6,12 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.releases import (
-    AuthoritativeReleaseCandidate,
-    AuthoritativeReleaseStorageError,
-    load_authoritative_release,
-    persist_authoritative_release,
-)
+from geoagent_harness.core.ledger.releases.schemas import AuthoritativeReleaseCandidate
+from geoagent_harness.core.ledger.releases.storage import AuthoritativeReleaseStorageError, load_authoritative_release, persist_authoritative_release
 
 
 NOW = datetime(2026, 9, 3, 8, tzinfo=timezone.utc)

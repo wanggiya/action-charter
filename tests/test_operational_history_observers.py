@@ -5,36 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.operational_history import (
-    AgentRole,
-    OperationalEventType,
-    OperationalHistoryError,
-    OperationalIdentity,
-    load_operational_events,
-    record_critic_history,
-    record_executor_history,
-    record_gis_workflow_history,
-    record_planner_history,
-)
-from geoagent_harness.critic.schemas import (
-    CriticAssessment,
-    CriticResult,
-    EvidenceReference,
-)
-from geoagent_harness.executor.schemas import (
-    ExecutorRunResult,
-    WorkflowExecutionResult,
-)
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    WorkflowPlan,
-)
-from geoagent_harness.reporting import write_report
-from geoagent_harness.trace import (
-    TraceTimestamps,
-    WorkflowTrace,
-    write_trace,
-)
+from geoagent_harness.core.ledger.operational_history.schemas import AgentRole, OperationalEventType, OperationalIdentity
+from geoagent_harness.core.ledger.operational_history.service import OperationalHistoryError, load_operational_events
+from geoagent_harness.core.ledger.operational_history.observers import record_critic_history, record_executor_history, record_gis_workflow_history, record_planner_history
+from geoagent_harness.contracts.critic import CriticAssessment, CriticResult, EvidenceReference
+from geoagent_harness.contracts.execution import ExecutorRunResult, WorkflowExecutionResult
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan
+from geoagent_harness.data.tabular.reporting import write_report
+from geoagent_harness.core.ledger.trace import TraceTimestamps, WorkflowTrace, write_trace
 
 
 NOW = datetime(2026, 9, 3, 12, tzinfo=timezone.utc)

@@ -1,27 +1,4 @@
-"""Typed schemas for raster inspection."""
-
-from __future__ import annotations
-
-from pathlib import Path
-
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-)
-
-from geoagent_harness.skill_adapters.raster_inspection import (
-    RasterInspectionResult,
-)
-
-
-class InspectRasterArguments(BaseModel):
-    """Validated arguments for raster inspection."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    path: Path
-    input_root: Path
-
-
-InspectRasterResult = RasterInspectionResult
+"""Compatibility alias for geoagent_harness.data.spatial.skills.inspect_raster.schemas."""
+import sys
+from geoagent_harness.data.spatial.skills.inspect_raster import schemas as _implementation
+sys.modules[__name__] = _implementation

@@ -1,5 +1,5 @@
 """Read-only analytical requests retain real analysis but avoid writer schemas."""
-from geoagent_harness.planner.prompt_scope import schema_scope
+from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
 import json
 import pytest
 from tests.test_task_agents import project
@@ -24,8 +24,8 @@ def test_analytical_inspection_does_not_hide_existing_workflow_or_new_actions():
     assert 'import_csv_to_postgres' in schema_scope(REQUEST+' Load it into PostgreSQL.',AVAILABLE)
 
 def test_actual_model_request_keeps_analysis_and_timeout_is_not_retried(project):
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
     requests=[]
     class TimeoutClient:
         def complete(self,request):

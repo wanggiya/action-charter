@@ -4,131 +4,37 @@ import hashlib
 import json
 import os
 import re
-from geoagent_harness.storage import repositories, RepositoryError
+from geoagent_harness.platform.storage import repositories
+from geoagent_harness.platform.storage import RepositoryError
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from geoagent_harness.workspace import WorkspaceLayout
-from geoagent_harness.redaction import redact_value
-from geoagent_harness.skill_registry import load_skill_registry
-from geoagent_harness.planner import PlannerResult, validate_plan_policy
-from geoagent_harness.approvals import (
-    ApprovalError,
-    create_approval,
-    load_approval,
-    load_planner_result,
-    plan_sha256,
-    verify_approval,
-)
-from geoagent_harness.executor import ExecutorPolicyError, build_execution_envelope
-from geoagent_harness.mcp_server.settings import load_settings
-from geoagent_harness.recipes import (
-    RecipePolicyError,
-    load_recipe,
-    recipe_path,
-    recipe_sha256,
-    save_recipe,
-    validate_recipe_policy,
-    create_recipe_approval,
-    load_recipe_approval,
-    verify_recipe_approval,
-)
-from geoagent_harness.recipes.schemas import WorkflowRecipe
-from .storage_paths import runtime_store_path, ensure_state_root
-from .common import InterfaceApiError, _trusted_root
-from .contracts import (
-    InterfaceApprovalDecision,
-    InterfaceApprovalVerificationRequest,
-    InterfaceReviewedPlanSaveRequest,
-    InterfaceGeneratedPlanSaveRequest,
-    InterfacePlanApprovalPreparationRequest,
-    InterfacePlanApprovalDecisionRequest,
-    InterfacePlanApprovalVerificationRequest,
-    InterfacePlanExecutionPreviewRequest,
-    InterfacePlanRecipeCompilationRequest,
-    InterfacePlanRecipeSaveRequest,
-)
+from geoagent_harness.platform.workspace import WorkspaceLayout
+from geoagent_harness.contracts.redaction import redact_value
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.agents.roles.planner import PlannerResult
+from geoagent_harness.agents.roles.planner import validate_plan_policy
+from geoagent_harness.core.policy.approvals import ApprovalError, create_approval, load_approval, load_planner_result, plan_sha256, verify_approval
+from geoagent_harness.agents.roles.executor import ExecutorPolicyError, build_execution_envelope
+from geoagent_harness.platform.settings import load_settings
+from geoagent_harness.capabilities.recipes.execution import RecipePolicyError, validate_recipe_policy
+from geoagent_harness.capabilities.recipes.execution import load_recipe, recipe_path, save_recipe
+from geoagent_harness.capabilities.recipes.execution import recipe_sha256
+from geoagent_harness.capabilities.recipes.execution import create_recipe_approval, load_recipe_approval, verify_recipe_approval
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.platform.paths import runtime_store_path, ensure_state_root
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.project import _trusted_root
+from geoagent_harness.contracts.actions import InterfaceApprovalDecision, InterfaceApprovalVerificationRequest, InterfaceReviewedPlanSaveRequest, InterfaceGeneratedPlanSaveRequest, InterfacePlanApprovalPreparationRequest, InterfacePlanApprovalDecisionRequest, InterfacePlanApprovalVerificationRequest, InterfacePlanExecutionPreviewRequest, InterfacePlanRecipeCompilationRequest, InterfacePlanRecipeSaveRequest
 
 SAFE_RECIPE_FILENAME = re.compile(r"^[a-z0-9][a-z0-9_-]*\.[a-f0-9]{64}\.json$")
 
 
-def save_interface_reviewed_plan(
-    request: InterfaceReviewedPlanSaveRequest,
-    *,
-    project_root: Path,
-    plan_root: Path | None = None,
-) -> dict[str, Any]:
-    """Revalidate and immutably store one exact reviewed Planner result."""
-
-    root = _trusted_root(project_root)
-    registry = load_skill_registry(root)
-    implemented = {skill.id for skill in registry.implemented_skills()}
-    selected = set(request.allowed_skill_ids)
-    if not selected.issubset(implemented):
-        raise InterfaceApiError("reviewed plan includes an unavailable skill selection")
-    validate_plan_policy(request.planner_result.plan, available_skills=selected)
-    digest = plan_sha256(request.planner_result.plan)
-    if digest != request.confirmed_plan_sha256:
-        raise InterfaceApiError("reviewed plan digest no longer matches")
-
-    destination = plan_root if plan_root is not None else runtime_store_path(root, 'plans')
-    if destination.exists() and destination.is_symlink():
-        raise InterfaceApiError("plan root cannot be a symlink")
-    if plan_root is None: ensure_state_root(root)
-    destination.mkdir(parents=True, exist_ok=True)
-    if destination.is_symlink() or not destination.is_dir():
-        raise InterfaceApiError("plan root is unsafe")
-    resolved_destination = destination.resolve(strict=True)
-    if plan_root is None and resolved_destination.parent != WorkspaceLayout.load(root).state_root:
-        raise InterfaceApiError("plan root is outside the trusted project")
-
-    filename = f"planner-plan.{digest}.json"
-    path = resolved_destination / filename
-    content = request.planner_result.model_dump_json(indent=2) + "\n"
-    if path.exists():
-        if path.is_symlink() or not path.is_file():
-            raise InterfaceApiError("existing reviewed plan artifact is unsafe")
-        try:
-            existing = repositories(root).documents('plans', directory=resolved_destination).load((path).name)
-        except ApprovalError as exc:
-            raise InterfaceApiError("existing reviewed plan artifact is invalid") from exc
-        # The generated proposal's wording/model are conversation-local context,
-        # not execution authority. Reuse an identical immutable workflow without
-        # copying its older request into the new conversation or modifying bytes.
-        generated_reuse = isinstance(request, InterfaceGeneratedPlanSaveRequest) and (
-            existing.plan == request.planner_result.plan and existing.agent_id == request.planner_result.agent_id
-        )
-        if existing != request.planner_result and not generated_reuse:
-            raise InterfaceApiError("existing reviewed plan does not match exact result")
-        return {
-            "schema_version": "1.0",
-            "status": "already_stored",
-            "plan_sha256": digest,
-            "plan_filename": filename,
-            "plan_saved": True,
-            "plan_modified": False,
-            "approval_performed": False,
-            "execution_performed": False,
-            **({"workflow_definition_reused": True, "result_metadata_saved": existing == request.planner_result}
-               if isinstance(request, InterfaceGeneratedPlanSaveRequest) else {}),
-        }
-    try:
-        repositories(root).documents('plans',directory=resolved_destination).create(filename,content)
-    except FileExistsError as exc:
-        raise InterfaceApiError("reviewed plan already exists") from exc
-    except RepositoryError as exc:
-        raise InterfaceApiError(str(exc)) from exc
-
-    return {
-        "schema_version": "1.0",
-        "status": "stored",
-        "plan_sha256": digest,
-        "plan_filename": filename,
-        "plan_saved": True,
-        "plan_modified": True,
-        "approval_performed": False,
-        "execution_performed": False,
-    }
+def save_interface_reviewed_plan(request: InterfaceReviewedPlanSaveRequest, *, project_root: Path, plan_root: Path | None = None) -> dict[str, Any]:
+    """Compatibility action adapter to the shared immutable plan-save service."""
+    from geoagent_harness.agents.roles.planner.service import save_reviewed_plan
+    return save_reviewed_plan(request, project_root=project_root, plan_root=plan_root,
+                              registry_loader=load_skill_registry)
 
 
 def prepare_interface_plan_approval(
@@ -218,7 +124,7 @@ def record_interface_plan_approval(
     approvals = approval_root if approval_root is not None else runtime_store_path(root, "approvals")
     if approvals.exists() and approvals.is_symlink():
         raise InterfaceApiError("approval root cannot be a symlink")
-    active_now = now or datetime.now(timezone.utc)
+    active_now = now or execution_services().clock.now()
     expires_at = (
         active_now + timedelta(minutes=request.valid_for_minutes)
         if request.valid_for_minutes is not None else None
@@ -396,7 +302,7 @@ def compile_interface_plan_recipe(
 
 
 def _planner_recipe_definition(result: PlannerResult, plan_digest: str) -> WorkflowRecipe:
-    from geoagent_harness.planner.recipe_definition import planner_recipe_definition, PlannerRecipeDefinitionError
+    from geoagent_harness.core.policy.recipe_definition import planner_recipe_definition, PlannerRecipeDefinitionError
     try:
         return planner_recipe_definition(result, plan_digest)
     except PlannerRecipeDefinitionError as exc:
@@ -526,7 +432,7 @@ def record_interface_recipe_approval(
     if approvals.is_symlink():
         raise InterfaceApiError("approval root cannot be a symlink")
     recipe = load_recipe(recipes / request.recipe_filename, recipe_root=recipes)
-    active_now = now or datetime.now(timezone.utc)
+    active_now = now or execution_services().clock.now()
     expires_at = (
         active_now + timedelta(minutes=request.valid_for_minutes)
         if request.valid_for_minutes is not None
@@ -613,3 +519,19 @@ def verify_interface_recipe_approval(
         "approval_modified": False,
         "execution_performed": False,
     }
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+save_interface_reviewed_plan = _task_entrypoint(save_interface_reviewed_plan)
+prepare_interface_plan_approval = _task_entrypoint(prepare_interface_plan_approval, audit=False)
+record_interface_plan_approval = _task_entrypoint(record_interface_plan_approval)
+verify_interface_plan_approval = _task_entrypoint(verify_interface_plan_approval, audit=False)
+preview_interface_plan_execution = _task_entrypoint(preview_interface_plan_execution, audit=False)
+compile_interface_plan_recipe = _task_entrypoint(compile_interface_plan_recipe, audit=False)
+save_interface_plan_recipe = _task_entrypoint(save_interface_plan_recipe)
+prepare_interface_recipe_approval = _task_entrypoint(prepare_interface_recipe_approval, audit=False)
+record_interface_recipe_approval = _task_entrypoint(record_interface_recipe_approval)
+verify_interface_recipe_approval = _task_entrypoint(verify_interface_recipe_approval, audit=False)
+
+from geoagent_harness.platform.execution_services import execution_services

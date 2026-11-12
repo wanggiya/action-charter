@@ -2,11 +2,8 @@
 
 import pytest
 
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    CompatibilityDisposition,
-    assess_migration,
-)
+from geoagent_harness.contracts.schema_registry.schemas import ArtifactType, CompatibilityDisposition
+from geoagent_harness.contracts.schema_registry.migration import assess_migration
 
 
 def test_current_version_needs_no_migration() -> None:

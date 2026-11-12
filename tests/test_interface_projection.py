@@ -6,9 +6,9 @@ from datetime import UTC, datetime
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.interface_projection import InterfaceProjectionError, export_workflow_catalog, project_workflow_trace
-from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.apps.interface_projection.service import InterfaceProjectionError, export_workflow_catalog, project_workflow_trace
+from geoagent_harness.core.ledger.trace import TraceTimestamps, WorkflowTrace
 
 
 def _trace(task_id: str = "demo-run") -> WorkflowTrace:

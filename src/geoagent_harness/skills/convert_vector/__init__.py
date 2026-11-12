@@ -1,26 +1,11 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Controlled vector-conversion skill."""
 
-from geoagent_harness.skills.convert_vector.policy import (
-    ConvertVectorPolicyError,
-    plan_vector_conversion,
-)
-from geoagent_harness.skills.convert_vector.schemas import (
-    ConvertVectorPlan,
-    ConvertVectorResult,
-    VectorOutputFormat,
-)
-from geoagent_harness.skills.convert_vector.service import (
-    ConvertVectorError,
-    convert_vector,
-)
-from geoagent_harness.skills.convert_vector.schemas import (
-    ConvertVectorValidationResult,
-    VectorValidationCheck,
-)
-from geoagent_harness.skills.convert_vector.validation import (
-    ConvertVectorValidationError,
-    validate_vector_conversion,
-)
+from geoagent_harness.data.spatial.skills.convert_vector.policy import ConvertVectorPolicyError, plan_vector_conversion
+from geoagent_harness.data.spatial.skills.convert_vector.schemas import ConvertVectorPlan, ConvertVectorResult, VectorOutputFormat
+from geoagent_harness.data.spatial.skills.convert_vector.service import ConvertVectorError, convert_vector
+from geoagent_harness.data.spatial.skills.convert_vector.schemas import ConvertVectorValidationResult, VectorValidationCheck
+from geoagent_harness.data.spatial.skills.convert_vector.validation import ConvertVectorValidationError, validate_vector_conversion
 
 
 __all__ = [

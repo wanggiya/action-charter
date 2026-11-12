@@ -7,25 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.agent_manifest import (
-    AgentManifest,
-    AgentPermissions,
-    load_agent_manifest,
-)
-from geoagent_harness.critic.agent import (
-    CriticAgentError,
-    run_critic_agent,
-)
-from geoagent_harness.critic.schemas import (
-    ApprovalEvidence,
-    CriticEvidencePack,
-    EvidenceReference,
-    ValidationEvidence,
-)
-from geoagent_harness.model.schemas import (
-    ModelRequest,
-    ModelResult,
-)
+from geoagent_harness.agents.runtime.manifest import AgentManifest, AgentPermissions, load_agent_manifest
+from geoagent_harness.agents.roles.critic.agent import CriticAgentError, run_critic_agent
+from geoagent_harness.contracts.critic import ApprovalEvidence, CriticEvidencePack, EvidenceReference, ValidationEvidence
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ModelResult
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

@@ -4,12 +4,8 @@ import asyncio
 
 import pytest
 
-from geoagent_harness.mcp_client import (
-    MCPClientError,
-    MCPClientSettings,
-    MCPReadOnlyClient,
-    READ_ONLY_TOOL_ALLOWLIST,
-)
+from geoagent_harness.platform.internal_mcp.client import MCPClientError, MCPReadOnlyClient, READ_ONLY_TOOL_ALLOWLIST
+from geoagent_harness.platform.client_settings import MCPClientSettings
 
 
 def test_read_only_allowlist_has_no_write_tools() -> None:

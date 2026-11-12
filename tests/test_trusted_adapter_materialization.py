@@ -4,18 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skill_definitions import (
-    TrustedAdapterMaterializationError,
-    generate_declarative_skill_scaffold,
-    load_skill_definition,
-    materialize_trusted_adapter_candidate,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
-from geoagent_harness.skill_scaffolding import (
-    validate_skill_scaffold_contract,
-)
+from geoagent_harness.capabilities.skills.definitions.materialization import TrustedAdapterMaterializationError, materialize_trusted_adapter_candidate
+from geoagent_harness.capabilities.skills.definitions.scaffolding import generate_declarative_skill_scaffold
+from geoagent_harness.capabilities.skills.definitions.storage import load_skill_definition
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.capabilities.skills.scaffolding.contracts import validate_skill_scaffold_contract
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

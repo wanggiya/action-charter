@@ -5,15 +5,19 @@ then requests an outcome review. This is not certification of arbitrary full wor
 """
 import argparse,csv,hashlib,json,os,shutil,tempfile,time
 from pathlib import Path
-from geoagent_harness.model import SharedModelClient
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
-from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.write_policy import session
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.task_actions.conversation import TurnRequest
+from geoagent_harness.task_actions.conversation import conversation_turn
+from geoagent_harness.task_actions.workflow_runs import RunRequest
+from geoagent_harness.task_actions.workflow_runs import run_action
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.core.policy.write_policy import session
 
 
 def main():

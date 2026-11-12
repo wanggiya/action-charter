@@ -4,10 +4,10 @@ from pathlib import Path
 from shutil import copytree
 from types import SimpleNamespace
 import pytest
-from geoagent_harness.model.schemas import ModelResult
-from geoagent_harness.model import ModelClientError
-from geoagent_harness.tabular.strategy import discover_inputs,assess_table
-from geoagent_harness.tabular.analyst import run_session,exploration_directory
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.data.tabular.strategy import discover_inputs, assess_table
+from geoagent_harness.agents.runtime.analyst import run_session, exploration_directory
 
 @pytest.fixture
 def data(tmp_path,monkeypatch):
@@ -124,8 +124,8 @@ def test_loop_bounds_and_intent_scope(data):
 
 
 def test_conversation_records_loop_and_refresh_does_not_call_tools_again(data,monkeypatch):
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-    from geoagent_harness.interface_api.planner_submission import submission_action,SubmissionRequest
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+    from geoagent_harness.task_actions.planner_submission import submission_action, SubmissionRequest
     repo=Path(__file__).parents[1]
     for directory in ['context','agents']:copytree(repo/directory,data/directory)
     (data/'README.md').write_text((repo/'README.md').read_text())
@@ -137,7 +137,7 @@ def test_conversation_records_loop_and_refresh_does_not_call_tools_again(data,mo
     assert envelope['submission']['status']=='explored' and envelope['run'] is None
     assert not response['execution_performed'] and not response['proposal_changed']
     def no_discovery(*a,**kw):raise AssertionError('Refresh must use stored evidence')
-    monkeypatch.setattr('geoagent_harness.tabular.analyst.discover_inputs',no_discovery)
+    monkeypatch.setattr('geoagent_harness.agents.runtime.analyst.discover_inputs',no_discovery)
     restored=conversation_turn(TurnRequest(action='read',conversation_id='a'*32),project_root=data)
     assert restored['analytical_session']==response['analytical_session']
     assert len(client.requests)==3
@@ -172,9 +172,9 @@ def test_continuation_verifies_previous_source_binding(data):
 
 def test_analytical_followup_and_narrow_legacy_provenance_projection(data):
     import sqlite3
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-    from geoagent_harness.interface_api.planner_submission import submission_action,SubmissionRequest
-    from geoagent_harness.interface_api.planning_tasks import task_record
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+    from geoagent_harness.task_actions.planner_submission import submission_action, SubmissionRequest
+    from geoagent_harness.task_actions.planning_tasks import task_record
     repo=Path(__file__).parents[1]
     for directory in ['context','agents']:copytree(repo/directory,data/directory)
     (data/'README.md').write_text((repo/'README.md').read_text())

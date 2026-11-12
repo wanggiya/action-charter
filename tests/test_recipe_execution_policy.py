@@ -8,15 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipes import (
-    RecipeExecutionPolicyError,
-    WorkflowRecipe,
-    build_recipe_execution_envelope,
-    create_recipe_approval,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
+from geoagent_harness.core.policy.recipe_execution import RecipeExecutionPolicyError, build_recipe_execution_envelope
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.core.policy.recipe_approval import create_recipe_approval
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

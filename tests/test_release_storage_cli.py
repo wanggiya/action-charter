@@ -5,11 +5,9 @@ from datetime import datetime, timezone
 
 from typer.testing import CliRunner
 
-import geoagent_harness.releases as releases
-from geoagent_harness.cli import app
-from geoagent_harness.releases import (
-    AuthoritativeReleaseStorageResult,
-)
+import geoagent_harness.core.ledger.releases as releases
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.core.ledger.releases.schemas import AuthoritativeReleaseStorageResult
 from tests.test_release_assessment_cli import incomplete_candidate
 from tests.test_release_schemas import candidate_payload
 

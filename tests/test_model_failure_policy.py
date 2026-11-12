@@ -5,23 +5,10 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from geoagent_harness.failures import (
-    FailureCategory,
-    FailureStage,
-    RetryDisposition,
-    failure_from_exception,
-)
-from geoagent_harness.model.client import (
-    ModelClientError,
-    SharedModelClient,
-)
-from geoagent_harness.model.schemas import (
-    ChatMessage,
-    ModelRequest,
-)
-from geoagent_harness.model.settings import (
-    ModelSettings,
-)
+from geoagent_harness.contracts.failures import FailureCategory, FailureStage, RetryDisposition, failure_from_exception
+from geoagent_harness.platform.model_gateway.client import ModelClientError, SharedModelClient
+from geoagent_harness.platform.model_gateway.schemas import ChatMessage, ModelRequest
+from geoagent_harness.platform.model_settings import ModelSettings
 
 
 @pytest.fixture

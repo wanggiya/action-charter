@@ -5,10 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skill_definitions import (
-    SkillCandidateTestEvidenceError,
-    load_skill_candidate_test_record,
-)
+from geoagent_harness.capabilities.skills.definitions.test_evidence import SkillCandidateTestEvidenceError, load_skill_candidate_test_record
 
 
 DIGEST = "a" * 64

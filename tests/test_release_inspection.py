@@ -2,10 +2,7 @@
 
 from pathlib import Path
 
-from geoagent_harness.releases import (
-    inspect_authoritative_release,
-    persist_authoritative_release,
-)
+from geoagent_harness.core.ledger.releases.storage import inspect_authoritative_release, persist_authoritative_release
 from tests.test_release_storage import NOW, ready_candidate
 
 

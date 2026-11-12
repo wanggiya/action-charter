@@ -1,24 +1,10 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Internal Streamable HTTP MCP client."""
 
-from geoagent_harness.mcp_client.client import (
-    MCPClientError,
-    MCPReadOnlyClient,
-    READ_ONLY_TOOL_ALLOWLIST,
-)
-from geoagent_harness.mcp_client.schemas import (
-    MCPToolCallResult,
-)
-from geoagent_harness.mcp_client.settings import (
-    MCPClientSettings,
-    MCPClientSettingsError,
-    load_mcp_client_settings,
-)
-from geoagent_harness.mcp_client.executor import (
-    APPROVED_WORKFLOW_TOOL,
-    MCPExecutorClient,
-    APPROVED_EXECUTOR_TOOLS,
-    APPROVED_RECIPE_TOOL,
-)
+from geoagent_harness.platform.internal_mcp.client import MCPClientError, MCPReadOnlyClient, READ_ONLY_TOOL_ALLOWLIST
+from geoagent_harness.contracts.mcp import MCPToolCallResult
+from geoagent_harness.platform.client_settings import MCPClientSettings, MCPClientSettingsError, load_mcp_client_settings
+from geoagent_harness.platform.internal_mcp.executor import APPROVED_WORKFLOW_TOOL, MCPExecutorClient, APPROVED_EXECUTOR_TOOLS, APPROVED_RECIPE_TOOL
 
 __all__ = [
     "MCPClientError",

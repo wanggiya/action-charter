@@ -5,23 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.postgis.change_assessment import assess_postgis_change
-from geoagent_harness.postgis.comparison import PostGISComparisonResult
-from geoagent_harness.postgis.inspection import PostGISInspectionResult
-from geoagent_harness.postgis.promotion.approval import (
-    PostGISPromotionApprovalError,
-    PostGISPromotionApprovalStorageError,
-    create_postgis_promotion_approval,
-    load_postgis_promotion_approval,
-    load_postgis_promotion_plan_result,
-    persist_postgis_promotion_approval,
-)
-from geoagent_harness.postgis.promotion.plan import (
-    PostGISPromotionOperation,
-    PostGISPromotionPlan,
-    PostGISPromotionPlanResult,
-    postgis_promotion_plan_sha256,
-)
+from geoagent_harness.data.databases.postgis.change_assessment.service import assess_postgis_change
+from geoagent_harness.data.databases.postgis.comparison.schemas import PostGISComparisonResult
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISInspectionResult
+from geoagent_harness.data.databases.postgis.promotion.approval.service import PostGISPromotionApprovalError, create_postgis_promotion_approval, load_postgis_promotion_plan_result
+from geoagent_harness.data.databases.postgis.promotion.approval.storage import PostGISPromotionApprovalStorageError, load_postgis_promotion_approval, persist_postgis_promotion_approval
+from geoagent_harness.data.databases.postgis.promotion.plan.schemas import PostGISPromotionOperation, PostGISPromotionPlan, PostGISPromotionPlanResult
+from geoagent_harness.data.databases.postgis.promotion.plan.service import postgis_promotion_plan_sha256
 
 
 NOW = datetime(2026, 9, 4, 18, 0, tzinfo=timezone.utc)

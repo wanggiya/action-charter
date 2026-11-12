@@ -1,12 +1,8 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Generated candidate for raster inspection."""
 
-from geoagent_harness.skills.inspect_raster.schemas import (
-    InspectRasterArguments,
-    InspectRasterResult,
-)
-from geoagent_harness.skills.inspect_raster.service import (
-    inspect_raster,
-)
+from geoagent_harness.data.spatial.skills.inspect_raster.schemas import InspectRasterArguments, InspectRasterResult
+from geoagent_harness.data.spatial.skills.inspect_raster.service import inspect_raster
 
 
 __all__ = [
