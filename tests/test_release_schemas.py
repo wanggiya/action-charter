@@ -5,11 +5,7 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.releases import (
-    AuthoritativeReleaseCandidate,
-    AuthoritativeReleaseManifest,
-    ReleaseLifecycleState,
-)
+from geoagent_harness.core.ledger.releases.schemas import AuthoritativeReleaseCandidate, AuthoritativeReleaseManifest, ReleaseLifecycleState
 
 
 NOW = datetime(2026, 9, 3, 5, tzinfo=timezone.utc)

@@ -1,10 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    WorkflowPlan,
-)
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan
 
 def test_planner_result_requires_original_request() -> None:
     plan = WorkflowPlan.model_validate(

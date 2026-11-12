@@ -7,15 +7,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderGenerationResult,
-    BuilderProposal,
-    BuilderRequest,
-)
-from geoagent_harness.cli import app
-from geoagent_harness.skill_definitions import (
-    candidate_tree_sha256,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.capabilities.skills.definitions.test_evidence import candidate_tree_sha256
 
 runner = CliRunner()
 

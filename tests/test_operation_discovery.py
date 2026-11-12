@@ -5,15 +5,17 @@ from shutil import copytree,copyfile
 from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
-from geoagent_harness.cli import app
-from geoagent_harness.operations.discovery import ScanRequest,scan_libraries,library_inventory
-from geoagent_harness.operations.storage import save_scan,read_scan,candidate_page
-from geoagent_harness.operations.packages import parse_package,test_package as package_test,install_package,installed_packages,package_sha,PackageError
-from geoagent_harness.operations.registry import operation_catalog,argument_models
-from geoagent_harness.skill_registry import load_skill_registry
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import validate_edit,EditRequest,WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
-from geoagent_harness.planner.schemas import PlannerResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.capabilities.registry.discovery import ScanRequest, scan_libraries, library_inventory
+from geoagent_harness.capabilities.registry.storage import save_scan, read_scan, candidate_page
+from geoagent_harness.contracts.operation_packages import parse_package, package_sha, PackageError
+from geoagent_harness.capabilities.registry.packages import test_package as package_test, install_package
+from geoagent_harness.platform.storage.operation_packages import installed_packages
+from geoagent_harness.capabilities.registry.registry import operation_catalog, argument_models
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import validate_edit, EditRequest, WorkflowRequest, prepare_workflow, authorize_workflow, execute_workflow
+from geoagent_harness.contracts.planning import PlannerResult
 
 REPO=Path(__file__).parents[1]
 MANIFEST=json.loads((REPO/'examples/checkpoint25/order_identity.operation.json').read_text())
@@ -58,7 +60,7 @@ def _private(): pass
 
 
 def test_discovery_bounds_symlinks_search_and_snapshot_identity(tmp_path,monkeypatch):
-    import geoagent_harness.operations.discovery as discovery
+    import geoagent_harness.capabilities.registry.discovery as discovery
     (tmp_path/'ok.py').write_text('def first(): pass\ndef second(): pass\n')
     (tmp_path/'outside.py').symlink_to('/etc/passwd')
     distribution=Distribution(tmp_path,files=['ok.py','outside.py'])
@@ -173,8 +175,8 @@ def test_cli_and_interface_catalog_and_package_installer_share_services(project)
 
 
 def test_planner_can_propose_installed_adapter_with_bound_package_without_execution(project):
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.model.schemas import ModelResult
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
     digest=install(project)
     client=SimpleNamespace(complete=lambda request:ModelResult(model='fixture',content=json.dumps({'message':'Review installed adapter','plan':proposal(digest).plan.model_dump(mode='json')})))
     response=conversation_turn(TurnRequest(action='turn',conversation_id='a'*32,message='Use the installed order identity adapter'),project_root=project,model_client=client)
@@ -188,7 +190,7 @@ def test_operations_http_scan_package_test_install_and_origin_are_separate(proje
     from http.server import ThreadingHTTPServer
     from http.client import HTTPConnection
     from threading import Thread
-    import geoagent_harness.operations.discovery as discovery
+    import geoagent_harness.capabilities.registry.discovery as discovery
     source=project/'metadata-library';source.mkdir();(source/'safe.py').write_text('def transform(value: str) -> str: return value\n')
     fake=Distribution(source,files=['safe.py'])
     monkeypatch.setattr(discovery.metadata,'distributions',lambda:[fake])
@@ -226,7 +228,7 @@ def test_cli_installed_adapter_complete_review_authorization_and_execution(proje
 
 
 def test_saved_scan_inventory_survives_reopening_and_rejects_tampering(tmp_path):
-    from geoagent_harness.operations.storage import saved_scans
+    from geoagent_harness.capabilities.registry.storage import saved_scans
     assert saved_scans(tmp_path)['scans'] == []
     (tmp_path/'module.py').write_text('def identity(x): return x')
     report = scan_libraries(ScanRequest(), [Distribution(tmp_path, files=['module.py'])])

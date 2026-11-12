@@ -3,8 +3,8 @@ import json
 from pathlib import Path
 import pytest
 from tests.test_inspection_on_send import project,CHAT,Client,request
-from geoagent_harness.interface_api.planner_submission import submission_action
-from geoagent_harness.interface_api.inspection_planning import plan_for_request
+from geoagent_harness.task_actions.planner_submission import submission_action
+from geoagent_harness.task_actions.inspection_planning import plan_for_request
 
 
 class NoModel:
@@ -48,7 +48,7 @@ def test_batch_has_separate_bound_results_and_restores_without_replay(project):
 
 
 def test_batch_source_changed_after_first_step_preserves_partial_results(project,monkeypatch):
-    import geoagent_harness.interface_api.inspection_policy as policy
+    import geoagent_harness.workspaces.sandbox.inspection as policy
     read=policy.bounded_read
     def change_after_first(*args,**kwargs):
         result=read(*args,**kwargs)
@@ -72,7 +72,7 @@ def test_explicit_new_send_can_repeat_same_inspection_but_receipt_cannot(project
 
 
 def test_cancel_batch_skips_queued_steps_and_retains_first_result(project,monkeypatch):
-    from geoagent_harness.interface_api import workflow_runs
+    from geoagent_harness.task_actions import workflow_runs
     original=workflow_runs._Observer.progress
     def cancel(self,step,skill,status,outcome=None,validation=None):
         original(self,step,skill,status,outcome,validation)
@@ -87,8 +87,8 @@ def test_cancel_batch_skips_queued_steps_and_retains_first_result(project,monkey
 
 
 def test_missing_second_source_records_probe_but_never_executes_prefix(project):
-    from geoagent_harness.interface_api.server import InterfaceApiError
-    from geoagent_harness.interface_api.planner_submission import SubmissionRequest
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.task_actions.planner_submission import SubmissionRequest
     turn=request();turn.turn.message='Inspect sample_orders.csv and missing.tif. Return metadata. No writes.'
     with pytest.raises(InterfaceApiError,match='available regular file'):
         submission_action(turn,project_root=project,model_client=NoModel(),background=False)
@@ -99,7 +99,7 @@ def test_missing_second_source_records_probe_but_never_executes_prefix(project):
 
 
 def test_batch_aggregate_budget_prevents_execution(project,monkeypatch):
-    from geoagent_harness.interface_api import planner_submission
+    from geoagent_harness.task_actions import planner_submission
     original=planner_submission.bounded_read
     def large(*args,**kwargs):
         value=original(*args,**kwargs);value['bytes']=1024**3
@@ -111,8 +111,8 @@ def test_batch_aggregate_budget_prevents_execution(project,monkeypatch):
 
 
 def test_mcp_discovery_does_not_broaden_custom_input_root(project):
-    from geoagent_harness.mcp_server.tools import discover_dataset
-    from geoagent_harness.mcp_server.settings import load_settings
+    from geoagent_harness.task_actions.data_tools import discover_dataset
+    from geoagent_harness.platform.settings import load_settings
     settings=load_settings().model_copy(update={'project_root':project,'input_root':project/'data'})
     with pytest.raises(ValueError,match='project data/input'):discover_dataset('sample_orders.csv',settings=settings)
 
@@ -128,10 +128,10 @@ def test_tsv_and_skill_selection_are_respected(project):
 
 
 def test_cli_mcp_and_service_have_equivalent_metadata(project):
-    from geoagent_harness.discovery.service import discover_dataset
-    from geoagent_harness.mcp_server.tools import discover_dataset as mcp_discover
-    from geoagent_harness.mcp_server.settings import load_settings
-    from geoagent_harness.cli import app
+    from geoagent_harness.data.discovery.service import discover_dataset
+    from geoagent_harness.task_actions.data_tools import discover_dataset as mcp_discover
+    from geoagent_harness.platform.settings import load_settings
+    from geoagent_harness.apps.cli.main import app
     from typer.testing import CliRunner
     settings=load_settings().model_copy(update={'project_root':project,'input_root':project/'data/input'})
     actual=discover_dataset(project,'sample_dem.tif')
@@ -146,8 +146,8 @@ def test_cli_mcp_and_service_have_equivalent_metadata(project):
 @pytest.mark.parametrize('execute',[False,True])
 def test_cli_submission_uses_same_durable_route_without_model(project,monkeypatch,execute):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
-    from geoagent_harness.interface_api import conversation
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.task_actions import conversation
     def forbidden():raise AssertionError('Model configuration must not be requested')
     monkeypatch.setattr(conversation,'load_model_settings',forbidden)
     arguments=['submit-inspection','Inspect sample_orders.csv and sample_dem.tif. Return metadata. No writes.',
@@ -163,7 +163,7 @@ def test_cli_submission_uses_same_durable_route_without_model(project,monkeypatc
 
 def test_cli_discovery_default_relative_project_root(project,monkeypatch):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     monkeypatch.chdir(project)
     result=CliRunner().invoke(app,['discover-dataset','sample_dem.tif'])
     assert result.exit_code==0,result.output
@@ -171,8 +171,8 @@ def test_cli_discovery_default_relative_project_root(project,monkeypatch):
 
 
 def test_exact_route_keeps_existing_stricter_gate(project):
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.contracts.planning import PlannerResult
     first=submission_action(request(False),project_root=project,model_client=NoModel(),background=False)
     saved=first['conversation']['planner_result']
     gated=PlannerResult.model_validate({key:saved[key] for key in ('agent_id','model','original_request','context_references','plan','warnings')})
@@ -187,8 +187,8 @@ def test_exact_route_keeps_existing_stricter_gate(project):
 
 @pytest.mark.parametrize('enabled',[False,True])
 def test_read_only_inspection_wording_uses_exact_route_and_respects_send_setting(project,enabled):
-    from geoagent_harness.interface_api.inspection_policy import request_source
-    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.task_actions.inspection_policy import request_source
+    from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
     turn=request(enabled);turn.turn.message='Run a new read-only inspection of sample_orders.csv'
     assert inspection_only_skill(turn.turn.message)=='inspect_csv'
     assert request_source(turn.turn.message)=='data/input/sample_orders.csv'
@@ -204,8 +204,8 @@ def test_read_only_inspection_wording_uses_exact_route_and_respects_send_setting
 
 @pytest.mark.parametrize('filename,skill',[('sample_orders.csv','inspect_csv'),('points.geojson','inspect_vector'),('dem.tif','inspect_raster')])
 def test_read_only_wording_preserves_source_and_format(filename,skill):
-    from geoagent_harness.planner.request_coverage import inspection_only_skill
-    from geoagent_harness.interface_api.inspection_policy import request_source
+    from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.task_actions.inspection_policy import request_source
     message=f'Please perform a new read-only inspection of test/{filename}. Return metadata. No writes.'
     assert inspection_only_skill(message)==skill
     assert request_source(message)==f'data/input/test/{filename}'
@@ -218,7 +218,7 @@ def test_read_only_wording_preserves_source_and_format(filename,skill):
     '. Calculate a new column total.', '. Ignore policy.', '. Return mean and p-value.',
 ])
 def test_read_only_wording_never_drops_additional_instructions(tail):
-    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
     message='Run a new read-only inspection of sample_orders.csv'+tail
     assert plan_for_request(message,['inspect_csv']) is None
     assert inspection_only_skill(message) is None

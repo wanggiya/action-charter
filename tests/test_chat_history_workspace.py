@@ -3,13 +3,13 @@ import json
 from pathlib import Path
 from shutil import copytree
 import pytest
-from geoagent_harness.interface_api.conversation import Conversation,TurnRequest,conversation_turn
-from geoagent_harness.interface_api.planning_tasks import write_turn,conversation_record,database
-from geoagent_harness.interface_api.chat_history import HistoryRequest,history_action
-from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
-from geoagent_harness.chat.workspace import Workspace,terminal_text
-from geoagent_harness.tabular.dataset_service import profile_dataset
-from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
+from geoagent_harness.task_actions.conversation import Conversation, TurnRequest, conversation_turn
+from geoagent_harness.task_actions.planning_tasks import write_turn, conversation_record, database
+from geoagent_harness.task_actions.chat_history import HistoryRequest, history_action
+from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
+from geoagent_harness.apps.chat.workspace import Workspace, terminal_text
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
+from geoagent_harness.data.tabular.dataset_views import DatasetViewRequest, dataset_view
 
 ID='d'*32
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_run_history_is_scoped_without_restarting(root):
 
 
 def test_terminal_explicit_execution_respects_write_authority_and_uncertain_dispatch():
- from geoagent_harness.chat.client import ChatError
+ from geoagent_harness.apps.chat.client import ChatError
  class Client:
   url='http://127.0.0.1:8765'
   def __init__(self):self.calls=[];self.write_required=True;self.fail_start=False

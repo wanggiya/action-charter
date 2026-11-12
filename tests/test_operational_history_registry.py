@@ -1,11 +1,7 @@
 """Tests for operational-history schema registration."""
 
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    CompatibilityDisposition,
-    assess_schema_compatibility,
-    get_schema_policy,
-)
+from geoagent_harness.contracts.schema_registry.schemas import ArtifactType, CompatibilityDisposition
+from geoagent_harness.contracts.schema_registry.registry import assess_schema_compatibility, get_schema_policy
 
 
 def test_operational_artifacts_use_current_schema() -> None:

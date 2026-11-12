@@ -7,13 +7,11 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-import geoagent_harness.builder.service as builder_service
-from geoagent_harness.builder import BuilderProposal
-from geoagent_harness.cli import app
-from geoagent_harness.model import (
-    ModelClientError,
-    ModelResult,
-)
+import geoagent_harness.evolution.builder.service as builder_service
+from geoagent_harness.evolution.builder.schemas import BuilderProposal
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 runner = CliRunner()
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

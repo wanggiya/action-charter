@@ -4,10 +4,11 @@ import os
 from pathlib import Path
 import pytest
 from pydantic import ValidationError
-from geoagent_harness.intent.input import check_task_input
-from geoagent_harness.intent.service import reason_task_intent, IntentError
-from geoagent_harness.interface_api.server import InterfaceIntentRequest
-from geoagent_harness.model import ModelResult
+from geoagent_harness.data.discovery.input import check_task_input
+from geoagent_harness.agents.roles.intent.service import reason_task_intent
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.apps.http.server import InterfaceIntentRequest
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 class Model:
     def __init__(self, path='data/input/sample.geojson', callback=None):
@@ -77,7 +78,7 @@ def test_api_selection_is_optional_for_legacy_clients_and_authority_is_forbidden
 
 def test_cli_missing_selected_input_is_rejected_without_model_configuration(tmp_path):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     result = CliRunner().invoke(app, ['reason-task-intent', '--request', 'Inspect fields', '--selected-input', 'missing.geojson', '--project-root', str(tmp_path)])
     assert result.exit_code == 2
     assert 'selected input is unavailable' in result.output

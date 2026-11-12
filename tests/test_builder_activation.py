@@ -9,14 +9,11 @@ import pytest
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
-import geoagent_harness.builder.activation as activation_module
-from geoagent_harness.builder import (
-    BuilderActivationError,
-    BuilderActivationManifest,
-    activate_builder_bundle,
-)
+import geoagent_harness.evolution.builder.activation as activation_module
+from geoagent_harness.evolution.builder.activation import BuilderActivationError, activate_builder_bundle
+from geoagent_harness.evolution.builder.schemas import BuilderActivationManifest
 from tests.test_builder_activation_plan_storage import (
     prepared_persisted_activation_plan,
 )

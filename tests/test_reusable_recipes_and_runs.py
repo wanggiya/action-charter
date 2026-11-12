@@ -7,14 +7,14 @@ from threading import Event
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow, authorize_workflow
-from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-from geoagent_harness.recipe_catalog import composition as recipes
-from geoagent_harness.planner.recipe_authoring import prepare_recipe
-from geoagent_harness.model.schemas import ModelResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, authorize_workflow
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
+from geoagent_harness.task_actions import recipe_catalog as recipes
+from geoagent_harness.agents.roles.planner.recipe_authoring import prepare_recipe
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 REPO=Path(__file__).parents[1]
 
@@ -207,7 +207,7 @@ def test_missing_authority_records_failure_without_writes(project):
 
 
 def test_cancellation_finishes_current_validation_and_skips_next_write(project,monkeypatch):
-    from geoagent_harness.interface_api import workflow_runs
+    from geoagent_harness.task_actions import workflow_runs
     original=workflow_runs._Observer.progress
     def cancel_after_first(self,step,skill,status,outcome=None,validation=None):
         original(self,step,skill,status,outcome,validation)
@@ -228,7 +228,7 @@ def test_cancellation_finishes_current_validation_and_skips_next_write(project,m
     assert all('_retry_' in p for p in targets)
     assert not recovery['approval_performed'] and not recovery['execution_performed']
     monkeypatch.setattr(workflow_runs._Observer,'progress',original)
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.contracts.planning import PlannerResult
     recovered=PlannerResult(**{k:recovery[k] for k in ('agent_id','model','original_request','context_references','plan','warnings')})
     fresh=run_action(RunRequest(action='start',workflow=execution(project,recovered)),project_root=project,background=False)
     assert fresh['status']=='completed'
@@ -236,7 +236,7 @@ def test_cancellation_finishes_current_validation_and_skips_next_write(project,m
 
 
 def test_active_verifier_is_not_aborted_and_concurrent_run_is_blocked(project,monkeypatch):
-    from geoagent_harness.recipes import runner
+    from geoagent_harness.capabilities.recipes.execution import runner
     entered,release=Event(),Event()
     original=runner.validate_tabular_output
     def blocked(*args,**kwargs):
@@ -268,7 +268,7 @@ def test_active_verifier_is_not_aborted_and_concurrent_run_is_blocked(project,mo
 
 
 def test_restart_marks_orphan_interrupted_without_replaying(project):
-    from geoagent_harness.interface_api.workflow_runs import _write,_directory
+    from geoagent_harness.task_actions.workflow_runs import _write, _directory
     plan,_=recipes.compose([use(project,'recipe_inspect_csv',path='data/input/orders.csv')],project)
     record=run_action(RunRequest(action='start',workflow=execution(project,plan)),project_root=project,background=False)
     record.update(status='running',finished_at=None,result=None)
@@ -281,8 +281,8 @@ def test_restart_marks_orphan_interrupted_without_replaying(project):
 
 
 def test_read_only_resume_excludes_completed_steps(project):
-    from geoagent_harness.interface_api.workflow_runs import _write,_directory
-    from geoagent_harness.planner.schemas import PlanStep
+    from geoagent_harness.task_actions.workflow_runs import _write, _directory
+    from geoagent_harness.contracts.planning import PlanStep
     plan,_=recipes.compose([use(project,'recipe_inspect_csv',path='data/input/orders.csv')],project)
     plan.plan.steps.append(PlanStep(step_id='step_2',skill='inspect_csv',purpose='Inspect again for fixture',arguments={'path':'data/input/orders.csv'},depends_on=['step_1']))
     record=run_action(RunRequest(action='start',workflow=execution(project,plan)),project_root=project,background=False)
@@ -297,9 +297,9 @@ def test_read_only_resume_excludes_completed_steps(project):
 
 
 def test_cancelled_inspection_remains_readable_in_existing_history(project,monkeypatch):
-    from geoagent_harness.interface_api import workflow_runs
-    from geoagent_harness.interface_api.workflow import inspection_inventory
-    from geoagent_harness.planner.schemas import PlanStep
+    from geoagent_harness.task_actions import workflow_runs
+    from geoagent_harness.task_actions.workflow import inspection_inventory
+    from geoagent_harness.contracts.planning import PlanStep
     original=workflow_runs._Observer.progress
     def cancel_first(self,step,skill,status,outcome=None,validation=None):
         original(self,step,skill,status,outcome,validation)
@@ -339,8 +339,8 @@ def test_http_routes_and_origin_guard(project):
 
 
 def test_expired_authority_cannot_start_a_later_write(project,monkeypatch):
-    from geoagent_harness.recipes import runner
-    from geoagent_harness.recipes.execution import RecipeExecutionPolicyError
+    from geoagent_harness.capabilities.recipes.execution import runner
+    from geoagent_harness.core.policy.recipe_execution import RecipeExecutionPolicyError
     plan,_=recipes.compose([use(project)],project)
     request=execution(project,plan)
     original=runner.build_recipe_execution_envelope
@@ -388,7 +388,7 @@ def test_cli_catalog_and_run_inventory_share_services(project):
 
 
 def test_run_inventory_source_labels_are_bounded_safe_local_paths():
-    from geoagent_harness.interface_api.workflow_runs import _source_paths
+    from geoagent_harness.task_actions.workflow_runs import _source_paths
     record={'steps':[{'arguments':{'path':value,'password':'not-an-inventory-field'}} for value in [
         'data/input/orders.csv','data/input/orders.csv','data/output/intermediate.csv',
         '/etc/passwd','data/input/../secret','data/input//bad.csv','data/input/bad\\name.csv',

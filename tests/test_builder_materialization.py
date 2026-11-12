@@ -7,16 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderGenerationResult,
-    BuilderMaterializationError,
-    BuilderProposal,
-    BuilderRequest,
-    materialize_builder_proposal,
-)
-from geoagent_harness.skill_definitions import (
-    candidate_tree_sha256,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.evolution.builder.materialization import BuilderMaterializationError, materialize_builder_proposal
+from geoagent_harness.capabilities.skills.definitions.test_evidence import candidate_tree_sha256
 
 
 def generation() -> BuilderGenerationResult:

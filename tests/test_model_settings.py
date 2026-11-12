@@ -1,9 +1,6 @@
 import pytest
 
-from geoagent_harness.model.settings import (
-    ModelSettingsError,
-    load_model_settings,
-)
+from geoagent_harness.platform.model_settings import ModelSettingsError, load_model_settings
 
 
 def test_load_model_settings() -> None:

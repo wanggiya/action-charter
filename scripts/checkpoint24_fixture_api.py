@@ -5,8 +5,11 @@ import os
 from pathlib import Path
 from shutil import copytree
 from http.server import ThreadingHTTPServer
-from geoagent_harness.interface_api import conversation, server, method_memory, method_helper
-from geoagent_harness.model.schemas import ModelResult
+from geoagent_harness.task_actions import conversation
+from geoagent_harness.apps.http import server
+from geoagent_harness.task_actions import method_memory
+from geoagent_harness.task_actions import method_helper
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
@@ -47,7 +50,7 @@ if args.csv_discovery_fixture:
     from rasterio.windows import Window
     with rasterio.open(root/'data/input/large_terrain.tif','w',driver='GTiff',width=2048,height=2048,count=1,dtype='float32',crs='EPSG:4326',transform=from_origin(10,20,.001,.001)) as target:
         for row in range(0,2048,64):target.write(np.zeros((1,64,2048),dtype='float32'),window=Window(0,row,2048,64))
-    from geoagent_harness.interface_api.workflow_runs import _Observer
+    from geoagent_harness.task_actions.workflow_runs import _Observer
     original_progress=_Observer.progress
     def hold_discovery(self,step,skill,status,outcome=None,validation=None):
         original_progress(self,step,skill,status,outcome,validation)
@@ -113,7 +116,7 @@ class FixtureModel:
                 steps.append({'step_id':'step_2','skill':'generate_report','purpose':'Extra report','arguments':{}})
             return ModelResult(model='temporary report fixture',content=json.dumps({'message':'Prepared inspection report.','plan':{'summary':'Inspect and report','steps':steps}}))
         if any('diagnostics_timeout_fixture' in m.content for m in request.messages):
-            from geoagent_harness.model import ModelClientError
+            from geoagent_harness.platform.model_gateway.client import ModelClientError
             raise ModelClientError.timeout()
         control=json.loads(request.messages[0].content).get('task_coordinator')
         if args.agent_modes_fixture and control and control['phase']!='planning':
@@ -126,7 +129,7 @@ class FixtureModel:
             filename=next((n for n in ['diabetic_sample_5000.csv','diabetic_data.csv'] if n in question),'encounters.csv')
             source='data/input/test/'+filename
             if 'simulate a partial analytical' in request.messages[1].content.lower() and any(o['tool']=='assess_table' for o in observed):
-                from geoagent_harness.model import ModelClientError
+                from geoagent_harness.platform.model_gateway.client import ModelClientError
                 raise ModelClientError.timeout()
             if not any(o['tool']=='assess_table' for o in observed):action={'action':'assess_table','path':source,'operation':'profile'}
             elif not any(o['tool']=='profile_table' for o in observed):action={'action':'profile_table','path':source,'options':{'numeric_columns':['time_in_hospital'],'distinct_columns':['patient_nbr']}}
@@ -188,7 +191,8 @@ class FixtureModel:
                 'summary':'Recorded operations completed and their reported validation is available.' if source['deterministic_status']=='completed' else 'The run stopped; inspect completed steps and partial outputs before recovery.',
                 'findings':[],'limitations':['Fixture observations do not prove suitability for other inputs.'],'reusable_method':None}))
         if args.acquisition_fixture:
-            from geoagent_harness.operations.packages import installed_packages,package_sha
+            from geoagent_harness.capabilities.registry.packages import installed_packages
+            from geoagent_harness.capabilities.registry.packages import package_sha
             if role=='critic':return ModelResult(model='temporary capability Critic',content=json.dumps({'assessment':'suitable','reason':'Trim then uppercase matches the request.','limitations':['Synthetic fixtures only.']}))
             payload=json.loads(request.messages[1].content);latest=payload.get('latest_message','').lower()
             text=next((p for p in installed_packages(root).values() if p.text_transform is not None),None)
@@ -204,7 +208,7 @@ class FixtureModel:
             return ModelResult(model='temporary capability Planner',content=json.dumps({'message':'Inspection ready.','plan':{'summary':'Inspect CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'}}]}}))
         if args.recipe_runs_fixture and role in {'planner','critic'}:
             if role=='planner':
-                from geoagent_harness.recipe_catalog.composition import catalog
+                from geoagent_harness.task_actions.recipe_catalog import catalog
                 value=catalog(root)['recipe_clean_csv'].model_dump(mode='json')
                 value['id']='recipe_browser_clean'
                 value['name']='Browser verified cleaner'
@@ -213,15 +217,15 @@ class FixtureModel:
             return ModelResult(model='temporary recipe role fixture',content=json.dumps(value))
         if args.diabetes_decoding_fixture:
             from diabetes_test_flow import make_plan
-            from geoagent_harness.mcp_server.settings import load_settings
+            from geoagent_harness.platform.settings import load_settings
             proposed=make_plan(load_settings()).plan.model_dump(mode='json')
             proposed['steps']=proposed['steps'][:4]
             proposed['summary']='Prepare the real diabetes sample and verify supplied codebook labels'
             return ModelResult(model='temporary diabetes proposal fixture',content=json.dumps({'message':'Preparation proposed; original records and code values will be preserved. Nothing approved or executed.','plan':proposed}))
         if args.postgres_authorization_fixture:
             import hashlib
-            from geoagent_harness.postgres.service import connection_sha256
-            from geoagent_harness.mcp_server.settings import load_settings
+            from geoagent_harness.data.databases.postgres.service import connection_sha256
+            from geoagent_harness.platform.settings import load_settings
             if 'soft delete' in latest.lower():
                 skill='soft_delete_postgres_rows'
                 arguments={'target_schema':'agent_sandbox','target_table':'visits','expected_table_sha256':'a'*64,'key_column':'encounter_id','keys':['001'],'deleted_column':'is_deleted','expected_affected_rows':1}
@@ -311,7 +315,8 @@ class FixtureModel:
                 proposed['steps'].append({'step_id':f"step_{len(proposed['steps'])+1}",'skill':'aggregate_csv','purpose':'Sum amount by region','arguments':{'source_step':previous,'by':['region'],'aggregations':[{'column':'amount','function':'sum','output_column':'total'}]},'depends_on':[previous],'requires_approval':True,'validation_required':True})
                 return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Added aggregation.','plan':proposed}))
             if 'clean' in latest:
-                from geoagent_harness.recipe_catalog.composition import catalog,recipe_digest
+                from geoagent_harness.task_actions.recipe_catalog import catalog
+                from geoagent_harness.task_actions.recipe_catalog import recipe_digest
                 recipe=catalog(root)['recipe_clean_csv']
                 return ModelResult(model='temporary Planner fixture',content=json.dumps({'message':'Prepared CSV cleaning.','recipe_uses':[{'recipe_id':recipe.id,'recipe_sha256':recipe_digest(recipe),'alias':'clean','parameters':{'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}}}]}))
         if json.loads(request.messages[0].content).get('agent_id')=='method_memory':
@@ -320,7 +325,7 @@ class FixtureModel:
                 handle.write(json.dumps({'agent':'method_memory'})+'\n')
             if (root/'fail-helper-once').exists():
                 (root/'fail-helper-once').unlink()
-                from geoagent_harness.model import ModelClientError
+                from geoagent_harness.platform.model_gateway.client import ModelClientError
                 raise ModelClientError.timeout()
             skill=(source.get('workflow_structure') or [{'skill':'inspect_csv'}])[0]['skill']
             return ModelResult(model='temporary method fixture',content=json.dumps({
@@ -330,8 +335,8 @@ class FixtureModel:
                 'checks':['Compare expected metadata.'],'limitations':['Proposed method only; no execution evidence.']}))
         if args.planning_task_fixture:
             latest=json.loads(request.messages[1].content)['latest_message']
-            from geoagent_harness.planner.request_coverage import inspection_only_skill
-            from geoagent_harness.interface_api.inspection_policy import request_source
+            from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
+            from geoagent_harness.task_actions.inspection_policy import request_source
             inspector=inspection_only_skill(latest)
             if args.spatial_view_fixture and inspector in {'inspect_vector','inspect_raster'}:
                 proposed={'summary':'Spatial viewing fixture','steps':[{'step_id':'step_1','skill':inspector,'purpose':'Inspect spatial source','arguments':{'path':request_source(latest)},'requires_approval':False,'validation_required':False}]}
@@ -355,7 +360,8 @@ class FixtureModel:
                 proposed=None
             return ModelResult(model='temporary task fixture',content=json.dumps({'message':'Task-scoped proposal; nothing authorized or executed.','plan':proposed}))
         if 'ext_order_identity' in request.messages[1].content:
-            from geoagent_harness.operations.packages import installed_packages,package_sha
+            from geoagent_harness.capabilities.registry.packages import installed_packages
+            from geoagent_harness.capabilities.registry.packages import package_sha
             package=installed_packages(root)['ext_order_identity']
             adapted={'summary':'Installed adapter browser fixture','steps':[
                 {'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect CSV','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False},
@@ -363,23 +369,23 @@ class FixtureModel:
                 {'step_id':'step_3','skill':'export_csv','purpose':'Export validated adapter result','arguments':{'source_step':'step_2','target_path':'data/output/interface_identity_final.csv'},'requires_approval':True,'validation_required':True}]}
             return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review the installed adapter; nothing authorized or executed.','plan':adapted}))
         return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review regional totals; no operation has run.', 'plan':plan}))
-from geoagent_harness.capabilities import service as capability_service
+from geoagent_harness.agents.roles.planner import acquisition as capability_service
 capability_service.SharedModelClient=lambda settings:FixtureModel()
 conversation.SharedModelClient=lambda settings:FixtureModel()
 if args.agent_modes_fixture:
-    import geoagent_harness.orchestrator.task_agents as task_agents
+    import geoagent_harness.agents.runtime.orchestrator.task_agents as task_agents
     task_agents.SharedModelClient=lambda settings:FixtureModel()
 if args.analytical_fixture:
     os.environ['ACTIONCHARTER_ANALYTICAL_RUNTIME']='docker' if os.environ.get('ACTIONCHARTER_BROWSER_DOCKER')=='1' else 'local'
-    from geoagent_harness.tabular import analyst
+    from geoagent_harness.agents.runtime import analyst
     analyst.SharedModelClient=lambda settings:FixtureModel()
 method_memory.SharedModelClient=lambda settings:FixtureModel()
 method_helper.SharedModelClient=lambda settings:FixtureModel()
-from geoagent_harness.interface_api import run_assessment
+from geoagent_harness.task_actions import run_assessment
 run_assessment.SharedModelClient=lambda settings:FixtureModel()
 if args.recipe_runs_fixture or args.write_policy_fixture:
-    from geoagent_harness.planner import recipe_authoring
-    from geoagent_harness.recipes import runner
+    from geoagent_harness.agents.roles.planner import recipe_authoring
+    from geoagent_harness.capabilities.recipes.execution import runner
     recipe_authoring.SharedModelClient=lambda settings:FixtureModel()
     original_verify=runner.validate_tabular_output
     def bounded_fixture_verify(*arguments,**keywords):
@@ -393,7 +399,7 @@ if args.recipe_runs_fixture or args.write_policy_fixture:
         return original_verify(*arguments,**keywords)
     runner.validate_tabular_output=bounded_fixture_verify
 os.chdir(root)
-from geoagent_harness.write_policy import session
+from geoagent_harness.core.policy.write_policy import session
 policy_session=session(root,enabled=os.environ.get('ENABLE_WRITE_TOOLS')=='true')
 policy_session.__enter__()
 http=ThreadingHTTPServer(('127.0.0.1',0),server._handler(root))

@@ -1,8 +1,8 @@
 import csv,math
 from pathlib import Path
 import pytest
-from geoagent_harness.tabular.dataset_profile import inspect_dataset
-from geoagent_harness.tabular.dataset_service import profile_dataset
+from geoagent_harness.data.tabular.dataset_profile import inspect_dataset
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
 
 @pytest.fixture
 def data(tmp_path):
@@ -37,7 +37,7 @@ def test_overrides_missing_policy_local_runtime_and_no_fallback(data,monkeypatch
  assert (data/'workflow-state/analytical-artifacts'/ (r['artifact']['sha256']+'.json')).exists()
  monkeypatch.setenv('ACTIONCHARTER_ANALYTICAL_RUNTIME','docker')
  def unavailable(*a,**kw):raise ValueError('Docker unavailable')
- monkeypatch.setattr('geoagent_harness.sandbox.manager.docker',unavailable)
+ monkeypatch.setattr('geoagent_harness.workspaces.sandbox.manager.docker',unavailable)
  with pytest.raises(ValueError,match='Docker unavailable'):profile_dataset(data,'a.csv')
 
 def test_policies_invalid_rows_and_nonfinite_values(data):
@@ -79,7 +79,7 @@ def test_source_paths_identity_and_artifact_boundary(data,monkeypatch):
 
 def test_mcp_uses_same_typed_profile_service(data,monkeypatch):
  from types import SimpleNamespace
- from geoagent_harness.mcp_server.tools import profile_dataset as mcp_profile
+ from geoagent_harness.task_actions.data_tools import profile_dataset as mcp_profile
  monkeypatch.setenv('ACTIONCHARTER_ANALYTICAL_RUNTIME','local')
  r=mcp_profile('a.csv',settings=SimpleNamespace(project_root=data,input_root=data/'data/input'))
  assert len(r['profiles'])==8 and r['source_rows']==3

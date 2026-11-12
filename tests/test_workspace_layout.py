@@ -5,9 +5,9 @@ import sqlite3
 import pytest
 
 from tests.test_task_agents import project
-from geoagent_harness.workspace import WorkspaceLayout, WorkspaceError, CONFIG_NAME
-from geoagent_harness.interface_api.planning_tasks import database
-from geoagent_harness.interface_api.server import InterfaceApiError
+from geoagent_harness.platform.workspace import WorkspaceLayout, WorkspaceError, CONFIG_NAME
+from geoagent_harness.task_actions.planning_tasks import database
+from geoagent_harness.contracts.errors import InterfaceApiError
 
 
 def configure(root, state):
@@ -81,8 +81,8 @@ def test_existing_state_requires_offline_copy_and_remains_byte_identical(tmp_pat
 def test_existing_task_chat_model_and_diagnostics_flows_use_same_workspace(project, monkeypatch):
     # Run the real conversation coordinator with a fixture model, never Ollama.
     from tests.test_planner_conversation import Client
-    from geoagent_harness.interface_api.conversation import conversation_turn, TurnRequest
-    from geoagent_harness.model.telemetry import read
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.platform.model_gateway.telemetry import read
     configure(project, 'state')
     monkeypatch.setenv('MODEL_NAME', 'fixture')
     reply = {'message':'Proposed', 'plan': {'summary':'Inspect', 'steps':[
@@ -97,8 +97,8 @@ def test_existing_task_chat_model_and_diagnostics_flows_use_same_workspace(proje
 
 
 def _inspect(root):
-    from geoagent_harness.interface_api.planner_submission import submission_action,SubmissionRequest
-    from geoagent_harness.interface_api.conversation import TurnRequest
+    from geoagent_harness.task_actions.planner_submission import submission_action, SubmissionRequest
+    from geoagent_harness.task_actions.conversation import TurnRequest
     class NoModel:
         def complete(self,*args):raise AssertionError('Metadata proposal must not invoke a model')
     return submission_action(SubmissionRequest(action='submit',submission_id='d'*32,conversation_id='c'*32,
@@ -107,9 +107,9 @@ def _inspect(root):
 
 
 def test_relocated_chat_plan_run_history_and_no_replay(project,tmp_path_factory):
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.interface_api.chat_history import history_action,HistoryRequest
-    from geoagent_harness.interface_api.planner_submission import submission_action,SubmissionRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.task_actions.chat_history import history_action, HistoryRequest
+    from geoagent_harness.task_actions.planner_submission import submission_action, SubmissionRequest
     state=tmp_path_factory.mktemp('external-state');configure(project,state)
     result=_inspect(project);record=result['run'];assert record['status']=='completed'
     digest=record['plan_sha256']
@@ -119,7 +119,7 @@ def test_relocated_chat_plan_run_history_and_no_replay(project,tmp_path_factory)
     assert not (project/'plans').exists() and not (project/'planner-conversations').exists()
     restored=conversation_turn(TurnRequest(action='read',conversation_id='c'*32),project_root=project)
     assert restored['planner_result']['plan_sha256']==digest
-    from geoagent_harness.interface_api.workflow_runs import run_action,RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
     latest=run_action(RunRequest(action='latest',conversation_id='c'*32,confirmed_plan_sha256=digest),project_root=project)
     assert latest['record']['run_id']==record['run_id'] and not latest['execution_performed']
     inventory=conversation_turn(TurnRequest(action='list',conversation_id='c'*32),project_root=project)
@@ -134,8 +134,8 @@ def test_relocated_chat_plan_run_history_and_no_replay(project,tmp_path_factory)
 
 def test_offline_copies_preserve_saved_plan_run_bytes_and_history(project,tmp_path_factory):
     import shutil
-    from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
-    from geoagent_harness.interface_api.workflow_runs import run_action,RunRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
     original=_inspect(project);run=original['run']
     stores=['planner-conversations','plans','workflow-state','workflow-recipes','inspection-runs']
     before={str(p.relative_to(project)):p.read_bytes() for store in stores for p in (project/store).rglob('*.json')}
@@ -151,7 +151,7 @@ def test_offline_copies_preserve_saved_plan_run_bytes_and_history(project,tmp_pa
 
 
 def test_run_recovery_uses_source_project_for_partial_outputs(project,tmp_path_factory):
-    from geoagent_harness.interface_api.workflow_runs import _directory,_write,_read
+    from geoagent_harness.task_actions.workflow_runs import _directory, _write, _read
     target=tmp_path_factory.mktemp('isolated-state');configure(project,target)
     (project/'data/output').mkdir(exist_ok=True);(project/'data/output/partial.csv').write_text('x\n1\n')
     directory=_directory(project)
@@ -166,7 +166,7 @@ def test_run_recovery_uses_source_project_for_partial_outputs(project,tmp_path_f
 
 @pytest.mark.parametrize('store,parts',[('planner-conversations',()),('plans',()),('workflow-state',('interface-runs',))])
 def test_missing_relocated_store_does_not_hide_legacy_records(tmp_path,store,parts):
-    from geoagent_harness.workspace import runtime_store_path
+    from geoagent_harness.platform.workspace import runtime_store_path
     legacy=tmp_path.joinpath(store,*parts);legacy.mkdir(parents=True)
     (legacy/'record.json').write_text('{}')
     configure(tmp_path,'new-state')
@@ -175,7 +175,7 @@ def test_missing_relocated_store_does_not_hide_legacy_records(tmp_path,store,par
 
 
 def test_legacy_json_reader_uses_explicit_project_and_rejects_other_root(project,tmp_path_factory):
-    from geoagent_harness.interface_api import conversation as c
+    from geoagent_harness.task_actions import conversation as c
     state=tmp_path_factory.mktemp('legacy-state');configure(project,state)
     identity='b'*32;path=c._path(project,identity)
     c._write(path,c.Conversation(conversation_id=identity,revision=1,messages=[c.Entry(role='user',content='Legacy saved chat')]))
@@ -186,15 +186,15 @@ def test_legacy_json_reader_uses_explicit_project_and_rejects_other_root(project
 
 
 def test_relocated_plan_still_requires_exact_write_authority(project,tmp_path_factory,monkeypatch):
-    from geoagent_harness.planner.schemas import PlannerResult,WorkflowPlan,PlanStep
+    from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
     from tests.test_reusable_recipes_and_runs import execution
-    from geoagent_harness.interface_api.workflow_runs import run_action,RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
     monkeypatch.setenv('ENABLE_WRITE_TOOLS','true')
     configure(project,tmp_path_factory.mktemp('unapproved-write-state'))
     result=PlannerResult(model='fixture',original_request='Export a fresh CSV',context_references=[],plan=WorkflowPlan(summary='Fresh export',steps=[
         PlanStep(step_id='step_1',skill='export_csv',purpose='Export the selected source',arguments={'path':'data/input/sample_orders.csv','target_path':'data/output/unapproved.csv'},requires_approval=True,validation_required=True)]))
     workflow=execution(project,result,authorize=False)
-    from geoagent_harness.interface_api.workflow import execute_workflow
+    from geoagent_harness.task_actions.workflow import execute_workflow
     with pytest.raises(InterfaceApiError,match='approval|authoriz'):
         execute_workflow(workflow,project_root=project)
     denied=run_action(RunRequest(action='start',workflow=workflow),project_root=project,background=False)

@@ -2,10 +2,7 @@
 
 import pytest
 
-from geoagent_harness.mcp_client.settings import (
-    MCPClientSettingsError,
-    load_mcp_client_settings,
-)
+from geoagent_harness.platform.client_settings import MCPClientSettingsError, load_mcp_client_settings
 
 
 def test_default_internal_mcp_url() -> None:

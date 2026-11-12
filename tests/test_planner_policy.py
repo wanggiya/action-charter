@@ -1,10 +1,7 @@
 import pytest
 
-from geoagent_harness.planner.policy import (
-    PlannerPolicyError,
-    validate_plan_policy,
-)
-from geoagent_harness.planner.schemas import WorkflowPlan
+from geoagent_harness.core.policy.plan import PlannerPolicyError, validate_plan_policy
+from geoagent_harness.contracts.planning import WorkflowPlan
 
 ALLOWED = {
     "inspect_vector",
@@ -247,7 +244,7 @@ def test_planner_rejects_unsafe_file_arguments(path):
 
 
 def test_planner_resolves_bare_input_before_validation():
-    from geoagent_harness.planner.policy import normalize_plan_input_filenames
+    from geoagent_harness.core.policy.plan import normalize_plan_input_filenames
     plan = make_plan([step(1, "inspect_vector", arguments={"path": "sample_points.geojson"})])
     normalize_plan_input_filenames(plan)
     validate_plan_policy(plan, available_skills=ALLOWED)
@@ -255,7 +252,7 @@ def test_planner_resolves_bare_input_before_validation():
 
 
 def test_planner_keeps_normalized_relative_input():
-    from geoagent_harness.planner.policy import normalize_plan_input_filenames
+    from geoagent_harness.core.policy.plan import normalize_plan_input_filenames
     plan = make_plan([step(1, "inspect_vector", arguments={"path": "data/input/nested/sample.geojson"})])
     normalize_plan_input_filenames(plan)
     validate_plan_policy(plan, available_skills=ALLOWED)

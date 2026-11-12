@@ -65,7 +65,7 @@ async def run() -> None:
         command=sys.executable,
         args=[
             "-m",
-            "geoagent_harness.mcp_server",
+            "geoagent_harness.apps.mcp",
         ],
         env=safe_environment(),
     )

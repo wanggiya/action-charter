@@ -2,8 +2,8 @@
 import tempfile
 import unittest
 from pathlib import Path
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.context_retrieval import retrieve_task_context, ContextRetrievalError
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context, ContextRetrievalError
 
 class ContextRetrievalTests(unittest.TestCase):
     def test_selected_scope_determinism_sources_and_untrusted_decision(self):

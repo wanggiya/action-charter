@@ -8,28 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.approvals import (
-    ApprovalRecord,
-    plan_sha256,
-)
-from geoagent_harness.executor import (
-    build_execution_envelope,
-)
-from geoagent_harness.mcp_server.approved_workflow import (
-    ApprovedWorkflowError,
-    run_approved_vector_postgis_workflow,
-    validate_approved_workflow_request,
-)
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.planner.schemas import (
-    PlannerResult,
-    WorkflowPlan,
-)
-from geoagent_harness.skills.load_vector_to_postgis.service import (
-    LoadVectorError,
-)
+from geoagent_harness.core.policy.approvals.schemas import ApprovalRecord
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.agents.roles.executor.policy import build_execution_envelope
+from geoagent_harness.task_actions.approved_workflow import ApprovedWorkflowError, run_approved_vector_postgis_workflow, validate_approved_workflow_request
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan
+from geoagent_harness.data.spatial.skills.load_vector_to_postgis.service import LoadVectorError
 
 NOW = datetime(
     2026,

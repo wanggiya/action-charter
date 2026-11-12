@@ -7,14 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderCandidateInspectionError,
-    BuilderGenerationResult,
-    BuilderProposal,
-    BuilderRequest,
-    inspect_builder_candidate,
-    materialize_builder_proposal,
-)
+from geoagent_harness.evolution.builder.inspection import BuilderCandidateInspectionError, inspect_builder_candidate
+from geoagent_harness.evolution.builder.schemas import BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.evolution.builder.materialization import materialize_builder_proposal
 
 
 def generation() -> BuilderGenerationResult:

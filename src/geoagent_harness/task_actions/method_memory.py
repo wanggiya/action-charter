@@ -4,7 +4,7 @@ The coordinator stores only explicitly saved, operator-reviewed suggestions.
 Model extraction/redaction is not a privacy or factual-correctness guarantee.
 """
 from __future__ import annotations
-from .planning_tasks import as_transaction
+from geoagent_harness.task_actions.planning_tasks import as_transaction
 
 from datetime import datetime, timezone
 import hashlib
@@ -17,12 +17,13 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.context_pack.redaction import redact_text, redact_value
-from geoagent_harness.model import SharedModelClient, load_model_settings
-from geoagent_harness.model.schemas import ChatMessage, ModelRequest
-from geoagent_harness.operations.registry import argument_models
-from .planning_tasks import transaction as database
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.contracts.context_redaction import redact_text, redact_value
+from geoagent_harness.platform.model_gateway import SharedModelClient
+from geoagent_harness.platform.model_gateway import load_model_settings
+from geoagent_harness.platform.model_gateway.schemas import ChatMessage, ModelRequest
+from geoagent_harness.capabilities.registry.registry import argument_models
+from geoagent_harness.platform.storage.metadata import transaction as database
 
 LOCK = Lock()
 ACTIVE: set[tuple[str, str]] = set()
@@ -32,7 +33,7 @@ MAX_METHODS_PER_CHAT = 8
 
 
 def fail(message):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     raise InterfaceApiError(message)
 
 
@@ -131,7 +132,7 @@ def _document(document, root):
 
 
 def _sources(request, root):
-    from .conversation import _path, _read
+    from geoagent_harness.task_actions.conversation import _path, _read
     if request.conversation_id is None:
         fail('Choose the current conversation')
     state = _read(_path(root, request.conversation_id), request.conversation_id, project_root=root)
@@ -196,14 +197,14 @@ def method_action(request: MethodRequest, *, project_root: Path, model_client=No
     root = project_root.resolve(strict=True)
     flags = {'approval_performed': False, 'execution_performed': False}
     if request.action in {'helper_state', 'enable_helper', 'inspect_helper'}:
-        from . import method_helper
+        from geoagent_harness.task_actions import method_helper
         if request.action == 'helper_state':
             return {**flags, **method_helper.setting(root)}
         if request.action == 'enable_helper':
             return {**flags, **method_helper.configure(root, enabled=request.enabled, expected_revision=request.expected_setting_revision)}
         if request.conversation_id is None:
             fail('Choose the current conversation')
-        from .conversation import _path, _read
+        from geoagent_harness.task_actions.conversation import _path, _read
         state = _read(_path(root, request.conversation_id), request.conversation_id, project_root=root)
         return {**flags, 'helper': method_helper.observe(root, state.conversation_id, state.planner_result, argument_models(root))}
     if request.action == 'state':
@@ -300,3 +301,8 @@ def method_action(request: MethodRequest, *, project_root: Path, model_client=No
             fail('Method storage exceeds its record bound')
         connection.records('method_memory_records').put(identity, json.dumps(value), owner=request.conversation_id)
     return {**flags, 'method': value}
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+method_action = _task_entrypoint(method_action)

@@ -3,14 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.context_pack import (
-    ContextPackError,
-    build_context_pack,
-)
+from geoagent_harness.agents.memory.context_pack.builder import ContextPackError, build_context_pack
 
-from geoagent_harness.context_pack.schemas import (
-    SkillContext,
-)
+from geoagent_harness.agents.memory.context_pack.schemas import SkillContext
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

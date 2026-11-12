@@ -9,68 +9,41 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-import geoagent_harness.interface_api.server as interface_api_module
+import geoagent_harness.apps.http.server as interface_api_module
+import geoagent_harness.task_actions.critic_review as critic_review_actions
 import geoagent_harness.task_actions.execution as execution_actions
 import geoagent_harness.task_actions.artifacts as artifact_actions
 
-from geoagent_harness.interface_api import (
-    InterfaceApiError,
-    record_interface_recipe_approval,
-    verify_interface_recipe_approval,
-    compile_interface_recipe_proposal,
-    interface_recipe_template_catalog,
-    interface_data_resource_inventory,
-    interface_execution_inventory,
-    interface_critic_evidence_inventory,
-    run_interface_critic,
-    record_interface_critic_result,
-    preview_interface_snakemake_export,
-    export_interface_snakemake_recipe,
-    save_interface_recipe_trace,
-    interface_planner_skill_catalog,
-    interface_saved_plan_inventory,
-    plan_interface_task,
-    save_interface_reviewed_plan,
-    prepare_interface_plan_approval,
-    record_interface_plan_approval,
-    verify_interface_plan_approval,
-    compile_interface_plan_recipe,
-    save_interface_plan_recipe,
-    interface_saved_recipe_inventory,
-    prepare_interface_recipe_approval,
-    prepare_interface_execution_preview,
-    execute_interface_recipe,
-    save_interface_reviewed_recipe,
-    serve_interface_api,
-)
-from geoagent_harness.interface_api.server import _handler
-from geoagent_harness.interface_api.server import (
-    InterfaceTaskEventRequest, record_interface_task_event, inspect_interface_task_context,
-)
-from geoagent_harness.interface_api.server import InterfaceApprovalDecision
-from geoagent_harness.interface_api.server import InterfaceApprovalVerificationRequest
-from geoagent_harness.interface_api.server import InterfaceExecutionPreviewRequest
-from geoagent_harness.interface_api.server import InterfaceRecipeExecutionRequest
-from geoagent_harness.interface_api.server import InterfacePlanRequest
-from geoagent_harness.interface_api.server import InterfaceReviewedPlanSaveRequest
-from geoagent_harness.interface_api.server import InterfacePlanApprovalPreparationRequest
-from geoagent_harness.interface_api.server import InterfacePlanApprovalDecisionRequest
-from geoagent_harness.interface_api.server import InterfacePlanApprovalVerificationRequest
-from geoagent_harness.interface_api.server import InterfacePlanRecipeCompilationRequest
-from geoagent_harness.interface_api.server import InterfacePlanRecipeSaveRequest
-from geoagent_harness.interface_api.server import InterfaceRecipeTraceSaveRequest
-from geoagent_harness.interface_api.server import InterfaceCriticRunRequest
-from geoagent_harness.interface_api.server import InterfaceCriticRecordRequest
-from geoagent_harness.interface_api.server import InterfaceSnakemakeExportPreviewRequest
-from geoagent_harness.interface_api.server import InterfaceSnakemakeExportRequest
-from geoagent_harness.approvals import load_planner_result, plan_sha256
-from geoagent_harness.planner import PlannerResult
-from geoagent_harness.mcp_server.settings import load_settings
-from geoagent_harness.recipe_proposals import RecipeCompilationError
-from geoagent_harness.reporting import render_report
-from geoagent_harness.trace import TraceTimestamps, WorkflowTrace
-from geoagent_harness.critic.recipe_trace import recipe_trace_sha256
-from geoagent_harness.critic import CriticResult, critic_result_sha256
+from geoagent_harness.interface_api import InterfaceApiError, record_interface_recipe_approval, verify_interface_recipe_approval, compile_interface_recipe_proposal, interface_recipe_template_catalog, interface_data_resource_inventory, interface_execution_inventory, interface_critic_evidence_inventory, run_interface_critic, record_interface_critic_result, preview_interface_snakemake_export, export_interface_snakemake_recipe, save_interface_recipe_trace, interface_planner_skill_catalog, interface_saved_plan_inventory, plan_interface_task, save_interface_reviewed_plan, prepare_interface_plan_approval, record_interface_plan_approval, verify_interface_plan_approval, compile_interface_plan_recipe, save_interface_plan_recipe, interface_saved_recipe_inventory, prepare_interface_recipe_approval, prepare_interface_execution_preview, execute_interface_recipe, save_interface_reviewed_recipe, serve_interface_api
+from geoagent_harness.apps.http.server import _handler
+from geoagent_harness.apps.http.server import InterfaceTaskEventRequest
+from geoagent_harness.apps.http.server import record_interface_task_event
+from geoagent_harness.apps.http.server import inspect_interface_task_context
+from geoagent_harness.contracts.actions import InterfaceApprovalDecision
+from geoagent_harness.contracts.actions import InterfaceApprovalVerificationRequest
+from geoagent_harness.contracts.actions import InterfaceExecutionPreviewRequest
+from geoagent_harness.contracts.actions import InterfaceRecipeExecutionRequest
+from geoagent_harness.apps.http.server import InterfacePlanRequest
+from geoagent_harness.contracts.actions import InterfaceReviewedPlanSaveRequest
+from geoagent_harness.contracts.actions import InterfacePlanApprovalPreparationRequest
+from geoagent_harness.contracts.actions import InterfacePlanApprovalDecisionRequest
+from geoagent_harness.contracts.actions import InterfacePlanApprovalVerificationRequest
+from geoagent_harness.contracts.actions import InterfacePlanRecipeCompilationRequest
+from geoagent_harness.contracts.actions import InterfacePlanRecipeSaveRequest
+from geoagent_harness.apps.http.server import InterfaceRecipeTraceSaveRequest
+from geoagent_harness.apps.http.server import InterfaceCriticRunRequest
+from geoagent_harness.apps.http.server import InterfaceCriticRecordRequest
+from geoagent_harness.apps.http.server import InterfaceSnakemakeExportPreviewRequest
+from geoagent_harness.apps.http.server import InterfaceSnakemakeExportRequest
+from geoagent_harness.core.policy.approvals.service import load_planner_result, plan_sha256
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.platform.settings import load_settings
+from geoagent_harness.capabilities.recipes.proposals.compiler import RecipeCompilationError
+from geoagent_harness.data.tabular.reporting import render_report
+from geoagent_harness.core.ledger.trace import TraceTimestamps, WorkflowTrace
+from geoagent_harness.agents.roles.critic.recipe_trace import recipe_trace_sha256
+from geoagent_harness.contracts.critic import CriticResult
+from geoagent_harness.platform.storage.critic_records import critic_result_sha256
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -233,7 +206,7 @@ def test_reviewed_recipe_trace_is_stored_immutably_without_critic_or_release(
         "files_modified": False,
     }
     monkeypatch.setattr(
-        interface_api_module,
+        critic_review_actions,
         "_interface_recipe_trace_candidates",
         lambda _root: [preview],
     )
@@ -295,8 +268,8 @@ def test_interface_critic_assesses_exact_evidence_without_recording(
         captured.update(kwargs)
         return SimpleNamespace(model_dump=lambda **_kwargs: result_payload)
 
-    monkeypatch.setattr(interface_api_module, "critique_task", fake_critique_task)
-    monkeypatch.setattr(interface_api_module, "critic_result_sha256", lambda _result: "a" * 64)
+    monkeypatch.setattr(critic_review_actions, "critique_task", fake_critique_task)
+    monkeypatch.setattr(critic_review_actions, "critic_result_sha256", lambda _result: "a" * 64)
     result = run_interface_critic(
         InterfaceCriticRunRequest(
             action="run_critic",
@@ -333,7 +306,7 @@ def test_interface_critic_rejects_stale_digest_before_model_call(
         nonlocal called
         called = True
 
-    monkeypatch.setattr(interface_api_module, "critique_task", fake_critique_task)
+    monkeypatch.setattr(critic_review_actions, "critique_task", fake_critique_task)
     with pytest.raises(InterfaceApiError, match="trace digest no longer matches"):
         run_interface_critic(
             InterfaceCriticRunRequest(
@@ -413,7 +386,7 @@ def test_interface_records_exact_critic_result_without_release(tmp_path: Path, m
         (tmp_path / recorded["record_file"]).read_bytes()
     ).hexdigest()
     manifest = SimpleNamespace(components=[SimpleNamespace(path=path, sha256=digest) for path, digest in component_digests.items()])
-    monkeypatch.setattr(interface_api_module, "load_authoritative_release", lambda *_args, **_kwargs: manifest)
+    monkeypatch.setattr(critic_review_actions, "load_authoritative_release", lambda *_args, **_kwargs: manifest)
     assert interface_critic_evidence_inventory(tmp_path)["items"][0]["release_link"] == "verified"
     manifest.components[-1].sha256 = "0" * 64
     assert interface_critic_evidence_inventory(tmp_path)["items"][0]["release_link"] == "unavailable"
@@ -436,7 +409,7 @@ def test_interface_records_exact_critic_result_without_release(tmp_path: Path, m
 def test_interface_planner_uses_existing_service_without_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import geoagent_harness.planner as planner_module
+    import geoagent_harness.agents.roles.planner as planner_module
 
     request_text = "Inspect sample_points and propose a validated workflow."
     plan_payload = {
@@ -560,7 +533,7 @@ def reviewed_write_plan_request() -> InterfaceReviewedPlanSaveRequest:
 
 
 def test_recipe_inventory_links_only_exact_saved_planner_definition(tmp_path: Path) -> None:
-    from geoagent_harness.recipes.storage import save_recipe
+    from geoagent_harness.core.ledger.recipe_storage import save_recipe
 
     request = reviewed_write_plan_request()
     plan_root = tmp_path / "plans"
@@ -1600,10 +1573,7 @@ def test_execution_inventory_checks_exact_recipe_authority_at_run_start(tmp_path
     linked = interface_execution_inventory(PROJECT_ROOT, progress_root=progress, recipe_root=recipes, approval_root=approvals)
     assert linked["attempts"][0]["authority_link"] == "verified"
     assert linked["attempts"][0]["approval_id"] == recorded["approval_id"]
-    from geoagent_harness.recipes import (
-        write_recipe_evidence, write_recipe_run_result,
-        recipe_evidence_sha256, recipe_run_result_sha256,
-    )
+    from geoagent_harness.core.ledger.recipe_evidence import write_recipe_evidence, write_recipe_run_result, recipe_evidence_sha256, recipe_run_result_sha256
     from tests.test_recipe_evidence_schemas import evidence as sample_evidence
 
     sample = sample_evidence()
@@ -1836,7 +1806,7 @@ def test_http_planner_policy_rejection_returns_safe_actionable_finding(
 
 
 def test_interrupted_progress_reopens_task_note_without_retry(tmp_path: Path) -> None:
-    from geoagent_harness.task_history import append_task_event, load_task_events
+    from geoagent_harness.core.ledger.task_history.service import append_task_event, load_task_events
     append_task_event(root=tmp_path / "task-history", task_id="task-recovery", event_type="request", summary="Recovery fixture")
     digest = "f" * 64
     progress_root = tmp_path / "progress"
@@ -1854,8 +1824,8 @@ def test_interrupted_progress_reopens_task_note_without_retry(tmp_path: Path) ->
 
 
 def test_context_review_http_storage_and_stale_rejection(tmp_path: Path) -> None:
-    from geoagent_harness.task_history import append_task_event
-    from geoagent_harness.context_retrieval import retrieve_task_context
+    from geoagent_harness.core.ledger.task_history.service import append_task_event
+    from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
     history = tmp_path / "task-history"
     append_task_event(root=history, task_id="task-context-http", event_type="request", summary="Inspect vector")
     context = retrieve_task_context(root=history, query="vector", task_ids=["task-context-http"])
@@ -1885,10 +1855,11 @@ def test_context_review_http_storage_and_stale_rejection(tmp_path: Path) -> None
 
 
 def test_intent_http_reasoning_clarification_and_stale_context(tmp_path: Path, monkeypatch) -> None:
-    from geoagent_harness.task_history import append_task_event
-    from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
-    from geoagent_harness.model import ModelResult
-    import geoagent_harness.intent.service as intent_module
+    from geoagent_harness.core.ledger.task_history.service import append_task_event
+    from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+    from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
+    import geoagent_harness.agents.roles.intent.service as intent_module
     history=tmp_path/'task-history'
     append_task_event(root=history,task_id='task-intent-http',event_type='decision',summary='Plan denied')
     context=retrieve_task_context(root=history,query='denied',task_ids=['task-intent-http'])
@@ -1925,10 +1896,11 @@ def test_intent_http_reasoning_clarification_and_stale_context(tmp_path: Path, m
 
 
 def test_intent_review_and_handoff_http_keep_exact_scope_and_authority(tmp_path: Path, monkeypatch) -> None:
-    from geoagent_harness.task_history import append_task_event
-    from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
-    from geoagent_harness.planner.schemas import PlannerResult, WorkflowPlan, PlanStep
-    import geoagent_harness.intent.handoff as handoff_module
+    from geoagent_harness.core.ledger.task_history.service import append_task_event
+    from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+    from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context
+    from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
+    import geoagent_harness.agents.roles.intent.handoff as handoff_module
     history=tmp_path/'task-history'
     append_task_event(root=history,task_id='task-review-http',event_type='decision',summary='Plan denied')
     context=retrieve_task_context(root=history,query='denied',task_ids=['task-review-http'])

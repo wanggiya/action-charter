@@ -1,8 +1,8 @@
 """Terminal graph operations export a verified completed recipe, never replay it."""
 from __future__ import annotations
-from geoagent_harness.storage import repositories
-from .storage_paths import runtime_store_path, ensure_state_root, runtime_reference_path
-from geoagent_harness.workspace import WorkspaceLayout
+from geoagent_harness.platform.storage import repositories
+from geoagent_harness.platform.paths import runtime_store_path, ensure_state_root, runtime_reference_path
+from geoagent_harness.platform.workspace import WorkspaceLayout
 
 import hashlib
 import json
@@ -14,80 +14,31 @@ from threading import Lock
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from geoagent_harness.approvals import load_planner_result, plan_sha256
-from geoagent_harness.planner.policy import validate_plan_policy
-from geoagent_harness.planner.topology import plan_dependencies, plan_topological_order, ancestors
-from geoagent_harness.recipes.approval import load_recipe_approval
-from geoagent_harness.recipes.evidence_storage import load_recipe_run_result
-from geoagent_harness.snakemake_export import generate_snakemake_recipe_export, validate_snakemake_export_contract
-from geoagent_harness.snakemake_export.schemas import SnakemakeRecipeExportPlan
+from geoagent_harness.core.policy.approvals import load_planner_result, plan_sha256
+from geoagent_harness.core.policy.plan import validate_plan_policy
+from geoagent_harness.contracts.graph import plan_dependencies, plan_topological_order, ancestors
+from geoagent_harness.core.policy.recipe_approval import load_recipe_approval
+from geoagent_harness.core.ledger.recipe_evidence import load_recipe_run_result
+from geoagent_harness.data.export.snakemake.generator import generate_snakemake_recipe_export
+from geoagent_harness.data.export.snakemake.contracts import validate_snakemake_export_contract
+from geoagent_harness.data.export.snakemake.schemas import SnakemakeRecipeExportPlan
 
-EXPORT = 'export_snakemake_workflow'
-VERIFY = 'verify_snakemake_export'
-TERMINAL = {EXPORT, VERIFY}
+from geoagent_harness.contracts.snakemake import EXPORT, VERIFY, TERMINAL, ExportArguments, VerifyArguments
+from geoagent_harness.capabilities.workflow import has_export, validate_export_plan
 _LOCK = Lock()
 _ACTIVE = set()
 
 
-class ExportArguments(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    source_plan_filename: str = Field(pattern=r'^planner-plan\.[a-f0-9]{64}\.json$')
-    source_plan_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
 
 
-class VerifyArguments(BaseModel):
-    model_config = ConfigDict(extra='forbid')
 
 
-def has_export(result):
-    return any(step.skill in TERMINAL for step in result.plan.steps)
 
 
-def validate_export_plan(result, root):
-    from .common import InterfaceApiError
-    from .workflow import _check
-    from geoagent_harness.skill_registry import load_skill_registry
-    registry = load_skill_registry(root)
-    validate_plan_policy(result.plan, available_skills={s.id for s in registry.implemented_skills()})
-    export = [s for s in result.plan.steps if s.skill == EXPORT]
-    verify = [s for s in result.plan.steps if s.skill == VERIFY]
-    if len(export) != 1 or len(verify) != 1:
-        raise InterfaceApiError('Use exactly one Snakemake export and one verification block')
-    args = ExportArguments.model_validate(export[0].arguments)
-    VerifyArguments.model_validate(verify[0].arguments)
-    if not export[0].requires_approval or not export[0].validation_required or not verify[0].validation_required:
-        raise InterfaceApiError('Snakemake export requires approval and package verification')
-    path = runtime_store_path(root, 'plans') / args.source_plan_filename
-    if path.is_symlink() or (runtime_store_path(root, 'plans')).is_symlink():
-        raise InterfaceApiError('Source plan artifact is unsafe')
-    source = repositories(root).documents('plans', directory=runtime_store_path(root, 'plans')).load((path).name)
-    if plan_sha256(source.plan) != args.source_plan_sha256:
-        raise InterfaceApiError('Snakemake source plan digest no longer matches')
-    if has_export(source):
-        raise InterfaceApiError('Snakemake export must reference an original operation plan, not another export plan')
-    source_registry, recipe, policy = _check(source, root)
-    prefix = [s for s in result.plan.steps if s.skill not in TERMINAL]
-    deps = plan_dependencies(result.plan)
-    source_deps = plan_dependencies(source.plan)
-    def scope(steps):
-        values = []
-        for step in steps:
-            value = step.model_dump(mode='json')
-            value.pop('depends_on', None)
-            values.append(value)
-        return values
-    if prefix and (scope(prefix) != scope(source.plan.steps) or any(deps.get(step.step_id) != source_deps[step.step_id] for step in prefix)):
-        raise InterfaceApiError('Retained operations must exactly match the saved Snakemake source plan')
-    ordered = plan_topological_order(result.plan)
-    if not set(s.step_id for s in prefix).issubset(ancestors(export[0].step_id, deps)):
-        raise InterfaceApiError('Snakemake export must follow every retained source operation')
-    if export[0].step_id not in ancestors(verify[0].step_id, deps) or ordered[-2:] != [export[0].step_id, verify[0].step_id]:
-        raise InterfaceApiError('Snakemake verification must follow export at the end of the workflow')
-    return source_registry, recipe, policy
 
 
 def _load_result(request, root):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     path = runtime_store_path(root, 'plans') / request.plan_filename
     if path.is_symlink() or (runtime_store_path(root, 'plans')).is_symlink():
         raise InterfaceApiError('Stored export plan is unsafe')
@@ -98,8 +49,8 @@ def _load_result(request, root):
 
 
 def prepare_export_workflow(request, *, project_root):
-    from . import execution as actions
-    from geoagent_harness.recipes.digest import recipe_sha256
+    from geoagent_harness.task_actions import execution as actions
+    from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
     root = actions._trusted_root(project_root)
     result = _load_result(request, root)
     registry, recipe, policy = validate_export_plan(result, root)
@@ -141,7 +92,7 @@ def prepare_export_workflow(request, *, project_root):
 
 
 def authorize_export_workflow(request, *, project_root):
-    from . import execution as actions
+    from geoagent_harness.task_actions import execution as actions
     review = prepare_export_workflow(request, project_root=project_root)
     if review['review_sha256'] != request.confirmed_review_sha256:
         raise actions.InterfaceApiError('Snakemake authorization review digest no longer matches')
@@ -160,7 +111,7 @@ def authorize_export_workflow(request, *, project_root):
 
 
 def _safe_package(root, relative):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     path = runtime_reference_path(root, relative)
     if path.exists():
         if not path.is_dir():
@@ -173,8 +124,8 @@ def _safe_package(root, relative):
 
 
 def execute_export_workflow(request, *, project_root):
-    from . import execution as actions
-    from .workflow import _inspection_root
+    from geoagent_harness.task_actions import execution as actions
+    from geoagent_harness.task_actions.workflow import _inspection_root
     root = actions._trusted_root(project_root)
     review = prepare_export_workflow(request, project_root=root)
     if not request.confirm_execution or request.confirmed_review_sha256 != review['review_sha256']:
@@ -185,8 +136,8 @@ def execute_export_workflow(request, *, project_root):
     verified = actions.verify_interface_plan_approval(actions.InterfacePlanApprovalVerificationRequest(action='verify_plan_approval', plan_filename=request.plan_filename, confirmed_plan_sha256=request.confirmed_plan_sha256, confirmed_approval_request_sha256=prepared['approval_request_sha256'], approval_filename=request.plan_approval_filename), project_root=root)
     if not verified['approved']:
         raise actions.InterfaceApiError('Snakemake authorization expired or blocked; record a new explicit decision')
-    from geoagent_harness.approvals import load_approval
-    from geoagent_harness.write_policy import check
+    from geoagent_harness.core.policy.approvals import load_approval
+    from geoagent_harness.core.policy.write_policy import check
     check(root, load_approval(path=runtime_store_path(root, 'approvals') / request.plan_approval_filename, approval_root=runtime_store_path(root, 'approvals')))
     binding = runtime_store_path(root, 'approvals') / ('snakemake-review.' + request.plan_approval_filename)
     if binding.is_symlink() or not binding.is_file() or binding.stat().st_size > 4000:
@@ -226,8 +177,8 @@ def execute_export_workflow(request, *, project_root):
             if step['skill'] == EXPORT:
                 existing = path.exists()
                 if not existing:
-                    from geoagent_harness.approvals import load_approval
-                    from geoagent_harness.write_policy import authority, operation
+                    from geoagent_harness.core.policy.approvals import load_approval
+                    from geoagent_harness.core.policy.write_policy import authority, operation
                     approval = load_approval(path=runtime_store_path(root, 'approvals') / request.plan_approval_filename, approval_root=runtime_store_path(root, 'approvals'))
                     with authority(root, approval), operation(actions.effective_write_settings(actions.load_settings(), root)):
                         generate_snakemake_recipe_export(plan, export_root=runtime_store_path(root, 'snakemake-exports'), project_root=root)
@@ -254,10 +205,17 @@ def execute_export_workflow(request, *, project_root):
 
 
 def validate_snakemake_workflow(path, plan):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     contract = validate_snakemake_export_contract(path)
     config = json.loads((path / 'geoagent-replay.json').read_text())
     expected = {key: getattr(plan, key) for key in ['recipe_id', 'recipe_sha256', 'approval_id', 'recipe_filename', 'approval_filename', 'approved_step_ids', 'topological_step_ids', 'replay_entrypoint']}
     if not contract.passed or any(config.get(key) != value for key, value in expected.items()):
         raise InterfaceApiError('Snakemake package failed verification or does not match the reviewed source scope')
     return contract
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+prepare_export_workflow = _task_entrypoint(prepare_export_workflow, audit=False)
+authorize_export_workflow = _task_entrypoint(authorize_export_workflow)
+execute_export_workflow = _task_entrypoint(execute_export_workflow)

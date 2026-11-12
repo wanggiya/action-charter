@@ -9,25 +9,15 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel, Field
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.recipes import (
-    ArtifactRole,
-    RecipeRunError,
-    RecipeStepExecutionResult,
-    WorkflowRecipe,
-    build_recipe_run_evidence,
-    create_recipe_approval,
-    persist_recipe_run,
-    run_approved_recipe,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.contracts.recipe_evidence import ArtifactRole
+from geoagent_harness.capabilities.recipes.execution.runner import RecipeRunError, run_approved_recipe
+from geoagent_harness.contracts.recipes import RecipeStepExecutionResult, WorkflowRecipe
+from geoagent_harness.capabilities.recipes.execution.evidence import build_recipe_run_evidence
+from geoagent_harness.core.policy.recipe_approval import create_recipe_approval
+from geoagent_harness.capabilities.recipes.execution import persist_recipe_run
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -151,9 +141,7 @@ def test_success_requires_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import (
-        runner,
-    )
+    from geoagent_harness.capabilities.recipes.execution import runner
 
     recipe, registry, approval, settings = (
         approved_inputs(tmp_path)
@@ -208,9 +196,7 @@ def test_failed_validation_withholds_success(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import (
-        runner,
-    )
+    from geoagent_harness.capabilities.recipes.execution import runner
 
     recipe, registry, approval, settings = (
         approved_inputs(tmp_path)
@@ -291,7 +277,7 @@ def test_fixed_postgis_recipe_runs_all_four_steps(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import runner
+    from geoagent_harness.capabilities.recipes.execution import runner
 
     recipe = WorkflowRecipe.model_validate({
         "recipe_id": "postgis-runner-test",

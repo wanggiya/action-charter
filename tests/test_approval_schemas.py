@@ -3,9 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.approvals.schemas import (
-    ApprovalRecord,
-)
+from geoagent_harness.core.policy.approvals.schemas import ApprovalRecord
 
 NOW = datetime(
     2026,

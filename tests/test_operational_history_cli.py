@@ -6,14 +6,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.operational_history import (
-    AgentRole,
-    OperationalEventType,
-    OperationalIdentity,
-    append_operational_events,
-    create_operational_event,
-)
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.core.ledger.operational_history.schemas import AgentRole, OperationalEventType, OperationalIdentity
+from geoagent_harness.core.ledger.operational_history.service import append_operational_events, create_operational_event
 
 
 runner = CliRunner()

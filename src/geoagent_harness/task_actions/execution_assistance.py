@@ -6,7 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from geoagent_harness.model import ChatMessage, ModelRequest, SharedModelClient, load_model_settings
+from geoagent_harness.platform.model_gateway import ChatMessage, ModelRequest
+from geoagent_harness.platform.model_gateway import SharedModelClient
+from geoagent_harness.platform.model_gateway import load_model_settings
 
 
 class AssistantReply(BaseModel):
@@ -38,7 +40,7 @@ def assist(root, record, request, *, model_client=None):
         'codebook': {'path': codebook.get('path'), 'sections': list(codebook.get('sections', {})),
                      'coverage': codebook.get('coverage', {})}}
     settings = load_model_settings()
-    from geoagent_harness.planner.decoder_schema import decoder_schema
+    from geoagent_harness.agents.roles.planner.decoder_schema import decoder_schema
     client = model_client or SharedModelClient(replace(settings, timeout_seconds=min(settings.timeout_seconds,20), max_tokens=min(settings.max_tokens,1024)))
     started = time.monotonic()
     calls, tools = 0, 0
@@ -83,8 +85,8 @@ def assist(root, record, request, *, model_client=None):
                 'workflow_changed':False, 'approval_performed':False, 'data_written':False}
         if tools or calls >= 2 or step['skill_id'] != 'inspect_csv' or step['status'] not in {'completed','validated_success','reused_completed'}:
             raise ValueError('Execution assistant requested an unavailable or repeated profile; nothing retried')
-        from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
-        from geoagent_harness.tabular.analytical_service import recorded_analysis
+        from geoagent_harness.contracts.analysis_options import AnalysisOptions
+        from geoagent_harness.data.tabular.analytical_service import recorded_analysis
         if any((name.lower().endswith(('_id','_nbr')) or name.lower() in {'id','patient','patient_number'})
                and name not in codebook.get('sections',{}) for name in parsed.group_by):
             raise ValueError('Execution assistance does not expose identifier-level groups')

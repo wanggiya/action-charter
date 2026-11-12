@@ -3,10 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from geoagent_harness.interface_api.execution_assistance import assist
-from geoagent_harness.interface_api.workflow_runs import RunRequest
-from geoagent_harness.model import ModelResult
-from geoagent_harness.tabular.analytical_service import profile_table
+from geoagent_harness.task_actions.execution_assistance import assist
+from geoagent_harness.task_actions.workflow_runs import RunRequest
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.data.tabular.analytical_service import profile_table
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def test_failed_step_can_receive_advice_but_not_be_reexecuted(recorded):
 
 
 def test_run_api_persists_assistance_and_reopen_uses_receipt(recorded,monkeypatch):
-    from geoagent_harness.interface_api import workflow_runs,execution_assistance
+    from geoagent_harness.task_actions import workflow_runs, execution_assistance
     root,record,request=recorded
     directory=workflow_runs._directory(root);workflow_runs._write(directory,record)
     calls=[]

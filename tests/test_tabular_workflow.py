@@ -5,13 +5,14 @@ from shutil import copyfile
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import EditRequest, WorkflowRequest, validate_edit, prepare_workflow, authorize_workflow, execute_workflow
-from geoagent_harness.tabular.service import TabularError, inspect_csv, run_operation, read_frame, validate_output
-from geoagent_harness.mcp_server.settings import load_settings
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import EditRequest, WorkflowRequest, validate_edit, prepare_workflow, authorize_workflow, execute_workflow
+from geoagent_harness.contracts.paths import TabularError
+from geoagent_harness.data.tabular.service import inspect_csv, run_operation, read_frame, validate_output
+from geoagent_harness.platform.settings import load_settings
 
 REPO=Path(__file__).parents[1]
 @pytest.fixture

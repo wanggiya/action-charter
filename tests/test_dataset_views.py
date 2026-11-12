@@ -2,9 +2,10 @@
 import json
 from pathlib import Path
 import pytest
-from geoagent_harness.interface_api.conversation import Conversation,_write,_path
-from geoagent_harness.tabular.dataset_service import profile_dataset
-from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view,percentages
+from geoagent_harness.task_actions.conversation import Conversation, _write, _path
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
+from geoagent_harness.data.tabular.dataset_views import DatasetViewRequest, dataset_view
+from geoagent_harness.data.tabular.grouping import percentages
 
 ID='a'*32
 @pytest.fixture
@@ -18,7 +19,7 @@ def saved(tmp_path,monkeypatch):
  with (p/'visits.csv').open('w',newline='') as f:w=csv.writer(f);w.writerow(names);w.writerows(rows)
  profile=profile_dataset(tmp_path,'visits.csv',owner=ID)
  state=Conversation(conversation_id=ID,revision=1,analytical_session={'observations':[{'tool':'profile_table','result':{'dataset_profile':profile}}]})
- from geoagent_harness.interface_api.planning_tasks import write_turn
+ from geoagent_harness.task_actions.planning_tasks import write_turn
  write_turn(tmp_path,state.model_dump(mode='json'),expected_revision=0,expected_task_revision=0)
  return tmp_path,profile
 
@@ -49,7 +50,7 @@ def test_selected_table_fields_include_column_outside_original_preview(saved,mon
  assert result['table']['preview'][0]=={'age':'young','readmitted':'<30'}
  assert result['table']['offset']==1 and result['source_rows']==6
  def no_scan(*a,**kw):raise AssertionError('Restoration must not rescan')
- monkeypatch.setattr('geoagent_harness.tabular.dataset_views.profile_dataset',no_scan)
+ monkeypatch.setattr('geoagent_harness.data.tabular.dataset_views.profile_dataset',no_scan)
  assert dataset_view(req(p,action='read',view='table'),project_root=root)['result']==result
  assert dataset_view(req(p,action='read',view='groups'),project_root=root)['result'] is None
 
@@ -70,24 +71,24 @@ def test_changed_source_scope_revision_and_identifiers_preserve_saved_view(saved
 
 def test_concurrent_chat_change_rejects_publication(saved,monkeypatch):
  root,p=saved
- from geoagent_harness.tabular.dataset_views import profile_dataset as real
+ from geoagent_harness.data.tabular.dataset_service import profile_dataset as real
  def concurrent(*args,**kw):
   result=real(*args,**kw)
-  from geoagent_harness.interface_api.planning_tasks import database
+  from geoagent_harness.task_actions.planning_tasks import database
   with database(root,write=True) as db:
    row=json.loads(db.execute('SELECT value FROM conversations WHERE id=?',(ID,)).fetchone()[0]);row['revision']=2
    db.execute('UPDATE conversations SET value=? WHERE id=?',(json.dumps(row),ID))
   return result
- monkeypatch.setattr('geoagent_harness.tabular.dataset_views.profile_dataset',concurrent)
+ monkeypatch.setattr('geoagent_harness.data.tabular.dataset_views.profile_dataset',concurrent)
  with pytest.raises(ValueError,match='during calculation'):dataset_view(req(p,action='calculate',columns=['age']),project_root=root)
  assert percentages([],['age'],0)==[]
 
 
 def test_cli_restores_same_groups_and_mcp_contract(saved):
  root,p=saved
- from geoagent_harness.mcp_server.tools import explore_dataset_view
- from geoagent_harness.interface_api.planning_tasks import conversation_record
- from geoagent_harness.chat.views import interactive_view,render_view
+ from geoagent_harness.task_actions.data_tools import explore_dataset_view
+ from geoagent_harness.task_actions.planning_tasks import conversation_record
+ from geoagent_harness.apps.chat.views import interactive_view, render_view
  from types import SimpleNamespace
  result=explore_dataset_view(req(p,action='calculate',columns=['age','readmitted']).model_dump(),settings=SimpleNamespace(project_root=root,input_root=root/'data/input'))['result']
  state=conversation_record(root,ID)
@@ -103,7 +104,7 @@ def test_cli_restores_same_groups_and_mcp_contract(saved):
 
 
 def test_cross_tab_counts_percentages_missing_swap_and_complete_margins():
- from geoagent_harness.chat.views import cross_tab
+ from geoagent_harness.apps.chat.views import cross_tab
  groups=[{'age':'young','gender':'F','row_count':2},{'age':'young','gender':'M','row_count':1},
          {'age':'older','gender':'F','row_count':1},{'age':'older','gender':'M','row_count':0},
          {'age':'','gender':None,'row_count':2}]
@@ -124,7 +125,7 @@ def test_cross_tab_counts_percentages_missing_swap_and_complete_margins():
 
 
 def test_cross_tab_display_budget_does_not_change_population_or_totals():
- from geoagent_harness.chat.views import cross_tab
+ from geoagent_harness.apps.chat.views import cross_tab
  groups=[{'a':f'row{i}','b':f'col{j}','row_count':1} for i in range(30) for j in range(15)]
  c=cross_tab(groups,['a','b'],450)
  assert c['row_categories']==30 and c['column_categories']==15

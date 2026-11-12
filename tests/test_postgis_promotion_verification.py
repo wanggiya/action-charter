@@ -1,12 +1,9 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from geoagent_harness.postgis.inspection import PostGISInspectionResult
-from geoagent_harness.postgis.promotion.verification import (
-    PostGISPromotionVerificationResult,
-    load_postgis_promotion_verification,
-    persist_postgis_promotion_verification,
-)
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISInspectionResult
+from geoagent_harness.data.databases.postgis.promotion.verification.schemas import PostGISPromotionVerificationResult
+from geoagent_harness.data.databases.postgis.promotion.verification.storage import load_postgis_promotion_verification, persist_postgis_promotion_verification
 
 
 def missing(table: str) -> PostGISInspectionResult:

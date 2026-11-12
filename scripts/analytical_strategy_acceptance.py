@@ -1,8 +1,9 @@
 """Real-input discovery/strategy checks using temporary copies; no model or live writes."""
 import argparse,csv,json,shutil,tempfile
 from pathlib import Path
-from geoagent_harness.tabular.strategy import discover_inputs,assess_table
-from geoagent_harness.tabular.analytical_service import profile_table
+from geoagent_harness.data.tabular.strategy import discover_inputs
+from geoagent_harness.data.tabular.strategy import assess_table
+from geoagent_harness.data.tabular.analytical_service import profile_table
 
 def main():
  parser=argparse.ArgumentParser(description=__doc__)

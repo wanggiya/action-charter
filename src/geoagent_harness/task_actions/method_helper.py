@@ -5,7 +5,7 @@ The stable Planner boundary is context_for_turn/after_turn. Cache entries are
 machine-generated, unvalidated advice, never operator-reviewed methods.
 """
 from __future__ import annotations
-from .planning_tasks import as_transaction
+from geoagent_harness.task_actions.planning_tasks import as_transaction
 
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -18,14 +18,15 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.context_pack.redaction import redact_text
-from geoagent_harness.model import SharedModelClient, load_model_settings
-from geoagent_harness.model.schemas import ChatMessage, ModelRequest
-from geoagent_harness.operations.registry import argument_models
-from .method_memory import MethodDocument, _document
-from .planning_tasks import transaction as database
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.core.policy.approvals import plan_sha256
+from geoagent_harness.contracts.context_redaction import redact_text
+from geoagent_harness.platform.model_gateway import SharedModelClient
+from geoagent_harness.platform.model_gateway import load_model_settings
+from geoagent_harness.platform.model_gateway.schemas import ChatMessage, ModelRequest
+from geoagent_harness.capabilities.registry.registry import argument_models
+from geoagent_harness.task_actions.method_memory import MethodDocument, _document
+from geoagent_harness.platform.storage.metadata import transaction as database
 
 CONTRACT_VERSION = '1.0'
 HELPER_VERSION = 'workflow-method-1'
@@ -73,7 +74,7 @@ def setting(root):
 
 
 def configure(root, *, enabled, expected_revision):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     if enabled is None:
         raise InterfaceApiError('Choose automatic method notes ON or OFF explicitly')
     with database(root, write=True) as connection:
@@ -140,7 +141,7 @@ def _put(connection, conversation_id, key, value):
 
 
 def _current(root, conversation_id):
-    from .conversation import _path, _read
+    from geoagent_harness.task_actions.conversation import _path, _read
     return _read(_path(root, conversation_id), conversation_id, project_root=root)
 
 
@@ -254,7 +255,7 @@ def after_turn(root, conversation_id, expected_revision, *, changed, model_clien
                               source_plan_sha256=source['plan_sha256'], source_conversation_revision=state.revision,
                               document=MethodDocument.model_validate(document)).model_dump(mode='json')
         except Exception as error:
-            from geoagent_harness.model import ModelClientError
+            from geoagent_harness.platform.model_gateway import ModelClientError
             finding = error.code if isinstance(error, ModelClientError) else 'helper_invalid_or_unavailable'
         # Validate scope and enable epoch under a metadata write transaction; no model inside it.
         with database(root, write=True) as connection:

@@ -7,11 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderCandidateTestEvidenceError,
-    BuilderCandidateTestRecord,
-    load_builder_candidate_test_record,
-)
+from geoagent_harness.evolution.builder.test_evidence import BuilderCandidateTestEvidenceError, load_builder_candidate_test_record
+from geoagent_harness.evolution.builder.schemas import BuilderCandidateTestRecord
 
 
 def valid_record() -> BuilderCandidateTestRecord:

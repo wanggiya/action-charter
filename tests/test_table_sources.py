@@ -4,10 +4,10 @@ import json
 from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
-from geoagent_harness.discovery.csv import inspect
-from geoagent_harness.tabular.analytical_service import profile_table,recorded_analysis
-from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
-from geoagent_harness.tabular.table_sources import inspect as inspect_records
+from geoagent_harness.data.discovery.csv import inspect
+from geoagent_harness.data.tabular.analytical_service import profile_table, recorded_analysis
+from geoagent_harness.contracts.analysis_options import AnalysisOptions
+from geoagent_harness.data.tabular.table_sources import inspect as inspect_records
 from tests.test_task_agents import project
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def test_formula_unsafe_path_and_changed_source_reject(tables):
 
 def test_external_packages_and_reader_budgets_reject_without_partial_success(tables,monkeypatch):
     import zipfile
-    from geoagent_harness.tabular import table_sources
+    from geoagent_harness.data.tabular import table_sources
     path=tables/'data/input/rows.xlsx'
     with zipfile.ZipFile(path,'a') as archive:archive.writestr('xl/externalLinks/externalLink1.xml','<externalLink/>')
     with pytest.raises(ValueError,match='external'):inspect_records(tables,'rows.xlsx')
@@ -93,15 +93,15 @@ def test_external_packages_and_reader_budgets_reject_without_partial_success(tab
     with pytest.raises(ValueError,match='16 MiB'):inspect_records(tables,'rows.json')
 
 def test_cli_mcp_selection_and_readonly_policy(tables):
-    from geoagent_harness.cli import app
-    from geoagent_harness.mcp_server import tools
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.task_actions import data_tools as tools
     spec={'columns':['x']};settings=SimpleNamespace(project_root=tables,input_root=tables/'data/input')
     mcp=tools.table_statistics('rows.xlsx',spec,settings=settings,source_options={'sheet':'Data'})
     reply=CliRunner().invoke(app,['table-statistics','rows.xlsx','--specification',json.dumps(spec),'--source-options','{"sheet":"Data"}','--project-root',str(tables)])
     assert reply.exit_code==0,reply.output
     assert json.loads(reply.output)['table_analysis']['statistics']['descriptive']==mcp['table_analysis']['statistics']['descriptive']
-    from geoagent_harness.tabular.policy import validate_steps
-    from geoagent_harness.planner.schemas import PlanStep
+    from geoagent_harness.core.policy.table import validate_steps
+    from geoagent_harness.contracts.planning import PlanStep
     with pytest.raises(ValueError,match='requires .csv'):
         validate_steps([PlanStep(step_id='step_1',skill='select_csv_columns',purpose='invalid',arguments={'path':'rows.xlsx','columns':['x'],'target_path':'data/output/new.csv'},requires_approval=True,validation_required=True)],{'step_1':[]})
 
@@ -117,8 +117,8 @@ def test_recorded_view_preserves_sheet_and_rejects_selection_change(tables):
 
 
 def test_new_formats_use_governed_workflow_and_never_run_on_send(project):
-    from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
-    from geoagent_harness.interface_api.conversation import TurnRequest
+    from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
+    from geoagent_harness.task_actions.conversation import TurnRequest
     from tests.test_planner_conversation import Client
     from scripts.statistical_planner_evaluation import execute
     (project/'data/input/rows.json').write_text('[{"id":"001","x":1},{"id":"002","x":2}]')
@@ -135,9 +135,9 @@ def test_new_formats_use_governed_workflow_and_never_run_on_send(project):
 
 def test_planner_binds_explicit_sheet_and_repairs_provider_omission(project):
     from copy import deepcopy
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
     from tests.test_planner_conversation import Client
-    from geoagent_harness.planner.request_coverage import requested_source_options
+    from geoagent_harness.agents.roles.planner.request_coverage import requested_source_options
     from jsonschema import Draft202012Validator
     from openpyxl import Workbook
     book=Workbook();book.active.title='Data';book.active.append(['x','region']);book.active.append([1,'A']);book.save(project/'data/input/rows.xlsx')
@@ -147,7 +147,7 @@ def test_planner_binds_explicit_sheet_and_repairs_provider_omission(project):
     message='Compute descriptive statistics for x grouped by region in rows.xlsx, worksheet Data. Set analysis.source_options.sheet to Data. No writes. Prepare only.'
     result=conversation_turn(TurnRequest(action='turn',conversation_id='f'*32,message=message),project_root=project,model_client=client)
     assert len(client.requests)==2 and not result['execution_performed'] and not result['approval_performed']
-    from geoagent_harness.tabular.source_contracts import table_format_catalog
+    from geoagent_harness.contracts.table_sources import table_format_catalog
     system=json.loads(client.requests[0].messages[0].content)
     capability=system['table_source_capability']
     assert capability['operation_id']=='inspect_csv' and capability['execution_authority'] is False

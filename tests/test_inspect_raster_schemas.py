@@ -5,9 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.skills.inspect_raster.schemas import (
-    InspectRasterArguments,
-)
+from geoagent_harness.data.spatial.skills.inspect_raster.schemas import InspectRasterArguments
 
 
 def test_arguments_reject_unknown_fields() -> None:

@@ -1,12 +1,7 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Deterministic GeoAgent verifiers."""
 
-from geoagent_harness.verifier.postgis import (
-    LayerExtent,
-    LayerStatistics,
-    PostGISValidationResult,
-    PostGISVerificationError,
-    validate_postgis_layer,
-)
+from geoagent_harness.core.verification.postgis import LayerExtent, LayerStatistics, PostGISValidationResult, PostGISVerificationError, validate_postgis_layer
 
 __all__ = [
     "LayerExtent",

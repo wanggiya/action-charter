@@ -7,16 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderCandidateTestRecord,
-    BuilderCandidateTestingError,
-    BuilderGenerationResult,
-    BuilderProposal,
-    BuilderRequest,
-    assess_builder_candidate_tests,
-    inspect_builder_candidate,
-    materialize_builder_proposal,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderCandidateTestRecord, BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.evolution.builder.testing import BuilderCandidateTestingError, assess_builder_candidate_tests
+from geoagent_harness.evolution.builder.inspection import inspect_builder_candidate
+from geoagent_harness.evolution.builder.materialization import materialize_builder_proposal
 
 
 def prepared_candidate(

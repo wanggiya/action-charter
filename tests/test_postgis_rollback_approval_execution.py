@@ -1,11 +1,13 @@
 from datetime import timedelta
 from pathlib import Path
 import pytest
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import PostGISInspectionResult
-from geoagent_harness.postgis.rollback.plan import persist_postgis_rollback_plan,postgis_rollback_plan_sha256
-from geoagent_harness.postgis.rollback.approval import (PostGISRollbackApprovalError,create_postgis_rollback_approval,load_postgis_rollback_approval,persist_postgis_rollback_approval,postgis_rollback_approval_sha256)
-from geoagent_harness.postgis.rollback.execution import (PostGISRollbackExecutionError,execute_postgis_rollback,load_postgis_rollback_execution,persist_postgis_rollback_execution)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISInspectionResult
+from geoagent_harness.data.databases.postgis.rollback.plan.storage import persist_postgis_rollback_plan, postgis_rollback_plan_sha256
+from geoagent_harness.data.databases.postgis.rollback.approval.service import PostGISRollbackApprovalError, create_postgis_rollback_approval
+from geoagent_harness.data.databases.postgis.rollback.approval.storage import load_postgis_rollback_approval, persist_postgis_rollback_approval, postgis_rollback_approval_sha256
+from geoagent_harness.data.databases.postgis.rollback.execution.service import PostGISRollbackExecutionError, execute_postgis_rollback
+from geoagent_harness.data.databases.postgis.rollback.execution.storage import load_postgis_rollback_execution, persist_postgis_rollback_execution
 from tests.test_postgis_rollback_plan import NOW,create_plan
 
 

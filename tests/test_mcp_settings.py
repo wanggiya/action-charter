@@ -2,10 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    load_settings,
-    parse_flag,
-)
+from geoagent_harness.platform.settings import load_settings, parse_flag
 
 
 @pytest.mark.parametrize(

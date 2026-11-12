@@ -2,15 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.skills.load_vector_to_postgis.service import (
-    LoadVectorResult,
-)
-from geoagent_harness.verifier.postgis import (
-    LayerExtent,
-    PostGISValidationResult,
-)
-from geoagent_harness.orchestrator import workflow
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.spatial.skills.load_vector_to_postgis.service import LoadVectorResult
+from geoagent_harness.core.verification.postgis import LayerExtent, PostGISValidationResult
+from geoagent_harness.agents.runtime.orchestrator import workflow
 
 
 class Dumpable:

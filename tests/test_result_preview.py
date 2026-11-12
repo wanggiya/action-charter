@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 from tests.test_tabular_workflow import project
-from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action,_directory,_write
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.cli import app
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action, _directory, _write
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.apps.cli.main import app
 
 
 def recorded(project,content=b'id,value\n001,10\n002,20\n'):
@@ -98,7 +98,7 @@ def test_malformed_artifact_metadata_is_rejected(project):
 
 def test_preview_io_does_not_hold_execution_progress_lock(project,monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
-    from geoagent_harness.interface_api import result_preview,workflow_runs
+    from geoagent_harness.task_actions import result_preview, workflow_runs
     _,_,request=recorded(project)
     original=result_preview.read_bytes
     def probe():
@@ -115,7 +115,7 @@ def test_preview_io_does_not_hold_execution_progress_lock(project,monkeypatch):
 
 @pytest.mark.parametrize('aggregation,expected',[('count',[2,1]),('sum',[30,5]),('mean',[15,5]),('min',[10,5]),('max',[20,5])])
 def test_chart_summary_uses_complete_verified_artifact(project,aggregation,expected):
-    from geoagent_harness.interface_api.workflow_runs import ChartAnalysis
+    from geoagent_harness.task_actions.workflow_runs import ChartAnalysis
     path,_,request=recorded(project,b'region,value\nNorth,10\nNorth,20\nSouth,5\n')
     request.analysis=ChartAnalysis(group_by='region',value='value',aggregation=aggregation)
     result=run_action(request,project_root=project)
@@ -128,7 +128,7 @@ def test_chart_summary_uses_complete_verified_artifact(project,aggregation,expec
 
 
 def test_chart_summary_keeps_null_groups_and_null_numeric_values(project):
-    from geoagent_harness.interface_api.workflow_runs import ChartAnalysis
+    from geoagent_harness.task_actions.workflow_runs import ChartAnalysis
     _,_,request=recorded(project,b'region,value\nNorth,\n,5\n')
     request.analysis=ChartAnalysis(group_by='region',value='value',aggregation='sum')
     result=run_action(request,project_root=project)['chart_analysis']
@@ -143,7 +143,7 @@ def test_chart_summary_keeps_null_groups_and_null_numeric_values(project):
  (b'region,value\nNorth,1e30\n','region','value','numeric'),
 ])
 def test_chart_summary_refuses_unsupported_inputs(project,content,group,value,match):
-    from geoagent_harness.interface_api.workflow_runs import ChartAnalysis
+    from geoagent_harness.task_actions.workflow_runs import ChartAnalysis
     _,_,request=recorded(project,content)
     request.analysis=ChartAnalysis(group_by=group,value=value,aggregation='sum')
     with pytest.raises(InterfaceApiError,match=match):run_action(request,project_root=project)

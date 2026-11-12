@@ -12,13 +12,9 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.builder import (
-    BuilderActivationReviewDecision,
-    BuilderActivationReviewError,
-    builder_promotion_verification_sha256,
-    create_builder_activation_review_decision,
-    persist_builder_promotion_verification,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderActivationReviewDecision
+from geoagent_harness.evolution.builder.activation_review import BuilderActivationReviewError, create_builder_activation_review_decision
+from geoagent_harness.evolution.builder.promotion_verification_storage import builder_promotion_verification_sha256, persist_builder_promotion_verification
 from tests.test_builder_promotion_verification_storage import (
     prepared_verification,
 )

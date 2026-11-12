@@ -3,8 +3,9 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context, load_reviewed_context, ContextReviewError
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context, load_reviewed_context, ContextReviewError
 
 class ContextReviewTests(unittest.TestCase):
     def test_store_reopen_duplicate_and_tampering(self):

@@ -8,36 +8,22 @@ from pathlib import Path
 
 import pytest
 
-import geoagent_harness.mcp_server.approved_recipe as approved_recipe_module
+import geoagent_harness.task_actions.approved_recipe as approved_recipe_module
 
-from geoagent_harness.mcp_server.approved_recipe import (
-    ApprovedRecipeError,
-    run_approved_recipe,
-    validate_approved_recipe_request,
-)
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.recipes import (
-    WorkflowRecipe,
-    build_recipe_execution_envelope,
-    create_recipe_approval,
-    save_recipe,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
+from geoagent_harness.task_actions.approved_recipe import ApprovedRecipeError, run_approved_recipe, validate_approved_recipe_request
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.core.policy.recipe_execution import build_recipe_execution_envelope
+from geoagent_harness.core.policy.recipe_approval import create_recipe_approval
+from geoagent_harness.core.ledger.recipe_storage import save_recipe
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 # import geoagent_harness.mcp_server.approved_recipe as (
 #     approved_recipe_module
 # )
 
-from geoagent_harness.recipes.evidence_persistence import (
-    RecipeEvidencePersistenceError,
-)
-from geoagent_harness.recipes.evidence_schemas import (
-    RecipeExecutionRecord,
-)
+from geoagent_harness.capabilities.recipes.execution.evidence_persistence import RecipeEvidencePersistenceError
+from geoagent_harness.contracts.recipe_evidence import RecipeExecutionRecord
 from tests.test_recipe_evidence_schemas import (
     evidence as example_evidence,
 )

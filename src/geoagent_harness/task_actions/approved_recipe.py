@@ -8,45 +8,17 @@ from typing import Any, Callable
 
 from pydantic import ValidationError
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-    load_settings,
-)
-from geoagent_harness.recipes.approval import (
-    RecipeApprovalError,
-    load_recipe_approval,
-)
-from geoagent_harness.recipes.execution import (
-    RecipeExecutionPolicyError,
-    build_recipe_execution_envelope,
-)
-from geoagent_harness.recipes.runner import (
-    RecipeRunError,
-    run_approved_recipe as execute_approved_recipe,
-)
-from geoagent_harness.recipes.schemas import (
-    RecipeExecutionEnvelope,
-    # RecipeRunResult,
-)
-from geoagent_harness.recipes.storage import (
-    RecipeStorageError,
-    load_recipe,
-)
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    require_supported_schema,
-)
-from geoagent_harness.skill_registry import (
-    SkillRegistryError,
-    load_skill_registry,
-)
-from geoagent_harness.recipes.evidence_persistence import (
-    RecipeEvidencePersistenceError,
-    persist_recipe_run,
-)
-from geoagent_harness.recipes.evidence_schemas import (
-    PersistedRecipeExecutionResult,
-)
+from geoagent_harness.platform.settings import MCPSettings, load_settings
+from geoagent_harness.core.policy.recipe_approval import RecipeApprovalError, load_recipe_approval
+from geoagent_harness.core.policy.recipe_execution import RecipeExecutionPolicyError, build_recipe_execution_envelope
+from geoagent_harness.capabilities.recipes.execution.runner import RecipeRunError, run_approved_recipe as execute_approved_recipe
+from geoagent_harness.contracts.recipes import RecipeExecutionEnvelope
+from geoagent_harness.core.ledger.recipe_storage import RecipeStorageError, load_recipe
+from geoagent_harness.contracts.schema_registry import ArtifactType
+from geoagent_harness.contracts.schema_registry import require_supported_schema
+from geoagent_harness.platform.skill_registry import SkillRegistryError, load_skill_registry
+from geoagent_harness.capabilities.recipes.execution.evidence_persistence import RecipeEvidencePersistenceError, persist_recipe_run
+from geoagent_harness.contracts.recipe_evidence import PersistedRecipeExecutionResult
 
 
 class ApprovedRecipeError(RuntimeError):
@@ -83,7 +55,7 @@ def validate_approved_recipe_request(
 ) -> RecipeExecutionEnvelope:
     """Reload artifacts and rebuild the expected envelope."""
 
-    from geoagent_harness.mcp_server.settings import authority_workspace_settings
+    from geoagent_harness.platform.settings import authority_workspace_settings
     settings = authority_workspace_settings(settings)
 
     safe_recipe_filename = _record_filename(
@@ -166,8 +138,8 @@ def run_approved_recipe(
 ) -> PersistedRecipeExecutionResult:
     """Verify exact artifacts, then execute the recipe."""
 
-    from geoagent_harness.write_policy import effective
-    from geoagent_harness.mcp_server.settings import authority_workspace_settings
+    from geoagent_harness.core.policy.write_policy import effective
+    from geoagent_harness.platform.settings import authority_workspace_settings
     active = authority_workspace_settings(effective(settings or load_settings()))
 
     if not active.enable_write_tools:
@@ -250,3 +222,8 @@ def run_approved_recipe(
         run_result=result,
         execution_record=execution_record,
     )
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+run_approved_recipe = _task_entrypoint(run_approved_recipe)

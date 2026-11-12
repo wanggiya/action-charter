@@ -2,13 +2,8 @@
 
 from pathlib import Path
 
-from geoagent_harness.model import (
-    ModelRequest,
-    ModelResult,
-)
-from geoagent_harness.recipe_proposals import (
-    review_recipe_request,
-)
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ModelResult
+from geoagent_harness.agents.runtime.recipe_proposal import review_recipe_request
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

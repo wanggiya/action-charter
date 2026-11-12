@@ -75,9 +75,9 @@ workflow = [
 ]
 
 [project.scripts]
-actioncharter = "geoagent_harness.chat.workspace:main"
-geoagent = "geoagent_harness.cli:app"
-geoagent-mcp = "geoagent_harness.mcp_server.server:main"
+actioncharter = "geoagent_harness.apps.chat.workspace:main"
+geoagent = "geoagent_harness.apps.cli.main:app"
+geoagent-mcp = "geoagent_harness.apps.mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/wanggiya/action-charter"

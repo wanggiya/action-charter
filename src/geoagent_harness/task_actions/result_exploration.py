@@ -4,9 +4,9 @@ import json
 import math
 import pandas as pd
 
-from geoagent_harness.tabular.service import TabularError
-from .exploration_contracts import ExplorationQuery, ResultViewSpec
-from .result_preview import recorded_frame, analyze_frame
+from geoagent_harness.contracts.paths import TabularError
+from geoagent_harness.task_actions.exploration_contracts import ExplorationQuery, ResultViewSpec
+from geoagent_harness.task_actions.result_preview import recorded_frame, analyze_frame
 
 
 def _number(series):
@@ -200,7 +200,7 @@ def explanation_text(spec, context):
 
 def view_context(root, conversation_id, base, *, goal_schema=False):
     """Recorded metadata only: no file read and no row values in model context."""
-    from .run_assessment import latest_conversation_run
+    from geoagent_harness.task_actions.run_assessment import latest_conversation_run
     if base is None:
         return None
     run = latest_conversation_run(root, conversation_id, base)
@@ -215,7 +215,7 @@ def view_context(root, conversation_id, base, *, goal_schema=False):
             continue
         extra = {'recorded_facts':recorded_facts(outcome,step.get('validation_outcome'))}
         if isinstance(outcome.get('field_guidance'),dict):
-            from geoagent_harness.tabular.field_guidance import compact_guidance
+            from geoagent_harness.data.tabular.field_guidance import compact_guidance
             extra['field_guidance']=compact_guidance(outcome['field_guidance'])
             if goal_schema:
                 extra['field_guidance']['field_evidence']=[{k:f[k] for k in ('name','role','kind','numeric_count','missing_count','distinct_count','cautions')} for f in outcome['field_guidance']['fields'][:100]]

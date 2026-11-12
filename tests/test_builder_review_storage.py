@@ -6,21 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderCandidateInspectionResult,
-    BuilderCandidateManifest,
-    BuilderCandidateTestAssessment,
-    BuilderGenerationResult,
-    BuilderProposal,
-    BuilderRequest,
-    BuilderReviewPackage,
-    BuilderReviewStorageError,
-    builder_review_sha256,
-    persist_builder_review_package,
-)
-from geoagent_harness.skill_definitions import (
-    candidate_tree_sha256,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderCandidateInspectionResult, BuilderCandidateManifest, BuilderCandidateTestAssessment, BuilderGenerationResult, BuilderProposal, BuilderRequest, BuilderReviewPackage
+from geoagent_harness.evolution.builder.review_storage import BuilderReviewStorageError, builder_review_sha256, persist_builder_review_package
+from geoagent_harness.capabilities.skills.definitions.test_evidence import candidate_tree_sha256
 
 
 def review_package(

@@ -2,18 +2,9 @@
 
 import pytest
 
-from geoagent_harness.skill_registry import (
-    SkillAccess,
-    SkillDefinition,
-    SkillKind,
-    SkillRegistry,
-    SkillStatus,
-)
-from geoagent_harness.skill_scaffolding import (
-    SkillScaffoldPolicyError,
-    SkillScaffoldRequest,
-    plan_skill_scaffold,
-)
+from geoagent_harness.contracts.skill_registry import SkillAccess, SkillDefinition, SkillKind, SkillRegistry, SkillStatus
+from geoagent_harness.capabilities.skills.scaffolding.planner import SkillScaffoldPolicyError, plan_skill_scaffold
+from geoagent_harness.capabilities.skills.scaffolding.schemas import SkillScaffoldRequest
 
 
 def empty_registry() -> SkillRegistry:

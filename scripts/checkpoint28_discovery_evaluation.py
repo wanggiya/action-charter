@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--output',type=Path,default=Path('/tmp/actioncharter-discovery-measurements.json'))
     parser.add_argument('--spatial',action='store_true',help='Measure TIFF metadata/hash workers on 16/64 MiB temporary rasters')
     args=parser.parse_args()
-    from geoagent_harness.interface_api.inspection_policy import bounded_read
+    from geoagent_harness.task_actions.inspection_policy import bounded_read
     report={'scope':'temporary_synthetic_tiff_only' if args.spatial else 'temporary_synthetic_csv_only','model_calls':0,'live_service_calls':0,'cases':[]}
     with TemporaryDirectory(prefix='actioncharter-csv-measure-') as directory:
         root=Path(directory);(root/'data/input').mkdir(parents=True)

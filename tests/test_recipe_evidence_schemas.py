@@ -5,13 +5,8 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.recipes import (
-    ArtifactReference,
-    ArtifactRole,
-    LineageEdge,
-    RecipeRunEvidence,
-    RecipeRunResult,
-)
+from geoagent_harness.contracts.recipe_evidence import ArtifactReference, ArtifactRole, LineageEdge, RecipeRunEvidence
+from geoagent_harness.contracts.recipes import RecipeRunResult
 
 
 DIGEST = "a" * 64
@@ -212,9 +207,7 @@ def test_evidence_identity_must_match_result() -> None:
 
 
 def test_recipe_execution_record_is_typed() -> None:
-    from geoagent_harness.recipes.evidence_schemas import (
-        RecipeExecutionRecord,
-    )
+    from geoagent_harness.contracts.recipe_evidence import RecipeExecutionRecord
 
     record = RecipeExecutionRecord(
         recipe_id="checkpoint8r7",
@@ -250,9 +243,7 @@ def test_recipe_execution_record_is_typed() -> None:
 def execution_record(
     run_result,
 ):
-    from geoagent_harness.recipes.evidence_schemas import (
-        RecipeExecutionRecord,
-    )
+    from geoagent_harness.contracts.recipe_evidence import RecipeExecutionRecord
 
     return RecipeExecutionRecord(
         recipe_id=run_result.recipe_id,
@@ -272,9 +263,7 @@ def execution_record(
 
 
 def test_persisted_execution_result_accepts_matching_identity() -> None:
-    from geoagent_harness.recipes.evidence_schemas import (
-        PersistedRecipeExecutionResult,
-    )
+    from geoagent_harness.contracts.recipe_evidence import PersistedRecipeExecutionResult
 
     run_evidence = evidence()
     run_result = run_evidence.run_result
@@ -296,9 +285,7 @@ def test_persisted_execution_result_accepts_matching_identity() -> None:
 def test_persisted_execution_result_rejects_mismatched_status() -> None:
     from pydantic import ValidationError
 
-    from geoagent_harness.recipes.evidence_schemas import (
-        PersistedRecipeExecutionResult,
-    )
+    from geoagent_harness.contracts.recipe_evidence import PersistedRecipeExecutionResult
 
     run_result = evidence().run_result
     record = execution_record(run_result)
@@ -329,9 +316,7 @@ def test_persisted_execution_result_rejects_mismatched_status() -> None:
 def test_persisted_execution_result_rejects_mismatched_digest() -> None:
     from pydantic import ValidationError
 
-    from geoagent_harness.recipes.evidence_schemas import (
-        PersistedRecipeExecutionResult,
-    )
+    from geoagent_harness.contracts.recipe_evidence import PersistedRecipeExecutionResult
 
     run_result = evidence().run_result
     record = execution_record(run_result)

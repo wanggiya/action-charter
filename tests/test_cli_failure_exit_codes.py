@@ -6,16 +6,12 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
-from geoagent_harness import critic
-from geoagent_harness import planner
-from geoagent_harness.cli import app
-from geoagent_harness.executor import service as executor_service
-from geoagent_harness.mcp_client import (
-    MCPClientError,
-)
-from geoagent_harness.model import (
-    ModelClientError,
-)
+from geoagent_harness.agents.roles import critic
+from geoagent_harness.agents.roles import planner
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.agents.roles.executor import service as executor_service
+from geoagent_harness.platform.internal_mcp.client import MCPClientError
+from geoagent_harness.platform.model_gateway.client import ModelClientError
 
 runner = CliRunner()
 

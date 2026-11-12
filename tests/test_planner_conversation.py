@@ -6,11 +6,11 @@ from shutil import copytree
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.model.schemas import ModelResult
-from geoagent_harness.planner.agent import PlannerAgentError
-from geoagent_harness.planner.schemas import PlannerResult
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
+from geoagent_harness.contracts.planning import PlannerResult
 
 PROJECT = Path(__file__).parents[1]
 ID = 'b' * 32
@@ -62,7 +62,7 @@ def test_clarify_then_propose_and_recover_without_model_or_execution(project):
 
 
 def test_planner_can_select_a_recipe_without_inventing_its_operations(project):
-    from geoagent_harness.recipe_catalog.composition import catalog,recipe_digest
+    from geoagent_harness.capabilities.recipes.catalog.composition import catalog, recipe_digest
     recipe=catalog(project)['recipe_inspect_csv']
     client=Client({'message':'Inspect the CSV with a registered recipe.','plan':None,'recipe_uses':[{
         'recipe_id':recipe.id,'recipe_sha256':recipe_digest(recipe),'alias':'orders','parameters':{'path':'sample_orders.csv'}}]})
@@ -75,7 +75,7 @@ def test_planner_can_select_a_recipe_without_inventing_its_operations(project):
 
 
 def test_natural_recipe_use_allocates_targets_without_manual_binding(project):
-    from geoagent_harness.recipe_catalog.composition import catalog,recipe_digest
+    from geoagent_harness.capabilities.recipes.catalog.composition import catalog, recipe_digest
     recipe=catalog(project)['recipe_clean_csv']
     client=Client({'message':'Ready','recipe_uses':[{'recipe_id':recipe.id,'recipe_sha256':recipe_digest(recipe),'alias':'clean',
         'parameters':{'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}}}]})
@@ -87,7 +87,7 @@ def test_natural_recipe_use_allocates_targets_without_manual_binding(project):
 
 
 def test_chat_recipe_authoring_persists_candidate_without_replacing_workflow(project):
-    from geoagent_harness.recipe_catalog.composition import catalog,compose,RecipeUse,recipe_digest
+    from geoagent_harness.capabilities.recipes.catalog.composition import catalog, compose, RecipeUse, recipe_digest
     recipe=catalog(project)['recipe_clean_csv']
     base,_=compose([RecipeUse(recipe_id=recipe.id,recipe_sha256=recipe_digest(recipe),alias='clean',parameters={
         'source':'sample_orders.csv','columns':['region','amount'],'fill_values':{'region':'Unknown'}})],project)
@@ -225,8 +225,8 @@ def test_conversation_http_contract_and_origin_guard(project, monkeypatch):
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.http.server import _handler
+    import geoagent_harness.task_actions.conversation as service
     original = service.conversation_turn
     client = Client({'message': 'Which file should I inspect?', 'plan': None})
     monkeypatch.setattr(service, 'conversation_turn', lambda request, *, project_root: original(request, project_root=project_root, model_client=client))
@@ -269,7 +269,7 @@ def test_conversation_redacts_common_credentials_before_model_and_storage(projec
     client = Client({'message': 'Do not share password=another-secret.', 'plan': None})
     reply = turn(project, client, 'Inspect points. password=private-value postgresql://operator:secret-value@localhost/db')
     prompt = client.requests[0].messages[1].content
-    from geoagent_harness.interface_api.planning_tasks import conversation_record, task_record
+    from geoagent_harness.task_actions.planning_tasks import conversation_record, task_record
     record = json.dumps({'conversation': conversation_record(project, ID), 'memory': task_record(project, ID)})
     for secret in ('private-value', 'secret-value', 'another-secret'):
         assert secret not in prompt and secret not in record
@@ -334,9 +334,10 @@ def test_conversation_model_failure_returns_json_without_socket_hangup(project, 
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    from geoagent_harness.model import ModelClientError, ModelSettingsError
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.http.server import _handler
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
+    from geoagent_harness.platform.model_settings import ModelSettingsError
+    import geoagent_harness.task_actions.conversation as service
     error = ModelClientError.timeout() if failure == 'timeout' else ModelClientError.http_status(404) if failure == 'http404' else ModelSettingsError('MODEL_NAME is required')
     def fail(request, *, project_root):
         raise error
@@ -384,8 +385,8 @@ def test_history_excerpt_budget_and_disable_preserve_full_transcript(project):
 
 
 def test_prompt_budget_blocks_before_model_call_and_preserves_transcript(project,monkeypatch):
-    import geoagent_harness.interface_api.conversation as service
-    from geoagent_harness.context_pack.builder import ContextPackError
+    import geoagent_harness.task_actions.conversation as service
+    from geoagent_harness.agents.memory.context_pack.builder import ContextPackError
     monkeypatch.setattr(service,'MAX_PROMPT_BYTES',100)
     client = Client({'message':'unused','plan':None})
     with pytest.raises(ContextPackError,match='context exceeds'):
@@ -481,7 +482,7 @@ def test_conflicting_csv_sources_receive_actionable_correction(project):
 
 
 def test_csv_source_schema_exposes_exclusive_choices():
-    from geoagent_harness.tabular.schemas import SelectColumns,JoinTables
+    from geoagent_harness.contracts.tabular import SelectColumns, JoinTables
     select=SelectColumns.model_json_schema()
     assert select['allOf'][0]['oneOf'][0]['required']==['path']
     join=JoinTables.model_json_schema()
@@ -517,7 +518,7 @@ def test_metadata_only_request_repairs_unrequested_database_and_report(project):
     'Inspect sample_orders.csv. Return row count and calculate a total. No writes.',
 ])
 def test_inspection_scope_does_not_rewrite_broader_requests(message):
-    from geoagent_harness.planner.request_coverage import inspection_only_skill
+    from geoagent_harness.agents.roles.planner.request_coverage import inspection_only_skill
     assert inspection_only_skill(message) is None
 
 
@@ -539,8 +540,8 @@ def test_metadata_only_scope_failure_preserves_saved_workflow(project):
 
 
 def test_failed_first_chat_remains_in_inventory_without_copying_prompt_to_telemetry(project):
-    from geoagent_harness.model import ModelClientError
-    from geoagent_harness.model.telemetry import read as diagnostics
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
+    from geoagent_harness.platform.model_gateway.telemetry import read as diagnostics
     with pytest.raises(ModelClientError):turn(project,Client(ModelClientError.timeout()),'Inspect metadata; private request content')
     inventory=conversation_turn(TurnRequest(action='list',conversation_id='0'*32),project_root=project)
     assert any(item['conversation_id']==ID and 'diagnostics available' in item['summary'] for item in inventory['conversations'])

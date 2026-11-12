@@ -7,18 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderGenerationResult,
-    BuilderGenerationStorageError,
-    BuilderProposal,
-    BuilderRequest,
-    builder_generation_sha256,
-    canonical_builder_generation_json,
-    load_builder_generation,
-)
-from geoagent_harness.builder.storage import (
-    MAX_BUILDER_GENERATION_BYTES,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.evolution.builder.storage import BuilderGenerationStorageError, builder_generation_sha256, canonical_builder_generation_json, load_builder_generation
+from geoagent_harness.evolution.builder.storage import MAX_BUILDER_GENERATION_BYTES
 
 
 def generation() -> BuilderGenerationResult:

@@ -4,13 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skills.inspect_raster.policy import (
-    InspectRasterPolicyError,
-    validate_inspect_raster_request,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.data.spatial.skills.inspect_raster.policy import InspectRasterPolicyError, validate_inspect_raster_request
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_policy_accepts_file_under_input_root(

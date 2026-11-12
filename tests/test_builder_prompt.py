@@ -1,15 +1,9 @@
 import json
 from pathlib import Path
 
-from geoagent_harness.agent_manifest import (
-    load_agent_manifest,
-)
-from geoagent_harness.builder import (
-    BuilderArtifactKind,
-    BuilderArtifactRequest,
-    BuilderRequest,
-    build_builder_request,
-)
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.evolution.builder.schemas import BuilderArtifactKind, BuilderArtifactRequest, BuilderRequest
+from geoagent_harness.evolution.builder.prompt import build_builder_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

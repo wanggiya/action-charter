@@ -7,11 +7,12 @@ from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from tests.test_tabular_workflow import project, run, saved
-from geoagent_harness.cli import app
-from geoagent_harness.tabular.schemas import CalculateColumns
-from geoagent_harness.tabular.service import run_operation, validate_output, TabularError
-from geoagent_harness.mcp_server.settings import load_settings
-from geoagent_harness.planner.schemas import PlannerResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.contracts.tabular import CalculateColumns
+from geoagent_harness.data.tabular.service import run_operation, validate_output
+from geoagent_harness.contracts.paths import TabularError
+from geoagent_harness.platform.settings import load_settings
+from geoagent_harness.contracts.planning import PlannerResult
 
 
 def column(name='amount'): return {'kind':'column','name':name}
@@ -143,11 +144,11 @@ def test_intermediate_calculation_and_retention(project):
     first.step_id='step_2';first.arguments.pop('path');first.arguments['source_step']='step_1';first.depends_on=['step_1']
     result.plan.steps=[select,first]
     from tests.test_reusable_recipes_and_runs import execution
-    from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
+    from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
     outcome=run_action(RunRequest(action='start',workflow=execution(project,result)),project_root=project,background=False)
     assert outcome['status']=='completed'
     assert outcome['steps'][-1]['validation_outcome']['checks']['calculation_values']
-    from geoagent_harness.recipe_catalog.successful import inventory
+    from geoagent_harness.capabilities.recipes.catalog.successful import inventory
     assert inventory(project)
 
 

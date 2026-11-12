@@ -2,19 +2,10 @@
 
 import pytest
 
-from geoagent_harness.skill_definitions.catalog import (
-    TrustedAdapter,
-    get_trusted_adapter,
-)
-from geoagent_harness.skill_definitions import (
-    DeclarativeSkillDefinition,
-    SkillProfile,
-    assess_declarative_skill,
-)
-from geoagent_harness.skill_registry import (
-    SkillAccess,
-    SkillKind,
-)
+from geoagent_harness.capabilities.skills.definitions.catalog import TrustedAdapter, get_trusted_adapter
+from geoagent_harness.capabilities.skills.definitions.schemas import DeclarativeSkillDefinition, SkillProfile
+from geoagent_harness.capabilities.skills.definitions.policy import assess_declarative_skill
+from geoagent_harness.contracts.skill_registry import SkillAccess, SkillKind
 
 
 def definition(
@@ -181,8 +172,7 @@ def test_write_adapter_requires_trusted_verifier(
 
     monkeypatch.setattr(
         (
-            "geoagent_harness.skill_definitions."
-            "policy.get_trusted_adapter"
+            'geoagent_harness.capabilities.skills.definitions.policy.get_trusted_adapter'
         ),
         lambda adapter_id: TrustedAdapter(
             adapter_id=adapter_id,

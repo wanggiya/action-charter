@@ -3,9 +3,9 @@ import json
 import httpx
 import pytest
 
-from geoagent_harness.model.catalog import catalog, select, Selection, request_selection, CatalogError
-from geoagent_harness.model.settings import load_model_settings
-from geoagent_harness.model.diagnostics import inspect_model_configuration
+from geoagent_harness.platform.model_gateway.catalog import catalog, select, Selection, request_selection, CatalogError
+from geoagent_harness.platform.model_settings import load_model_settings
+from geoagent_harness.platform.model_gateway.diagnostics import inspect_model_configuration
 
 
 ENV = {'MODEL_NAME': 'old:4b', 'MODEL_BASE_URL': 'http://127.0.0.1:11434/v1'}
@@ -80,7 +80,7 @@ def test_discovery_never_follows_redirects_or_embedded_credentials(tmp_path):
 
 
 def test_reasoning_project_override_persists_and_pins_active_requests(tmp_path,monkeypatch):
-    from geoagent_harness.model.catalog import reasoning_preference,select_reasoning,ReasoningSelection
+    from geoagent_harness.platform.model_gateway.catalog import reasoning_preference, select_reasoning, ReasoningSelection
     for key,value in ENV.items():monkeypatch.setenv(key,value)
     monkeypatch.setenv('MODEL_REASONING_EFFORT','high')
     assert reasoning_preference(tmp_path)['effective']=='high'
@@ -99,9 +99,9 @@ def test_reasoning_project_override_persists_and_pins_active_requests(tmp_path,m
 
 
 def test_project_reasoning_is_sent_by_shared_client(tmp_path,monkeypatch):
-    from geoagent_harness.model.catalog import select_reasoning,ReasoningSelection
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.schemas import ModelRequest,ChatMessage
+    from geoagent_harness.platform.model_gateway.catalog import select_reasoning, ReasoningSelection
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ChatMessage
     for key,value in ENV.items():monkeypatch.setenv(key,value)
     monkeypatch.delenv('MODEL_REASONING_EFFORT',raising=False)
     select_reasoning(tmp_path,ReasoningSelection(selection='none',expected_revision=0))
@@ -115,7 +115,7 @@ def test_project_reasoning_is_sent_by_shared_client(tmp_path,monkeypatch):
 
 
 def test_review_timeout_is_bounded_persistent_and_request_pinned(tmp_path):
-    from geoagent_harness.model.catalog import ReviewTimeoutSelection,select_review_timeout,review_timeout_seconds,review_timeout_preference
+    from geoagent_harness.platform.model_gateway.catalog import ReviewTimeoutSelection, select_review_timeout, review_timeout_seconds, review_timeout_preference
     from pydantic import ValidationError
     assert review_timeout_seconds(tmp_path)==15
     for value in (0,4,181,True,12.5,'30'):
@@ -133,8 +133,8 @@ def test_review_timeout_http_origin_validation_and_conflict(tmp_path):
     from http.server import ThreadingHTTPServer
     from http.client import HTTPConnection
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    from geoagent_harness.model.catalog import review_timeout_preference
+    from geoagent_harness.apps.http.server import _handler
+    from geoagent_harness.platform.model_gateway.catalog import review_timeout_preference
     server=ThreadingHTTPServer(('127.0.0.1',0),_handler(tmp_path));thread=Thread(target=server.serve_forever,daemon=True);thread.start()
     def post(value,origin=None):
         connection=HTTPConnection('127.0.0.1',server.server_port,timeout=5)

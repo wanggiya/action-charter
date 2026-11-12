@@ -6,10 +6,10 @@ import pytest
 
 from tests.test_planner_conversation import project, Client, turn, read, plan
 from tests.test_recipe_discovery import request, final_plan
-from geoagent_harness.planner.effort_budget import EffortBudget
-from geoagent_harness.model import ModelClientError
-from geoagent_harness.model.schemas import ModelRequest, ChatMessage, ModelResult
-from geoagent_harness.model.settings import ModelSettingsError
+from geoagent_harness.agents.roles.planner.effort_budget import EffortBudget
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ChatMessage, ModelResult
+from geoagent_harness.platform.model_settings import ModelSettingsError
 
 
 def test_generation_discovery_and_repair_share_four_calls(project):
@@ -33,7 +33,7 @@ def test_timeout_consumes_attempt_and_is_not_retried(project):
 
 
 def test_late_reply_is_discarded_without_commit(project,monkeypatch):
-    import geoagent_harness.planner.effort_budget as module
+    import geoagent_harness.agents.roles.planner.effort_budget as module
     clock=[0.0]
     monkeypatch.setattr(module,'monotonic',lambda:clock[0])
     monkeypatch.setenv('PLANNER_TURN_TIMEOUT_SECONDS','10')
@@ -51,7 +51,7 @@ def test_late_reply_is_discarded_without_commit(project,monkeypatch):
 
 
 def test_remaining_time_and_real_token_accounting(monkeypatch):
-    import geoagent_harness.planner.effort_budget as module
+    import geoagent_harness.agents.roles.planner.effort_budget as module
     clock=[0.0];monkeypatch.setattr(module,'monotonic',lambda:clock[0]);monkeypatch.setenv('PLANNER_TURN_TIMEOUT_SECONDS','20')
     budget=EffortBudget();seen=[]
     def complete(request):
@@ -74,8 +74,8 @@ def test_invalid_deadline_is_configuration_error(monkeypatch,value):
 
 def test_model_transport_honors_remaining_timeout_without_exposing_it_as_model_input():
     import httpx
-    from geoagent_harness.model.client import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
     observed=[]
     def reply(request):
         observed.append(request)

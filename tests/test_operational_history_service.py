@@ -6,19 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.operational_history import (
-    AgentRole,
-    OperationalEventType,
-    OperationalHistoryError,
-    OperationalIdentity,
-    append_operational_event,
-    append_operational_events,
-    build_operational_timeline,
-    create_operational_identity,
-    create_operational_event,
-    load_operational_events,
-    operational_event_sha256,
-)
+from geoagent_harness.core.ledger.operational_history.schemas import AgentRole, OperationalEventType, OperationalIdentity
+from geoagent_harness.core.ledger.operational_history.service import OperationalHistoryError, append_operational_event, append_operational_events, build_operational_timeline, create_operational_identity, create_operational_event, load_operational_events, operational_event_sha256
 
 
 NOW = datetime(2026, 9, 3, 12, tzinfo=timezone.utc)

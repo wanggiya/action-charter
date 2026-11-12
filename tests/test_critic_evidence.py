@@ -7,15 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.critic.evidence import (
-    CriticEvidenceError,
-    build_critic_evidence,
-)
-from geoagent_harness.reporting import render_report
-from geoagent_harness.trace import (
-    TraceTimestamps,
-    WorkflowTrace,
-)
+from geoagent_harness.platform.evidence import CriticEvidenceError, build_critic_evidence
+from geoagent_harness.data.tabular.reporting import render_report
+from geoagent_harness.core.ledger.trace import TraceTimestamps, WorkflowTrace
 
 
 def make_trace(

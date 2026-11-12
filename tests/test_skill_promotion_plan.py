@@ -5,19 +5,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from geoagent_harness.skill_definitions import (
-    SkillCandidateTestRecord,
-    SkillPromotionPlanError,
-    candidate_tree_sha256,
-    generate_declarative_skill_scaffold,
-    load_skill_definition,
-    materialize_trusted_adapter_candidate,
-    plan_skill_candidate_promotion,
-)
-from geoagent_harness.skill_registry import (
-    SkillRegistry,
-    load_skill_registry,
-)
+from geoagent_harness.capabilities.skills.definitions.schemas import SkillCandidateTestRecord
+from geoagent_harness.capabilities.skills.definitions.promotion_plan import SkillPromotionPlanError, plan_skill_candidate_promotion
+from geoagent_harness.capabilities.skills.definitions.test_evidence import candidate_tree_sha256
+from geoagent_harness.capabilities.skills.definitions.scaffolding import generate_declarative_skill_scaffold
+from geoagent_harness.capabilities.skills.definitions.storage import load_skill_definition
+from geoagent_harness.capabilities.skills.definitions.materialization import materialize_trusted_adapter_candidate
+from geoagent_harness.contracts.skill_registry import SkillRegistry
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

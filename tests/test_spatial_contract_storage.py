@@ -8,12 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from geoagent_harness.spatial_contracts import (
-    SpatialDataContractStorageError,
-    canonical_spatial_data_contract_json,
-    load_spatial_data_contract,
-    spatial_data_contract_sha256,
-)
+from geoagent_harness.contracts.spatial.storage import SpatialDataContractStorageError, canonical_spatial_data_contract_json, load_spatial_data_contract, spatial_data_contract_sha256
 
 
 def contract_payload() -> dict:

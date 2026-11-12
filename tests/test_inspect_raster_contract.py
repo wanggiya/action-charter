@@ -4,18 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skills.inspect_raster.schemas import (
-    InspectRasterArguments,
-)
-from geoagent_harness.skills.inspect_raster.service import (
-    inspect_raster,
-)
-from geoagent_harness.skills.inspect_raster.policy import (
-    InspectRasterPolicyError,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.data.spatial.skills.inspect_raster.schemas import InspectRasterArguments
+from geoagent_harness.data.spatial.skills.inspect_raster.service import inspect_raster
+from geoagent_harness.data.spatial.skills.inspect_raster.policy import InspectRasterPolicyError
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_symlink_is_rejected(

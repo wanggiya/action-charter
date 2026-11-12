@@ -2,13 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.verifier.postgis import (
-    LayerExtent,
-    LayerStatistics,
-    PostGISVerificationError,
-    validate_postgis_layer,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.core.verification.postgis import LayerExtent, LayerStatistics, PostGISVerificationError, validate_postgis_layer
 
 
 class FakeReader:

@@ -52,8 +52,8 @@ import pytest
 @pytest.mark.parametrize('automatic',[False,True])
 def test_spatial_guide_binds_explicit_new_input_without_reusing_history(tmp_path,monkeypatch,automatic):
     import os,json
-    from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-    from geoagent_harness.model.schemas import ModelResult
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
     root=tmp_path;evaluation.fixture_project(root)
     for key in ('MODEL_NAME','ENABLE_WRITE_TOOLS'):monkeypatch.setenv(key,'fixture' if key=='MODEL_NAME' else 'false')
     initial=conversation_turn(TurnRequest(action='turn',conversation_id=evaluation.CHAT,message='Inspect seed_boundaries.geojson and extract attributes then group and sum by region.',allowed_skill_ids=['inspect_vector','vector_attributes_to_csv','aggregate_csv']),project_root=root,model_client=evaluation.FixtureModel(evaluation.fixed_plan('combined',training=True)))

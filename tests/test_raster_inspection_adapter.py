@@ -4,13 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skill_adapters.raster_inspection import (
-    RasterInspectionError,
-    inspect_raster,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.data.spatial.adapters.raster_inspection import RasterInspectionError, inspect_raster
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_inspects_raster_read_only(

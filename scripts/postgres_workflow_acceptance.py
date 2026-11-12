@@ -12,13 +12,21 @@ import tempfile
 import time
 from types import SimpleNamespace
 import uuid
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgres.service import connection_sha256,inspect,run_operation,validate_output,PostgresError
-from geoagent_harness.recipes.control import observer,ExecutionCancelled
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.approvals import plan_sha256
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgres.service import connection_sha256
+from geoagent_harness.data.databases.postgres.service import inspect
+from geoagent_harness.data.databases.postgres.service import run_operation
+from geoagent_harness.data.databases.postgres.service import validate_output
+from geoagent_harness.data.databases.postgres.service import PostgresError
+from geoagent_harness.platform.execution_control import observer
+from geoagent_harness.platform.execution_control import ExecutionCancelled
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.task_actions.workflow import execute_workflow
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.approvals.service import plan_sha256
 
 REPO=Path(__file__).resolve().parents[1]
 def docker(*args):
@@ -100,7 +108,7 @@ def main():
             bad={**arguments,'target_table':'bad_cast','columns':[{**c,'type':'bigint'} if c['name']=='age' else c for c in arguments['columns']]}
             rejection(lambda:run_operation('import_csv_to_postgres',bad,settings))
             # Cancellation just before commit rolls back complete table creation/inserts.
-            import geoagent_harness.postgres.service as service
+            import geoagent_harness.data.databases.postgres.service as service
             original=service.checkpoint;calls=0
             def cancel():
                 nonlocal calls

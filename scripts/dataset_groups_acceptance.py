@@ -2,10 +2,11 @@
 import csv,json,os,shutil,tempfile,time,uuid
 from collections import Counter
 from pathlib import Path
-from geoagent_harness.tabular.dataset_service import profile_dataset
-from geoagent_harness.tabular.dataset_views import DatasetViewRequest,dataset_view
-from geoagent_harness.interface_api.conversation import Conversation
-from geoagent_harness.interface_api.planning_tasks import write_turn
+from geoagent_harness.data.tabular.dataset_service import profile_dataset
+from geoagent_harness.data.tabular.dataset_views import DatasetViewRequest
+from geoagent_harness.data.tabular.dataset_views import dataset_view
+from geoagent_harness.task_actions.conversation import Conversation
+from geoagent_harness.task_actions.planning_tasks import write_turn
 
 
 def main():

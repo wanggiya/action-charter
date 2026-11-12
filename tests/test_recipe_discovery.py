@@ -5,11 +5,12 @@ from typer.testing import CliRunner
 
 from tests.test_planner_conversation import project,Client,turn,read
 from tests.test_successful_retrieval import completed
-from geoagent_harness.recipe_catalog.discovery import DiscoveryRequest,discover,library_structure
-from geoagent_harness.recipe_catalog.composition import catalog,RecipeRequest,recipe_action
-from geoagent_harness.planner.agent import PlannerAgentError
-from geoagent_harness.model import ModelClientError
-from geoagent_harness.cli import app
+from geoagent_harness.capabilities.recipes.catalog.discovery import DiscoveryRequest, discover, library_structure
+from geoagent_harness.capabilities.recipes.catalog.composition import catalog, RecipeRequest
+from geoagent_harness.task_actions.recipe_catalog import recipe_action
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.apps.cli.main import app
 
 
 def request(action,**fields):
@@ -143,7 +144,7 @@ def test_supplied_source_is_decodable_but_still_must_match_proposed_skills(compl
 
 
 def test_changed_inspected_contract_is_rejected(project,monkeypatch):
-    import geoagent_harness.recipe_catalog.discovery as service
+    import geoagent_harness.capabilities.recipes.catalog.discovery as service
     original=service.discover;calls=0
     def changing(*args,**kwargs):
         nonlocal calls
@@ -151,7 +152,7 @@ def test_changed_inspected_contract_is_rejected(project,monkeypatch):
         if calls>1 and 'definition' in result:result['definition']['recipe_sha256']='f'*64
         return result
     monkeypatch.setattr(service,'discover',changing)
-    from geoagent_harness.interface_api.server import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     client=Client(request('inspect',recipe_id='recipe_inspect_csv'),final_plan())
     with pytest.raises(InterfaceApiError,match='changed during planning'):turn(project,client,'Inspect CSV')
     assert read(project)['revision']==0
@@ -179,8 +180,8 @@ def test_http_unverified_reuse_returns_specific_model_guidance(project,monkeypat
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    import geoagent_harness.interface_api.conversation as service
-    from geoagent_harness.interface_api.server import _handler
+    import geoagent_harness.task_actions.conversation as service
+    from geoagent_harness.apps.http.server import _handler
     original=service.conversation_turn
     client=Client(final_plan(),final_plan())
     monkeypatch.setattr(service,'conversation_turn',lambda req,*,project_root:original(req,project_root=project_root,model_client=client))

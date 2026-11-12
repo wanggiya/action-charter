@@ -3,8 +3,8 @@ import hashlib
 import json
 import pytest
 from tests.test_planner_conversation import project, Client, turn, read, ID
-from geoagent_harness.interface_api.workflow_runs import _directory, _write
-from geoagent_harness.planner.agent import PlannerAgentError
+from geoagent_harness.task_actions.workflow_runs import _directory, _write
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
 
 
 def seed(project):
@@ -24,7 +24,7 @@ def seed(project):
 
 def test_planner_view_preserves_workflow_and_receives_no_row_values(project,monkeypatch):
     original,spec=seed(project)
-    from geoagent_harness.interface_api import result_preview
+    from geoagent_harness.task_actions import result_preview
     monkeypatch.setattr(result_preview,'read_bytes',lambda *a,**kw:pytest.fail('Preparing a view must not read dataset content'))
     client=Client({'message':'Show totals by region.','plan':None,'result_view':spec})
     result=turn(project,client,'Show total amount by region as a bar chart.',revision=1)
@@ -75,7 +75,7 @@ def test_explicit_view_has_focused_schema_and_cannot_replace_workflow(project):
 
 
 def test_processing_request_does_not_use_view_only_route():
-    from geoagent_harness.interface_api.result_exploration import requests_result_view
+    from geoagent_harness.task_actions.result_exploration import requests_result_view
     assert not requests_result_view('Show a workflow that joins the CSV files and writes the result.')
     assert not requests_result_view('Inspect sample_orders.csv. Return row count and column names. No writes.')
     assert requests_result_view('Show the recorded result as a table.')
@@ -122,7 +122,7 @@ def test_genuine_missing_field_question_preserves_workflow(project):
 
 def test_explanation_uses_recorded_facts_not_model_numbers_and_reads_no_source(project,monkeypatch):
     original,spec=seed(project)
-    from geoagent_harness.interface_api import result_preview
+    from geoagent_harness.task_actions import result_preview
     monkeypatch.setattr(result_preview,'read_bytes',lambda *a,**kw:pytest.fail('An explanation must not read source data'))
     spec.update(view='Table',chart=None,explanation_fields=['row_count'])
     client=Client({'message':'There are 99999 rows with improved patient outcomes.','plan':None,'result_view':spec})
@@ -147,8 +147,8 @@ def test_unknown_explanation_fact_cannot_be_promoted_to_verified_evidence(projec
 
 
 def test_spatial_display_contract_validates_kind_layer_and_band():
-    from geoagent_harness.interface_api.exploration_contracts import ResultViewSpec
-    from geoagent_harness.interface_api.result_exploration import validate_view
+    from geoagent_harness.task_actions.exploration_contracts import ResultViewSpec
+    from geoagent_harness.task_actions.result_exploration import validate_view
     context={'run_id':'a'*32,'plan_sha256':'b'*64,'results':[{'step_id':'step_1','views':['Map'],'spatial_kind':'raster','band_count':2}]}
     base={'run_id':'a'*32,'plan_sha256':'b'*64,'step_id':'step_1','view':'Map'}
     validate_view(ResultViewSpec(**base,spatial={'mode':'raster','bands':[2],'render':'ramp'}),context)
@@ -161,8 +161,8 @@ def test_spatial_display_contract_validates_kind_layer_and_band():
 
 
 def test_raster_decoder_does_not_offer_vector_layer_as_a_band():
-    from geoagent_harness.interface_api.exploration_contracts import ResultViewReply
-    from geoagent_harness.interface_api.result_exploration import bind_view_schema
+    from geoagent_harness.task_actions.exploration_contracts import ResultViewReply
+    from geoagent_harness.task_actions.result_exploration import bind_view_schema
     context={'run_id':'a'*32,'plan_sha256':'b'*64,'results':[{'step_id':'step_1','views':['Map'],'spatial_kind':'raster','band_count':2,'recorded_facts':{'band_count':2}}]}
     schema=bind_view_schema(ResultViewReply.model_json_schema(),context)
     spatial=schema['$defs']['SpatialViewOptions']
@@ -173,7 +173,7 @@ def test_raster_decoder_does_not_offer_vector_layer_as_a_band():
 
 def test_local_explanation_needs_no_model_configuration(project,monkeypatch):
     seed(project)
-    import geoagent_harness.interface_api.conversation as service
+    import geoagent_harness.task_actions.conversation as service
     monkeypatch.setattr(service,'load_model_settings',lambda:pytest.fail('Recorded facts do not require a model'))
     result=service.conversation_turn(service.TurnRequest(action='turn',conversation_id=ID,expected_revision=1,message='Explain the current result row count.'),project_root=project)
     assert 'Row count: 6.' in result['messages'][-1]['content']

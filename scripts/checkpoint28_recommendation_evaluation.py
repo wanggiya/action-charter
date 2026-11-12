@@ -5,8 +5,10 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from time import perf_counter
 from shutil import copytree
-from geoagent_harness.planner.outcome_recommendations import record_outcome, recommendations, rank_recipes
-from geoagent_harness.recipe_catalog.successful import contracts
+from geoagent_harness.agents.roles.planner.outcome_recommendations import record_outcome
+from geoagent_harness.agents.roles.planner.outcome_recommendations import recommendations
+from geoagent_harness.agents.roles.planner.outcome_recommendations import rank_recipes
+from geoagent_harness.capabilities.recipes.catalog.successful import contracts
 
 
 def main():

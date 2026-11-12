@@ -4,8 +4,23 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def isolate_repository_action_audit(tmp_path_factory):
+    """Default-root CLI fixtures must never append to the operator's action ledger."""
+    from dataclasses import replace
+    from geoagent_harness.platform.execution_services import execution_services, using_execution_services
+    from geoagent_harness.platform.storage.action_ledger import LocalActionLedger
+    repository = Path(__file__).resolve().parents[1]
+    isolated = tmp_path_factory.mktemp('repository-action-audit')
+    original = execution_services()
+    def ledger(root, *, namespace='local'):
+        return LocalActionLedger(isolated if Path(root).resolve() == repository else root,namespace=namespace)
+    with using_execution_services(replace(original, ledger=ledger)):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def isolate_repository_write_policy(tmp_path, monkeypatch):
-    from geoagent_harness import write_policy
+    from geoagent_harness.core.policy import write_policy
     repository = Path(__file__).resolve().parents[1]
     original_paths = write_policy._paths
     original_owner_fd = write_policy._owner_fd
@@ -22,9 +37,11 @@ def isolate_repository_write_policy(tmp_path, monkeypatch):
     monkeypatch.setattr(write_policy, '_paths', paths)
     # The independent project lease must use the same fixture identity as its
     # redirected database. Never probe the operator's real project ownership.
-    def owner_fd(root, *, create=False):
+    def owner_fd(root, *, create=False, scope=None):
         root = Path(root)
-        return original_owner_fd(isolated if root.resolve() == repository else root,create=create)
+        redirected = root.resolve() == repository
+        return original_owner_fd(isolated if redirected else root,create=create,
+                                 scope=None if redirected else scope)
     def project_owner(root):
         root = Path(root)
         if root.resolve() == repository:

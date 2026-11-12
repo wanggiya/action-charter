@@ -5,23 +5,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.postgis.promotion.execution import (
-    PostGISPromotionExecutionResult,
-    persist_postgis_promotion_execution,
-    postgis_promotion_execution_sha256,
-)
-from geoagent_harness.postgis.promotion.verification import (
-    PostGISPromotionVerificationResult,
-    persist_postgis_promotion_verification,
-)
-from geoagent_harness.postgis.rollback.plan import (
-    PostGISRollbackPlan,
-    PostGISRollbackPlanError,
-    PostGISRollbackPlanStorageError,
-    load_postgis_rollback_plan,
-    persist_postgis_rollback_plan,
-    plan_postgis_rollback,
-)
+from geoagent_harness.data.databases.postgis.promotion.execution.schemas import PostGISPromotionExecutionResult
+from geoagent_harness.data.databases.postgis.promotion.execution.storage import persist_postgis_promotion_execution, postgis_promotion_execution_sha256
+from geoagent_harness.data.databases.postgis.promotion.verification.schemas import PostGISPromotionVerificationResult
+from geoagent_harness.data.databases.postgis.promotion.verification.storage import persist_postgis_promotion_verification
+from geoagent_harness.data.databases.postgis.rollback.plan.schemas import PostGISRollbackPlan
+from geoagent_harness.data.databases.postgis.rollback.plan.service import PostGISRollbackPlanError, plan_postgis_rollback
+from geoagent_harness.data.databases.postgis.rollback.plan.storage import PostGISRollbackPlanStorageError, load_postgis_rollback_plan, persist_postgis_rollback_plan
 from tests.test_postgis_promotion_approval import plan_result
 
 

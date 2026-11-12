@@ -5,10 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipe_proposals import (
-    RecipeProposalStorageError,
-    load_recipe_proposal,
-)
+from geoagent_harness.capabilities.recipes.proposals.storage import RecipeProposalStorageError, load_recipe_proposal
 
 
 def valid_payload() -> dict:

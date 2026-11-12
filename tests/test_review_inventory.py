@@ -1,5 +1,5 @@
 from pathlib import Path
-from geoagent_harness.intent.inventory import reviewed_context_inventory
+from geoagent_harness.agents.roles.intent.inventory import reviewed_context_inventory
 
 
 def test_empty_inventory_is_read_only(tmp_path: Path):

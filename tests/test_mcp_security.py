@@ -1,9 +1,9 @@
 import asyncio
 import inspect
 
-from geoagent_harness.mcp_server import tools
-from geoagent_harness.mcp_server.server import mcp
-from geoagent_harness.verifier import postgis
+from geoagent_harness.task_actions import data_tools as tools
+from geoagent_harness.apps.mcp.server import mcp
+from geoagent_harness.core.verification import postgis
 
 EXPECTED_TOOLS = tools.TOOL_ALLOWLIST
 
@@ -73,7 +73,7 @@ def test_allowlist_contains_no_delete_tool() -> None:
 
 
 def test_bounded_postgis_inspection_is_read_only() -> None:
-    from geoagent_harness.postgis.inspection import service
+    from geoagent_harness.data.databases.postgis.inspection import service
 
     source = inspect.getsource(service).lower()
     assert "sql.identifier" in source
@@ -88,7 +88,7 @@ def test_bounded_postgis_inspection_is_read_only() -> None:
 
 
 def test_bounded_geoserver_inspection_is_get_only() -> None:
-    from geoagent_harness.geoserver.inspection import service
+    from geoagent_harness.data.spatial.geoserver.inspection import service
 
     source = inspect.getsource(service).lower()
     assert "client.get" in source
@@ -100,7 +100,7 @@ def test_bounded_geoserver_inspection_is_get_only() -> None:
 
 
 def test_geoserver_publication_planning_is_the_only_mcp_publication_tool() -> None:
-    from geoagent_harness.geoserver.publication import service
+    from geoagent_harness.data.spatial.geoserver.publication import service
 
     assert "plan_geoserver_publication" in tools.TOOL_ALLOWLIST
     assert "execute_geoserver_publication" not in tools.TOOL_ALLOWLIST
@@ -110,7 +110,7 @@ def test_geoserver_publication_planning_is_the_only_mcp_publication_tool() -> No
 
 
 def test_postgis_comparison_reuses_inspection_boundary() -> None:
-    from geoagent_harness.postgis.comparison import service
+    from geoagent_harness.data.databases.postgis.comparison import service
 
     source = inspect.getsource(service).lower()
     assert "inspect_postgis_table" in source
@@ -121,7 +121,7 @@ def test_postgis_comparison_reuses_inspection_boundary() -> None:
 
 
 def test_change_assessment_is_pure_fixed_policy() -> None:
-    from geoagent_harness.postgis.change_assessment import service
+    from geoagent_harness.data.databases.postgis.change_assessment import service
 
     source = inspect.getsource(service).lower()
     assert "psycopg" not in source
@@ -132,7 +132,7 @@ def test_change_assessment_is_pure_fixed_policy() -> None:
 
 
 def test_promotion_planning_has_no_write_or_sql_boundary() -> None:
-    from geoagent_harness.postgis.promotion.plan import service
+    from geoagent_harness.data.databases.postgis.promotion.plan import service
 
     source = inspect.getsource(service).lower()
     assert "execute(" not in source
@@ -165,7 +165,7 @@ def test_only_approval_gated_write_tools_are_exposed() -> None:
 def test_raw_load_is_not_registered_over_mcp() -> None:
     import asyncio
 
-    from geoagent_harness.mcp_server.server import mcp
+    from geoagent_harness.apps.mcp.server import mcp
 
     registered = asyncio.run(mcp.list_tools())
     names = {

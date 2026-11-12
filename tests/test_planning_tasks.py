@@ -6,11 +6,11 @@ from shutil import copytree, copyfile
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.interface_api import planning_tasks as storage
-from geoagent_harness.model.schemas import ModelResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.task_actions import planning_tasks as storage
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 REPO = Path(__file__).parents[1]
 CHAT = 'a' * 32
@@ -104,10 +104,9 @@ def test_new_conversation_starts_with_private_empty_memory(project):
 
 
 def test_identical_generated_workflow_reuses_artifact_without_sharing_memory(project):
-    from geoagent_harness.interface_api.server import (
-        InterfaceGeneratedPlanSaveRequest, InterfaceReviewedPlanSaveRequest, save_interface_reviewed_plan,
-    )
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.contracts.actions import InterfaceGeneratedPlanSaveRequest, InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
+    from geoagent_harness.contracts.planning import PlannerResult
     first = turn(project, Client('inspect_vector'), text='Inspect sample_points.geojson, original private wording')
     second = turn(project, Client('inspect_vector'), chat=OTHER, text='Inspect sample_points.geojson, different private wording')
     def request(value, generated=True):
@@ -181,7 +180,7 @@ def test_legacy_adoption_keeps_original_file_bytes_and_all_own_messages(project)
 
 
 def test_old_shared_task_records_do_not_supply_live_foreign_memory(project):
-    from geoagent_harness.interface_api.conversation import Conversation
+    from geoagent_harness.task_actions.conversation import Conversation
     shared='f'*32
     own=Conversation(conversation_id=CHAT,revision=1,active_task_id=shared,linked_task_ids=[shared],task_revision=4,
         task_title='Old shared task',messages=[{'role':'user','content':'Own transcript'},{'role':'assistant','content':'Own answer'}])
@@ -200,7 +199,7 @@ def test_old_shared_task_records_do_not_supply_live_foreign_memory(project):
 
 
 def test_explicit_workflow_binding_is_validated_and_private(project):
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.contracts.planning import PlannerResult
     plan={'summary':'CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False}]}
     base=PlannerResult(model='fixture',original_request='CSV',context_references=[],plan=plan)
     first = turn(project, Client('inspect_vector'))
@@ -280,7 +279,7 @@ def test_http_chat_memory_uses_origin_guard_and_disables_shared_link(project):
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
+    from geoagent_harness.apps.http.server import _handler
     server=ThreadingHTTPServer(('127.0.0.1',0),_handler(project));thread=Thread(target=server.serve_forever,daemon=True);thread.start()
     try:
         connection=HTTPConnection(*server.server_address)
@@ -292,8 +291,8 @@ def test_http_chat_memory_uses_origin_guard_and_disables_shared_link(project):
         assert json.loads(response.read())['active_task_id']==CHAT
         connection.request('POST','/api/v1/planner/conversation',json.dumps({'action':'select_task','conversation_id':OTHER,'task_id':CHAT}),{'Content-Type':'application/json'})
         response=connection.getresponse();assert response.status in (400,409,422);response.read()
-        from geoagent_harness.planner.schemas import PlannerResult
-        from geoagent_harness.approvals import plan_sha256
+        from geoagent_harness.contracts.planning import PlannerResult
+        from geoagent_harness.core.policy.approvals.service import plan_sha256
         plan={'summary':'CSV','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/sample_orders.csv'},'requires_approval':False,'validation_required':False}]}
         result=PlannerResult(model='fixture',original_request='First wording',context_references=[],plan=plan)
         saved_bytes=None

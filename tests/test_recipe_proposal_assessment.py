@@ -2,15 +2,11 @@
 
 from pathlib import Path
 
-from geoagent_harness.recipe_proposals import (
-    RecipeProposal,
-    assess_recipe_proposal,
-    list_recipe_templates,
-)
-from geoagent_harness.skill_registry import (
-    SkillStatus,
-    load_skill_registry,
-)
+from geoagent_harness.capabilities.recipes.proposals.schemas import RecipeProposal
+from geoagent_harness.capabilities.recipes.proposals.assessment import assess_recipe_proposal
+from geoagent_harness.capabilities.recipes.proposals.templates import list_recipe_templates
+from geoagent_harness.contracts.skill_registry import SkillStatus
+from geoagent_harness.platform.skill_registry import load_skill_registry
 from tests.test_recipe_proposal_schemas import (
     conversion_payload,
 )

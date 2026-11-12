@@ -3,8 +3,8 @@ import json
 import pytest
 from tests.test_task_agents import project
 from tests.test_planner_conversation import Client
-from geoagent_harness.tabular.analysis_goals import AnalysisGoal,validate,requested
-from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
+from geoagent_harness.data.tabular.analysis_goals import AnalysisGoal, validate, requested
+from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
 
 
 def context():
@@ -41,7 +41,7 @@ def test_goal_advice_preserves_saved_workflow_and_cannot_execute(project,monkeyp
  p={'summary':'Inspect measurements','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'sample_orders.csv'}}]}
  initial=conversation_turn(TurnRequest(action='turn',conversation_id=identity,message='Inspect sample_orders.csv.'),project_root=project,model_client=Client({'message':'Proposed','plan':p}))
  c=context();c['plan_sha256']=initial['planner_result']['plan_sha256']
- monkeypatch.setattr('geoagent_harness.interface_api.result_exploration.view_context',lambda *a,**k:c)
+ monkeypatch.setattr('geoagent_harness.task_actions.result_exploration.view_context',lambda *a,**k:c)
  response={'message':'Consider a distribution question.','plan':None,'source_sha256':'d'*64,'analysis_goals':[goal().model_dump()]}
  client=Client(response)
  request=TurnRequest(action='turn',conversation_id=identity,expected_revision=initial['revision'],message='Propose analysis goals from the recorded inspection. Suggestions only.')
@@ -63,7 +63,7 @@ def test_wrong_source_and_identifier_inference_receive_bounded_goal_correction(p
  identity='e'*32;p={'summary':'Inspect','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'sample_orders.csv'}}]}
  initial=conversation_turn(TurnRequest(action='turn',conversation_id=identity,message='Inspect sample_orders.csv.'),project_root=project,model_client=Client({'message':'Proposed','plan':p}))
  c=context();c['plan_sha256']=initial['planner_result']['plan_sha256']
- monkeypatch.setattr('geoagent_harness.interface_api.result_exploration.view_context',lambda *a,**k:c)
+ monkeypatch.setattr('geoagent_harness.task_actions.result_exploration.view_context',lambda *a,**k:c)
  bad={'message':'Advice','plan':None,'source_sha256':'d'*64,'analysis_goals':[goal().model_copy(update={'fields':['entity_id']}).model_dump()]}
  good={**bad,'analysis_goals':[goal().model_dump()]};client=Client(bad,good)
  state=conversation_turn(TurnRequest(action='turn',conversation_id=identity,expected_revision=initial['revision'],message='Suggest analysis goals from inspection.'),project_root=project,model_client=client)
@@ -72,8 +72,8 @@ def test_wrong_source_and_identifier_inference_receive_bounded_goal_correction(p
 
 
 def test_goal_schema_findings_name_trusted_fields_without_content():
- from geoagent_harness.interface_api.conversation import AnalysisGoalsReply
- from geoagent_harness.planner.agent import _schema_findings
+ from geoagent_harness.task_actions.conversation import AnalysisGoalsReply
+ from geoagent_harness.agents.roles.planner.agent import _schema_findings
  from pydantic import ValidationError
  with pytest.raises(ValidationError) as caught:
   AnalysisGoalsReply.model_validate({'message':'Advice','plan':None,'analysis_goals':[goal().model_dump()|{'rationale':'sensitive value '*30}]})

@@ -16,13 +16,16 @@ def main():
     parser.add_argument('--timeout',type=float,default=90)
     parser.add_argument('--output',type=Path,default=Path('/tmp/actioncharter-checkpoint28-result-view.json'))
     args=parser.parse_args()
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
-    from geoagent_harness.model.schemas import ModelResult
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-    from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
-    from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
-    from geoagent_harness.interface_api.exploration_contracts import ResultViewSpec
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
+    from geoagent_harness.platform.model_gateway.schemas import ModelResult
+    from geoagent_harness.task_actions.conversation import TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn
+    from geoagent_harness.task_actions.planner_submission import SubmissionRequest
+    from geoagent_harness.task_actions.planner_submission import submission_action
+    from geoagent_harness.task_actions.workflow_runs import RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action
+    from geoagent_harness.task_actions.exploration_contracts import ResultViewSpec
     model=SharedModelClient(ModelSettings(base_url=args.endpoint,model=args.model,timeout_seconds=args.timeout,
         max_tokens=1024,reasoning_effort='none',response_format='json_schema'))
     class Seed:

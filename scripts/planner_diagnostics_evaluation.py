@@ -1,10 +1,12 @@
 """One isolated full-source inspection proposal, no operation dispatch or retries."""
 import argparse,json,shutil,tempfile
 from pathlib import Path
-from geoagent_harness.model import SharedModelClient
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-from geoagent_harness.model.telemetry import read,error_code
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.task_actions.conversation import TurnRequest
+from geoagent_harness.task_actions.conversation import conversation_turn
+from geoagent_harness.platform.model_gateway.telemetry import read
+from geoagent_harness.platform.model_gateway.telemetry import error_code
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)

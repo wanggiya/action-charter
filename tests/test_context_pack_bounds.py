@@ -5,14 +5,11 @@ import json
 import shutil
 from pathlib import Path
 
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.context_pack import build_context_pack
-from geoagent_harness.context_pack.builder import (
-    CURRENT_STATUS_TRUNCATION_MARKER,
-    MAX_CURRENT_STATUS_CHARACTERS,
-)
-from geoagent_harness.context_pack.redaction import redact_text
-from geoagent_harness.planner.prompt import build_planner_request
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.agents.memory.context_pack.builder import build_context_pack
+from geoagent_harness.agents.memory.context_pack.builder import CURRENT_STATUS_TRUNCATION_MARKER, MAX_CURRENT_STATUS_CHARACTERS
+from geoagent_harness.contracts.context_redaction import redact_text
+from geoagent_harness.agents.roles.planner.prompt import build_planner_request
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -88,7 +85,7 @@ def test_planner_prompt_remains_bounded_as_status_grows(
 
 
 def test_checkpoint_history_stays_on_disk_but_not_in_current_model_context(tmp_path: Path) -> None:
-    from geoagent_harness.context_pack.builder import CURRENT_STATUS_HISTORY_MARKER
+    from geoagent_harness.agents.memory.context_pack.builder import CURRENT_STATUS_HISTORY_MARKER
     shutil.copytree(PROJECT_ROOT / 'context', tmp_path / 'context')
     source = '# Current status\nMetadata planning only\n' + CURRENT_STATUS_HISTORY_MARKER + '\n# Checkpoint old\nobsolete runtime guidance'
     path = tmp_path/'context/CURRENT_STATUS.md'; path.write_text(source)

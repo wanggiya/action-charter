@@ -3,11 +3,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.geoserver.inspection import (
-    GeoServerInspectionError, GeoServerInspectionRequest, inspect_geoserver_layer,
-)
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.skill_registry import load_skill_registry
+from geoagent_harness.data.spatial.geoserver.inspection.service import GeoServerInspectionError, inspect_geoserver_layer
+from geoagent_harness.data.spatial.geoserver.inspection.schemas import GeoServerInspectionRequest
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 class FakeReader:

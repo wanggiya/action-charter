@@ -8,27 +8,14 @@ from typing import Any
 
 import pytest
 
-import geoagent_harness.executor.service as service
-from geoagent_harness.executor import (
-    ExecutorServiceError,
-    execute_approved_recipe_via_mcp,
-)
-from geoagent_harness.mcp_client.executor import (
-    APPROVED_RECIPE_TOOL,
-)
-from geoagent_harness.mcp_client.schemas import (
-    MCPToolCallResult,
-)
-from geoagent_harness.recipes import (
-    RecipeExecutionEnvelope,
-)
+import geoagent_harness.agents.roles.executor.service as service
+from geoagent_harness.agents.roles.executor.service import ExecutorServiceError, execute_approved_recipe_via_mcp
+from geoagent_harness.platform.internal_mcp.executor import APPROVED_RECIPE_TOOL
+from geoagent_harness.contracts.mcp import MCPToolCallResult
+from geoagent_harness.contracts.recipes import RecipeExecutionEnvelope
 
-from geoagent_harness.recipes.evidence_storage import (
-    recipe_run_result_sha256,
-)
-from geoagent_harness.recipes.schemas import (
-    RecipeRunResult,
-)
+from geoagent_harness.core.ledger.recipe_evidence import recipe_run_result_sha256
+from geoagent_harness.contracts.recipes import RecipeRunResult
 
 
 DIGEST = "a" * 64

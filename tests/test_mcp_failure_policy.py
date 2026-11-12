@@ -6,19 +6,9 @@ import asyncio
 
 import pytest
 
-from geoagent_harness.failures import (
-    FailureCategory,
-    FailureStage,
-    RetryDisposition,
-    failure_from_exception,
-)
-from geoagent_harness.mcp_client.client import (
-    MCPClientError,
-    MCPReadOnlyClient,
-)
-from geoagent_harness.mcp_client.settings import (
-    MCPClientSettings,
-)
+from geoagent_harness.contracts.failures import FailureCategory, FailureStage, RetryDisposition, failure_from_exception
+from geoagent_harness.platform.internal_mcp.client import MCPClientError, MCPReadOnlyClient
+from geoagent_harness.platform.client_settings import MCPClientSettings
 
 
 def classify(error: MCPClientError):

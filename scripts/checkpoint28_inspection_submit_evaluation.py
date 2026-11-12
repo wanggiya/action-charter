@@ -18,10 +18,11 @@ def main():
     parser.add_argument('--output', type=Path, default=Path('/tmp/actioncharter-checkpoint28-inspection-submit.json'))
     args = parser.parse_args()
     if args.sequence:args.kind='vector'
-    from geoagent_harness.interface_api.conversation import TurnRequest
-    from geoagent_harness.interface_api.planner_submission import SubmissionRequest, submission_action
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
+    from geoagent_harness.task_actions.conversation import TurnRequest
+    from geoagent_harness.task_actions.planner_submission import SubmissionRequest
+    from geoagent_harness.task_actions.planner_submission import submission_action
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
     repo = Path(__file__).resolve().parents[1]
     client = SharedModelClient(ModelSettings(base_url=args.endpoint, model=args.model,
         timeout_seconds=args.timeout, max_tokens=1024, reasoning_effort='none', response_format='json_schema'))
@@ -89,8 +90,9 @@ def main():
                                      message='Inspect dem.tif. Return dimensions, bands, bounds and CRS. No writes.'))
                 raster=submission_action(second,project_root=root,model_client=measured,background=False)
                 assert raster['run']['status']=='completed' and raster['run']['steps'][0]['outcome']['source']=='data/input/dem.tif'
-                from geoagent_harness.interface_api.conversation import conversation_turn
-                from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
+                from geoagent_harness.task_actions.conversation import conversation_turn
+                from geoagent_harness.task_actions.workflow_runs import RunRequest
+                from geoagent_harness.task_actions.workflow_runs import run_action
                 spec_reply=conversation_turn(TurnRequest(action='turn',conversation_id='c'*32,expected_revision=raster['conversation']['revision'],
                     message='Display band 1 as a color ramp.'),project_root=root,model_client=measured)
                 spec=spec_reply['context_usage']['result_view']

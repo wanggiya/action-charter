@@ -4,17 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.reporting import (
-    render_report,
-    write_report,
-)
-from geoagent_harness.trace import (
-    TraceError,
-    TraceTimestamps,
-    WorkflowTrace,
-    redact_text,
-    write_trace,
-)
+from geoagent_harness.data.tabular.reporting import render_report, write_report
+from geoagent_harness.core.ledger.trace import TraceError, TraceTimestamps, WorkflowTrace, write_trace
+from geoagent_harness.contracts.redaction import redact_text
 
 
 def make_trace() -> WorkflowTrace:

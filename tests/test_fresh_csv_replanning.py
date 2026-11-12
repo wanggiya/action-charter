@@ -1,9 +1,9 @@
 """Fresh-output requests do not need model-generated filenames or overwrite."""
 import copy
 from tests.test_planner_conversation import project, Client, ID, turn, read
-from geoagent_harness.planner.bindings import refresh_inherited_csv_targets
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
+from geoagent_harness.data.tabular.bindings import refresh_inherited_csv_targets
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
 import pytest
 
 

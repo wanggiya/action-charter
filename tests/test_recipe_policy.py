@@ -5,15 +5,10 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.recipes import (
-    RecipePolicyError,
-    WorkflowRecipe,
-    recipe_sha256,
-    validate_recipe_policy,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
+from geoagent_harness.core.policy.recipe import RecipePolicyError, validate_recipe_policy
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

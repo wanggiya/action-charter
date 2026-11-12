@@ -2,12 +2,8 @@
 
 import pytest
 
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    CompatibilityDisposition,
-    SchemaVersionError,
-    require_supported_schema,
-)
+from geoagent_harness.contracts.schema_registry.schemas import ArtifactType, CompatibilityDisposition
+from geoagent_harness.contracts.schema_registry.validation import SchemaVersionError, require_supported_schema
 
 
 def test_accepts_current_top_level_version() -> None:

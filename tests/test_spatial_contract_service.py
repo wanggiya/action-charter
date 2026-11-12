@@ -8,12 +8,9 @@ import geopandas as gpd
 import pytest
 from shapely.geometry import Point
 
-from geoagent_harness.spatial_contracts import (
-    SpatialDataContractAssessmentError,
-    VectorSpatialDataContract,
-    assess_spatial_data_contract,
-    spatial_data_contract_sha256,
-)
+from geoagent_harness.contracts.spatial.service import SpatialDataContractAssessmentError, assess_spatial_data_contract
+from geoagent_harness.contracts.spatial.schemas import VectorSpatialDataContract
+from geoagent_harness.contracts.spatial.storage import spatial_data_contract_sha256
 
 
 def contract(**updates) -> VectorSpatialDataContract:

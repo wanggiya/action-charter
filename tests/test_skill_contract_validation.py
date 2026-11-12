@@ -5,12 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.skill_definitions import (
-    SkillContractValidationError,
-    generate_skill_contract_bundle,
-    load_skill_definition,
-    validate_skill_contract_bundle,
-)
+from geoagent_harness.capabilities.skills.definitions.contracts import SkillContractValidationError, validate_skill_contract_bundle
+from geoagent_harness.capabilities.skills.definitions.generation import generate_skill_contract_bundle
+from geoagent_harness.capabilities.skills.definitions.storage import load_skill_definition
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

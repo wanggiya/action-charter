@@ -1,9 +1,9 @@
 """Explicit installed-model evaluation on temporary synthetic data; no downloads."""
 import argparse,json,tempfile,shutil,statistics,csv
 from pathlib import Path
-from geoagent_harness.model import SharedModelClient
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.tabular.analyst import run_session
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.agents.runtime.analyst import run_session
 
 def main():
  parser=argparse.ArgumentParser(description=__doc__)

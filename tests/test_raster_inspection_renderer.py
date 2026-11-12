@@ -4,10 +4,7 @@ import ast
 
 import pytest
 
-from geoagent_harness.skill_definitions.adapters import (
-    RasterInspectionRendererError,
-    render_raster_inspection_candidate,
-)
+from geoagent_harness.capabilities.skills.definitions.adapters.raster_inspection import RasterInspectionRendererError, render_raster_inspection_candidate
 
 
 def test_renderer_produces_exact_scaffold_file_set(

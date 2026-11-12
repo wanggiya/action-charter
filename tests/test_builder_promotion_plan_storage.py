@@ -7,13 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderPromotionPlan,
-    BuilderPromotionPlanStorageError,
-    builder_promotion_plan_sha256,
-    canonical_builder_promotion_plan_json,
-    load_builder_promotion_plan,
-)
+from geoagent_harness.evolution.builder.schemas import BuilderPromotionPlan
+from geoagent_harness.evolution.builder.promotion_plan_storage import BuilderPromotionPlanStorageError, builder_promotion_plan_sha256, canonical_builder_promotion_plan_json, load_builder_promotion_plan
 
 
 DIGEST = "a" * 64

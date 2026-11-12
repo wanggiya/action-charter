@@ -6,15 +6,10 @@ import asyncio
 
 import pytest
 
-from geoagent_harness.mcp_server import tools
+from geoagent_harness.task_actions import data_tools as tools
 
-from geoagent_harness.mcp_server.server import (
-    create_mcp_server,
-)
-from geoagent_harness.mcp_server.transport import (
-    MCPTransportError,
-    load_transport_settings,
-)
+from geoagent_harness.apps.mcp.server import create_mcp_server
+from geoagent_harness.apps.mcp.transport import MCPTransportError, load_transport_settings
 
 
 def test_transport_defaults_to_stdio() -> None:

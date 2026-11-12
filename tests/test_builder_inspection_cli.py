@@ -7,13 +7,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from geoagent_harness.builder import (
-    BuilderGenerationResult,
-    BuilderProposal,
-    BuilderRequest,
-    materialize_builder_proposal,
-)
-from geoagent_harness.cli import app
+from geoagent_harness.evolution.builder.schemas import BuilderGenerationResult, BuilderProposal, BuilderRequest
+from geoagent_harness.evolution.builder.materialization import materialize_builder_proposal
+from geoagent_harness.apps.cli.main import app
 
 
 runner = CliRunner()

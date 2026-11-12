@@ -1,11 +1,13 @@
 """Immutable chat-scoped workflow/analysis snapshots; opening history grants no authority."""
-from .planning_tasks import as_transaction
+from geoagent_harness.task_actions.planning_tasks import as_transaction
+from geoagent_harness.platform.storage.chat_snapshots import _tables, _digest, archive
 import hashlib,json
 from datetime import datetime,timezone
 from typing import Literal
 from pydantic import BaseModel,ConfigDict,Field
-from .storage_paths import runtime_store_path
-from .planning_tasks import transaction as database, _get, write_turn
+from geoagent_harness.platform.paths import runtime_store_path
+from geoagent_harness.platform.storage.metadata import transaction as database
+from geoagent_harness.task_actions.planning_tasks import _get, write_turn
 
 class HistoryRequest(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -15,39 +17,10 @@ class HistoryRequest(BaseModel):
     expected_revision:int|None=Field(default=None,ge=0)
 
 
-def _tables(db):
-    db = as_transaction(db)
-    db.records('chat_history_blobs_v1').ensure()
-    db.records('chat_history_v1').ensure()
 
 
-def _digest(value):return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
 
 
-def archive(db,state,*,kind=None,view=None):
-    """Called inside the same transaction as a state/view write; identical payloads deduplicate."""
-    db = as_transaction(db)
-    if not state:return
-    plan=state.get('planner_result');analysis=state.get('analytical_session')
-    if not plan and not analysis and not view:return
-    _tables(db)
-    refs={}
-    for key,value in [('planner_result',plan),('analytical_session',analysis),('view',view)]:
-        if value is None:refs[key]=None;continue
-        digest=_digest(value);encoded=json.dumps(value,separators=(',',':'),allow_nan=False)
-        if len(encoded.encode())>2_000_000:raise ValueError('History item exceeds its saved-record budget')
-        db.records('chat_history_blobs_v1').put(digest,encoded,ignore_existing=True);refs[key]=digest
-    identity=state['conversation_id'];entry_id=_digest({'conversation_id':identity,'revision':state['revision'],**refs})
-    if db.records('chat_history_v1').get(entry_id) is not None:return
-    if db.records('chat_history_v1').count(owner=identity)>=128:raise ValueError('Chat history reached 128 distinct items; export/archive before adding more')
-    last=db.records('chat_history_v1').entries(owner=identity,limit=1)
-    prior=json.loads(last[0].content) if last else {}
-    event_kind=kind or ('analysis' if refs['analytical_session'] and refs['analytical_session']!=prior.get('analytical_session') else 'workflow')
-    summary=(view or {}).get('columns')
-    summary=(' / '.join(summary)+' · '+view['view']) if summary else (analysis or {}).get('message','') if event_kind=='analysis' else (plan or {}).get('plan',{}).get('summary','Saved analysis')
-    record={'id':entry_id,'conversation_id':identity,'revision':state['revision'],'kind':event_kind,'summary':str(summary)[:180],
-        'recorded_at':datetime.now(timezone.utc).isoformat(),'message_count':len(state.get('messages',[])),**refs}
-    db.records('chat_history_v1').put(entry_id,json.dumps(record,separators=(',',':')),owner=identity)
 
 
 def _entries(db,identity):
@@ -76,7 +49,7 @@ def _runs(root,identity):
     directory=runtime_store_path(root, 'workflow-state', 'interface-runs')
     if not directory.exists():return []
     if directory.is_symlink() or directory.parent.is_symlink():raise ValueError('Unsafe execution history storage')
-    from .workflow_runs import _read
+    from geoagent_harness.task_actions.workflow_runs import _read
     records=[]
     for path in sorted(directory.glob('*.json'),key=lambda p:p.lstat().st_mtime,reverse=True)[:200]:
         if path.is_symlink():continue
@@ -88,7 +61,7 @@ def _runs(root,identity):
 
 
 def history_action(request:HistoryRequest,*,project_root):
-    from .conversation import TurnRequest,conversation_turn,Conversation,_response
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn, Conversation, _response
     root=project_root.resolve(strict=True)
     current=conversation_turn(TurnRequest(action='read',conversation_id=request.conversation_id),project_root=root)
     # Safely index the recoverable current baseline. Earlier overwritten states cannot be invented.
@@ -112,15 +85,15 @@ def history_action(request:HistoryRequest,*,project_root):
         plan=_blob(db,entry['planner_result']);analysis=_blob(db,entry['analytical_session']);view=_blob(db,entry['view'])
     if request.action=='continue':
         if request.expected_revision is None or request.expected_revision!=current['revision']:raise ValueError('Chat changed; refresh before continuing from history')
-        from .workflow import _check
-        from geoagent_harness.planner.schemas import PlannerResult
+        from geoagent_harness.capabilities.workflow import _check
+        from geoagent_harness.contracts.planning import PlannerResult
         if plan:_check(PlannerResult.model_validate(plan),root)
         raw={k:v for k,v in current.items() if k in Conversation.model_fields}
         if raw.get('planner_result'):raw['planner_result']={k:v for k,v in raw['planner_result'].items() if k in PlannerResult.model_fields}
         state=Conversation.model_validate(raw)
         state.planner_result=PlannerResult.model_validate(plan) if plan else None;state.analytical_session=analysis
         state.revision+=1
-        from .conversation import Entry
+        from geoagent_harness.task_actions.conversation import Entry
         if len(state.messages)>98:raise ValueError('Chat is full; preserve/export history before continuing')
         state.messages.extend([Entry(role='user',content='Continue from saved version '+entry['id'][:12],task_id=state.conversation_id,conversation_id=state.conversation_id),Entry(role='assistant',content='Saved workflow/analysis restored as a new draft revision. No historical approval or execution was reused.',task_id=state.conversation_id,conversation_id=state.conversation_id)])
         state.context_usage={'history_enabled':True,'included_messages':0,'omitted_messages':len(state.messages),'excerpts_truncated':False,'prompt_bytes':0,'prompt_limit_bytes':64000,'model_request':{'stage':'analytical_history_restore' if analysis and entry['kind'] in {'analysis','view'} else 'history_restore','elapsed_seconds':0,'prompt_bytes':0,'supplied_schema_count':0,'available_operation_count':0,'retrieved_method_count':0,'model_calls':0}}
@@ -130,7 +103,12 @@ def history_action(request:HistoryRequest,*,project_root):
         return {'conversation':response,'execution_performed':False,'approval_performed':False}
     public_plan=None
     if plan:
-        from geoagent_harness.approvals import plan_sha256
-        from geoagent_harness.planner.schemas import PlannerResult
+        from geoagent_harness.core.policy.approvals import plan_sha256
+        from geoagent_harness.contracts.planning import PlannerResult
         public_plan={**plan,'schema_version':'1.0','status':'planned_not_saved','allowed_skill_ids':current['allowed_skill_ids'],'plan_sha256':plan_sha256(PlannerResult.model_validate(plan).plan),'plan_saved':False,'approval_performed':False,'execution_performed':False}
     return {'entry':entry,'planner_result':public_plan,'analytical_session':analysis,'view':view,'run':None,'execution_performed':False,'approval_performed':False}
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+history_action = _task_entrypoint(history_action, audit=lambda arguments: arguments["request"].action not in ['list', 'read'])

@@ -7,13 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderRequestLoadError,
-    load_builder_request,
-)
-from geoagent_harness.builder.request_loader import (
-    MAX_BUILDER_REQUEST_BYTES,
-)
+from geoagent_harness.evolution.builder.request_loader import BuilderRequestLoadError, load_builder_request
+from geoagent_harness.evolution.builder.request_loader import MAX_BUILDER_REQUEST_BYTES
 
 
 def valid_payload() -> dict[str, object]:

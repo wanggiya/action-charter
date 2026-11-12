@@ -29,16 +29,21 @@ def main():
     parser.add_argument('--max-tokens',type=int,default=1024)
     parser.add_argument('--output', type=Path, default=Path('/tmp/actioncharter-checkpoint27-model-evaluation.json'))
     args = parser.parse_args()
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
-    from geoagent_harness.planner.schemas import PlannerResult
-    from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-    from geoagent_harness.interface_api.workflow import WorkflowRequest, prepare_workflow, authorize_workflow
-    from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-    from geoagent_harness.interface_api.run_assessment import assess_run
-    from geoagent_harness.interface_api.server import save_interface_reviewed_plan, InterfaceReviewedPlanSaveRequest
-    from geoagent_harness.recipe_catalog.successful import inventory
-    from geoagent_harness.approvals import plan_sha256
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
+    from geoagent_harness.contracts.planning import PlannerResult
+    from geoagent_harness.task_actions.conversation import TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn
+    from geoagent_harness.task_actions.workflow import WorkflowRequest
+    from geoagent_harness.task_actions.workflow import prepare_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow_runs import RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action
+    from geoagent_harness.task_actions.run_assessment import assess_run
+    from geoagent_harness.apps.http.server import save_interface_reviewed_plan
+    from geoagent_harness.apps.http.server import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.capabilities.recipes.catalog.successful import inventory
+    from geoagent_harness.core.policy.approvals.service import plan_sha256
     # This process only. No launcher, .env or running service policy is changed.
     os.environ.update(ENABLE_WRITE_TOOLS='true', ALLOW_OVERWRITE='false', MODEL_NAME=args.model,
                       MODEL_BASE_URL=args.endpoint, MODEL_TIMEOUT_SECONDS=str(args.timeout),

@@ -3,14 +3,9 @@
 from click import unstyle
 from typer.testing import CliRunner
 
-import geoagent_harness.planner as planner
-from geoagent_harness.cli import app
-from geoagent_harness.failures import (
-    FailureCategory,
-    FailureStage,
-    RetryDisposition,
-    failure_from_exception,
-)
+import geoagent_harness.agents.roles.planner as planner
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.contracts.failures import FailureCategory, FailureStage, RetryDisposition, failure_from_exception
 
 
 runner = CliRunner()

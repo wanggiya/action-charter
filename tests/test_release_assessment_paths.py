@@ -4,10 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.releases.assessment import (
-    ReleaseAssessmentError,
-    _safe_file,
-)
+from geoagent_harness.core.ledger.releases.assessment import ReleaseAssessmentError, _safe_file
 
 
 def test_accepts_project_relative_path_including_root(

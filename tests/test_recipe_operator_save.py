@@ -4,18 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.recipe_proposals import (
-    RecipeOperatorSaveError,
-    review_recipe_request,
-    save_reviewed_recipe,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
-from geoagent_harness.model import (
-    ModelRequest,
-    ModelResult,
-)
+from geoagent_harness.capabilities.recipes.proposals.operator_save import RecipeOperatorSaveError, save_reviewed_recipe
+from geoagent_harness.agents.runtime.recipe_proposal import review_recipe_request
+from geoagent_harness.platform.skill_registry import load_skill_registry
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ModelResult
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

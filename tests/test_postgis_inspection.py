@@ -3,15 +3,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgis.inspection import (
-    PostGISColumn,
-    PostGISInspectionError,
-    PostGISInspectionRequest,
-    inspect_postgis_table,
-)
-from geoagent_harness.verifier.postgis import LayerExtent
-from geoagent_harness.skill_registry import load_skill_registry
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISColumn, PostGISInspectionRequest
+from geoagent_harness.data.databases.postgis.inspection.service import PostGISInspectionError, inspect_postgis_table
+from geoagent_harness.core.verification.postgis import LayerExtent
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 class FakeReader:

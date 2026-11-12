@@ -5,14 +5,9 @@ import json
 
 import pytest
 
-from geoagent_harness.recipes import (
-    RecipeStorageError,
-    WorkflowRecipe,
-    load_recipe,
-    load_recipe_draft,
-    recipe_sha256,
-    save_recipe,
-)
+from geoagent_harness.core.ledger.recipe_storage import RecipeStorageError, load_recipe, load_recipe_draft, save_recipe
+from geoagent_harness.contracts.recipes import WorkflowRecipe
+from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
 
 
 def make_recipe(

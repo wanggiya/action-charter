@@ -5,15 +5,8 @@ from datetime import datetime, timezone
 import pytest
 from pydantic import ValidationError
 
-from geoagent_harness.critic import (
-    CriticAssessment,
-    CriticResult,
-    CriticResultRecord,
-    CriticResultRecordError,
-    EvidenceReference,
-    build_critic_result_record,
-    critic_result_sha256,
-)
+from geoagent_harness.contracts.critic import CriticAssessment, CriticResult, CriticResultRecord, EvidenceReference
+from geoagent_harness.platform.storage.critic_records import CriticResultRecordError, build_critic_result_record, critic_result_sha256
 
 
 NOW = datetime(2026, 9, 3, 4, tzinfo=timezone.utc)

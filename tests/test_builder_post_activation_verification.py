@@ -7,10 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.builder import (
-    BuilderPostActivationVerificationError,
-    verify_builder_activation,
-)
+from geoagent_harness.evolution.builder.post_activation_verification import BuilderPostActivationVerificationError, verify_builder_activation
 from tests.test_builder_activation import (
     activate,
     prepared_activation,

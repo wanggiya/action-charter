@@ -5,10 +5,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 runner = CliRunner()

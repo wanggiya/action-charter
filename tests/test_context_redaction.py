@@ -1,7 +1,4 @@
-from geoagent_harness.context_pack.redaction import (
-    redact_text,
-    redact_value,
-)
+from geoagent_harness.contracts.context_redaction import redact_text, redact_value
 
 
 def test_redacts_secret_assignment() -> None:

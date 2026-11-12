@@ -6,17 +6,10 @@ from pathlib import Path
 import pytest
 import yaml
 
-from geoagent_harness.skill_registry import (
-    SkillAccess,
-    SkillKind,
-    SkillRegistry,
-)
-from geoagent_harness.skill_scaffolding import (
-    SkillScaffoldGenerationError,
-    SkillScaffoldRequest,
-    generate_skill_scaffold,
-    plan_skill_scaffold,
-)
+from geoagent_harness.contracts.skill_registry import SkillAccess, SkillKind, SkillRegistry
+from geoagent_harness.capabilities.skills.scaffolding.generator import SkillScaffoldGenerationError, generate_skill_scaffold
+from geoagent_harness.capabilities.skills.scaffolding.schemas import SkillScaffoldRequest
+from geoagent_harness.capabilities.skills.scaffolding.planner import plan_skill_scaffold
 
 
 def artifact_write_plan():

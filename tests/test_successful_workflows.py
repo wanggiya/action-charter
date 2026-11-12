@@ -6,10 +6,11 @@ import pytest
 from typer.testing import CliRunner
 
 from tests.test_reusable_recipes_and_runs import project, use, execution
-from geoagent_harness.recipe_catalog import successful as saved
-from geoagent_harness.recipe_catalog.composition import compose, RecipeRequest, recipe_action
-from geoagent_harness.interface_api.workflow_runs import RunRequest, run_action
-from geoagent_harness.cli import app
+from geoagent_harness.capabilities.recipes.catalog import successful as saved
+from geoagent_harness.capabilities.recipes.catalog.composition import compose, RecipeRequest
+from geoagent_harness.task_actions.recipe_catalog import recipe_action
+from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
+from geoagent_harness.apps.cli.main import app
 
 
 def execute(project, *, inspection=False, target='cleaned'):
@@ -21,7 +22,7 @@ def execute(project, *, inspection=False, target='cleaned'):
 
 
 def test_retention_is_automatic_private_metadata_without_model_calls(project,monkeypatch):
-    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
     monkeypatch.setattr(SharedModelClient,'complete',lambda *args:pytest.fail('Retention must not call a model'))
     record=execute(project)
     assert record['status']=='completed' and record['successful_recipe']['status']=='saved'
@@ -87,7 +88,7 @@ def test_recording_failure_does_not_change_execution_and_retry_only_indexes(proj
     before=(project/'data/output/cleaned.csv').read_bytes()
     monkeypatch.setattr(saved,'retain',real)
     # The operation executor must never be called by retry indexing.
-    import geoagent_harness.interface_api.workflow as service
+    import geoagent_harness.task_actions.workflow as service
     monkeypatch.setattr(service,'execute_workflow',lambda *a,**k:pytest.fail('Indexing cannot execute'))
     retried=run_action(RunRequest(action='retain',run_id=record['run_id']),project_root=project)
     assert retried['successful_recipe']['status']=='saved'
@@ -144,7 +145,7 @@ def test_missing_snapshot_and_unsafe_storage_do_not_imply_success(project,tmp_pa
 
 
 def test_spatial_inspection_is_retained_without_csv_claims(project):
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.contracts.planning import PlannerResult
     result=PlannerResult(model='fixture',original_request='Inspect vector only',context_references=[],plan={'summary':'Inspect vector','steps':[{'step_id':'step_1','skill':'inspect_vector','purpose':'Inspect','arguments':{'path':'data/input/points.geojson'},'requires_approval':False,'validation_required':False}]})
     record=run_action(RunRequest(action='start',workflow=execution(project,result)),project_root=project,background=False)
     assert record['successful_recipe']['status']=='saved'
@@ -171,7 +172,7 @@ def test_corrupt_index_does_not_hide_other_recipe_templates(project):
 
 
 def test_critic_timeout_does_not_block_automatic_retention(project,monkeypatch):
-    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
     monkeypatch.setenv('MODEL_NAME','offline-fixture')
     monkeypatch.setenv('MODEL_BASE_URL','http://127.0.0.1:1/v1')
     monkeypatch.setattr(SharedModelClient,'complete',lambda *args:(_ for _ in ()).throw(TimeoutError('fixture timeout')))
@@ -186,7 +187,7 @@ def test_separate_cli_process_reopens_persisted_records_without_execution(projec
     import subprocess,sys
     record=execute(project)
     before=(project/'data/output/cleaned.csv').read_bytes()
-    script="from typer.testing import CliRunner; from geoagent_harness.cli import app; import sys; r=CliRunner().invoke(app,['reusable-recipes','--project-root',sys.argv[1]]); print(r.output); assert r.exit_code==0"
+    script="from typer.testing import CliRunner; from geoagent_harness.apps.cli.main import app; import sys; r=CliRunner().invoke(app,['reusable-recipes','--project-root',sys.argv[1]]); print(r.output); assert r.exit_code==0"
     result=subprocess.run([sys.executable,'-c',script,str(project)],capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stderr
     assert json.loads(result.stdout)['successful_records'][0]['sources'][0]['run_id']==record['run_id']

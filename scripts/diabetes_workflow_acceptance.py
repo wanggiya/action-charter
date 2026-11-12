@@ -19,13 +19,16 @@ import psycopg
 from diabetes_reference import reference,read_book,sha,CODES
 from diabetes_test_flow import make_plan,SELECTED,LABELS,EXPORTED
 from postgres_workflow_acceptance import docker,rejection
-from geoagent_harness.interface_api import server as api
-from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.postgres.service import inspect
-from geoagent_harness.write_policy import session
-from geoagent_harness.tabular.analytical_service import profile_table
+from geoagent_harness.apps.http import server as api
+from geoagent_harness.task_actions.workflow import WorkflowRequest
+from geoagent_harness.task_actions.workflow import prepare_workflow
+from geoagent_harness.task_actions.workflow import authorize_workflow
+from geoagent_harness.task_actions.workflow import execute_workflow
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.databases.postgres.service import inspect
+from geoagent_harness.core.policy.write_policy import session
+from geoagent_harness.data.tabular.analytical_service import profile_table
 
 REPO=Path(__file__).resolve().parents[1]
 def execute(plan,root):
@@ -35,7 +38,8 @@ def execute(plan,root):
     rejection(lambda:execute_workflow(req.model_copy(update={'action':'execute_workflow','confirmed_review_sha256':review['review_sha256'],'confirm_execution':True}),project_root=root))
     approved=authorize_workflow(req.model_copy(update={'action':'authorize_workflow','confirmed_review_sha256':review['review_sha256'],'approve_required_steps':True,'approver':'real-data-fixture','reason':'Exact temporary diabetes sample outputs and disposable database only'}),project_root=root)
     assert not list((root/'data/output').iterdir()),'Authorization must not execute preparation or database work'
-    from geoagent_harness.interface_api.workflow_runs import RunRequest,run_action
+    from geoagent_harness.task_actions.workflow_runs import RunRequest
+    from geoagent_harness.task_actions.workflow_runs import run_action
     workflow=req.model_copy(update={'action':'execute_workflow','confirmed_review_sha256':review['review_sha256'],'confirm_execution':True,'plan_approval_filename':approved['plan_approval_filename'],'recipe_approval_filename':approved['recipe_approval_filename']})
     record=run_action(RunRequest(action='start',workflow=workflow),project_root=root,background=False)
     assert record['status']=='completed',str(record.get('finding','Inspect temporary durable evidence; no automatic retry'))

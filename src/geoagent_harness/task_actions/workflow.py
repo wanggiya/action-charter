@@ -1,8 +1,8 @@
 """Typed current-plan review and execution; context never supplies authority."""
 from __future__ import annotations
-from geoagent_harness.storage import repositories
-from .storage_paths import runtime_store_path, ensure_state_root
-from geoagent_harness.workspace import WorkspaceLayout
+from geoagent_harness.platform.storage import repositories
+from geoagent_harness.platform.paths import runtime_store_path, ensure_state_root
+from geoagent_harness.platform.workspace import WorkspaceLayout
 
 import hashlib
 import json
@@ -15,32 +15,31 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from geoagent_harness.approvals import load_planner_result, plan_sha256
-from geoagent_harness.planner.schemas import PlannerResult
-from geoagent_harness.planner.policy import normalize_plan_input_filenames, validate_plan_policy
-from geoagent_harness.planner.recipe_definition import planner_recipe_definition
-from geoagent_harness.recipes import schemas
-from geoagent_harness.recipes.policy import validate_recipe_policy
-from geoagent_harness.recipes.storage import save_recipe, load_recipe, recipe_path
-from geoagent_harness.recipes.digest import recipe_sha256
-from geoagent_harness.skill_registry import load_skill_registry
+from geoagent_harness.core.policy.approvals import load_planner_result, plan_sha256
+from geoagent_harness.contracts.planning import PlannerResult
+from geoagent_harness.core.policy.plan import normalize_plan_input_filenames, validate_plan_policy
+from geoagent_harness.core.policy.recipe_definition import planner_recipe_definition
+from geoagent_harness.capabilities.workflow import _check, validate_edit
+from geoagent_harness.contracts.actions import EditRequest
+from geoagent_harness.contracts import recipes as schemas
+from geoagent_harness.core.policy.recipe import validate_recipe_policy
+from geoagent_harness.core.ledger.recipe_storage import save_recipe, load_recipe, recipe_path
+from geoagent_harness.core.ledger.recipe_identity import recipe_sha256
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
-from geoagent_harness.write_policy import effective, snapshot
+from geoagent_harness.core.policy.write_policy import effective, snapshot
 
-from .snakemake_workflow import ExportArguments, VerifyArguments, has_export
+from geoagent_harness.contracts.snakemake import ExportArguments, VerifyArguments
+from geoagent_harness.capabilities.workflow import has_export
 
-from geoagent_harness.operations.registry import argument_models, builtin_argument_models
+from geoagent_harness.capabilities.registry.registry import argument_models, builtin_argument_models
 ARGUMENTS = builtin_argument_models()
-from geoagent_harness.postgres.schemas import ARGUMENTS as PG_ARGUMENTS, READ_IDS as PG_READS
+from geoagent_harness.contracts.postgres import ARGUMENTS as PG_ARGUMENTS, READ_IDS as PG_READS
 
 _LOCK = Lock()
 _ACTIVE: set[str] = set()
 
 
-class EditRequest(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    action: Literal['validate_plan_edit']
-    planner_result: PlannerResult
 
 
 class WorkflowRequest(BaseModel):
@@ -58,68 +57,23 @@ class WorkflowRequest(BaseModel):
     reason: str = Field(default='', max_length=2000)
 
 
-def _check(result, root):
-    from .common import InterfaceApiError
-    from geoagent_harness.recipes.dispatcher import _validate_registered_skill, RecipeDispatchError
-    from geoagent_harness.intent.input import check_task_input
-    from geoagent_harness.intent.service import IntentError
-    if has_export(result):
-        from .snakemake_workflow import validate_export_plan
-        return validate_export_plan(result, root)
-    registry = load_skill_registry(root)
-    validate_plan_policy(result.plan, available_skills={s.id for s in registry.implemented_skills()})
-    models = argument_models(root)
-    for step in result.plan.steps:
-        if step.skill not in models:
-            raise InterfaceApiError('This operation is not supported by current workflow execution: ' + step.skill)
-        try:
-            _validate_registered_skill(skill_id=step.skill, registry=registry)
-        except RecipeDispatchError as error:
-            raise InterfaceApiError('Registered operation does not match the trusted dispatcher') from error
-        typed = models[step.skill].model_validate(step.arguments)
-        if step.skill.startswith('ext_'):
-            from geoagent_harness.operations.packages import installed_packages, package_sha
-            if typed.package_sha256 != package_sha(installed_packages(root)[step.skill]):
-                raise InterfaceApiError('Installed package digest does not match this proposal')
-        for input_key in ('path', 'right_path', 'codebook_path'):
-            if step.arguments.get(input_key) is None:
-                continue
-            try:
-                check_task_input(project_root=root, input_path=step.arguments[input_key])
-            except IntentError as error:
-                raise InterfaceApiError('Input must be an available regular file under data/input') from error
-        if 'target_path' in step.arguments and not step.arguments['target_path'].startswith('data/output/'):
-            raise InterfaceApiError('Output paths must remain under data/output')
-    if any(step.skill == 'calculate_csv_columns' for step in result.plan.steps):
-        from geoagent_harness.tabular.policy import preflight_calculations
-        preflight_calculations(result.plan.steps, root)
-    recipe = planner_recipe_definition(result, plan_sha256(result.plan))
-    policy = validate_recipe_policy(recipe, registry=registry)
-    return registry, recipe, policy
 
 
-def validate_edit(request: EditRequest, *, project_root: Path):
-    from .common import _trusted_root
-    result = request.planner_result
-    normalize_plan_input_filenames(result.plan)
-    from geoagent_harness.planner.bindings import bind_streaming_preparation
-    bind_streaming_preparation(result.plan,project_root)
-    _check(result, _trusted_root(project_root))
-    return dict(schema_version='1.0', status='planned_not_saved',
-                **result.model_dump(mode='json'), allowed_skill_ids=list(dict.fromkeys(s.skill for s in result.plan.steps)),
-                plan_sha256=plan_sha256(result.plan), plan_saved=False, approval_performed=False, execution_performed=False)
 
 
 def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
-    from .artifacts import (_trusted_root, InterfaceApiError, InterfacePlanApprovalPreparationRequest,
-                         prepare_interface_plan_approval, load_settings)
+    from geoagent_harness.platform.project import _trusted_root
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.contracts.actions import InterfacePlanApprovalPreparationRequest
+    from geoagent_harness.task_actions.artifacts import prepare_interface_plan_approval
+    from geoagent_harness.platform.settings import load_settings
     root = _trusted_root(project_root)
     prepared = prepare_interface_plan_approval(InterfacePlanApprovalPreparationRequest(
         action='prepare_plan_approval', plan_filename=request.plan_filename,
         confirmed_plan_sha256=request.confirmed_plan_sha256), project_root=root)
     result = repositories(root).documents('plans', directory=runtime_store_path(root, 'plans')).load((runtime_store_path(root, 'plans') / request.plan_filename).name)
     if has_export(result):
-        from .snakemake_workflow import prepare_export_workflow
+        from geoagent_harness.task_actions.snakemake_workflow import prepare_export_workflow
         return prepare_export_workflow(request, project_root=root)
     registry, recipe, policy = _check(result, root)
     required = list(dict.fromkeys([*prepared['approval_required_step_ids'], *policy.approval_required_step_ids]))
@@ -139,11 +93,12 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
     steps = [{**step, "depends_on": recipe_steps[step["step_id"]].depends_on, 'requires_approval': step['step_id'] in required,
               'validation_required': step['validation_required'] or registry.get_skill(step['skill']).validation_required}
              for step in (plan_steps[step_id] for step_id in policy.topological_step_ids)]
-    from geoagent_harness.operations.packages import installed_packages, configuration
+    from geoagent_harness.platform.storage.operation_packages import installed_packages
+    from geoagent_harness.contracts.operation_packages import configuration
     packages = installed_packages(root)
     for step in steps:
         if step['skill'] in PG_ARGUMENTS:
-            from geoagent_harness.postgres.service import effects
+            from geoagent_harness.data.databases.postgres.service import effects
             step['database_effects']=effects(step['skill'],step['arguments'],load_settings())
         package = packages.get(step['skill'])
         if package:
@@ -154,7 +109,7 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
                  execution_available=not policy.write_step_ids or effective(load_settings(), root).enable_write_tools,
                  execution_performed=False)
     if request.conversation_id:
-        from .planning_tasks import conversation_record
+        from geoagent_harness.task_actions.planning_tasks import conversation_record
         chat=conversation_record(root,request.conversation_id) or {}
         coordination=chat.get('agent_coordination') or {}
         if coordination.get('plan_sha256')==request.confirmed_plan_sha256:
@@ -170,11 +125,11 @@ def prepare_workflow(request: WorkflowRequest, *, project_root: Path):
 
 def _authorize_workflow(request: WorkflowRequest, *, project_root: Path):
     """Record explicit exact-scope decisions without running any operation."""
-    from . import execution as actions
+    from geoagent_harness.task_actions import execution as actions
     root = actions._trusted_root(project_root)
     review = prepare_workflow(request, project_root=root)
     if review.get('workflow_kind') == 'snakemake_export':
-        from .snakemake_workflow import authorize_export_workflow
+        from geoagent_harness.task_actions.snakemake_workflow import authorize_export_workflow
         return authorize_export_workflow(request, project_root=root)
     if request.confirmed_review_sha256 != review['review_sha256']:
         raise actions.InterfaceApiError('Authorization review digest no longer matches')
@@ -211,11 +166,11 @@ def _authorize_workflow(request: WorkflowRequest, *, project_root: Path):
 
 
 def execute_workflow(request: WorkflowRequest, *, project_root: Path):
-    from . import execution as actions
+    from geoagent_harness.task_actions import execution as actions
     root = actions._trusted_root(project_root)
     review = prepare_workflow(request, project_root=root)
     if review.get('workflow_kind') == 'snakemake_export':
-        from .snakemake_workflow import execute_export_workflow
+        from geoagent_harness.task_actions.snakemake_workflow import execute_export_workflow
         return execute_export_workflow(request, project_root=root)
     if not request.confirm_execution or request.confirmed_review_sha256 != review['review_sha256']:
         raise actions.InterfaceApiError('Confirm the current exact workflow review before execution')
@@ -249,8 +204,8 @@ def execute_workflow(request: WorkflowRequest, *, project_root: Path):
             if not verified['approved']:
                 raise actions.InterfaceApiError('Plan authorization expired or blocked; make a fresh explicit decision')
             if review['write_step_ids']:
-                from geoagent_harness.approvals import load_approval
-                from geoagent_harness.write_policy import check
+                from geoagent_harness.core.policy.approvals import load_approval
+                from geoagent_harness.core.policy.write_policy import check
                 check(root, load_approval(path=runtime_store_path(root, 'approvals') / plan_approval, approval_root=runtime_store_path(root, 'approvals')))
         if review['write_step_ids']:
             if not recipe_approval:
@@ -269,7 +224,7 @@ def execute_workflow(request: WorkflowRequest, *, project_root: Path):
 
 
 def _inspection_root(root):
-    from .common import InterfaceApiError
+    from geoagent_harness.contracts.errors import InterfaceApiError
     destination = runtime_store_path(root, 'inspection-runs')
     if destination.is_symlink():
         raise InterfaceApiError('inspection run root cannot be a symlink')
@@ -279,16 +234,17 @@ def _inspection_root(root):
 
 
 def _execute_inspections(review, root):
-    from .common import _bounded_outcome, InterfaceApiError
-    from geoagent_harness.intent.input import check_task_input
-    from geoagent_harness.skills.inspect_vector.service import inspect_vector
-    from geoagent_harness.skills.inspect_raster.service import inspect_raster
-    from geoagent_harness.skills.inspect_raster.schemas import InspectRasterArguments
+    from geoagent_harness.platform.outcomes import _bounded_outcome
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.data.discovery.input import check_task_input
+    from geoagent_harness.data.spatial.skills.inspect_vector.service import inspect_vector
+    from geoagent_harness.data.spatial.skills.inspect_raster.service import inspect_raster
+    from geoagent_harness.data.spatial.skills.inspect_raster.schemas import InspectRasterArguments
     destination = _inspection_root(root)
     record = dict(schema_version='1.0', run_id=uuid.uuid4().hex, plan_sha256=review['plan_sha256'],
                   plan_filename=review['plan_filename'], started_at=datetime.now(timezone.utc).isoformat(),
                   finished_at=None, status='running', step_results=[], approval_recorded=bool(review['approval_required_step_ids']), execution_performed=False)
-    from geoagent_harness.recipes.control import observer
+    from geoagent_harness.platform.execution_control import observer
     if observer.get() is not None:
         record['workflow_run_id'] = observer.get().identity
     path = destination / (record['run_id'] + '.json')
@@ -304,24 +260,25 @@ def _execute_inspections(review, root):
     persist()
     try:
         for step in review['steps']:
-            from geoagent_harness.recipes.control import checkpoint, progress
+            from geoagent_harness.platform.execution_control import checkpoint, progress
             checkpoint()
             progress(step['step_id'], step['skill'], 'running')
             relative = '' if step['skill'] in PG_READS else check_task_input(project_root=root, input_path=step['arguments']['path'])
             record['execution_performed'] = True
-            from .inspection_policy import active_inspection
+            from geoagent_harness.task_actions.inspection_policy import active_inspection
             spatial_binding = None
             if step['skill']=='inspect_vector' and relative.lower().endswith('.geojson') and not active_inspection.get():
                 try:
-                    from .inspection_policy import bounded_read
+                    from geoagent_harness.workspaces.sandbox.inspection import bounded_read
                     spatial_binding = bounded_read(root, action='snapshot', path=relative, checkpoint=checkpoint)
                 except (ValueError, OSError, InterfaceApiError):
                     pass  # Ordinary Execute retains existing inspector support.
-            from .inspection_policy import active_inspection, bounded_read, check_dispatch
+            from geoagent_harness.task_actions.inspection_policy import active_inspection, check_dispatch
+            from geoagent_harness.workspaces.sandbox.inspection import bounded_read
             bound = active_inspection.get()
             if step['skill'] in PG_READS:
-                from geoagent_harness.postgres.service import inspect as inspect_postgres
-                from geoagent_harness.mcp_server.settings import load_settings
+                from geoagent_harness.data.databases.postgres.service import inspect as inspect_postgres
+                from geoagent_harness.platform.settings import load_settings
                 result=inspect_postgres(step['skill'],step['arguments'],load_settings().model_copy(update={'project_root':root}))
             elif bound:
                 check_dispatch(root, review, bound)
@@ -338,7 +295,7 @@ def _execute_inspections(review, root):
                         delimiter=step['arguments'].get('delimiter', ','),
                         preview_rows=step['arguments'].get('preview_rows', 5), checkpoint=checkpoint)
             elif step['skill'] == 'inspect_csv':
-                from geoagent_harness.tabular.service import inspect_csv
+                from geoagent_harness.data.tabular.service import inspect_csv
                 result=bounded_read(root,action='csv_discover',path=relative,
                     delimiter=step['arguments'].get('delimiter',','),preview_rows=step['arguments'].get('preview_rows',5),
                     checkpoint=checkpoint,on_metadata=lambda value: progress(step['step_id'],step['skill'],'running',value),
@@ -351,7 +308,7 @@ def _execute_inspections(review, root):
             else:
                 result = inspect_raster(InspectRasterArguments(path=root / relative, input_root=root / 'data/input'))
             if spatial_binding:
-                from .inspection_policy import bounded_read
+                from geoagent_harness.workspaces.sandbox.inspection import bounded_read
                 after = bounded_read(root, action='snapshot', path=relative, checkpoint=checkpoint)
                 if after['source_sha256'] != spatial_binding['source_sha256']:
                     raise InterfaceApiError('Spatial input changed during inspection')
@@ -363,7 +320,7 @@ def _execute_inspections(review, root):
             progress(step['step_id'], step['skill'], 'completed', record['step_results'][-1]['outcome'])
         record['status'] = 'completed'
     except Exception as error:
-        from geoagent_harness.recipes.control import ExecutionCancelled
+        from geoagent_harness.platform.execution_control import ExecutionCancelled
         if isinstance(error, ExecutionCancelled):
             record['status'] = 'cancelled'
             raise
@@ -377,7 +334,8 @@ def _execute_inspections(review, root):
 
 
 def inspection_inventory(*, project_root):
-    from .common import _trusted_root, InterfaceApiError
+    from geoagent_harness.platform.project import _trusted_root
+    from geoagent_harness.contracts.errors import InterfaceApiError
     destination = runtime_store_path(_trusted_root(project_root), 'inspection-runs')
     if destination.is_symlink():
         raise InterfaceApiError('inspection run root cannot be a symlink')
@@ -387,7 +345,7 @@ def inspection_inventory(*, project_root):
             value = json.loads(path.read_text())
             if isinstance(value.get('run_id'), str) and value['run_id'] + '.json' == path.name:
                 if value.get('status') == 'running' and value.get('workflow_run_id'):
-                    from .workflow_runs import RunRequest, run_action
+                    from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
                     run = run_action(RunRequest(action='read',run_id=value['workflow_run_id']),project_root=project_root)
                     if run['status'] in {'interrupted','cancelled','failed'}:
                         value['status'] = run['status']
@@ -443,7 +401,15 @@ def execution_failure_payload(error):
 
 
 def authorize_workflow(request: WorkflowRequest, *, project_root: Path):
-    from geoagent_harness.write_policy import issuance
+    from geoagent_harness.core.policy.write_policy import issuance
     review=prepare_workflow(request,project_root=project_root)
     with issuance(project_root,review.get('write_policy')):
         return _authorize_workflow(request,project_root=project_root)
+
+
+# Trusted context kwargs stay outside transport/model request schemas.
+from geoagent_harness.core.execution.actions import task_entrypoint as _task_entrypoint
+prepare_workflow = _task_entrypoint(prepare_workflow, audit=False)
+execute_workflow = _task_entrypoint(execute_workflow)
+inspection_inventory = _task_entrypoint(inspection_inventory, audit=False)
+authorize_workflow = _task_entrypoint(authorize_workflow)

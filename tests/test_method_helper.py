@@ -8,13 +8,13 @@ from threading import Event, Thread
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.interface_api import method_helper as helper
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.model import ModelClientError
-from geoagent_harness.model.schemas import ModelResult
-from geoagent_harness.model.settings import ModelSettings
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.task_actions import method_helper as helper
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.platform.model_settings import ModelSettings
 
 REPO = Path(__file__).parents[1]
 CHAT = 'a'*32
@@ -165,7 +165,7 @@ def test_off_during_note_assisted_planning_discards_stale_reply(project):
 def test_corrupt_or_incompatible_note_is_not_injected(project):
     enable(project);turn(project,agent=Helper())
     # Corrupt fixture bytes through the explicitly retained raw SQLite boundary.
-    from geoagent_harness.task_actions.planning_tasks import database
+    from geoagent_harness.platform.storage.metadata import raw_database as database
     with database(project,write=True) as connection:
         row=connection.execute('SELECT source_key,value FROM method_helper_notes').fetchone()
         value=json.loads(row[1]);value['note']['contract_version']='999'
@@ -235,7 +235,7 @@ def test_source_revision_change_discards_note_after_model(project):
     enable(project)
     class Changing(Helper):
         def complete(self,request):
-            from geoagent_harness.interface_api.planning_tasks import write_turn
+            from geoagent_harness.task_actions.planning_tasks import write_turn
             current=helper._current(project,CHAT);value=current.model_dump(mode='json');value['revision']+=1
             write_turn(project,value,expected_revision=current.revision,expected_task_revision=current.revision)
             return super().complete(request)

@@ -3,23 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.agent_manifest import (
-    AgentManifest,
-    AgentPermissions,
-    load_agent_manifest,
-)
-from geoagent_harness.builder import (
-    BuilderAgentError,
-    BuilderArtifactKind,
-    BuilderArtifactRequest,
-    BuilderProposal,
-    BuilderRequest,
-    generate_builder_proposal,
-)
-from geoagent_harness.model import (
-    ModelRequest,
-    ModelResult,
-)
+from geoagent_harness.agents.runtime.manifest import AgentManifest, AgentPermissions, load_agent_manifest
+from geoagent_harness.evolution.builder.agent import BuilderAgentError, generate_builder_proposal
+from geoagent_harness.evolution.builder.schemas import BuilderArtifactKind, BuilderArtifactRequest, BuilderProposal, BuilderRequest
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest, ModelResult
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 

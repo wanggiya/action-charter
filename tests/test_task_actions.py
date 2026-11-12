@@ -13,14 +13,14 @@ from threading import Thread
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.approvals import plan_sha256
-from geoagent_harness.chat.client import ChatClient, ChatError
-from geoagent_harness.mcp_server.settings import MCPSettings
-from geoagent_harness.mcp_server.tools import workflow_report
-from geoagent_harness.planner.schemas import PlannerResult
+from geoagent_harness.core.policy.approvals.service import plan_sha256
+from geoagent_harness.apps.chat.client import ChatClient, ChatError
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.task_actions.data_tools import workflow_report
+from geoagent_harness.contracts.planning import PlannerResult
 from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan
-from geoagent_harness.task_actions.common import TaskActionError
-from geoagent_harness.task_actions.contracts import InterfaceReviewedPlanSaveRequest
+from geoagent_harness.contracts.errors import TaskActionError
+from geoagent_harness.contracts.actions import InterfaceReviewedPlanSaveRequest
 from geoagent_harness.task_actions.workflow import WorkflowRequest, prepare_workflow, authorize_workflow
 from geoagent_harness.task_actions.workflow_runs import RunRequest, run_action
 
@@ -41,7 +41,7 @@ def project(tmp_path, monkeypatch, request):
             'version': 1, 'state_root': str(tmp_path.parent / (tmp_path.name + '-state'))}))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv('ENABLE_WRITE_TOOLS', 'false')
-    from geoagent_harness.model import SharedModelClient
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
     def unexpected(*args, **kwargs):
         pytest.fail('This parity journey must not invoke a model')
     monkeypatch.setattr(SharedModelClient, 'complete', unexpected)
@@ -65,7 +65,7 @@ def stored(project, *, write=False):
 
 @contextmanager
 def client(project):
-    from geoagent_harness.interface_api.server import _handler
+    from geoagent_harness.apps.http.server import _handler
     server = ThreadingHTTPServer(('127.0.0.1', 0), _handler(project))
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -81,7 +81,13 @@ def client(project):
 def test_legacy_services_are_identical_shared_modules(module):
     namespace = 'mcp_server' if module in {'approved_recipe', 'approved_workflow', 'data_tools'} else 'interface_api'
     legacy = 'tools' if module == 'data_tools' else module
-    assert import_module(f'geoagent_harness.{namespace}.{legacy}') is import_module(f'geoagent_harness.task_actions.{module}')
+    path = f'geoagent_harness.{namespace}.{legacy}'
+    retired = json.loads((SOURCE / 'tests/architecture/r11_compatibility.json').read_text())['retired']
+    if path in retired:
+        with pytest.raises(ModuleNotFoundError):
+            import_module(path)
+    else:
+        assert import_module(path) is import_module(f'geoagent_harness.task_actions.{module}')
 
 
 def test_actions_do_not_import_transport_implementations():
@@ -105,7 +111,7 @@ def test_actions_do_not_import_transport_implementations():
 
 
 def test_same_review_run_and_report_through_shared_api_cli_chat_and_mcp(project):
-    from geoagent_harness.cli import app
+    from geoagent_harness.apps.cli.main import app
     request = stored(project)
     review = prepare_workflow(request, project_root=project)
     with client(project) as chat:
@@ -129,7 +135,7 @@ def test_same_review_run_and_report_through_shared_api_cli_chat_and_mcp(project)
             input_root=project / 'data/input', output_root=project / 'data/output')) == report
         assert chat.post('/api/v1/workflow/runs', report_request.model_dump(mode='json')) == report
         assert run_action(RunRequest(action='list'), project_root=project)['records'][0]['run_id'] == run['run_id']
-    from geoagent_harness.workspace import runtime_store_path
+    from geoagent_harness.platform.workspace import runtime_store_path
     assert not runtime_store_path(project, 'approvals').exists()
     assert len(list(runtime_store_path(project, 'workflow-state', 'interface-runs').glob('*.json'))) == 1
     assert (project / 'data/input/orders.csv').read_text() == 'region,amount\nNorth,10\nSouth,20\n'
@@ -149,6 +155,6 @@ def test_disabled_writes_remain_blocked_in_shared_and_http_actions(project):
         assert chat.post('/api/v1/workflow/prepare', request.model_dump(mode='json')) == review
         with pytest.raises(ChatError, match='OFF'):
             chat.post('/api/v1/workflow/authorize', authorization.model_dump(mode='json'))
-    from geoagent_harness.workspace import runtime_store_path
+    from geoagent_harness.platform.workspace import runtime_store_path
     assert not runtime_store_path(project, 'approvals').exists()
     assert not list((project / 'data/output').iterdir())

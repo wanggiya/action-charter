@@ -7,8 +7,8 @@ import pytest
 from typer.testing import CliRunner
 from tests.test_task_agents import project
 
-from geoagent_harness.tabular.analytical_service import profile_table
-from geoagent_harness.tabular.readiness import ReadinessAssessment, attach_assessment, build_assessment, compact_assessment
+from geoagent_harness.data.tabular.analytical_service import profile_table
+from geoagent_harness.data.tabular.readiness import ReadinessAssessment, attach_assessment, build_assessment, compact_assessment
 
 
 @pytest.fixture
@@ -58,8 +58,8 @@ def test_unknown_checks_filters_and_empty_denominators_are_explicit(data):
 
 
 def test_dataset_projection_and_saved_terminal_report_do_not_rescan(data,monkeypatch):
-    from geoagent_harness.tabular.dataset_service import profile_dataset
-    from geoagent_harness.chat.views import saved_view,render_view
+    from geoagent_harness.data.tabular.dataset_service import profile_dataset
+    from geoagent_harness.apps.chat.views import saved_view, render_view
     monkeypatch.setenv('ACTIONCHARTER_ANALYTICAL_RUNTIME','local')
     r=profile_dataset(data,'measurements.csv',{'numeric_columns':['value'],'missing_values':{'value':['?']}},retain_artifact=False)
     a=r['readiness_assessment'];assert a['source_rows']==4
@@ -82,8 +82,8 @@ def test_budget_omissions_never_discard_original_analysis_and_text_is_escaped(da
 
 
 def test_cli_and_mcp_share_same_readiness_evidence(data):
-    from geoagent_harness.cli import app
-    from geoagent_harness.mcp_server import tools
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.task_actions import data_tools as tools
     expected=profile_table(data,'measurements.csv',options())['readiness_assessment']
     mcp=tools.profile_table('measurements.csv',options(),settings=SimpleNamespace(project_root=data,input_root=data/'data/input'))
     assert mcp['readiness_assessment']==expected
@@ -93,7 +93,7 @@ def test_cli_and_mcp_share_same_readiness_evidence(data):
 
 
 def test_critic_evidence_contains_scope_unknowns_and_no_report_rows(data):
-    from geoagent_harness.interface_api.run_assessment import evidence
+    from geoagent_harness.task_actions.run_assessment import evidence
     outcome=profile_table(data,'measurements.csv',{})
     record={'run_id':'r','plan_sha256':'a'*64,'status':'completed','failed_step_id':None,'steps':[{'step_id':'step_1','skill_id':'inspect_csv','status':'completed','outcome':outcome}]}
     value=evidence(record)['steps'][0]['metadata']['readiness']
@@ -122,7 +122,7 @@ def test_group_rates_use_all_groups_before_report_truncation(data):
 
 
 def test_readiness_planning_is_focused_without_omitting_requested_checks(project):
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
+    from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
     from tests.test_planner_conversation import Client
     from jsonschema import Draft202012Validator
     folder=project/'data/input/test';folder.mkdir()
@@ -148,7 +148,7 @@ def test_readiness_planning_is_focused_without_omitting_requested_checks(project
     assert not result['execution_performed'] and not result['approval_performed']
     assert not (project/'approvals').exists()
     assert result['context_usage']['model_request']['prompt_profile']=='table-inspection-focused-v1'
-    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
     timed=Client(ModelClientError.timeout())
     with pytest.raises(ModelClientError) as failure:
         conversation_turn(TurnRequest(action='turn',conversation_id='f'*32,expected_revision=1,

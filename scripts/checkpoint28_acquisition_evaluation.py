@@ -17,15 +17,21 @@ def main():
     parser.add_argument('--prepare-only',action='store_true')
     parser.add_argument('--output',type=Path,default=Path('/tmp/actioncharter-checkpoint28-acquisition.json'))
     args=parser.parse_args()
-    from geoagent_harness.model import SharedModelClient
-    from geoagent_harness.model.settings import ModelSettings
-    from geoagent_harness.interface_api.conversation import TurnRequest,conversation_turn
-    from geoagent_harness.interface_api.server import save_interface_reviewed_plan,InterfaceReviewedPlanSaveRequest
-    from geoagent_harness.interface_api.workflow import WorkflowRequest,prepare_workflow,authorize_workflow,execute_workflow
-    from geoagent_harness.interface_api.workflow import validate_edit,EditRequest
-    from geoagent_harness.planner.schemas import PlannerResult
-    from geoagent_harness.tabular.service import read_frame
-    from geoagent_harness.operations.packages import installed_packages
+    from geoagent_harness.platform.model_gateway.client import SharedModelClient
+    from geoagent_harness.platform.model_settings import ModelSettings
+    from geoagent_harness.task_actions.conversation import TurnRequest
+    from geoagent_harness.task_actions.conversation import conversation_turn
+    from geoagent_harness.apps.http.server import save_interface_reviewed_plan
+    from geoagent_harness.apps.http.server import InterfaceReviewedPlanSaveRequest
+    from geoagent_harness.task_actions.workflow import WorkflowRequest
+    from geoagent_harness.task_actions.workflow import prepare_workflow
+    from geoagent_harness.task_actions.workflow import authorize_workflow
+    from geoagent_harness.task_actions.workflow import execute_workflow
+    from geoagent_harness.task_actions.workflow import validate_edit
+    from geoagent_harness.task_actions.workflow import EditRequest
+    from geoagent_harness.contracts.planning import PlannerResult
+    from geoagent_harness.data.tabular.service import read_frame
+    from geoagent_harness.capabilities.registry.packages import installed_packages
     repo=Path(__file__).resolve().parents[1]
     os.environ.update(ENABLE_WRITE_TOOLS='true',ALLOW_OVERWRITE='false',PLANNER_TURN_TIMEOUT_SECONDS='300')
     calls=[];client=SharedModelClient(ModelSettings(base_url=args.endpoint,model=args.model,timeout_seconds=args.timeout,max_tokens=1024,reasoning_effort='none'))

@@ -1,20 +1,8 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Trusted data-only recipe-template catalog."""
 
-from geoagent_harness.recipe_catalog.schemas import (
-    RecipeTemplateCatalog,
-    RecipeTemplateCatalogEntry,
-    RecipeTemplateArgument,
-    RecipeTemplateStep,
-    RecipeParameterProfile,
-    RecipeAssessmentPolicy,
-)
-from geoagent_harness.recipe_catalog.service import (
-    MAX_RECIPE_TEMPLATE_CATALOG_BYTES,
-    RecipeTemplateCatalogError,
-    load_recipe_template_catalog,
-    parse_recipe_template_catalog,
-    recipe_template_catalog_path,
-)
+from geoagent_harness.capabilities.recipes.catalog.schemas import RecipeTemplateCatalog, RecipeTemplateCatalogEntry, RecipeTemplateArgument, RecipeTemplateStep, RecipeParameterProfile, RecipeAssessmentPolicy
+from geoagent_harness.capabilities.recipes.catalog.service import MAX_RECIPE_TEMPLATE_CATALOG_BYTES, RecipeTemplateCatalogError, load_recipe_template_catalog, parse_recipe_template_catalog, recipe_template_catalog_path
 
 
 __all__ = [

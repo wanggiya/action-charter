@@ -7,11 +7,8 @@ import pytest
 import geopandas as gpd
 from shapely.geometry import Point
 
-from geoagent_harness.skills.convert_vector import (
-    ConvertVectorPolicyError,
-    VectorOutputFormat,
-    plan_vector_conversion,
-)
+from geoagent_harness.data.spatial.skills.convert_vector.policy import ConvertVectorPolicyError, plan_vector_conversion
+from geoagent_harness.data.spatial.skills.convert_vector.schemas import VectorOutputFormat
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

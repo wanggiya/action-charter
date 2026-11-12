@@ -2,14 +2,8 @@
 
 import pytest
 
-from geoagent_harness.schema_registry import (
-    ArtifactType,
-    CompatibilityDisposition,
-    SchemaRegistryError,
-    assess_schema_compatibility,
-    get_schema_policy,
-    list_schema_policies,
-)
+from geoagent_harness.contracts.schema_registry.schemas import ArtifactType, CompatibilityDisposition
+from geoagent_harness.contracts.schema_registry.registry import SchemaRegistryError, assess_schema_compatibility, get_schema_policy, list_schema_policies
 
 
 def test_every_artifact_has_one_policy() -> None:

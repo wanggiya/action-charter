@@ -4,22 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.skills.convert_raster.schemas import (
-    ConvertRasterArguments,
-)
-from geoagent_harness.skills.convert_raster.service import (
-    ConvertRasterError,
-    convert_raster,
-)
-from geoagent_harness.skills.convert_raster.validation import (
-    validate_raster_conversion,
-)
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.data.spatial.skills.convert_raster.schemas import ConvertRasterArguments
+from geoagent_harness.data.spatial.skills.convert_raster.service import ConvertRasterError, convert_raster
+from geoagent_harness.data.spatial.skills.convert_raster.validation import validate_raster_conversion
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_conversion_withholds_success_until_validation(

@@ -19,7 +19,7 @@ export function WorkflowHandoff({record,technicalOnly=false}:{record:ResultRecor
    if(alive)setReport(result);
   }catch(e){if(alive)setError(e instanceof Error?e.message:'Handoff unavailable');}})();
   return()=>{alive=false;};
- },[record.run_id,record.plan_sha256]);
+ },[record.run_id,record.plan_sha256,record.status]);
  const markdown=report?(section==='Technical'?report.technical_markdown:report.analytical_markdown):'';
  const download=async()=>{setBusy(true);try{
   const blob=format==='md'?new Blob([markdown],{type:'text/markdown;charset=utf-8'}):await(await import('../lib/report-pdf')).reportPdf(markdown);

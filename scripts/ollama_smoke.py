@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import json
 
-from geoagent_harness.model import (
-    ChatMessage,
-    ModelClientError,
-    ModelRequest,
-    ModelSettingsError,
-    SharedModelClient,
-    load_model_settings,
-)
+from geoagent_harness.platform.model_gateway.schemas import ChatMessage
+from geoagent_harness.platform.model_gateway.client import ModelClientError
+from geoagent_harness.platform.model_gateway.schemas import ModelRequest
+from geoagent_harness.platform.model_settings import ModelSettingsError
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import load_model_settings
 
 
 def main() -> int:

@@ -3,9 +3,9 @@ import hashlib,json
 from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
-from geoagent_harness.discovery.csv import inspect
-from geoagent_harness.tabular.field_guidance import requests_field_guidance,compact_guidance,guidance_context
-from geoagent_harness.tabular.dataset_profile import inspect_dataset
+from geoagent_harness.data.discovery.csv import inspect
+from geoagent_harness.data.tabular.field_guidance import requests_field_guidance, compact_guidance, guidance_context
+from geoagent_harness.data.tabular.dataset_profile import inspect_dataset
 from tests.test_task_agents import project
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def test_comprehensive_profile_reuses_candidate_roles_and_declared_missingness(d
  assert fields['patient_nbr']['numeric_count'] is None
 
 def test_worker_response_remains_bounded_and_does_not_sample_guidance(data):
- from geoagent_harness.tabular.analytical_service import recommend_fields
+ from geoagent_harness.data.tabular.analytical_service import recommend_fields
  names=[f'field_{i}' for i in range(100)]
  (data/'data/input/wide.csv').write_text(','.join(names)+'\n'+','.join(str(i) for i in range(100))+'\n')
  r=inspect(data,'wide.csv');g=r['field_guidance']
@@ -63,10 +63,10 @@ def test_ordinary_guidance_honors_supplied_codebook_without_converting_values(da
 
 def test_cli_and_registered_mcp_share_guidance_and_reject_unsafe_paths(data):
  import asyncio
- from geoagent_harness.cli import app
- from geoagent_harness.mcp_server import tools
- from geoagent_harness.mcp_server.server import create_mcp_server
- from geoagent_harness.mcp_client import READ_ONLY_TOOL_ALLOWLIST
+ from geoagent_harness.apps.cli.main import app
+ from geoagent_harness.task_actions import data_tools as tools
+ from geoagent_harness.apps.mcp.server import create_mcp_server
+ from geoagent_harness.platform.internal_mcp.client import READ_ONLY_TOOL_ALLOWLIST
  value=tools.recommend_table_fields('measures.csv',settings=SimpleNamespace(project_root=data,input_root=data/'data/input'))
  reply=CliRunner().invoke(app,['table-guidance','measures.csv','--project-root',str(data)])
  assert reply.exit_code==0,reply.output
@@ -78,8 +78,8 @@ def test_cli_and_registered_mcp_share_guidance_and_reject_unsafe_paths(data):
 
 
 def test_analysis_starters_are_typed_bounded_and_exclude_ambiguous_or_incomplete_fields(data):
- from geoagent_harness.tabular.analysis_contracts import AnalysisOptions
- from geoagent_harness.tabular.field_guidance import analysis_starters
+ from geoagent_harness.contracts.analysis_options import AnalysisOptions
+ from geoagent_harness.data.tabular.field_guidance import analysis_starters
  g=inspect(data,'measures.csv')['field_guidance']
  assert [s['column'] for s in g['analysis_starters']]==['number_visits']
  for s in g['analysis_starters']:
@@ -96,9 +96,9 @@ def test_analysis_starters_are_typed_bounded_and_exclude_ambiguous_or_incomplete
 
 def test_inspection_to_grouped_analysis_matches_independent_reference_and_cli_mcp(data):
  import statistics
- from geoagent_harness.tabular.analytical_service import profile_table
- from geoagent_harness.mcp_server.tools import table_statistics
- from geoagent_harness.cli import app
+ from geoagent_harness.data.tabular.analytical_service import profile_table
+ from geoagent_harness.task_actions.data_tools import table_statistics
+ from geoagent_harness.apps.cli.main import app
  (data/'data/input/unrelated.csv').write_text('record_id,temperature,region\n001,12.5,North\n002,17.5,South\n003,20.5,North\n004,25.5,South\n')
  g=inspect(data,'unrelated.csv',preview_rows=1)['field_guidance']
  starter=next(s for s in g['analysis_starters'] if s['column']=='temperature')
@@ -118,7 +118,7 @@ def test_inspection_to_grouped_analysis_matches_independent_reference_and_cli_mc
  assert json.loads(cli.output)['table_analysis']['statistics']['descriptive']==mcp['descriptive']==r['descriptive']
  # No hint grants an exclusion policy when selected data changes.
  (data/'data/input/unrelated.csv').write_text('record_id,temperature,region\n001,12.5,North\n002,?,South\n')
- from geoagent_harness.interface_api.server import InterfaceApiError
+ from geoagent_harness.contracts.errors import InterfaceApiError
  with pytest.raises(InterfaceApiError,match='missing, invalid'):
   profile_table(data,'unrelated.csv',{'statistics':spec})
 
@@ -126,14 +126,14 @@ def test_inspection_to_grouped_analysis_matches_independent_reference_and_cli_mc
 @pytest.mark.parametrize('question',['Which fields are suitable for statistics? Suggestions only; preserve the workflow.','What statistical analysis should I do next? Suggestions only; preserve the workflow.'])
 def test_agent_field_question_uses_recorded_advice_and_preserves_workflow(project,monkeypatch,question):
  from tests.test_planner_conversation import Client
- from geoagent_harness.interface_api.conversation import conversation_turn,TurnRequest
+ from geoagent_harness.task_actions.conversation import conversation_turn, TurnRequest
  (project/'data/input/measures.csv').write_text('x,y\n0,1\n1,3\n2,4\n3,5\n')
  plan={'summary':'Inspect source','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect','arguments':{'path':'data/input/measures.csv'}}]}
  identity='a'*32
  first=conversation_turn(TurnRequest(action='turn',conversation_id=identity,message='Inspect measures.csv.'),project_root=project,model_client=Client({'message':'Proposed.','plan':plan}))
  advice=compact_guidance(inspect(project,'measures.csv')['field_guidance'])
  context={'run_id':'b'*32,'plan_sha256':first['planner_result']['plan_sha256'],'results':[{'step_id':'step_1','views':['Table','Chart'],'columns':['x','y'],'recorded_facts':{'row_count':4},'field_guidance':advice}]}
- monkeypatch.setattr('geoagent_harness.interface_api.result_exploration.view_context',lambda *a:context)
+ monkeypatch.setattr('geoagent_harness.task_actions.result_exploration.view_context',lambda *a:context)
  client=Client({'message':'x and y are candidate measurements; inspect their spread and confirm the question before choosing an outcome.','plan':None})
  result=conversation_turn(TurnRequest(action='turn',conversation_id=identity,expected_revision=first['revision'],message=question),project_root=project,model_client=client)
  assert result['planner_result']['plan_sha256']==first['planner_result']['plan_sha256']
@@ -148,14 +148,14 @@ def test_agent_field_question_uses_recorded_advice_and_preserves_workflow(projec
  assert requests_field_guidance('Which fields should I use for statistics?')
  assert not requests_field_guidance('Which fields should I use, then fit a regression?')
  assert not requests_field_guidance('What statistical analysis should I do next? Compute Pearson correlation now.')
- from geoagent_harness.planner.agent import PlannerAgentError
+ from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
  bad=Client({'message':'Changing workflow.','plan':plan},{'message':'Changing workflow.','plan':plan})
  with pytest.raises(PlannerAgentError):
   conversation_turn(TurnRequest(action='turn',conversation_id=identity,expected_revision=result['revision'],message='Which fields are suitable for statistics?'),project_root=project,model_client=bad)
  assert len(bad.requests)==2
  saved=conversation_turn(TurnRequest(action='read',conversation_id=identity),project_root=project)
  assert saved['planner_result']['plan_sha256']==first['planner_result']['plan_sha256']
- from geoagent_harness.interface_api.planner_submission import SubmissionRequest,submission_action
+ from geoagent_harness.task_actions.planner_submission import SubmissionRequest, submission_action
  receipt=submission_action(SubmissionRequest(action='submit',submission_id='c'*32,conversation_id=identity,inspect_on_send=True,turn=TurnRequest(action='turn',conversation_id=identity,expected_revision=saved['revision'],message='Which fields are suitable for statistics?')),project_root=project,model_client=Client({'message':'Use the recorded candidates; confirm the objective.','plan':None}),background=False)
  assert receipt['submission']['run_id'] is None and not receipt['execution_performed']
  assert 'current workflow is unchanged' in receipt['submission']['finding']

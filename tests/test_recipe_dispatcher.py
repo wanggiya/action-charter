@@ -5,18 +5,10 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.recipes import (
-    RecipeDispatchError,
-    RecipeExecutionEnvelope,
-    RecipeExecutionStep,
-    dispatch_recipe_step,
-)
-from geoagent_harness.skill_registry import (
-    load_skill_registry,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.capabilities.recipes.execution.dispatcher import RecipeDispatchError, dispatch_recipe_step
+from geoagent_harness.contracts.recipes import RecipeExecutionEnvelope, RecipeExecutionStep
+from geoagent_harness.platform.skill_registry import load_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -86,9 +78,7 @@ def test_dispatches_inspection(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import (
-        dispatcher,
-    )
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
 
     monkeypatch.setattr(
         dispatcher,
@@ -119,9 +109,7 @@ def test_dispatches_approved_conversion(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import (
-        dispatcher,
-    )
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
 
     monkeypatch.setattr(
         dispatcher,
@@ -231,7 +219,7 @@ def test_dispatches_postgis_vertical_slice_steps(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import dispatcher
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
 
     monkeypatch.setattr(
         dispatcher,
@@ -295,12 +283,8 @@ def test_skill_failure_is_wrapped(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from geoagent_harness.recipes import (
-        dispatcher,
-    )
-    from geoagent_harness.skills.convert_vector.service import (
-        ConvertVectorError,
-    )
+    from geoagent_harness.capabilities.recipes.execution import dispatcher
+    from geoagent_harness.data.spatial.skills.convert_vector.service import ConvertVectorError
 
     def fail_conversion(**kwargs):
         raise ConvertVectorError(

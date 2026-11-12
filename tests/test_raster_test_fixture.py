@@ -4,9 +4,7 @@ from pathlib import Path
 
 import rasterio
 
-from geoagent_harness.testing.raster import (
-    write_test_raster,
-)
+from geoagent_harness.apps.testing.raster import write_test_raster
 
 
 def test_writes_deterministic_raster(

@@ -4,14 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from geoagent_harness.failures import (
-    FailureCategory,
-    FailureStage,
-    GeoAgentError,
-    RetryDisposition,
-    exit_code_for_category,
-    failure_from_exception,
-)
+from geoagent_harness.contracts.failures import FailureCategory, FailureStage, GeoAgentError, RetryDisposition, exit_code_for_category, failure_from_exception
 
 
 @pytest.mark.parametrize(

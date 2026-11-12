@@ -6,11 +6,8 @@ import pytest
 from shapely.geometry import Point
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.skills.inspect_vector.service import (
-    InspectVectorError,
-    inspect_vector,
-)
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.data.spatial.skills.inspect_vector.service import InspectVectorError, inspect_vector
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INPUT_ROOT = PROJECT_ROOT / "data" / "input"

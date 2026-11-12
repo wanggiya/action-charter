@@ -1,8 +1,6 @@
 """Tests for the proposal-only model prompt."""
 
-from geoagent_harness.recipe_proposals import (
-    build_recipe_proposal_request,
-)
+from geoagent_harness.capabilities.recipes.proposals.prompt import build_recipe_proposal_request
 
 
 def test_prompt_requires_json_and_no_execution() -> None:

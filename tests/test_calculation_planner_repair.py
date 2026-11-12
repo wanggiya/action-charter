@@ -5,12 +5,12 @@ import pytest
 
 from tests.test_planner_conversation import project, Client, turn, read, ID, SCHEMA_DEFERRAL
 from tests.test_bounded_calculations import proposal
-from geoagent_harness.interface_api.conversation import Reply, TurnRequest, conversation_turn
-from geoagent_harness.planner.agent import PlannerAgentError
-from geoagent_harness.planner.bindings import allocate_csv_outputs
-from geoagent_harness.planner.calculation_prompt import calculation_reply_example
-from geoagent_harness.operations.registry import argument_models
-from geoagent_harness.planner.prompt_scope import schema_scope
+from geoagent_harness.task_actions.conversation import Reply, TurnRequest, conversation_turn
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError
+from geoagent_harness.data.tabular.bindings import allocate_csv_outputs
+from geoagent_harness.agents.roles.planner.calculation_prompt import calculation_reply_example
+from geoagent_harness.capabilities.registry.registry import argument_models
+from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
 
 PROMPT = 'Inspect sample_orders.csv. Create a new numeric column doubled equal to amount multiplied by 2. Preserve all original columns and propagate missing values. Save to a fresh CSV. Do not execute yet.'
 FOLLOWUP = 'Keep the CSV inspection. Add a calculation creating doubled = amount * 2 for every row. Save the result to a fresh CSV under data/output. Do not use PostgreSQL or PostGIS.'
@@ -195,8 +195,8 @@ def test_repeated_deferral_http_response_does_not_request_technical_scope(projec
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.http.server import _handler
+    import geoagent_harness.task_actions.conversation as service
     original=service.conversation_turn
     client=Client(SCHEMA_DEFERRAL,SCHEMA_DEFERRAL)
     monkeypatch.setattr(service,'conversation_turn',lambda request,*,project_root:original(request,project_root=project_root,model_client=client))
@@ -265,7 +265,7 @@ def test_repeated_operation_omission_preserves_workflow_and_transcript(project):
     'Inspect orders.csv, then calculate doubled = amount * 2.',
 ])
 def test_explicit_calculation_coverage_requests(message):
-    from geoagent_harness.planner.request_coverage import requests_calculated_columns
+    from geoagent_harness.agents.roles.planner.request_coverage import requests_calculated_columns
     assert requests_calculated_columns(message)
 
 
@@ -280,7 +280,7 @@ def test_explicit_calculation_coverage_requests(message):
     'Create a column city using a join.',
 ])
 def test_metadata_projection_join_and_negative_requests_do_not_require_calculation(message):
-    from geoagent_harness.planner.request_coverage import requests_calculated_columns
+    from geoagent_harness.agents.roles.planner.request_coverage import requests_calculated_columns
     assert not requests_calculated_columns(message)
 
 
@@ -297,8 +297,8 @@ def test_http_repeated_omission_is_specific_and_does_not_save_or_execute(project
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    from geoagent_harness.interface_api.server import _handler
-    import geoagent_harness.interface_api.conversation as service
+    from geoagent_harness.apps.http.server import _handler
+    import geoagent_harness.task_actions.conversation as service
     original=service.conversation_turn
     client=Client(inspection_claiming_calculation(),inspection_claiming_calculation())
     monkeypatch.setattr(service,'conversation_turn',lambda request,*,project_root:original(request,project_root=project_root,model_client=client))
@@ -324,7 +324,7 @@ def test_http_repeated_omission_is_specific_and_does_not_save_or_execute(project
     'Create a numeric column doubled. Do not inspect the source.',
 ])
 def test_complex_or_negative_requests_keep_general_step_decoding(message):
-    from geoagent_harness.planner.request_coverage import simple_calculation_sequence
+    from geoagent_harness.agents.roles.planner.request_coverage import simple_calculation_sequence
     assert not simple_calculation_sequence(message)
 
 

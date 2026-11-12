@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
+from geoagent_harness.apps.cli.main import app
 
 
 def test_publication_commands_are_registered():

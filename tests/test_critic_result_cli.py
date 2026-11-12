@@ -7,12 +7,10 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-import geoagent_harness.critic as critic
-from geoagent_harness.cli import app
-from geoagent_harness.critic import (
-    CriticResultStorageError,
-    load_critic_result_record,
-)
+import geoagent_harness.agents.roles.critic as critic
+from geoagent_harness.platform.storage import critic_record_storage
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.platform.storage.critic_record_storage import CriticResultStorageError, load_critic_result_record
 from tests.test_critic_result_records import critic_result
 
 
@@ -79,7 +77,7 @@ def test_cli_reports_critic_record_storage_failure(
         )
 
     monkeypatch.setattr(
-        critic,
+        critic_record_storage,
         "persist_critic_result_record",
         reject,
     )

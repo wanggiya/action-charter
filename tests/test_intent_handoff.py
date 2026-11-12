@@ -2,15 +2,16 @@
 import json
 from unittest.mock import patch
 from datetime import datetime,timezone
-from geoagent_harness.intent.service import IntentError
-from geoagent_harness.intent.review import inspect_intent_for_review,save_reviewed_intent
-from geoagent_harness.context_retrieval import ContextReviewError
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.planner.schemas import PlannerResult,WorkflowPlan,PlanStep
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent
+from geoagent_harness.agents.memory.context_retrieval.review import ContextReviewError
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.contracts.planning import PlannerResult, WorkflowPlan, PlanStep
 import unittest
 import tempfile
 from pathlib import Path
-from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context
 
 class IntentHandoffTests(unittest.TestCase):
     def setUp(self):
@@ -33,14 +34,14 @@ class IntentHandoffTests(unittest.TestCase):
         self.assertEqual(json.loads(kwargs['original_request'])['exact_arguments'],{'path':'data/input/sample.geojson'})
         return PlannerResult(model='fake',original_request=kwargs['original_request'],context_references=[],plan=WorkflowPlan(summary='Inspect reviewed data',steps=[PlanStep(step_id='step_1',skill='inspect_vector',purpose='Inspect',arguments={'path':'data/input/sample.geojson'})]))
     def test_exact_handoff_no_save_or_authority(self):
-        from geoagent_harness.intent.handoff import plan_reviewed_intent
+        from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent
         filename=self.ready()
-        with patch('geoagent_harness.intent.handoff.plan_task',side_effect=self.planner):
+        with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=self.planner):
             result=plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['inspect_vector'])
         self.assertEqual(result['status'],'planned_not_saved');self.assertFalse(result['plan_saved']);self.assertFalse(result['execution_performed']);self.assertFalse(result['approval_inferred'])
         self.assertFalse((self.root/'plans').exists())
     def test_wrong_path_extra_steps_and_capabilities_blocked(self):
-        from geoagent_harness.intent.handoff import plan_reviewed_intent
+        from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent
         filename=self.ready()
         with self.assertRaises(IntentError):plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['convert_vector'])
         def wrong(**kwargs):
@@ -48,27 +49,27 @@ class IntentHandoffTests(unittest.TestCase):
         def extra(**kwargs):
             result=self.planner(**kwargs);result.plan.steps.append(PlanStep(step_id='step_2',skill='inspect_vector',purpose='Extra',arguments={'path':'data/input/sample.geojson'}));return result
         for callback in (wrong,extra):
-            with patch('geoagent_harness.intent.handoff.plan_task',side_effect=callback):
+            with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=callback):
                 with self.assertRaises(IntentError):plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['inspect_vector'])
     def test_context_changes_during_planning_discard_plan(self):
-        from geoagent_harness.intent.handoff import plan_reviewed_intent
+        from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent
         filename=self.ready()
         def changed(**kwargs):
             result=self.planner(**kwargs)
             append_task_event(root=self.root/'task-history',task_id='task-intent-review',event_type='clarification',summary='Changed')
             return result
-        with patch('geoagent_harness.intent.handoff.plan_task',side_effect=changed):
+        with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=changed):
             with self.assertRaises(ContextReviewError):plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['inspect_vector'])
 
     def test_scope_error_identifies_flags_and_redacts_argument_credentials(self):
-        from geoagent_harness.intent.handoff import plan_reviewed_intent
+        from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent
         filename=self.ready()
         def wrong(**kwargs):
             result=self.planner(**kwargs)
             result.plan.steps[0].validation_required=True
             result.plan.steps[0].arguments['path']='data/input/password=sensitive123.geojson'
             return result
-        with patch('geoagent_harness.intent.handoff.plan_task',side_effect=wrong):
+        with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=wrong):
             with self.assertRaises(IntentError) as caught:
                 plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['inspect_vector'])
         self.assertIn('validation_required must be false; received true',str(caught.exception))
@@ -76,13 +77,13 @@ class IntentHandoffTests(unittest.TestCase):
         self.assertNotIn('sensitive123',str(caught.exception))
 
     def test_conservative_approval_gate_is_preserved_not_bypassed(self):
-        from geoagent_harness.intent.handoff import plan_reviewed_intent
+        from geoagent_harness.agents.roles.intent.handoff import plan_reviewed_intent
         filename=self.ready()
         def cautious(**kwargs):
             result=self.planner(**kwargs)
             result.plan.steps[0].requires_approval=True
             return result
-        with patch('geoagent_harness.intent.handoff.plan_task',side_effect=cautious):
+        with patch('geoagent_harness.agents.roles.intent.handoff.plan_task',side_effect=cautious):
             result=plan_reviewed_intent(project_root=self.root,filename=filename,allowed_skill_ids=['inspect_vector'])
         self.assertTrue(result['planner_result']['plan']['steps'][0]['requires_approval'])
         self.assertTrue(result['additional_human_approval_required'])

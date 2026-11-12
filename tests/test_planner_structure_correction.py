@@ -2,11 +2,11 @@
 import json
 from pathlib import Path
 import pytest
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.context_pack import build_context_pack
-from geoagent_harness.model.schemas import ModelResult
-from geoagent_harness.planner.agent import PlannerAgentError, run_planner_agent
-from geoagent_harness.planner.prompt import build_planner_request
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.agents.memory.context_pack.builder import build_context_pack
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
+from geoagent_harness.agents.roles.planner.agent import PlannerAgentError, run_planner_agent
+from geoagent_harness.agents.roles.planner.prompt import build_planner_request
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -93,8 +93,8 @@ def test_intent_http_exposes_schema_fields_and_no_authority(tmp_path, monkeypatc
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
     from threading import Thread
-    import geoagent_harness.intent.handoff as handoff
-    from geoagent_harness.interface_api.server import _handler
+    import geoagent_harness.agents.roles.intent.handoff as handoff
+    from geoagent_harness.apps.http.server import _handler
     def fail(**kwargs):
         raise PlannerAgentError('Planner model returned an invalid plan schema',
             findings=['steps.0.expected_artifacts: must be a list'], correction_attempted=True)
@@ -107,7 +107,7 @@ def test_intent_http_exposes_schema_fields_and_no_authority(tmp_path, monkeypatc
         connection.request('GET', '/api/v1/health')
         health_response = connection.getresponse()
         health = json.loads(health_response.read())
-        from geoagent_harness.interface_api.conversation import PLANNER_CONTRACT_REVISION
+        from geoagent_harness.task_actions.conversation import PLANNER_CONTRACT_REVISION
         assert health['planner_contract_revision'] == PLANNER_CONTRACT_REVISION == 'statistics-v2'
         assert health['planner_correction_limit'] == 1
         connection.request('POST', '/api/v1/intent/plan', body=json.dumps({

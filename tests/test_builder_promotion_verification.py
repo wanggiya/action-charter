@@ -8,12 +8,9 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-import geoagent_harness.builder as builder
-from geoagent_harness.builder import (
-    BuilderPromotionVerificationError,
-    verify_builder_promotion_bundle,
-)
-from geoagent_harness.cli import app
+import geoagent_harness.evolution.builder as builder
+from geoagent_harness.evolution.builder.promotion_verification import BuilderPromotionVerificationError, verify_builder_promotion_bundle
+from geoagent_harness.apps.cli.main import app
 from tests.test_builder_promotion import (
     prepared_persisted_plan,
     promote,

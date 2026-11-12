@@ -1,0 +1,1 @@
+"""Loopback HTTP application adapters."""

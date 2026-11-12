@@ -7,12 +7,12 @@ from threading import Event, Thread
 import pytest
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.agent_manifest import load_agent_manifest
-from geoagent_harness.interface_api import method_memory as service
-from geoagent_harness.interface_api.conversation import TurnRequest, conversation_turn
-from geoagent_harness.interface_api.server import InterfaceApiError
-from geoagent_harness.model.schemas import ModelResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.agents.runtime.manifest import load_agent_manifest
+from geoagent_harness.task_actions import method_memory as service
+from geoagent_harness.task_actions.conversation import TurnRequest, conversation_turn
+from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 CHAT = 'a' * 32
 OTHER = 'b' * 32
@@ -38,7 +38,7 @@ def project(tmp_path):
     for name in ('agents','context'):
         copytree(REPO/name, tmp_path/name)
     # A saved private chat, without model calls or execution.
-    from geoagent_harness.interface_api.conversation import Conversation, Entry, _path, _write
+    from geoagent_harness.task_actions.conversation import Conversation, Entry, _path, _write
     _write(_path(tmp_path, CHAT), Conversation(conversation_id=CHAT, revision=1,
         messages=[Entry(role='user',content='Inspect structure. password=do-not-send'), Entry(role='assistant',content='Return row count and column names.')]))
     _write(_path(tmp_path, OTHER), Conversation(conversation_id=OTHER, revision=1,
@@ -207,8 +207,8 @@ def test_planner_only_includes_explicit_current_chat_method_and_off_blocks(proje
 
 
 def test_workflow_sources_omit_arguments_and_concrete_bindings(project):
-    from geoagent_harness.interface_api.conversation import Conversation, _path, _write
-    from geoagent_harness.planner.schemas import PlannerResult
+    from geoagent_harness.task_actions.conversation import Conversation, _path, _write
+    from geoagent_harness.contracts.planning import PlannerResult
     state=Conversation.model_validate_json(_path(project,CHAT).read_text())
     state.planner_result=PlannerResult.model_validate({'model':'fixture','original_request':'Inspect confidential source',
         'context_references':[], 'plan':{'summary':'Inspect','steps':[{'step_id':'step_1','skill':'inspect_csv','purpose':'Inspect the selected table',
@@ -225,7 +225,7 @@ def test_method_rejects_concrete_paths_and_source_budget_without_model(project):
     enable(project)
     with pytest.raises(InterfaceApiError,match='abstract input'):
         save(project,document={**DOC,'inputs':['data/input/private.csv']})
-    from geoagent_harness.interface_api.conversation import Conversation, Entry, _path, _write
+    from geoagent_harness.task_actions.conversation import Conversation, Entry, _path, _write
     _write(_path(project,CHAT),Conversation(conversation_id=CHAT,revision=1,messages=[Entry(role='user',content='x'*8000),Entry(role='assistant',content='y'*8000)]))
     model=Model()
     with pytest.raises(InterfaceApiError,match='12 KB'):
@@ -246,8 +246,8 @@ def test_setting_cas_and_symlink_guard(project,tmp_path):
 def test_method_http_uses_origin_guard_and_returns_safe_model_failure(project,monkeypatch):
     from http.client import HTTPConnection
     from http.server import ThreadingHTTPServer
-    from geoagent_harness.interface_api.server import _handler
-    from geoagent_harness.model import ModelClientError
+    from geoagent_harness.apps.http.server import _handler
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
     class Unavailable:
         def complete(self,request):raise ModelClientError.timeout()
     monkeypatch.setattr(service,'SharedModelClient',lambda settings:Unavailable())
@@ -273,7 +273,7 @@ def test_method_http_uses_origin_guard_and_returns_safe_model_failure(project,mo
 
 def test_cli_method_inclusion_uses_shared_planner(project,tmp_path,monkeypatch):
     enable(project);record=save(project)
-    import geoagent_harness.interface_api.conversation as conversation
+    import geoagent_harness.task_actions.conversation as conversation
     class Planner(Model):
         def complete(self,request):
             self.requests.append(request)
@@ -292,7 +292,7 @@ def test_changed_sources_during_generation_discard_result(project):
     enable(project)
     class Changing(Model):
         def complete(self,request):
-            from geoagent_harness.interface_api.conversation import Conversation, _path, _write
+            from geoagent_harness.task_actions.conversation import Conversation, _path, _write
             path=_path(project,CHAT);state=Conversation.model_validate_json(path.read_text());state.revision+=1
             _write(path,state)
             return super().complete(request)

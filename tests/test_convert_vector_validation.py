@@ -6,10 +6,7 @@ import geopandas as gpd
 import pytest
 from shapely.geometry import Point
 
-from geoagent_harness.skills.convert_vector.validation import (
-    ConvertVectorValidationError,
-    validate_vector_conversion,
-)
+from geoagent_harness.data.spatial.skills.convert_vector.validation import ConvertVectorValidationError, validate_vector_conversion
 
 
 def _frame() -> gpd.GeoDataFrame:

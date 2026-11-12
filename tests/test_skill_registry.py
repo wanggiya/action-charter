@@ -6,12 +6,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from geoagent_harness.skill_registry import (
-    SkillRegistry,
-    SkillRegistryError,
-    load_skill_registry,
-    parse_skill_registry,
-)
+from geoagent_harness.contracts.skill_registry import SkillRegistry
+from geoagent_harness.platform.skill_registry import SkillRegistryError, load_skill_registry, parse_skill_registry
 
 
 PROJECT_ROOT = Path(__file__).parents[1]

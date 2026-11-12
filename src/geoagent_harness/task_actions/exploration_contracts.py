@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from .spatial_views import SpatialViewOptions
+from geoagent_harness.workspaces.sandbox.spatial_rendering import SpatialViewOptions
 
 
 class Contract(BaseModel):

@@ -3,10 +3,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.context_retrieval import retrieve_task_context, save_reviewed_context, ContextReviewError
-from geoagent_harness.intent.service import reason_task_intent, IntentError
-from geoagent_harness.model import ModelResult
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context, ContextReviewError
+from geoagent_harness.agents.roles.intent.service import reason_task_intent
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.platform.model_gateway.schemas import ModelResult
 
 class IntentTests(unittest.TestCase):
     def setUp(self):

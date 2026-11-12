@@ -1,10 +1,12 @@
 """Evaluate goal advice from saved aggregate metadata, never data rows or execution."""
 import argparse,csv,json,shutil,tempfile
 from pathlib import Path
-from geoagent_harness.interface_api import conversation,result_exploration
-from geoagent_harness.model import SharedModelClient
-from geoagent_harness.model.settings import ModelSettings
-from geoagent_harness.model.telemetry import read,error_code
+from geoagent_harness.task_actions import conversation
+from geoagent_harness.task_actions import result_exploration
+from geoagent_harness.platform.model_gateway.client import SharedModelClient
+from geoagent_harness.platform.model_settings import ModelSettings
+from geoagent_harness.platform.model_gateway.telemetry import read
+from geoagent_harness.platform.model_gateway.telemetry import error_code
 
 
 def main():
@@ -18,7 +20,7 @@ def main():
   for name in ('context','agents'):shutil.copytree(repo/name,root/name)
   # Header-only stand-ins satisfy proposal path-existence checks. Saved metadata
   # remains historical; these files are never inspected or sent to the model.
-  from geoagent_harness.discovery.source import relative_path
+  from geoagent_harness.data.discovery.source import relative_path
   for step in original.planner_result.plan.steps:
    path=step.arguments.get('path')
    if path:
@@ -42,7 +44,7 @@ def main():
    client.complete=observed_complete
    state=conversation.conversation_turn(conversation.TurnRequest(action='turn',conversation_id=identity,message='Propose analysis goals from the recorded inspection. Let the agent prioritize useful scientific questions, applicable metrics and prerequisites. Suggestions only; preserve the current workflow.'),project_root=root,model_client=client)
    goals=state['context_usage'].get('analysis_goals')
-   from geoagent_harness.approvals import plan_sha256
+   from geoagent_harness.core.policy.approvals.service import plan_sha256
    assert goals and state['planner_result']['plan_sha256']==plan_sha256(original.planner_result.plan)
    result={'status':'passed','scope':'temporary saved-metadata and header-only fixture','goals':goals,'diagnostics':read(root,identity),'execution_performed':False}
   except Exception as error:result={'status':'failed','error_code':error_code(error),'schema_findings':getattr(error,'findings',[]),'invalid_reply_fields':invalid_fields,'diagnostics':read(root,identity),'execution_performed':False}

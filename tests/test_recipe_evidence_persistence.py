@@ -5,26 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from geoagent_harness.mcp_server.settings import (
-    MCPSettings,
-)
-from geoagent_harness.recipes import (
-    evidence_persistence as persistence,
-)
-from geoagent_harness.recipes.evidence import (
-    RecipeEvidenceError,
-)
-from geoagent_harness.recipes.evidence_persistence import (
-    RecipeEvidencePersistenceError,
-    persist_recipe_run,
-)
-from geoagent_harness.recipes.evidence_storage import (
-    recipe_evidence_sha256,
-    recipe_run_result_sha256,
-)
-from geoagent_harness.skill_registry import (
-    SkillRegistry,
-)
+from geoagent_harness.platform.settings import MCPSettings
+from geoagent_harness.capabilities.recipes.execution import evidence_persistence as persistence
+from geoagent_harness.capabilities.recipes.execution.evidence import RecipeEvidenceError
+from geoagent_harness.capabilities.recipes.execution.evidence_persistence import RecipeEvidencePersistenceError, persist_recipe_run
+from geoagent_harness.core.ledger.recipe_evidence import recipe_evidence_sha256, recipe_run_result_sha256
+from geoagent_harness.contracts.skill_registry import SkillRegistry
 from tests.test_recipe_evidence_schemas import (
     evidence as example_evidence,
 )

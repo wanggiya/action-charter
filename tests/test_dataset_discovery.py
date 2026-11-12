@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from geoagent_harness.discovery.csv import inspect, probe
-from geoagent_harness.interface_api.inspection_policy import bounded_read
+from geoagent_harness.data.discovery.csv import inspect, probe
+from geoagent_harness.task_actions.inspection_policy import bounded_read
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_quoted_records_hash_missing_counts_and_pending_metadata(dataset):
 
 
 def test_large_csv_inspection_streams_but_processing_limits_stay(dataset,monkeypatch):
-    from geoagent_harness.tabular import service
+    from geoagent_harness.data.tabular import service
     path=write(dataset,b'id,note\n')
     row=b'001,'+b'x'*1000+b'\n'
     digest=hashlib.sha256(b'id,note\n')
@@ -50,7 +50,7 @@ def test_large_csv_inspection_streams_but_processing_limits_stay(dataset,monkeyp
     monkeypatch.setattr(service,'read_frame',forbidden)
     result=service.inspect_csv('orders.csv',SimpleNamespace(project_root=dataset))
     assert result['row_count']==20000 and result['source_sha256']==digest.hexdigest()
-    from geoagent_harness.operations.registry import TableMetadata,TableArtifact
+    from geoagent_harness.capabilities.registry.registry import TableMetadata, TableArtifact
     assert TableMetadata.model_validate(result).row_count==20000
     assert TableArtifact.model_json_schema()['properties']['row_count']['maximum']==200000
     assert path.stat().st_size>8*1024**2
@@ -87,8 +87,8 @@ def test_mutation_and_replacement_detected_before_accepting_evidence(dataset):
 
 
 def test_safe_open_size_and_cancel(dataset):
-    from geoagent_harness.discovery.csv import MAX_BYTES
-    from geoagent_harness.recipes.control import ExecutionCancelled
+    from geoagent_harness.data.discovery.csv import MAX_BYTES
+    from geoagent_harness.platform.execution_control import ExecutionCancelled
     path=write(dataset,b'a\nx\n')
     (path.parent/'link.csv').symlink_to(path)
     with pytest.raises(ValueError):probe(dataset,'link.csv')
@@ -109,8 +109,9 @@ def test_bounded_sampling_does_not_require_reading_complete_input(dataset):
 
 def test_row_limit_is_processing_only_and_cli_shares_discovery(dataset):
     from typer.testing import CliRunner
-    from geoagent_harness.cli import app
-    from geoagent_harness.tabular.service import read_frame,TabularError
+    from geoagent_harness.apps.cli.main import app
+    from geoagent_harness.data.tabular.service import read_frame
+    from geoagent_harness.contracts.paths import TabularError
     path=write(dataset,b'id\n'+b'001\n'*10001)
     reply=CliRunner().invoke(app,['inspect-csv','orders.csv','--project-root',str(dataset)])
     assert reply.exit_code==0,reply.output
@@ -119,7 +120,7 @@ def test_row_limit_is_processing_only_and_cli_shares_discovery(dataset):
 
 
 def test_changes_during_full_scan_are_rejected(dataset,monkeypatch):
-    from geoagent_harness.discovery.csv import Reader
+    from geoagent_harness.data.discovery.csv import Reader
     path=write(dataset,b'id,note\n'+b'001,hello\n'*20000)
     original=Reader.readinto
     changed=False
@@ -135,7 +136,7 @@ def test_changes_during_full_scan_are_rejected(dataset,monkeypatch):
 
 
 def test_deadline_failure_is_not_complete_evidence(dataset,monkeypatch):
-    import geoagent_harness.discovery.csv as service
+    import geoagent_harness.data.discovery.csv as service
     write(dataset,b'a\nx\n')
     times=iter([0,121])
     monkeypatch.setattr(service.time,'monotonic',lambda:next(times))
@@ -143,8 +144,8 @@ def test_deadline_failure_is_not_complete_evidence(dataset,monkeypatch):
 
 
 def test_worker_cancellation_after_metadata_reaps_child(dataset,monkeypatch):
-    import geoagent_harness.interface_api.inspection_policy as policy
-    from geoagent_harness.recipes.control import ExecutionCancelled
+    import geoagent_harness.task_actions.inspection_policy as policy
+    from geoagent_harness.platform.execution_control import ExecutionCancelled
     write(dataset,b'a\n'+b'x\n'*100000)
     original=policy.subprocess.Popen
     children=[]

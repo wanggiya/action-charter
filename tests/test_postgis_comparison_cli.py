@@ -2,12 +2,9 @@ import json
 
 from typer.testing import CliRunner
 
-from geoagent_harness.cli import app
-from geoagent_harness.postgis.comparison import (
-    PostGISComparisonResult,
-    PostGISDifference,
-)
-from geoagent_harness.postgis.inspection import PostGISInspectionResult
+from geoagent_harness.apps.cli.main import app
+from geoagent_harness.data.databases.postgis.comparison.schemas import PostGISComparisonResult, PostGISDifference
+from geoagent_harness.data.databases.postgis.inspection.schemas import PostGISInspectionResult
 
 
 def inspection(table: str) -> PostGISInspectionResult:
@@ -46,7 +43,7 @@ def result(*, matches: bool) -> PostGISComparisonResult:
 
 
 def test_cli_match_exits_zero(monkeypatch):
-    import geoagent_harness.postgis.comparison as module
+    import geoagent_harness.data.databases.postgis.comparison as module
 
     monkeypatch.setattr(
         module,
@@ -68,7 +65,7 @@ def test_cli_match_exits_zero(monkeypatch):
 
 
 def test_cli_difference_exits_one(monkeypatch):
-    import geoagent_harness.postgis.comparison as module
+    import geoagent_harness.data.databases.postgis.comparison as module
 
     monkeypatch.setattr(
         module,

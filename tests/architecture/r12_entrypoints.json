@@ -1,0 +1,112 @@
+{
+  "approved_recipe": [
+    "run_approved_recipe"
+  ],
+  "approved_workflow": [
+    "run_approved_vector_postgis_workflow"
+  ],
+  "artifacts": [
+    "save_interface_reviewed_plan",
+    "prepare_interface_plan_approval",
+    "record_interface_plan_approval",
+    "verify_interface_plan_approval",
+    "preview_interface_plan_execution",
+    "compile_interface_plan_recipe",
+    "save_interface_plan_recipe",
+    "prepare_interface_recipe_approval",
+    "record_interface_recipe_approval",
+    "verify_interface_recipe_approval"
+  ],
+  "chat_history": [
+    "history_action"
+  ],
+  "conversation": [
+    "conversation_turn"
+  ],
+  "critic_review": [
+    "interface_critic_evidence_inventory",
+    "save_interface_recipe_trace",
+    "run_interface_critic",
+    "record_interface_critic_result"
+  ],
+  "execution": [
+    "interface_execution_inventory",
+    "prepare_interface_execution_preview",
+    "execute_interface_recipe",
+    "interface_execution_progress",
+    "execute_interface_recipe_with_task_references"
+  ],
+  "legacy_export": [
+    "preview_interface_snakemake_export",
+    "export_interface_snakemake_recipe"
+  ],
+  "legacy_planning": [
+    "interface_recipe_template_catalog",
+    "plan_interface_task",
+    "interface_planner_skill_catalog",
+    "interface_saved_plan_inventory",
+    "compile_interface_recipe_proposal",
+    "save_interface_reviewed_recipe",
+    "interface_saved_recipe_inventory"
+  ],
+  "method_memory": [
+    "method_action"
+  ],
+  "planner_submission": [
+    "submission_action"
+  ],
+  "recipe_catalog": [
+    "recipe_action"
+  ],
+  "release_review": [
+    "prepare_interface_recipe_release",
+    "create_interface_recipe_release"
+  ],
+  "resource_catalogs": [
+    "interface_data_resource_inventory"
+  ],
+  "run_assessment": [
+    "assess_run"
+  ],
+  "snakemake_workflow": [
+    "prepare_export_workflow",
+    "authorize_export_workflow",
+    "execute_export_workflow"
+  ],
+  "task_context": [
+    "record_interface_task_event",
+    "inspect_interface_task_context"
+  ],
+  "workflow": [
+    "prepare_workflow",
+    "execute_workflow",
+    "inspection_inventory",
+    "authorize_workflow"
+  ],
+  "workflow_runs": [
+    "run_action"
+  ],
+  "data_tools": [
+    "discover_inputs",
+    "assess_table",
+    "explore_dataset_view",
+    "profile_dataset",
+    "profile_table",
+    "workflow_report",
+    "list_operation_contracts",
+    "table_statistics",
+    "recommend_table_fields",
+    "plan_geoserver_publication",
+    "inspect_geoserver_layer",
+    "plan_postgis_promotion",
+    "assess_postgis_change",
+    "compare_postgis_tables",
+    "inspect_postgis_table",
+    "health_check",
+    "discover_dataset",
+    "assess_spatial_data_contract",
+    "validate_postgres_import",
+    "discover_postgres_tables",
+    "inspect_postgres_table"
+  ]
+}

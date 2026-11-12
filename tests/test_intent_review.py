@@ -3,10 +3,11 @@ import tempfile
 import unittest
 from pathlib import Path
 from datetime import datetime,timezone
-from geoagent_harness.context_retrieval import retrieve_task_context,save_reviewed_context,ContextReviewError
-from geoagent_harness.task_history import append_task_event
-from geoagent_harness.intent.service import IntentError
-from geoagent_harness.intent.review import inspect_intent_for_review,save_reviewed_intent,load_reviewed_intent
+from geoagent_harness.agents.memory.context_retrieval.service import retrieve_task_context
+from geoagent_harness.agents.memory.context_retrieval.review import save_reviewed_context, ContextReviewError
+from geoagent_harness.core.ledger.task_history.service import append_task_event
+from geoagent_harness.contracts.intent import IntentError
+from geoagent_harness.agents.roles.intent.review import inspect_intent_for_review, save_reviewed_intent, load_reviewed_intent
 
 class IntentReviewTests(unittest.TestCase):
     def setUp(self):

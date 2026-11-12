@@ -1,74 +1,21 @@
+"""Compatibility exports; native code imports the explicit layer owners."""
 """Non-executable recipe proposal boundary."""
 
-from geoagent_harness.recipe_proposals.assessment import (
-    assess_recipe_proposal,
-)
-from geoagent_harness.recipe_proposals.templates import (
-    RecipeTemplateDefinition,
-    RecipeTemplateError,
-    get_recipe_template,
-    list_recipe_templates,
-)
+from geoagent_harness.capabilities.recipes.proposals.assessment import assess_recipe_proposal
+from geoagent_harness.capabilities.recipes.proposals.templates import RecipeTemplateDefinition, RecipeTemplateError, get_recipe_template, list_recipe_templates
 
-from geoagent_harness.recipe_proposals.compiler import (
-    RecipeCompilationError,
-    compile_recipe_proposal,
-)
+from geoagent_harness.capabilities.recipes.proposals.compiler import RecipeCompilationError, compile_recipe_proposal
 
-from geoagent_harness.recipe_proposals.storage import (
-    MAX_RECIPE_PROPOSAL_BYTES,
-    RecipeProposalStorageError,
-    load_recipe_proposal,
-)
+from geoagent_harness.capabilities.recipes.proposals.storage import MAX_RECIPE_PROPOSAL_BYTES, RecipeProposalStorageError, load_recipe_proposal
 
-from geoagent_harness.recipe_proposals.schemas import (
-    ConvertVectorProposalParameters,
-    ConvertVectorTemplateSelection,
-    InspectVectorProposalParameters,
-    InspectVectorTemplateSelection,
-    RecipeProposal,
-    RecipeTemplateSelection,
-    VectorPostGISProposalParameters,
-    VectorPostGISTemplateSelection,
-    RecipeProposalAssessment,
-    RecipeCompilationResult,
-    InspectRasterProposalParameters,
-    InspectRasterTemplateSelection,
-)
-from geoagent_harness.recipe_proposals.agent import (
-    ProposalModelClientProtocol,
-    RecipeProposalAgentError,
-    generate_recipe_proposal,
-)
-from geoagent_harness.recipe_proposals.prompt import (
-    build_recipe_proposal_request,
-)
-from geoagent_harness.recipe_proposals.schemas import (
-    RecipeProposalGenerationResult,
-    RecipeProposalPipelineResult,
-    RecipeOperatorReview,
-    RecipeOperatorSaveResult,
-    ConvertRasterProposalParameters,
-    ConvertRasterTemplateSelection,
-)
-from geoagent_harness.recipe_proposals.runtime import (
-    propose_recipe_with_shared_model,
-    propose_and_compile_recipe,
-    # propose_recipe_with_shared_model,
-    review_recipe_request,
-)
-from geoagent_harness.recipe_proposals.rendering import (
-    render_recipe_operator_review,
-)
-from geoagent_harness.recipe_proposals.operator_save import (
-    RecipeOperatorSaveError,
-    save_reviewed_recipe,
-)
-from geoagent_harness.recipe_proposals.review_storage import (
-    MAX_RECIPE_REVIEW_BYTES,
-    RecipeReviewStorageError,
-    load_recipe_operator_review,
-)
+from geoagent_harness.capabilities.recipes.proposals.schemas import ConvertVectorProposalParameters, ConvertVectorTemplateSelection, InspectVectorProposalParameters, InspectVectorTemplateSelection, RecipeProposal, RecipeTemplateSelection, VectorPostGISProposalParameters, VectorPostGISTemplateSelection, RecipeProposalAssessment, RecipeCompilationResult, InspectRasterProposalParameters, InspectRasterTemplateSelection
+from geoagent_harness.agents.roles.planner.recipe_proposal import ProposalModelClientProtocol, RecipeProposalAgentError, generate_recipe_proposal
+from geoagent_harness.capabilities.recipes.proposals.prompt import build_recipe_proposal_request
+from geoagent_harness.capabilities.recipes.proposals.schemas import RecipeProposalGenerationResult, RecipeProposalPipelineResult, RecipeOperatorReview, RecipeOperatorSaveResult, ConvertRasterProposalParameters, ConvertRasterTemplateSelection
+from geoagent_harness.agents.runtime.recipe_proposal import propose_recipe_with_shared_model, propose_and_compile_recipe, review_recipe_request
+from geoagent_harness.capabilities.recipes.proposals.rendering import render_recipe_operator_review
+from geoagent_harness.capabilities.recipes.proposals.operator_save import RecipeOperatorSaveError, save_reviewed_recipe
+from geoagent_harness.capabilities.recipes.proposals.review_storage import MAX_RECIPE_REVIEW_BYTES, RecipeReviewStorageError, load_recipe_operator_review
 
 
 __all__ = [
