@@ -1,3 +1,15 @@
+# PR #82 GitHub console snapshot follow-up (2026-11-12)
+
+- Scope the help snapshot's renderer to its original 120-column, non-interactive
+  console. Typer reads GitHub/forced-color environment variables at import time;
+  CliRunner settings alone left GitHub formatting at 80 columns.
+- Preserve all 165 historical help snapshots and application console behavior.
+  Add a fresh-process regression with GitHub/color flags and a conflicting width.
+- Full suite with GitHub Actions console/frontend-required flags: 2,820 passed
+  (791.15 s; 13 existing spatial warnings). Focused CLI/HTTP checks: 17 passed locally
+  and in the fresh-dependency container with GitHub flags. Earlier GIS/dependency/
+  catalog fixes are passing in GitHub. No application or workspace changes.
+
 # PR #82 CI dependency and GIS contract fixes (2026-11-12)
 
 - Pin the verified CLI toolchain (Typer 0.27.0, Click 8.4.2, Rich 15.0.0) so fresh

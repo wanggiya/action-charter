@@ -1,3 +1,38 @@
+# Work resume — PR #82 console snapshot fix verified (2026-11-12)
+
+Owner pushed prior fixes as `f540793`. GitHub GIS/agent/skill-runner/Compose and HTTP
+snapshot checks now pass. Only R7 exact CLI help snapshot fails, identically in push
+and PR jobs 131030032204 / 131030055964. Scope remains PR #82 only; do not work on #79
+or unrelated tasks. No Git mutations authorized; owner commits/pushes manually.
+
+Cause reproduced exactly: `GITHUB_ACTIONS=true` makes Typer's import-time
+`FORCE_TERMINAL=True`; Rich formats help at 80 columns instead of the snapshot's
+120, despite CliRunner's COLUMNS/terminal_width arguments. Local hash c09b9a...;
+GitHub/reproduction hash c0fb1095... matched. Prior verification pinned dependencies
+but did not simulate GitHub's import-time console environment.
+
+Fix is test-only: scope Typer FORCE_TERMINAL=False and MAX_WIDTH=120 to the snapshot
+fixture via monkeypatch. Do not change saved snapshots, CLI production behavior or
+workflow flags. New subprocess regression starts with CI/GITHUB_ACTIONS, forced
+colors and TERMINAL_WIDTH=77 before imports and checks all 165 original help screens.
+Focused hostile-environment R7/R8 checks: 17 passed. Fresh-dependency container
+checks also passed: 17 in 12.96 seconds, with CI/GITHUB_ACTIONS enabled and no
+network during tests. Full suite under CI/GITHUB_ACTIONS/NO_COLOR/frontend-required
+flags: **2,820 passed**, 13 existing spatial warnings, 791.15 seconds. Strict
+source/compatibility gates passed with zero errors; historical help snapshot bytes
+remain unchanged. No frontend/application/CI workflow or dependency change in this
+follow-up. Only the R7 test and documentation changed.
+
+Next: owner commits/pushes the four modified files on the current branch, then watches
+new PR #82 checks. The old f540793 checks remain red until a new commit is pushed;
+rerunning old-source checks does not include this fix. Keep Git commands in the
+conversation. No staging, commit, push, merge or issue operation was performed.
+Logs: `/tmp/actioncharter-pr82-help-repro.log`, `/tmp/actioncharter-pr82-console-focused.log`,
+`/tmp/actioncharter-pr82-console-full.log`, `/tmp/actioncharter-pr82-console-fresh.log`.
+Snapshots of this slice: `/tmp/actioncharter-pr82-console-before`.
+
+---
+
 # Work resume — PR #82 CI fixes verified; owner Git actions next (2026-11-12)
 
 Owner requested PR repair and Git instructions, explicitly excluding #79 and unrelated

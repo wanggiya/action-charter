@@ -147,3 +147,11 @@ introspection and help formatting. Future upgrades need an explicit compatibilit
 review, rather than silently accepting or regenerating historical snapshots.
 Fresh-container tests confirm all CLI contract checks pass with the pinned toolchain
 and newer non-CLI dependencies. No command body or entrypoint changes.
+
+The PR follow-up also fixes the help test's console environment: Typer captures
+`GITHUB_ACTIONS` and forced-color variables at import time, causing a forced TTY
+and 80-column output despite CliRunner's 120-column arguments. The snapshot test
+now scopes `FORCE_TERMINAL=False` and `MAX_WIDTH=120` via monkeypatch. Production
+console behavior and all 165 saved help digests remain unchanged. A subprocess
+regression sets GitHub/color flags and a conflicting width before imports, proving
+that the original help contract also holds in that CI environment.

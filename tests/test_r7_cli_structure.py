@@ -72,7 +72,13 @@ def test_all_command_names_order_parameters_and_defaults_match_before_extraction
     assert digest == FIXTURE['command_contract_sha256']
 
 
-def test_every_help_screen_matches_before_extraction():
+def test_every_help_screen_matches_before_extraction(monkeypatch):
+    from typer import rich_utils
+    # Typer captures GitHub/color/width variables at import time. CliRunner's
+    # environment alone cannot fix that console to the original 120-column,
+    # non-interactive snapshot. Scope these settings to this test only.
+    monkeypatch.setattr(rich_utils, 'FORCE_TERMINAL', False)
+    monkeypatch.setattr(rich_utils, 'MAX_WIDTH', 120)
     runner = CliRunner()
     for name, expected in FIXTURE['help'].items():
         result = runner.invoke(original_app(), [*name.split(), '--help'],
@@ -81,6 +87,15 @@ def test_every_help_screen_matches_before_extraction():
         assert result.exit_code == 0, (name, result.output, result.exception)
         assert hashlib.sha256(result.output.encode()).hexdigest() == expected, (name, result.output)
     assert len(FIXTURE['help']) == 165
+
+
+def test_help_snapshot_is_stable_with_github_console_environment():
+    result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
+        'tests/test_r7_cli_structure.py::test_every_help_screen_matches_before_extraction'],
+        cwd=ROOT, capture_output=True, text=True, timeout=60,
+        env={**os.environ, 'CI': 'true', 'GITHUB_ACTIONS': 'true', 'FORCE_COLOR': '1',
+             'PY_COLORS': '1', 'TERMINAL_WIDTH': '77'})
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_all_original_command_bodies_and_signatures_are_unchanged_and_public():
