@@ -42,7 +42,8 @@ paths/fragments, not the scientific or historical correctness of every linked re
 
 Documentation audit: 14 files, 545 local Markdown links and 151 Markdown fragments
 checked with no missing destinations; snapshot reconstruction matches all 113,332
-original bytes and the SHA-256 above. The active roadmap (under 15,000 bytes) passes both its
+original bytes and the SHA-256 above. At P0-7 delivery the active roadmap was 14,788 bytes,
+passing both its
 64,000-byte maintenance target and the actual 128,000-byte bounded reader. Twelve
 context-pack tests passed in 1.02 s. Final full `make test`, completed 2026-11-05:
 **2,483 passed**, 13 existing spatial warnings, 682.93 s (11:22). No frontend/runtime

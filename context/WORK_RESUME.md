@@ -1,49 +1,450 @@
-# Work resume — Phase 0 consolidation
+# Work resume — recorded inspection quality reports ready for owner validation (2026-11-11)
 
-2026-11-05 CI follow-up for PR #65: GitHub annotation confirms the PR test job hit
-its 15-minute limit at 98%; same-commit push run passed tests and frontend validation.
-Owner authorized raising timeout to 30 minutes and adding pytest --durations=20.
-Only those two workflow settings changed; coverage/authority/application code unchanged.
-Local validation passed: YAML parse, every run step's bash syntax, exact two-setting
-workflow diff, 12 focused tests with slow-duration output (2.69 s), git diff --check.
-Full suite not repeated for this CI-only edit; prior same-commit push suite passed.
-Remote verification of the changed configuration requires owner commit/push.
-Do not rerun the old workflow expecting it to use this uncommitted configuration.
+Export-control follow-up: fixed the 8 px vertical offset between report format and
+Download workflow report. A scoped CSS margin reset preserves both 38 px heights.
+Isolated browser checks: MD/PDF, outline/solid, 1000/640/360 px widths; zero offset
+when on one row, existing narrow wrapping retained. Frontend typecheck/build passed.
+CSS-only follow-up; backend suite evidence below belongs to the prior implementation.
 
-P0-7 complete, 2026-11-05, issue #64 (owner explicitly authorized creation).
-Active context/PRODUCT_ROADMAP.md now holds phase dependencies, P0 boundaries,
-retained T01–T15 requirements, unresolved memory/learning/format/report/service plans
-and the Phase 0 exit audit as next action. Full prior roadmap is preserved in
-docs/development/PRODUCT_ROADMAP_BEFORE_P0_7.md; index/preservation metadata in
-docs/development/ROADMAP_HISTORY.md. Only relative Markdown URLs were rebased;
-check reverse-rebased bytes/hash against original 113,332 bytes (original SHA in index).
-The current context-pack builder does not include PRODUCT_ROADMAP; no loading change.
+Current task: P0 report-completeness bug [#81](https://github.com/wanggiya/action-charter/issues/81),
+created with explicit owner permission. Implementation/automated verification done;
+owner real-file report acceptance remains pending. [Scope, budgets and exact manual
+steps](../docs/INSPECTION_QUALITY_REPORTS.md). This is a demonstrated Phase 0 bug,
+not a new statistical/agent phase. Preserve all pending R1–R12/P0-2b and owner work.
 
-README, documentation/context/product-direction navigation, T checklist precedence,
-CURRENT_STATUS, CHANGELOG and working-method status updated. Short decision note:
-docs/decisions/2026-11-04-active-roadmap.md. No application/test/dependency code changed.
-Archive/link audit passed (14 files, 545 local links, 151 fragments), original bytes/
-SHA reconstructed exactly. Twelve focused context tests passed (1.02 s); direct bounded
-roadmap read passed and the fixed six-file context list remains unchanged.
-Final make test: 2,483 passed, 13 existing spatial warnings, 682.93 s (11:22).
-Full log: /tmp/actioncharter-p07-full.log. Audit log:
-/tmp/actioncharter-p07-docs-audit.log; focused log: /tmp/actioncharter-p07-context.log.
-No frontend/browser rerun for documentation-only changes. Pre-demo memory/learning requirements remain explicit
-open scheduling decisions; Phase 0 completion does not waive them.
+Cause: completed diabetes run `3a7eac1962b741e6b3a9448324fc1f03` recorded 101,766
+rows/50 columns using only a path argument. It had missing counts/types but no
+analytical profile; the report path ignored metadata-only facts. Interface Report
+also assumed readiness evidence, and could retain an early report after completion.
+The owner run was inspected read-only; no original source/run/report was rewritten.
 
-P0-6 complete: 2,483 tests (938.96 s, 13 existing spatial warnings), frontend and four
-fixture browser journeys passed. Logs: /tmp/actioncharter-p06-full.log, -interface.log,
--browser.log, -graph-browser.log, -authority-browser.log and -hmr-browser.log.
-Owner reported subsequent manual frontend smoke checks passed; not a new model benchmark.
-P0-2/P0-3/P0-4/P0-5 remain complete with documented scope limits. Real checkout remains
-unmigrated; no claim that all Phase 0 layer moves/exit requirements are met.
-Next: audit remaining Phase 0 gates, refresh/reconcile draft R1–R11 overlaps and agree
-the next issue. Do not automatically start Phase 1 or implement new features.
-Preserve accumulated work. No branch/stage/commit/push/PR, live database, secrets,
-model settings, dependency install or Docker change; issue #64 stays owner-controlled.
-Pre-existing historical CHECKPOINT24 contains CI YAML, lacks the old conversation
-anchor; README now links current guidance. Recorded in history index; recovery of
-the original historical content requires separate review, not silently rewritten.
+Delivered: bounded one-pass distinct/once-only/repeated/excess value counts,
+hash-based whole-row duplicates, candidate markers, numeric count/mean/min/max/sample
+SD. Shared output/report module `data/tabular/basic_profile.py`; candidate numerical
+moments reuse guidance. Exact counter limits: 500k entries / estimated 64 MiB;
+overflow means unavailable, not partial/exact or zero. Ordinary outcomes stay 16 KB.
+Legacy reports show saved facts and explicit not-calculated checks. Readiness adds
+basic appendix within budget; workflow handoff retains it when omitted there. UI
+metadata Report uses shared handoff and refreshes on run status changes. Existing
+MCP/CLI/terminal/report-operation paths reuse the same projection. No new public
+operation/schema, model call, agent role, execution authority or inferred P-value.
+
+Verification (fixtures/fake models):
+- `make test`: 2,816 passed, 13 existing spatial warnings, 785.18 s. Collected the
+  initial eight new cases; final focused 10 cases also cover redaction/MCP parity.
+- Final focused broader set: 75 passed; final report set: 10 passed.
+- `make interface-validate`: passed, existing chunk-size warning only.
+- Strict layer/compatibility checks: 614 modules / 497 native / 3021 imports,
+  zero debt/errors; 290 retired / 117 public boundaries retained. Historical
+  retirement manifests/contracts preserved; module census updated for one new owner.
+- Stable-ID + relocated-state isolated browser/API/CLI/PTY passed, zero page errors;
+  basic report MD equals CLI report, PDF works, downloads cause no execution/analysis.
+  Uses temporary profile and project-local browser dependencies; no normal cache.
+- Synthetic 101,766 rows/50 columns: all 50 profiles, 101,766 distinct encounters,
+  50,883 repeated entities; 7.47 s direct scan, 15,286 compact bytes, peak process RSS
+  57,448 KiB. Not a real-data/model/comparative benchmark.
+- 374 local doc links and whitespace checked. Full test log:
+  `/tmp/actioncharter-report-completeness-tests.log`; browser log:
+  `/tmp/actioncharter-report-browser.log`. Slice snapshots: `/tmp/actioncharter-report-before`.
+
+Next: owner restarts usual launcher, newly inspects `test/diabetic_data.csv` read-only,
+checks Outcome → Report → MD/PDF for source/rows, missingness/markers, cardinality,
+duplicates and numeric summaries. Reopen the old run: missing checks must remain
+not calculated; no refresh-time computation. Interpretive goals and actual
+inferential methods remain the existing explicit analysis path, not invented report
+content. Keep issue #81 for owner acceptance. Other Phase 0 manual acceptance and
+real workspace cutover below remain separate; this fix does not close them.
+
+No Git stage/commit/push/merge, installs, secret edits, live DB/service changes or
+real workspace migration. Previous independent handoff/environment/Git notes below
+are preserved history/follow-ups, not actions authorized or executed here.
+
+---
+
+# Work resume — R-series acceptance closeout; two owner checks remain (2026-11-10)
+
+Current task is documentation/acceptance closeout, tracked under existing R11 #80.
+Owner confirmed the six-step startup/read-only `sample_orders.csv`/refresh recovery
+journey passed. Record as OWNER-REPORTED, not agent-observed or benchmark evidence;
+no chat/run ID, model or timing provided. Two required manual checks remain:
+Execution History navigation and frontend/terminal continuity. Fresh-file write test
+optional and NOT manually tested. No new R-series coding task unless an actual
+regression appears. See docs/R_SERIES_ACCEPTANCE.md#acceptance-record for exact steps.
+Real backup/cutover #79 remains unapproved/unperformed, separate from R-series
+manual closure. Phase 0 source-only-root gate still open. No Git/package/runtime
+changes authorized by this documentation task; preserve all existing pending work.
+
+2026-11-10 doc review rechecked source/compatibility gates (613 modules, 3016 imports,
+290 retired/117 retained, zero debt/errors) and read-only local install metadata:
+both geoagent-skill-harness 0.1.0 and actioncharter 0.9.0 records; no venv actioncharter
+console script; repository ./actioncharter exists. Existing environment/Git notes below
+are preserved follow-ups, not instructions executed in this task. Do not refresh the
+environment or expand R-series scope without a request. Prior independent test evidence
+below is preserved; no full suite/frontend/browser repeat for doc-only edits.
+Documentation audit passed: 50 changed/new Markdown files, 620 local links and 183
+fragments; roadmap 17,194 bytes, whitespace clean. No code or runtime changes.
+
+Handoff for the next agent. Read-only verification plus test runs; nothing committed,
+pushed, migrated or changed in code. Branch `main` (`fe15a33`, PR #65 merged), with all
+R1–R12, P0-5b and P0-2b work **uncommitted**: 755 changed files (+4,488/−72,734) and
+529 untracked files. No open PR.
+
+## Verification (re-run independently on 2026-11-10, fixture tests)
+
+| Check | Result |
+|---|---|
+| `make test` | 2,808 passed, 13 existing spatial warnings, 790 s |
+| `scripts/check_import_layers.py --strict` | 613 modules, 0 upward dependencies, baseline passed |
+| `scripts/check_compatibility.py` | 290 retired, 117 retained public, 0 errors |
+| `make interface-validate` | typecheck + build pass (chunk-size warning only) |
+| `bash -n scripts/start_actioncharter.sh`, `docker compose … config --quiet` | pass |
+| Wheel build | builds; contains `apps/` (621 files) |
+| Secret pattern scan of diff + untracked files | nothing found; `.env`, `.secrets` ignored. gitleaks not installed — run it before pushing if available |
+| Root runtime folders | still present (cutover pending) but git-ignored; none appear untracked |
+
+Status: R-series automated work complete. Owner startup/read-only/recovery passed;
+only history and terminal continuity remain required in manual acceptance
+([R_SERIES_ACCEPTANCE.md](../docs/R_SERIES_ACCEPTANCE.md)) and the real workspace
+cutover ([OWNER_WORKSPACE_CUTOVER_PLAN.md](../docs/OWNER_WORKSPACE_CUTOVER_PLAN.md),
+#79). Phase 0 exit "repo root contains source only" is not met until the cutover.
+
+## Fix before Git
+
+1. Stale local install: `.venv` has two dist-infos (`geoagent_skill_harness-0.1.0`,
+   `actioncharter-0.9.0`); `.venv/bin/geoagent` still points to `geoagent_harness.cli`
+   (works only through a retained compatibility path); `actioncharter` command missing.
+   ```bash
+   .venv/bin/pip uninstall -y geoagent-skill-harness actioncharter
+   .venv/bin/pip install -e ".[dev]"
+   ```
+2. Issues #60–#64 still open although delivered in PR #65:
+   `gh issue close 60 61 62 63 64 -c "Delivered in PR #65"`
+
+## Git plan (owner runs or explicitly asks an agent to run)
+
+Push to a branch now (backup + CI); merge only after owner manual acceptance.
+
+```bash
+# stop other agents working in this folder first
+git switch -c cleanup/r-series-consolidation
+git add AGENTS.md context docs CHANGELOG.md README.md
+git commit -m "Record R-series decisions, showcase workloads and model-participation policy"
+git add -A
+git status   # only src/, tests/, scripts/, interface/, config; no data/runtime folders
+git commit -m "R-series: layer boundaries, platform config, storage/ledger contracts, CLI/HTTP split, execution context, compatibility cleanup, stable project identity
+
+Closes #66 #67 #68 #69 #70 #71 #72 #73 #74 #75 #76 #77 #78 #80"
+git push -u origin cleanup/r-series-consolidation
+gh pr create --base main --title "R-series consolidation (R1–R12, P0-5b, P0-2b identity)" \
+  --body "make test: 2,808 passed locally (fixture tests). Layer check 0 violations; compatibility 0 errors; frontend build OK. Owner manual acceptance and real workspace cutover pending."
+gh pr checks --watch
+```
+
+Then: owner runs R_SERIES_ACCEPTANCE.md on the branch → fix on the same branch if
+needed → `gh pr merge --merge --delete-branch` → `git switch main && git pull && git fetch --prune`.
+
+- #79 (P0-2b) intentionally not in "Closes": real cutover not done.
+- Stale remote branch `origin/cleanup/phase0-structure` (merged in #59) can be deleted:
+  `git push origin --delete cleanup/phase0-structure`; consider
+  `gh repo edit --delete-branch-on-merge`.
+
+## Next after merge
+
+1. Real workspace cutover per OWNER_WORKSPACE_CUTOVER_PLAN.md (backup first; needs
+   explicit owner approval). Then close #79 and mark Phase 0 done in WORKING_METHOD.md.
+2. PA1: owner archives governor/senator sources (data only, `data/input/`, manifest with
+   URL, time, SHA-256) — see [SHOWCASE_WORKLOADS.md](../docs/product-direction/SHOWCASE_WORKLOADS.md).
+3. Phase 1: benchmark (tasks from showcase workloads H, E1/E3, PA gold set, G1) and
+   model providers M1–M2 ([MODEL_PROVIDERS_PLAN.md](../docs/product-direction/MODEL_PROVIDERS_PLAN.md)).
+   One branch and one PR per task from then on.
+
+Recent direction decisions (2026-11-05/06), all in `docs/decisions/`: server autonomy,
+showcase workloads and Personal/Platform editions, model participation in authorization
+(experimental model approver, Phase 7 shadow / Phase 8).
+
+# Work resume — owner cutover preparation ready; approval pending (#79)
+
+2026-11-09. Current scope: prepare/review only; NO real backup, archive, identity
+adoption or migration authorized/performed. Existing P0-2b issue #79 reused; no new
+issue/PR. Overlap check: no open PR; #79/#80 remain open, branch main. All existing
+R1–R12/P0-2b and owner changes preserved. No Git/secret/live-service changes.
+
+Plan docs/OWNER_WORKSPACE_CUTOVER_PLAN.md. Read-only real inventory: legacy_path,
+source/state both current checkout, no config or identity marker. 44 runtime roots,
+2,129 regular files, 526 dirs, 27,742,154 bytes /26.46 MiB; six symlinks in these three
+.local/interface-acceptance sessions: 20261005T174714Z-7330e5bf,
+20261005T235717Z-bb7882a9, 20261006T022502Z-4dfd6a45. Each links .venv and
+interface/node_modules to real dependency directories. Do not dereference/delete them.
+No hardlinks/special/unreadable entries. Existing migration preview rejects links.
+No identifier references outside those sessions across 740 regular runtime files.
+
+Three SQLite DBs (tasks, write-policy, successful-workflows) passed immutable read-only
+quick_check; no sidecars observed, metadata stable. Eight stored locks not held,
+project lease absent. No listeners 5173/8765; no matching Compose working-dir-label
+containers. These observations do NOT certify all custom/remote writers stopped.
+.env root keys were examined by NAME only, no values disclosed/changed; host launcher
+excludes them from its allowlist. No inherited overrides in this inspection. Recheck
+actual launcher exports. Credential files under .secrets/.aws were not opened. Runtime
+bytes were screened only for the three session IDs; no chat payloads or configuration
+values were disclosed.
+
+Proposed active state /home/jay/.local/share/actioncharter/workspaces/geoagent-skill-harness/state;
+backup /home/jay/.local/share/actioncharter/backups/geoagent-skill-harness/<unique-id>/.
+Not created. Nearest existing parent same filesystem, ~35.34 GiB free; reserve/recheck
+256 MiB for measured snapshot. Plan: stop writers, verified independent no-follow backup,
+preserve WHOLE three dev sessions separately, clean preview, UUID adoption + metadata
+backup, verified migrate --archive-legacy, verify BEFORE launch, then owner smoke test.
+Rollback automatic only while unchanged/prelaunch; preserve newer work after startup.
+12 tracked runtime markers/files would move; Git left to owner.
+
+Synthetic TEMP fixture (44 root names, 3 fake DBs, 3 fake sessions/6 links) passed link
+rejection, archive preservation, stable adoption, copy/verify/archive exact_copy/source_only,
+immediate guarded rollback and UUID/evidence preservation. No real record copies or
+operation execution. Code/tests unchanged; no repeat full suite/frontend needed for
+this documentation/read-only slice. Prior R11: 2,808 tests (859.92 s), frontend/browser
+passed; owner manual acceptance still pending. Phase 0 NOT complete.
+NEXT: owner review/approval of exact cutover plan/paths and preservation actions. Do not
+perform cutover merely because preparation was approved. Re-inventory before any real
+copy. Temporary reports /tmp/actioncharter-cutover-{inventory,checks,references,rehearsal}.json
+are volatile; essential facts are in the durable plan. Final documentation audit: 50
+changed/new Markdown files, 610 local links / 176 fragments pass; roadmap 16,911 bytes;
+whitespace clean. Config/identity/audit DB files absent and proposed destinations not
+created. No Phase 1/new features started.
+
+Earlier implementation evidence follows for continuity.
+
+# Work resume — R11 verified; combined owner acceptance next (#80)
+
+2026-11-09. https://github.com/wanggiya/action-charter/issues/80 (owner approved).
+R11 implementation + required automated gates COMPLETE with supported-compatibility
+scope. 290 obsolete adapters removed; 117 supported boundaries retained (60 public
+package roots, 57 aliases); all 496 native implementation modules remain. Strict:
+613 modules / 3016 imports, zero upward/dynamic debt, no ordinary native legacy callers.
+Historical R6 inventory unchanged; r11_compatibility.json partitions all 407 records
+and binds unchanged schema/CLI/HTTP/MCP/registry/generated-SDK contracts. Source gate
+rejects restored/unclassified aliases and new implementation under old public roots.
+Maintained callers, package entrypoints and launchers use native owners. Minimal native
+worker image context passes -I -S profile check with fake Docker; SDK loader retains
+reserved old namespaces. No actual image build or live-service validation.
+
+FINAL make test: 2,808 passed, 13 existing spatial warnings, 859.92 s (14:19), session
+67131 exit 0, /tmp/actioncharter-r11-resumed-full.log. The interrupted earlier run and
+/tmp logs were unavailable on resume; no final result claimed for that run. Fresh
+frontend passed (5.44 s build; existing bundle warning), resumed-interface log, session
+8756 exit 0. Fresh stable-ID relocated browser/API/CLI/terminal passed, zero page
+errors and one authorized TEMP write, resumed-browser log, session 50160 exit 0.
+Both log prefixes /tmp/actioncharter-r11-. Static compatibility and strict gates pass.
+Earlier final focused group 87 passed; 15 new R11 cases. Three obsolete adapter-only
+parameter rows replaced by exhaustive retirement coverage. Functional, schema and
+authority assertions preserved. All evidence is TEMP fixtures, not actual local-model/
+live-DB acceptance. No production changes after source freeze during this rerun.
+Final documentation audit: 49 changed/new Markdown files, 602 local links and 176
+fragments pass; roadmap 16,723 bytes <64,000; whitespace clean. Owner identity/config
+and both action-audit DB files remain absent after all tests.
+
+Guides: docs/R11_COMPATIBILITY.md + docs/R_SERIES_ACCEPTANCE.md; decision
+2026-11-09-r11-public-compatibility.md. Do NOT claim literal zero shims. R-series
+implementation/automated gates complete under the owner's approved public/historical
+compatibility requirement. NEXT: owner combined manual acceptance from that guide;
+restart launcher first to load native modules. Owner real backup/adoption/cutover is
+SEPARATE explicit scope, still pending. Phase 0 NOT complete: source-only real-root
+exit and owner acceptance remain. Do not start Phase 1, new agents/features or real
+model benchmark work until owner direction and remaining Phase 0 gates are settled.
+No Git stage/commit/push/merge, secret changes, live DB/service changes or real migration.
+Preserve all pending R1–R12/P0-2b and owner designs. DO NOT rerun one-time rewrite or
+removal scripts; future compatibility changes require explicit partition review.
+
+Previous completed task evidence follows for continuity.
+
+# Work resume — P0-2b local identity verified; R11 next (#79)
+
+2026-11-09. https://github.com/wanggiya/action-charter/issues/79 (owner approved).
+Local stable identity implemented: shared UUID/source/state object resolver, offline
+adoption/rebind CLI, UUID write-owner scope, immutable legacy audit-scope provenance,
+verified state cutover/guarded rollback. No owner workspace adoption/migration, secrets,
+live service/DB or Git mutations. Preserve pending R1–R12 and owner designs.
+
+25 new identity cases; focused existing regression group 208 passed; final identity/
+CLI/container group 37 passed in 8.97 s. Initial focused fixture HTTP socket hit sandbox;
+permitted rerun passed. Original CLI snapshot preserved; fixture owner-FD wrapper
+forwards explicit scope while retaining checkout isolation. Strict 903 modules / 3305
+imports, zero upward/dynamic debt. Frontend passed (4.59 s build, existing warning).
+Final make test PASSED: 2,796 tests, 13 existing spatial warnings, 816.47 s (13:36),
+session 50384 exit 0, /tmp/actioncharter-p02b-full.log.
+Relocated legacy browser passed /tmp/actioncharter-p02b-browser.log; stable-ID browser
+passed /tmp/actioncharter-p02b-stable-browser.log, zero page errors and one explicitly
+authorized TEMP write each. Optional ACTIONCHARTER_TEST_STABLE_IDENTITY exercises
+adoption before fixture API startup. Relative state/source rename disposable check passed.
+Automated gates complete; no production changes after full-suite source freeze.
+Only the optional stable-ID browser fixture flag was added while Python tests ran.
+Real checkout read-only CLI status remains legacy_path, UUID null, authority false;
+identity/config and both action-audit DB files absent. Final audit: 46 changed/new
+Markdown files, 579 local links / 176 fragments pass; roadmap 16,395 bytes <64,000;
+git diff --check clean.
+
+Guide docs/PROJECT_IDENTITY.md and decision 2026-11-09-stable-project-identity.md.
+Real owner backup/cutover remains separate explicit owner action. Cross-filesystem
+source transfers and container alias provisioning are intentionally unsupported;
+legacy deployments unchanged. R11 compatibility/public/stored-reference retirement
+review is next. Do not blindly remove the 407 adapters or alter historical digests.
+Owner manual combined validation deferred until all R-series work completes.
+Phase 0 NOT complete. No new agent/data/UI/autonomy features. Originals in
+/tmp/actioncharter-p02b-before. Do not run transition commands on owner checkout.
+
+Previous completed task evidence follows for continuity.
+
+# Work resume — R12 complete; P0-2b and R11 remain
+
+2026-11-09 local date. R12 implementation + required automated gates complete,
+issue #78 (owner approved creation): https://github.com/wanggiya/action-charter/issues/78.
+Owner manual validation explicitly DEFERRED until ALL R-series work is complete.
+Preserve all pending R1–R12/P0-5b and owner AGENTS/design changes. No Git branch/stage/
+commit/push/merge/publication, live DB/service, secret or real workspace migration.
+
+Frozen Actor/RunContext/Budget/PolicyDecision contracts; scoped local policy/UTC clock/
+no-issue credential broker/context-copying queue and audit ports. 70 fixed task entries,
+ordinary CLI/HTTP and ALL 27 MCP ingresses carry context. Original external request/tool
+schemas, fixed data-service identities and exact authorization stay intact. Explicit
+event keys consume claims before dispatch; uncertain completion never allows replay.
+Record links supplement old canonical artifacts without rewriting hashes. Query-only
+lookups and standalone proposal-only CLI preserve purity using bounded transient
+telemetry (512 events, no data/prompts). Actual processing/mutations/keyed events durable.
+HTTP/MCP bind their service profiles explicitly. MCP uses traces/.action-audit through
+its existing writable mount; local/controller uses workflow-state. No container mounts
+or permissions broadened. Namespaces/source paths do not imply cross-process delegation.
+
+FINAL make test: 2,771 passed, 13 existing spatial warnings, 793.66 s (13:13),
+/tmp/actioncharter-r12-final-full.log (session 77441 exit 0). Frontend passed 4.36 s
+(existing bundle warning), /tmp/actioncharter-r12-interface-final.log. Final relocated
+fixture browser/API/CLI/terminal passed, zero errors, one authorized TEMP write,
+/tmp/actioncharter-r12-final-browser.log (session 62288 exit 0). Strict 902 modules /
+3,288 imports, zero upward/dynamic debt; 407 adapters (61 package roots), 495 native.
+35 new contract cases; MCP/container/context 116, MCP/security 106, recovery/parity 97.
+All fixtures, NOT real-local-model/live-DB acceptance. Both checkout audit locations
+(workflow-state/action-ledger.sqlite3 and traces/.action-audit/action-ledger.sqlite3)
+ABSENT after final suite. Final audit: 43 changed Markdown files / 572 local links / 176 fragments pass;
+roadmap 16,143 bytes < 64,000; whitespace clean.
+
+Guide docs/EXECUTION_CONTEXT.md and decision 2026-11-08-action-context-and-local-services.md.
+Living docs/status and Working Method Status updated. Durable entry/tool fixtures:
+tests/architecture/r12_entrypoints.json (70/20 modules) and r12_mcp_tools.json (27).
+Initial suite caught 7 purity/clone/timer regressions; fixed without weakening assertions.
+Two hand-copy fixtures now copy audit state; controlled independent evaluation clones
+omit source-bound private claims. Thread composition and read-only deployments tested.
+21 initial test-only checkout claims preserved at
+/tmp/actioncharter-r12-test-audit-preserved.sqlite3 then removed; no original/user ledger
+existed initially. Browser now waits Writes: ON and preserves failure diagnostics.
+Earlier 2,767/2,769-test gates preceded final MCP/readonly changes; final gate above counts.
+
+NEXT: P0-2b stable project-ID ownership (configuration portion already done); owner's
+real offline backup/cutover remains a SEPARATE explicit owner action. R11 compatibility
+retirement LAST after callers and required public/stored/generated references are
+accounted for; never rewrite historical hashes or blindly delete required paths.
+Phase 0 still NOT complete; do not start Phase 1/new agents/data/UI/autonomy features.
+Manual combined acceptance stays deferred. R9/R10 reuse delivered P0-3/P0-6.
+Originals /tmp/actioncharter-r12-before; DO NOT rerun /tmp/r12_integrate.py or
+/tmp/r12_query_boundaries.py against current files.
+
+Earlier task evidence below is history, not active instructions.
+
+# Work resume — P0-5b complete; R12 next
+
+2026-11-08 local date. P0-5b implementation + required automated gates complete,
+issue #77 (owner approved creation): https://github.com/wanggiya/action-charter/issues/77.
+Owner explicitly defers MANUAL validation until ALL R-series work is complete.
+Preserve all pending R1–R8 and owner AGENTS/design changes. No Git branch/stage/commit/
+push/merge/publication, live DB/service, secrets or real workspace migration performed.
+Phase 0 feature freeze; experimental model approver remains future/off/unimplemented.
+
+Four platform/storage modules define immutable records, attempt/events, closed
+write-policy/success-index units and trusted context-scoped provider factories.
+22 existing native production clients now use these persistence owners. Domain
+schema/hash/scope/redaction/authority checks, local ownership/session leases and
+existing SQLite/file layouts remain. Separate immutable evidence from mutable
+status/annotation projections. Locks/exclusive create/SQL rollback preserve local
+concurrency; uncertain storage never permits replay. No new agent/operation/UI or
+remote/distributed backend. 32 canonical/digest helper ASTs + three table-DDL strings
+match pre-edit snapshots. Existing test assertions untouched for this task.
+
+Focused integration 127 passed; readers 77; histories/lifecycle 63 (overlapping groups).
+27 NEW ledger contract cases + three existing frontend workspace checks pass.
+Final make test: 2,736 passed, 13 existing spatial warnings, 750.12 s (12:30),
+/tmp/actioncharter-p05b-full.log. Frontend passed, 5.16 s build (existing bundle
+warning), /tmp/actioncharter-p05b-interface.log. Relocated fixture browser/API/CLI/
+terminal passed, zero page errors, one authorized TEMP write,
+/tmp/actioncharter-p05b-browser.log. These are fixtures, not new real-model/live-DB
+acceptance. Strict: 897 modules / 3,239 imports, zero upward/dynamic debt; 407
+compatibility adapters (61 package roots), 490 native modules. Final links/whitespace
+audit: 41 changed Markdown files / 561 local links / 175 fragments pass; roadmap
+15,910 bytes < 64,000, whitespace clean. Initial new test used an incorrect schema import; fixed
+before final gates. No guard weakened. Session 32648 completed exit 0.
+
+Guide docs/LEDGER_CONTRACTS.md + decision 2026-11-08-specialized-ledger-contracts.md.
+R9/R10 criteria reconciled against delivered P0-3/P0-6: shared PostGIS lifecycle stays
+in L2 data because it depends on DB inspection; pure policy/ledger below it. App is
+48 lines over workspace controllers/store. Do not rebuild either or claim live-DB
+acceptance. README/status/changelog/architecture/roadmap/working-method Status updated.
+
+NEXT: R12 explicit actor/run/idempotency context and policy/credential/queue/clock
+interfaces with local implementations; no standing server authority. Read current
+server design before defining the bounded issue (issue creation needs owner approval).
+P0-2b stable project ID + owner real backup/cutover remain separate. R11 compatibility
+retirement LAST, after callers and required public/stored/generated references are
+accounted for; never rewrite historical hashes. Phase 0 NOT complete; do not start
+Phase 1 or add new agent/data/UI features. Manual guide remains deferred.
+
+Temporary /tmp/actioncharter-p05b-before holds originals. DO NOT rerun one-time
+/tmp/p05b_*.py extraction or finish scripts against current source. Durable contract
+acceptance is tests/test_specialized_ledgers.py; no temporary scripts needed to run it.
+Earlier text below is history.
+
+Previous completed evidence: R8 implementation + required automated gates complete, issue #76:
+https://github.com/wanggiya/action-charter/issues/76. Owner explicitly DEFERS MANUAL
+validation until ALL R-series work is complete. No owner testing required now. Keep
+manual guide for combined pass. Preserve all pending R1–R8 and owner AGENTS/design
+changes. No Git branch/stage/commit/push/publication, live DB/service, secrets or real
+workspace migration. Phase 0 feature freeze; model approver future/off/unimplemented.
+
+Native apps/http: composition 172 lines, transport 84, dispatcher 103, error mapping 133,
+ten router areas / largest 198. Explicit immutable roots + trusted public service bindings;
+routers import neither server nor other routers. Public interface_api.server exact alias.
+24 existing coordinators moved unchanged into six task-action owners; 16 request schemas
+and limits into contracts. Two former inline cache/reference operations in existing
+execution owner. Same locks/cache, failure scopes, origins/body bounds, selected-model
+context, statuses/headers/errors, routes and authority. No new agent/operation/UI/dependency.
+Strict graph: 893 modules / 3,209 imports, zero upward/dynamic debt; 407 adapters
+(61 package roots), 486 native modules. R11 owns retirement. All six original execution definitions unchanged.
+
+Final make test: 2,709 passed (713.38 s; 13 existing spatial warnings); /tmp/actioncharter-r8-full.log.
+Existing API/workspace/action/model/layer group: 146 passed; boundary group: 76 passed,
+including ten new cases. All 104 pre-edit request/error responses match; 16 schema digest,
+24 coordinator ASTs and four serializer/origin/logging/model-scope method ASTs match.
+Frontend passed (6.06 s build; existing warning). Relocated fixture browser/API/CLI/PTY
+passed with zero page errors, one authorized TEMP write; /tmp/actioncharter-r8-browser.log.
+These are fixtures, not real-local-model/live-DB readiness. Initial HTTP run hit sandbox
+socket PermissionError; permitted rerun passed. First probe caught missing ValidationError
+import; new cache-failure test caught wrong exception-clause placement. Fixed before
+source freeze/fullsuite, no guard weakened. Five existing Critic mock targets and
+monotonic clock fixture now patch actual owners; old assertion ASTs all unchanged.
+
+Guide: docs/HTTP_ROUTER_STRUCTURE.md. Decision: docs/decisions/2026-11-08-http-router-ownership.md.
+README/status/changelog/architecture/roadmap/working-method Status updated. R6/R7 guides
+now explicitly defer manual checks until all R-series work is complete. Final audit:
+545 local links / 171 fragments across 39 changed Markdown files pass; roadmap 15,963
+bytes < 64,000; whitespace clean.
+
+R8 handoff, superseded above: R9/PostGIS and R10/frontend reuse delivered P0-3/P0-6; do not rebuild them. Trace
+R12 actor/run/idempotency/policy/credential/queue/clock seams alongside P0-5b specialized
+append-only ledger/concurrency contracts before claiming the next bounded task/issue
+(owner approval needed for issue creation). P0-2b stable project ID and OWNER real backup/
+cutover remain separate. R11 compatibility retirement LAST after callers and stored/
+generated references accounted for; do not delete required public paths or rewrite
+historical hashes. Phase 0 not complete; do not auto-start Phase 1 or server autonomy.
+
+Temporary /tmp/actioncharter-r8-before holds old server, two test files, execution and
+owner/route/inventory snapshots. DO NOT rerun /tmp/r8_extract.py against current source.
+Durable tests/architecture/r8_http_contract.json and tests/http_contract_probe.py preserve
+pre-edit evidence. Earlier text below is history.
 
 2026-11-03 bug fix: new-chat filename questions previously omitted required frontend
 context diagnostics, so saved clarification appeared as a Zod failure. Complete new

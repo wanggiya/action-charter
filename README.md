@@ -1,5 +1,10 @@
 # ActionCharter
 
+Table inspection reports now include recorded missingness, distinct/repeated values,
+whole-row duplicate checks and basic numerical summaries when computed. Older runs
+show their saved facts and identify unperformed checks; downloads never rerun data.
+[Scope, limits and validation](docs/INSPECTION_QUALITY_REPORTS.md).
+
 Workspace storage consolidation now covers workflow approvals, recipes, execution
 evidence, reports/Critic records/local release evidence, write-policy state and governed
 task history. Project ownership stays stable
@@ -23,9 +28,47 @@ The [shared task-actions layer](docs/TASK_ACTIONS.md) connects existing interfac
 CLI, terminal chat and MCP actions to the same workflow services and saved evidence.
 Public commands and authorization rules are unchanged; no new setup is required.
 
+Its [shared composition boundaries](docs/TASK_ACTIONS.md#r5-shared-composition-and-evidence-boundaries)
+also cover lazy CLI service delegation, explicit role-coordinator access, immutable
+plan save and completed-run retrieval. These reuse existing services and preserve
+saved formats; browsing a reusable method does not trigger run recovery or a model call.
+
+[Shared execution primitives](docs/SHARED_EXECUTION_PRIMITIVES.md) give data and history
+services common cancellation, graph and evidence contracts while preserving existing
+workflow behavior and compatibility imports.
+
+[Shared evidence services](docs/SHARED_CRITIC_EVIDENCE.md) let history and release
+checks collect recorded observations and read Critic records without loading agent
+behavior. Critic interpretation remains separate from execution authority.
+
+The [trusted registry boundary](docs/TRUSTED_REGISTRY_BOUNDARY.md) separates current
+operation metadata from package testing and execution. Existing installed operations
+remain available; browsing them neither reinstalls packages nor grants permission.
+
 [Storage repositories](docs/STORAGE_REPOSITORIES.md) separate operational metadata,
 durable runs and saved-plan access from those services, using existing SQLite and
 JSON formats. Existing workspaces require no new database or automatic migration.
+
+[Specialized ledger contracts](docs/LEDGER_CONTRACTS.md) now give approvals, evidence,
+lifecycle attempts, write-policy records and successful-workflow indexing shared
+local persistence ports. Immutable records remain create-only; uncertain storage
+never permits automatic replay. Existing files, SQLite layouts and authorization
+checks stay compatible. No new setup or remote storage backend is introduced.
+
+[Action context and local execution services](docs/EXECUTION_CONTEXT.md) connect those
+boundaries to trusted owner/run identities, a separate audit trail and durable event
+claims. Local policy admission still requires the existing exact approval checks.
+Explicit duplicate events cannot repeat dispatch; history/catalog lookups retain pure
+reads through bounded transient telemetry. Ordinary local use keeps its current
+workflow and requires no new dependency or launcher setting.
+
+The [shared metadata boundary](docs/STORAGE_REPOSITORIES.md#r3-transaction-and-plan-contracts)
+now serves model settings, diagnostics and data views directly. Neutral plan contracts
+preserve saved-plan bytes and hashes while removing storage dependencies on agent roles.
+
+[Shared data access](docs/DATA_ACCESS_BOUNDARY.md) gives discovery and dataset services
+the same bounded reader and fixed worker without depending on task-action internals.
+Workflow decisions, source verification and exact authorization keep their existing checks.
 
 The [frontend workspace split](docs/FRONTEND_WORKSPACES.md) gives Planner, Graph,
 Results and Settings shared state and separate controllers/views while keeping the
@@ -35,12 +78,53 @@ Future work is organized in the [active phase roadmap](context/PRODUCT_ROADMAP.m
 with detailed requirements linked separately. The [earlier roadmap](docs/development/ROADMAP_HISTORY.md)
 is preserved as history; it does not override current implementation or authority.
 
+The [development layer check](docs/IMPORT_LAYERS.md) now records existing dependency
+boundaries and rejects regressions in the test suite. R6 moves existing implementations
+under shared contracts, core, platform, data, capabilities and agent owners; the strict
+check now finds no upward dependencies. Historical imports retain compatibility adapters.
+[Architecture, evidence and post-R6 validation](docs/R6_COMPLETION_AND_ACCEPTANCE.md).
+This requires no new runtime dependency or user setup.
+
+The [CLI command modules](docs/CLI_COMMAND_STRUCTURE.md) now separate command groups
+from app construction and registration. Existing `geoagent` commands, options, help,
+outputs and terminal/frontend continuity remain; no new command prefixes are needed.
+
+The [HTTP routers](docs/HTTP_ROUTER_STRUCTURE.md) separate request parsing, fixed route
+dispatch and error responses from existing task coordinators. API URLs, saved records,
+selected-model scope and exact authorization retain their current behavior. Manual
+validation can now follow the [combined R-series guide](docs/R_SERIES_ACCEPTANCE.md); automated checks run per task.
+The owner has confirmed startup, read-only CSV inspection and refresh/reopen recovery.
+[Two manual checks remain](docs/R_SERIES_ACCEPTANCE.md#acceptance-record): Execution
+History navigation and frontend/terminal continuity. Manual fresh-file writing is
+optional; real workspace cutover remains separately approved work.
+
+[Platform configuration](docs/PLATFORM_CONFIGURATION.md) now owns shared settings,
+with one layout and lazy model/tool/client/replay views. Existing launch options,
+environment names, Settings model preferences and exact write authorization remain.
+No new configuration file or record migration is required.
+
 Phase 0 [workspace storage](docs/WORKSPACE_STORAGE.md) now covers internal runtime
 records, catalogs and historical lifecycle artifacts. Existing locations remain the
 default until you explicitly use the offline migration tool. It copies and verifies
 records, switches configuration, optionally archives old folders, and provides guarded
 rollback. User input/output files and credentials stay in place. Existing users need no
 new folder setup; no real project records were moved during development.
+The [owner cutover plan](docs/OWNER_WORKSPACE_CUTOVER_PLAN.md) now records the measured
+runtime inventory and preservation steps for old development-session links. Actual
+backup, archival and cutover remain pending explicit approval.
+
+[Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
+adapters and directs maintained callers to native services. The 117 documented
+public/schema/generated-SDK boundaries preserve existing supported contracts.
+Agent roles, workflow controls and exact authorization retain their behavior.
+Use the [combined R-series acceptance guide](docs/R_SERIES_ACCEPTANCE.md) after
+the automated gates; real workspace cutover remains a separate owner action.
+
+Optional [stable project identity](docs/PROJECT_IDENTITY.md) binds local ownership
+to a project UUID after explicit offline adoption. Verified filesystem renames retain
+identity and audit claims; copied markers/state fail closed. Existing projects need
+no change. Cross-filesystem source transfers and container aliases require future
+provisioning; the owner's real workspace has not been migrated.
 
 Metadata follow-ups such as `inspect it again` use the active workflow input; absent or
 ambiguous sources prompt a question. Inspector/source mismatches are rejected before

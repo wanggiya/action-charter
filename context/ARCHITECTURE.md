@@ -5,11 +5,154 @@
 > Models propose; deterministic software authorizes, executes, validates, and
 > records evidence.
 
+(Direction, not implemented: an experimental, opt-in model approver is planned for
+Phase 8 — see [server autonomy design](../docs/product-direction/SERVER_AUTONOMY_DESIGN.md#model-participation-in-authorization).
+Current code has no such path.)
+
 Generated text is untrusted input. It cannot grant permissions, approve a
 mutation, select arbitrary executable entrypoints, or declare its own work
 successful.
 
 ## Core components
+
+Phase 0 development check: [import layers](../docs/IMPORT_LAYERS.md) statically maps
+current Python modules to explicit layers and rejects regressions. After R6, strict
+mode passes with zero upward dependencies and no dynamic-import debt. This is a static
+dependency result, not execution permission or proof about same-layer cycles. Runtime
+boundaries below remain enforced independently.
+
+## Native package ownership after R6
+
+```text
+apps / CLI / HTTP adapters                 L6
+              |                           |
+task_actions                              L5
+              |                           |
+agents (roles, runtime, memory) / evolution L4
+              |                           |
+capabilities (registry, recipes, skills)   L3
+              |                           |
+data / workspaces                         L2
+              |                           |
+core (policy, ledger, verification)        L1
+platform (configuration, storage, gateways) L1
+              |                           |
+contracts                                 L0
+```
+
+Imports may stay within a layer or point down; not every call traverses every layer.
+Shared deterministic policy and record readers no longer import Planner/Critic
+behavior. Data code owns calculations; agents own generation and interpretation.
+The platform's fixed internal MCP client remains distinct from application MCP tools.
+
+R11 [compatibility retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete
+adapters and moves maintained callers/launchers to native owners. The project now
+has 613 modules: 496 native implementations and 117 supported public/SDK/schema
+boundaries (60 package roots, 57 aliases). No ordinary native caller imports a
+compatibility module. The immutable R6 inventory and exhaustive R11 partition bind
+the boundary; source gates reject reintroduced adapters and hidden implementations.
+Public re-exports and required aliases share actual native objects/locks/context.
+The reserved candidate-loader namespace stays separate from trusted native source.
+The analytical image bundles minimal native CSV/profile code, verified under an
+isolated standard-library-only Python process; no new image was built during tests.
+
+Earlier R6 ownership snapshot: historical leaf paths aliased native modules; package roots retained exports.
+A source-bound manifest audited 391 compatibility adapters at R6 completion, including
+61 package roots; R7's current count is recorded below.
+Lower native layers cannot import these L6 adapters. This preserves old stored/generated
+entrypoints and shared locks/context identity while native callers use responsibility
+owners. R11 owns their eventual retirement. R7's CLI split is implemented below; HTTP
+decomposition is recorded under R8 below. P0-5b contracts are recorded separately
+below; R12 server seams are not delivered by moving files. Earlier R2–R6b sections below describe extraction stages; their old paths remain
+compatibility paths. [Current ownership and validation](../docs/R6_COMPLETION_AND_ACCEPTANCE.md).
+
+## Specialized persistence (P0-5b)
+
+`platform/storage/ledger_contracts.py` defines immutable record, attempt/event journal,
+write-policy and successful-method units. `ledger_provider.py` supplies context-scoped
+local factories; file/SQLite implementations preserve existing workspace layouts.
+Domain services retain canonical schemas/hashes, scope, verification and authority.
+General metadata repositories cannot replace or delete immutable ledger records.
+Local owner/session leases remain in core policy; cross-store writes are not one
+transaction and an uncertain write never allows replay. No distributed backend is
+implemented. [Contract inventory and failure/concurrency requirements](../docs/LEDGER_CONTRACTS.md).
+
+R9's shared PostGIS transaction driver remains in data (L2), since it depends on
+DB inspection; pure policy/ledger/verification contracts stay below it. R10 is the
+existing P0-6 frontend/store split. Their [reconciliation](../docs/LEDGER_CONTRACTS.md#r9-and-r10-reconciliation)
+reuses delivered work, with no second lifecycle or UI redesign. R12 is implemented
+below. Local stable identity is implemented; the real owner cutover remains pending.
+R11 retires compatibility last.
+
+## Trusted action context and execution services (R12)
+
+Optional [stable project identity](../docs/PROJECT_IDENTITY.md) is owned by
+`platform/project_identity.py`. It verifies private UUID/source/state bindings before
+workspace access, task dispatch or audit. Write-owner leases use the stable scope;
+existing audit rows keep their original scope as provenance. Offline adoption and
+rename rebind use local leases; state cutover retains UUID and previous identity.
+Legacy projects remain path-bound. RunContext paths remain strict resource locators;
+no moved/copied project inherits fresh approval. Cross-filesystem source transfers
+and host/container aliases need future provisioning. No role or model changes.
+
+`contracts/task_context.py` defines immutable Actor, RunContext, budgets and admission
+decisions. `core/execution/actions.py` validates scope and performs admission/claim/
+call/audit around fixed first-party task functions. `platform/action_context.py` carries
+lineage and shared admission budgets; scoped `platform/execution_services.py` supplies
+local policy, UTC clock, no-issue credential broker and context-copying in-process queue.
+Seventy explicit task entrypoints, all 27 MCP ingress callbacks and ordinary CLI/HTTP
+ingress use this boundary. MCP callbacks bind their server service profile while
+retaining the fixed data-operation aliases and original tool schemas.
+Public request/tool schemas remain unchanged; actor/context kwargs are trusted Python
+inputs, never model authority. HTTP's optional event key only prevents repetition.
+
+`platform/storage/action_ledger.py` owns a separate local SQLite claim/event ledger,
+source-project binding and bounded verified reads. MCP uses a separate trace-mount
+audit namespace, retaining read-only container permissions and fixed-operation aliases. Designated pure lookups use a
+bounded transient query sink (512 events), retaining actor/run without project writes;
+processing, mutations and explicitly keyed events use durable claims. Server handlers
+capture and install their service profile explicitly in HTTP threads. It links actor/run to returned record
+IDs without rewriting existing canonical records. Claims precede dispatch; uncertainty
+never permits replay. Policy allow admits the call to its existing exact authorization
+checks. A completed action can mean queued; existing workflow evidence determines
+operation success. No distributed queue, authentication, new credential issuer or
+cross-process delegation protocol is implemented. [Contracts, limits and evidence](../docs/EXECUTION_CONTEXT.md).
+
+## CLI application composition (R7)
+
+`apps/cli/main.py` constructs the same WorkspaceTyper app and re-exports original named
+callbacks. `apps/cli/registry.py` registers existing commands in their historical order.
+Command groups own argument definitions/rendering only and call the existing shared
+task actions/services; their implementations do not import one another. `common.py`
+owns the unchanged typed failure renderer. Eight small pre-existing registrars move
+into the application package with aliases at old paths; `geoagent_harness.cli` aliases
+native main while preserving Python module and installed entrypoints.
+
+The main is 142 lines, registry 290, largest group 783. Baseline metadata for 150
+top-level commands, 165 help screens and 110 original functions is verified separately
+from execution tests. CLI loading/commands retain optional dependency behavior. No
+agent, execution or authorization logic moves into the CLI. Current graph: 862 modules,
+400 audited compatibility adapters (61 package roots), zero upward/dynamic debt.
+[Structure, verification and manual acceptance](../docs/CLI_COMMAND_STRUCTURE.md).
+
+## HTTP application composition (R8)
+
+`apps/http/server.py` owns startup/public service exports (172 lines), `transport.py`
+owns the existing origin/JSON/response/model-selection boundary (84 lines), and the
+explicit dispatcher preserves 21 GET branches and 50 POST paths (103 lines). Ten
+routers contain typed parsing and existing service calls; the largest is 198 lines.
+`errors.py` retains ordered error mapping (133 lines). Unknown routes cannot fall
+through to execution. The old server module aliases native composition.
+
+Six task-action owners contain 24 unchanged legacy coordinator/helpers. Existing
+execution actions now also own the former inline cache hydration and task-reference
+linking; their locks, identities and failure scopes remain. Sixteen request schemas
+and finite limits have neutral contract owners. Routers receive existing roots and
+trusted public service bindings explicitly; they import neither server nor other routers.
+No model-selected binding, new agent, operation, authority or server seam is introduced.
+Current graph is 893 modules / 3,209 imports, 407 audited compatibility adapters
+(61 package roots), zero upward/dynamic debt. R6/R7 counts above are their completion
+snapshots. [Evidence and deferred combined acceptance](../docs/HTTP_ROUTER_STRUCTURE.md).
 
 - **Model:** one shared local Ollama/Qwen endpoint. Model connectivity does not
   imply tool authority.
@@ -140,9 +283,36 @@ terminal chat uses the same API and session policy. Old service modules alias th
 actual shared modules, preserving identity of locks and context variables.
 
 Shared actions do not import HTTP/CLI/MCP-tool implementations. Legacy Advanced/
-assurance and some inventories remain in the HTTP module; settings retain their
-historical MCP location. Later router restructuring remains separate.
+assurance and some inventories remain in the HTTP module. Shared settings now have
+the platform owner below; old MCP settings imports remain compatibility aliases.
+Later router restructuring remains separate.
 See [entry points and verification](../docs/TASK_ACTIONS.md).
+
+R5 separates shared proposal validation/edit (`planner.recipe_definition`), immutable
+plan save (`planner.service`), fixed spatial wrappers (`postgis.fixed_operations`),
+closed action/assessment/export schemas and bounded recorded observations from task
+controllers. Compatibility exports retain function/class identities. The role
+coordinator receives the existing conversation lock/read/client factory explicitly;
+its context, budgets and revision guards remain. Completed method retrieval uses a
+bounded non-recovering storage reader; run actions retain recovery. The unchanged
+snapshot encoder stays in the same metadata transaction. Main CLI service imports
+use an explicit lazy task-action catalog returning current backend functions, without
+new MCP/agent tool exposure or command/output changes. R6 ownership is implemented
+above; R7 CLI decomposition is implemented above and R8 HTTP decomposition remains
+open. See [composition and evidence boundaries](../docs/TASK_ACTIONS.md#r5-shared-composition-and-evidence-boundaries).
+
+## Platform configuration (R2)
+
+`platform/configuration.py` creates immutable allowlisted snapshots with a shared
+`LayoutConfiguration` and lazy typed tool/model/internal-client/replay views. Existing
+environment aliases/defaults and request-local model/reasoning override precedence
+remain; no global cache or eager model requirement is added. Shared tool results live
+in `contracts/tool_results.py`. Five former settings/schema modules alias their owners,
+while production callers import neutral modules directly. Historical generated source
+retains old imports/bytes. Configuration reads no credentials or provider services and
+grants no authority. Personal is the only implemented profile; stable project IDs,
+real-record migration and server seams remain separate. See
+[precedence, compatibility and validation](../docs/PLATFORM_CONFIGURATION.md).
 
 ## Storage repositories (P0-5)
 
@@ -155,9 +325,70 @@ Task actions retain domain validation, revision checks, authority and recovery.
 Reads use coherent snapshots; writes retain immediate locking/rollback. Legacy raw
 SQLite consumers have explicit compatibility. Existing configuration/formats remain.
 
+R3 puts transaction/identity/bounded planning-JSON mechanics in `storage/metadata.py`,
+used directly by lower-layer clients. Task actions re-export the same transaction/raw
+helpers and retain memory/provenance validation via their existing-record reader.
+Plan DTOs now live in `contracts/planning.py`, with an exact `planner.schemas` module
+alias; common errors share `contracts/errors.py` identity. Existing parser, serialization,
+limits, SQLite code and authorization remain. See
+[boundary and compatibility](../docs/STORAGE_REPOSITORIES.md#r3-transaction-and-plan-contracts).
+
 Only local adapters are implemented. Specialized authority/evidence/lifecycle stores,
 ranking, legacy JSON writing and filesystem leases retain their existing mechanics;
 distributed storage/coordination is not delivered. See [contracts and acceptance](../docs/STORAGE_REPOSITORIES.md).
+
+## Shared data access (R4)
+
+`sandbox/inspection.py` owns the existing bounded reader, with its fixed worker,
+finite spatial snapshots and rendering beside it. Task actions retain eligibility,
+revision/authority/dispatch checks, internal execution contexts and recorded-run/view
+concurrency scope. Unchanged action/format/batch contracts and context redaction have
+neutral owners; the generic result-redaction profile remains distinct. Shared root
+validation and bounded outcome projection live under platform. Legacy modules and
+exports preserve identity; native imports use their owners. Reader/process/resource,
+serialization/hash and execution policy are unchanged. This adds no operation, agent
+or stronger sandbox boundary. See [ownership and validation](../docs/DATA_ACCESS_BOUNDARY.md).
+
+## Shared execution controls and contracts (R6a)
+
+`platform/execution_control.py` owns the unchanged observer ContextVar, cancellation
+exception and checkpoint/progress forwarding; `recipes.control` aliases that module.
+Pure graph helpers are in `contracts/graph.py`, aliased by `planner.topology`.
+`contracts/critic.py` owns unchanged Critic schemas, with an exact legacy module alias.
+Four self-contained workflow/handoff Executor types are in `contracts/execution.py`;
+`executor.schemas` re-exports the same classes and keeps its recipe-specific result
+with domain validators. Native readers use the neutral owners; generated/stored paths
+remain compatible. All 12 public schemas, canonical graph/record bytes and authority
+rules remain. Subsequent R6 ownership and moves are recorded above. See
+[scope and verification](../docs/SHARED_EXECUTION_PRIMITIVES.md).
+
+## Shared evidence collection and records (R6b slice)
+
+`platform/evidence.py` owns existing deterministic trace/report collection;
+`storage/critic_records.py` and `storage/critic_record_storage.py` own existing canonical
+record construction and package persistence/loading. History and release callers use
+these owners directly. The three former Critic modules alias their actual owners;
+the role retains model interpretation and its public exports. Limits, redaction,
+schema/status/identity checks, source references, canonical bytes and authority remain.
+An evidence digest establishes integrity rather than scientific truth. This removes
+two dependencies without adding a model call or agent. Subsequent R6 policy/registry/
+ledger ownership is recorded above; these are not new P0-5b ledger/concurrency contracts.
+See [responsibilities and verification](../docs/SHARED_CRITIC_EVIDENCE.md).
+
+## Trusted registry and installed metadata (R6b2)
+
+`contracts/skill_registry.py`, `table_arguments.py`, `text_transform.py` and
+`operation_packages.py` own existing data-only definitions and package identity.
+`platform/skill_registry.py` loads the fixed current YAML and verified installed
+metadata through `storage/operation_packages.py`. Two exact legacy registry aliases
+and partial class/function exports preserve compatibility. Native callers use shared
+owners; generated/stored strings remain. Package testing/install/dispatch stay separate.
+The directory helper retains its existing explicit install/create path. Reading
+metadata makes no model call, tests or installation and grants no authority. Approval
+still loads the current registry and runs the unchanged full policy chain. No cache,
+new version pin or migration is added. Subsequent R6 Planner-policy and recipe-ledger
+ownership is recorded above; P0-5b remains separate. See
+[scope and validation](../docs/TRUSTED_REGISTRY_BOUNDARY.md).
 
 ## Frontend workspaces (P0-6)
 
@@ -256,3 +487,12 @@ existing execution observer. Counts/hash complete in the existing durable run;
 no new agent, daemon, container, queue or user mode is introduced. Spatial snapshot
 and small-data transformation/exploration contracts remain separate. Statistical
 inspection, source identity and display scope must not be conflated.
+
+## Recorded basic inspection quality (2026-11-11)
+
+The shared table reader now maintains bounded basic quality counters alongside the
+existing scan. `data/tabular/basic_profile.py` owns aggregate output and pure saved-fact
+reporting; candidate numerical moments reuse field guidance. Existing workflow handoff
+and readiness projections render those facts for transports/downloads, without a
+source read or model call. No agent/authority boundary or public input schema changes.
+[Contract, budgets and validation](../docs/INSPECTION_QUALITY_REPORTS.md).

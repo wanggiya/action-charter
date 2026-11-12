@@ -15,9 +15,10 @@ Read in this order:
 | 3 | [Autonomous server platform design](AUTONOMOUS_PLATFORM_DESIGN.md) | Target architecture for a policy-governed autonomous agent platform, new code structure, migration phases |
 | 4 | [Market position and strategy options](MARKET_POSITION_AND_STRATEGY.md) | Is it competitive? Portfolio vs niche product vs governance layer for other agents; validation gate; open decision on the owner's goal |
 | 5 | [Working method and delivery plan](WORKING_METHOD.md) | How contributors and agents work now (replaces checkpoints), ordered steps with exit criteria and status, task rules |
-| 6 | [Code restructure plan](RESTRUCTURE_PLAN.md) | Draft: exact ordered steps (R1–R11) to fix inverted dependencies and move code into layers; where new features go |
+| 6 | [Code restructure plan](RESTRUCTURE_PLAN.md) | R1–R6 automatically verified; R7 CLI extraction automatically verified; R8 HTTP extraction automatically verified; R9/R10 reconciled against P0 delivery; specialized contracts; R12 context/services, local stable identity and R11 retirement automatically verified; owner startup/read-only/recovery passed; two manual checks and separate owner cutover remain |
 | 7 | [Model providers plan](MODEL_PROVIDERS_PLAN.md) | Local / on-site / gateway / public models: profiles, data-egress gate, steps M0–M5, verification |
 | 8 | [Server autonomy design](SERVER_AUTONOMY_DESIGN.md) | Server-first unattended operation: registered automations, three-part authorization, what can and cannot be automated, build-now vs later |
+| 9 | [Showcase workloads and editions](SHOWCASE_WORKLOADS.md) | Health, data engineering (SHP/DWG → PostGIS), 2026-midterm policy analysis demo, grid monitoring; Personal vs Platform editions; where each sits in the phases |
 
 ## Latest decision (2026-11-02)
 
@@ -28,6 +29,8 @@ workspaces, Data Card, better frontend. Any model source (local, on-site, gatewa
 public API) with a policy-controlled data-egress gate ([decision](../decisions/2026-11-03-model-providers.md)).
 Server autonomy through human-approved registered automations, server first
 ([decision](../decisions/2026-11-05-server-autonomy-direction.md)).
+Showcase workloads and Personal/Platform editions
+([decision](../decisions/2026-11-06-showcase-workloads-and-editions.md)).
 See the [platform decision note](../decisions/2026-11-02-own-platform-direction.md).
 
 ## One-paragraph summary for the next AI
@@ -47,7 +50,7 @@ Self-improvement must pass offline evaluation before anything is promoted.
 
 ## Non-negotiable principles carried forward
 
-1. Model/conversation/data text never grants execution authority.
+1. Model/conversation/data text never grants execution authority. Models participate throughout the process; a model may approve only through the experimental, opt-in, bounded **model approver** ([design](SERVER_AUTONOMY_DESIGN.md#model-participation-in-authorization), 2026-11-06).
 2. Every consequential action is checked by policy, verified deterministically, and recorded in an append-only audit trail.
 3. Raw sensitive data never has to leave the user's machine or site.
 4. Learning/self-evolution changes nothing in production without passing evaluation, and it can always roll back.

@@ -114,6 +114,50 @@ Triggers: file arrives · table changes (DB change stream) · schedule · API / 
 - **Audit:** append-only, hash-chained ledger; every model call, policy decision,
   credential issue and promotion linked by run id. Export for auditors.
 
+## Model participation in authorization
+
+Owner decision 2026-11-06 ([note](../decisions/2026-11-06-model-participation-in-authorization.md)):
+**models participate in most of the process and seldom grant authority; the option for
+a model to approve is kept, as an experimental feature first.**
+
+### Default: models participate, policy grants
+
+| Model role | Default |
+|---|---|
+| Plan, choose operations, write transforms in the sandbox | Yes |
+| Review plans and results (Critic); flag semantic risks rules cannot see (identifiable patients in a report, quotes out of context, suspicious queries) | Yes |
+| Make a decision stricter: deny, escalate, lower budget, add a check | Yes, always allowed |
+| Classify data sensitivity | Yes; when uncertain the stricter class applies |
+| Draft new policy rules from repeated escalations | Yes; active only after human approval, then deterministic |
+| Approve an action | **Only via the experimental model approver below** |
+
+Policy results are `allow`, `deny` or `escalate`. A model reviewer can turn `allow` into
+`escalate`/`deny`. `escalate` normally goes to a human.
+
+### Experimental: model approver
+
+A model may resolve an `escalate` to `allow` only when **all** of these hold:
+
+| Guard | Rule |
+|---|---|
+| Off by default | Enabled by a human per registered automation (or per task type in Personal), with expiry. Shown as **experimental** in UI and reports |
+| Only the grey zone | Only actions the policy marks `escalate`. A policy `deny` is final |
+| Hard limits (never model-approvable) | L4 work; granting permissions, roles or credentials; security configuration; irreversible actions (deleting data, breaking production schema); raising data-egress class; raising budgets above the human-set ceiling; changing any automation's or its own autonomy level |
+| Ceiling | The human who enables it sets the maximum scope (targets, row counts, budget). The model approves only inside it |
+| Contained | Approved work must be reversible or stay in staging (rollback prepared for L3) |
+| Independent | Approver is separate from the planner: different prompt/role, preferably a different model; it sees the structured plan and evidence, not raw untrusted data where avoidable |
+| Recorded | Ledger marks the decision **model-approved**, with model id/version, input digest, rationale and confidence; reports separate model-approved from human-approved work |
+| Earned | Starts in **shadow mode**: the model decides, a human still decides, agreement is measured. Becomes active only after meeting an agreement threshold on the benchmark and on real escalations |
+| Watched | Humans audit a sample of model approvals; disagreement or failure trips a circuit breaker back to human approval |
+
+Why keep the option: fewer human escalations and more autonomy for routine grey-zone
+cases. Known risks (prompt injection through data, non-reproducible decisions, weaker
+audit explanation, shared blind spots between planner and approver) are why the guards
+above are required and why it starts experimental.
+
+Timing: shadow-mode data collection can start once escalations exist on the Platform
+edition (Phase 7); activation is Phase 8. Nothing is built in Phase 0.
+
 ## What to build now vs later
 
 | When | What |
@@ -122,7 +166,7 @@ Triggers: file arrives · table changes (DB change stream) · schedule · API / 
 | Phase 0 (P0-5b) | Authority, evidence, lifecycle and ledger stores behind the storage contracts, with a concurrency contract |
 | Phase 3 | Run workspaces (process/outcome, verified promotion) — the basis of safe unattended writes |
 | Phase 7 | Server profile: PostgreSQL storage and queue, login, event intake, scheduler, credential broker, worker pool |
-| Phase 8 | Registered automations, autonomy levels L1→L3 per task type based on track record, admin console |
+| Phase 8 | Registered automations, autonomy levels L1→L3 per task type based on track record, admin console; experimental model approver (shadow mode from Phase 7) |
 
 ## Reference: AWS mapping (later)
 

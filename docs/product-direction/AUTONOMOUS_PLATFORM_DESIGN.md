@@ -3,6 +3,8 @@
 Recorded 2026-11-01. Target architecture; **not implemented**. It extends, and does not
 replace, the core principle in [context/ARCHITECTURE.md](../../context/ARCHITECTURE.md):
 *models propose; deterministic software authorizes, executes, validates and records evidence.*
+Model participation and the experimental model approver (2026-11-06):
+[SERVER_AUTONOMY_DESIGN.md](SERVER_AUTONOMY_DESIGN.md#model-participation-in-authorization).
 
 ## Revision 2026-11-02 — read first
 

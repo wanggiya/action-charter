@@ -1,5 +1,12 @@
 # Workspace storage (P0-2)
 
+Optional [stable project identity](PROJECT_IDENTITY.md) now separates verified local
+ownership from a source path. Legacy projects keep path ownership; the offline
+migration tool preserves an adopted UUID and guards rollback across identity changes.
+The [owner cutover preparation](OWNER_WORKSPACE_CUTOVER_PLAN.md) records the measured
+inventory, six blocking development-session links and proposed private storage;
+actual backup, archival, identity adoption and cutover still need owner approval.
+
 P0-2 implementation and automated acceptance completed 2026-11-03.
 It consolidates internal runtime state beneath one configurable, project-bound
 workspace. Source, datasets, generated user data and credentials retain their separate
@@ -74,8 +81,10 @@ Use the migration tool for a complete copy/ownership certificate.
 Migration binds its private owner record to the canonical source-project path. Another
 project cannot adopt that certified workspace. Older manually configured development
 roots without this record remain compatible; they are not certified migrations or
-multi-tenant stores. Moving the source checkout itself needs an explicit future identity
-migration; do not edit the owner record to bypass this check.
+multi-tenant stores. An adopted stable identity supports an explicit verified
+same-filesystem source rename; other source transfers require future provisioning.
+See [identity commands and limits](PROJECT_IDENTITY.md); do not edit owner records
+to bypass ownership checks.
 
 The launcher's host-local project ownership lock is independent of state location.
 Changing storage during an active session rejects access and second-owner startup.
@@ -151,12 +160,16 @@ legacy state still match the cutover inventories. New records, a new write sessi
 changed old explicit-root artifacts block automatic rollback, avoiding silent data loss.
 The destination copy and manifest remain available; nothing is deleted.
 
-A failure before configuration cutover leaves the old configuration in force and may
+For legacy path-owned projects, a failure before configuration cutover leaves the old
+configuration in force and may
 leave a private `*.migrating-*` staging directory. A failure after cutover leaves the
 verified destination active; its manifest records archival progress so unchanged-state
 rollback can restore archived entries. Inspect the printed path and manifest before
 cleanup. Do not merge partial copies or remove a live lock inode. There is no automatic
 cleanup of interrupted staging areas and no automatic retry of workflow writes.
+For an adopted stable identity, a crash between identity/config metadata publication
+can instead leave access blocked. Use the verified manifest and metadata backup for
+explicit offline recovery; see [identity failure handling](PROJECT_IDENTITY.md#copies-deployments-and-limits).
 
 Developer `.local/interface-acceptance` sessions may contain dependency symlinks. Such
 legacy trees intentionally fail the migration preflight; review/archive those disposable

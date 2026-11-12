@@ -2,6 +2,10 @@
 
 Recorded 2026-11-01. This is a recommendation; the owner has not formally accepted it yet. Not implemented.
 
+> **2026-11-06:** product names are **Personal** (laptop profile, no background service)
+> and **Platform** (team server and enterprise profiles, with unattended background
+> agents). See [SHOWCASE_WORKLOADS.md](SHOWCASE_WORKLOADS.md#two-editions-one-codebase).
+
 ## Question 1 — separate products for laptop and server?
 
 **Recommendation: no. Build one product with one core codebase and several deployment

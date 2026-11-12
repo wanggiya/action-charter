@@ -1,3 +1,285 @@
+# Recorded inspection quality reports (2026-11-11, P0 bug #81)
+
+- Align report format selectors and download buttons by removing inherited select
+  margins within export rows; preserve existing colors, sizing and narrow wrapping.
+  Frontend validation and isolated browser geometry checks passed.
+- Render existing missingness/types/cardinality advice for older metadata-only table
+  runs; identify unperformed checks instead of returning an empty analytical report.
+- Collect bounded basic distinct/repeated values, hash-based whole-row duplicates,
+  candidate missing markers and numerical summaries during new complete inspections.
+  Preserve CSV/native missingness, candidate roles and separate filtered denominators.
+- Use shared recorded report projection for interface, CLI/terminal, MCP and MD/PDF;
+  preserve original evidence/hashes and avoid download-time scans or model calls.
+  No new operation schema, inferential method, authorization or agent role.
+- [Limits and validation](docs/INSPECTION_QUALITY_REPORTS.md). Full fixture suite:
+  2,816 passed (785.18 s; 13 existing spatial warnings); final 10 focused report
+  checks, frontend validation, strict source gates and isolated browser/API/CLI/PTY
+  passed. Synthetic 101,766-row/50-column scan retained all fields within 16 KB.
+  Owner real-file report acceptance remains pending; no real-model or live-DB claim.
+
+# R-series acceptance closeout preparation (2026-11-10)
+
+- Record the owner's passed startup, read-only CSV inspection and refresh/reopen
+  restoration checks, with evidence limited to the owner's report.
+- Narrow remaining manual closure to Execution History and terminal continuity;
+  keep fresh-file writing optional/untested and real workspace cutover separately
+  pending approval. No additional R-series coding is planned unless a check finds a bug.
+- Reconcile current status, roadmap, working-method Status and handoff with the
+  [acceptance record](docs/R_SERIES_ACCEPTANCE.md#acceptance-record). Preserve the
+  independent verification/environment notes; no installation, Git or runtime action.
+- Documentation only; previous implementation tests remain recorded evidence.
+
+# Owner workspace cutover preparation (2026-11-09, P0-2b)
+
+- Record the real runtime inventory, read-only SQLite/lease checks, six blocking
+  development-session links, proposed private state/backup paths and storage budget.
+- Prepare preservation, stable-identity adoption, verified copy/archive and guarded
+  recovery steps. A synthetic structural fixture passed the complete prelaunch sequence.
+- Correct workspace guidance to reference implemented same-filesystem identity rebind.
+  No application/test changes, actual backup, record move, live-service or Git action.
+- [Reviewable plan](docs/OWNER_WORKSPACE_CUTOVER_PLAN.md). Actual cutover and owner
+  manual interface acceptance remain pending. Earlier R11 gates are not new evidence
+  of a real migration; full implementation tests were not repeated for this documentation.
+
+# Native caller consolidation and compatibility retirement (2026-11-09, R11)
+
+- Retire 290 obsolete adapters while preserving 117 documented public/schema/SDK
+  boundaries and all 496 native implementation modules. Move maintained imports,
+  launcher commands and new package entrypoints to their native owners.
+- Preserve historical inventories, registry/validator IDs, schema/CLI/HTTP/MCP fixtures,
+  generated SDK source and existing artifact/approval hashes. No new agent or authority.
+- Add an exhaustive retirement partition and source/contract gate; reject adapter
+  reintroduction, ordinary caller regressions and hidden implementations under old roots.
+- Fix the analytical worker build context to include its minimal native code/contracts;
+  verify the bundle under isolated standard-library Python. No new image/live service.
+- Preserve candidate SDK overlay namespaces. Earlier adapter-only tests now distinguish
+  removed paths from retained shared modules; functional and authority checks remain.
+- [Scope and evidence](docs/R11_COMPATIBILITY.md); [combined owner acceptance](docs/R_SERIES_ACCEPTANCE.md).
+  Final make test: 2,808 passed (859.92 s; 13 existing spatial warnings); frontend
+  typecheck/build, strict layers/compatibility and stable-ID browser/API/CLI/terminal
+  passed. Fifteen new R11 cases; all evidence is fixtures. Combined owner manual
+  acceptance and real workspace cutover/Git remain separate.
+
+# Opt-in local project identity (2026-11-09, P0-2b)
+
+- Add a shared private UUID resolver and explicit offline `project-identity` CLI.
+  Existing projects retain path ownership; reads initialize nothing.
+- Preserve identity through verified filesystem renames and workspace state cutovers.
+  Reject copied markers/directories, substituted state, foreign audit scopes and
+  active owners. Retain all existing claim/event bytes and original audit provenance.
+- Keep exact approval, session expiry, consumed claims and strict request-path scope.
+  Preserve all 150 original CLI contracts/help snapshots and legacy container policy.
+- Final make test: 2,796 passed (816.47 s; 13 existing spatial warnings); frontend
+  typecheck/build, strict layers and both relocated legacy/stable-ID browser/API/CLI/
+  terminal journeys passed. Twenty-five new identity cases use temporary fixtures.
+- Owner real cutover is unperformed; final R11 remains. Cross-filesystem source copies
+  and container alias provisioning remain future work. No agent/UI/dependency or
+  autonomous authority added. [Commands, limits and evidence](docs/PROJECT_IDENTITY.md).
+
+# Trusted action context and local services (2026-11-09, R12)
+
+- Add immutable actor/run/budget contracts and local policy, clock, credential-broker,
+  queue and action-audit interfaces. Explicit task boundaries preserve public schemas
+  and existing exact approval; the broker issues nothing locally.
+- Preserve pure history/catalog reads through bounded transient telemetry; bind server
+  service profiles explicitly in HTTP threads and keep static CLI metadata read-only.
+- Record processing/mutation actor/run/parent and immutable record references in a separate workspace
+  SQLite audit, preserving old canonical records. Explicit event keys block duplicates
+  after failure/restart; HTTP supports optional Idempotency-Key metadata.
+- Buffer early HTTP responses until audit acknowledgement. Storage uncertainty cannot
+  produce a success followed by a second error or falsely claim nothing executed.
+- Preserve in-process worker context and existing safe cancellation. Add 35 contract
+  cases; final MCP/context/security group passes 106 checks, recovery/parity 97.
+  All 27 MCP ingress callbacks bind context/profile without changing tool schemas.
+  MCP audit uses the existing writable trace mount; proposal-only CLI preserves read-only roots. Final make test: 2,771 passed (793.66 s; 13 existing spatial warnings);
+  frontend/strict gate and final isolated browser/API/CLI/terminal pass. Owner manual
+  acceptance deferred until all R-series work completes.
+- No new agent, operation, UI, dependency or autonomous authority. P0-2b identity/owner
+  cutover and final R11 remain separate. [Design and evidence](docs/EXECUTION_CONTEXT.md).
+
+# Specialized storage contracts (2026-11-08, P0-5b)
+
+- Route immutable approvals/evidence/Builder/release/Critic/PostGIS packages and JSON
+  traces through shared create/read/publication ports; retain schemas, bytes and hashes.
+- Separate exclusive claims and append-only histories from replaceable diagnostic
+  snapshots. Validate event batches under a lock and keep duplicate attempt names
+  consumed after uncertain storage. No automatic retry or new authority path.
+- Move write-policy and successful-workflow SQL into closed local units with rollback,
+  revision locking, immutable bindings/sources and scoped advisory annotations.
+- Add independent concurrency, provider, failure and published-but-unbound approval
+  tests. Final make test: 2,736 passed (750.12 s; 13 existing spatial warnings);
+  frontend, strict layer gate and relocated fixture browser/API/CLI/terminal pass.
+  Owner manual acceptance deferred until all R-series work is complete. Existing layouts need no migration or new dependency.
+- Reconcile R9/R10 against delivered P0-3/P0-6; refine the DB driver's layer placement.
+  R12, P0-2b and final R11 remain separate. [Contracts and evidence](docs/LEDGER_CONTRACTS.md).
+
+# HTTP routers and transport composition (2026-11-08, R8)
+
+- Separate the 2,365-line server into composition (172 lines), transport (84), explicit
+  dispatch (103), error mapping (133) and ten focused routers (largest 198).
+- Move 24 existing coordinator/helpers to six shared task-action owners and 16 request
+  schemas/finite limits to contracts. Existing execution actions retain inline cache
+  hydration and task-reference linking with the original state and failure scopes.
+- Preserve 21 GET matching branches, 50 POST paths, statuses/headers/error payloads,
+  origin/body guards, selected-model context, exact authority and public aliases.
+  All 104 captured response cases, request schemas and original coordinator ASTs match.
+- Focused API checks (146), boundary checks (76, including ten new cases) and strict
+  layer gate pass. Final `make test`: 2,709 passed (713.38 s; 13 existing spatial warnings); frontend passed (6.06 s build,
+  existing warning); isolated browser/API/CLI/terminal passed with zero page errors
+  and one authorized temporary write. No new capability or UI change.
+- Owner manual validation is deferred until the R series is complete. [Structure,
+  evidence and combined acceptance](docs/HTTP_ROUTER_STRUCTURE.md).
+
+# CLI command groups and preserved entrypoints (2026-11-08, R7)
+
+- Extract the 7,463-line main CLI into 24 command/helper modules and eight small
+  existing registrars under `apps/cli`. Composition is 142 lines; explicit registration
+  is 290; largest command module is 783. Public command syntax remains unchanged.
+- Preserve all 150 top-level commands, 165 help screens, option/default/type metadata
+  and 110 original function bodies/signatures against a pre-edit snapshot. Keep
+  installed/module entrypoints, named callback exports and old registrar imports.
+- Retain shared task-action services, lazy bindings, optional dependency behavior,
+  exact authority and recorded formats. Command groups do not import one another.
+- Focused checks (47), existing CLI/Builder/workspace/action tests (227), strict layer
+  gate and frontend validation pass. Final `make test`: 2,693 passed (730.42 s; 13 existing spatial warnings). Isolated
+  browser/API/CLI/terminal checks pass with zero page errors and one temporary authorized
+  write. Manual/real-model acceptance remains pending. [Structure, evidence and manual validation](docs/CLI_COMMAND_STRUCTURE.md).
+  No new processing operation, agent, UI feature, dependency or live-service change.
+
+# Native responsibility owners and layer moves (2026-11-07, R6)
+
+- Separate existing shared policy, ledger and typed calculations/statistics from role
+  generation/interpretation; move implementations under contracts, core, platform,
+  data, workspaces, capabilities, agents, evolution and apps.
+- Remove the remaining 26 upward dependencies and dynamic API import review. Strict
+  layer checking now passes: 826 modules / 3,037 internal import occurrences, zero debt.
+- Preserve historical imports with 391 source-bound compatibility adapters, including
+  61 package roots; audit native owners, wrapper hashes and lower-layer callers.
+  All 94 sampled public schema exports retain their exact contracts; existing test
+  assertion ASTs remain unchanged. Saved/generated entrypoints and authority remain.
+- Preserve CLI service-binding behavior and mixed recipe catalog compatibility at the
+  task boundary. No new agent, operation, dependency, UI feature or runtime authority.
+- Frontend validation, strict layer gate, Compose validation and the final relocated
+  fixture browser/API/CLI/terminal journey pass. Final `make test`: 2,688 passed (728.54 s; 13 existing spatial warnings).
+  Manual/real-model acceptance remains pending. [Evidence and post-R6 acceptance](docs/R6_COMPLETION_AND_ACCEPTANCE.md),
+  including the R7 command-split handoff. Git/publication remain owner-managed.
+
+# Trusted registry contracts and installed-package metadata (2026-11-06, R6b2)
+
+- Share existing registry/package/source/text contracts and current metadata readers;
+  keep package testing, installation and execution separate. Preserve two exact legacy
+  aliases, public exports, schemas, fixed entrypoints, bytes, digests and authority.
+- Update native imports in 50 files; remove seven dependencies, 33/33 -> 26/26, with
+  no new debt or classification changes. Approval retains fresh reads and full policy.
+- 149 existing integration cases and 98 boundary/intent cases (29 new) passed; all 22
+  affected schemas and prior 12 public schemas match. Confirmed full make test: 2,673
+  passed (716.81 s, 13 existing spatial warnings); frontend and relocated fixture
+  browser/API/CLI/PTY passed with zero page errors. The interrupted first full run is
+  not counted. Resumed boundary/layer: 47 passed (2.33 s); normal layer, 512 links/168
+  fragments, roadmap size and whitespace pass; strict correctly rejects remaining debt. Broader R6b policy/ledger and R6c remain open; manual write check pending.
+
+# Shared evidence collection and Critic record storage (2026-11-06, R6b slice)
+
+- Give deterministic evidence collection and Critic record construction/storage shared
+  owners; keep interpretation in the Critic role. Update native callers while preserving
+  three exact compatibility aliases, formats, canonical hashes, limits and authority.
+- Remove history/release dependencies on Critic implementation: 35/35 -> 33/33, without
+  new debt or classification changes. No new agent, operation, UI or record migration.
+- Focused checks: 120 passed (7.30 s), including 18 new boundary cases. All 12 public
+  schemas and moved behavior match. Final make test: 2,644 passed (724.88 s, 13 existing
+  spatial warnings); frontend and relocated fixture browser/API/CLI/PTY passed with zero
+  page errors. Normal layer gate, 481 local links (161 fragments), roadmap size and
+  whitespace pass; strict correctly rejects remaining debt.
+- Broader R6b policy/ledger and overall R6 remain open; owner manual write acceptance
+  remains pending.
+
+# Shared execution controls and neutral contracts (2026-11-06, R6a)
+
+- Move unchanged cancellation/progress controls to platform, graph/Critic schemas
+  and four neutral Executor types to contracts. Preserve legacy module/class/context
+  identities, validators, graph serialization and all 12 public JSON schemas.
+- Keep the recipe-specific Executor result with its domain validators. Native import
+  updates preserve generated/stored references; no new agent, operation, UI or authority.
+- Reduce dependency debt 43/43 -> 35/35 without new debt or relaxed classifications.
+  Record R6's remaining work as ordered bounded slices; R6 overall remains open.
+- 30 existing, 37 primitive/layer (19 new) and 82 integration cases passed; frontend
+  passed. Final make test: 2,626 passed (711.11 s, 13 existing spatial warnings).
+  Isolated relocated fixture browser/API/CLI/PTY passed with zero page errors; check
+  473 local links (160 fragments), roadmap size and whitespace. Manual write acceptance
+  remains pending; R6 overall is still open.
+
+# Shared task composition and CLI delegation (2026-11-06, R5)
+
+- Separate non-executing plan validation/save, fixed spatial functions, snapshot
+  archives and observation contracts from task controllers. Give role coordination
+  trusted explicit conversation access, preserving locks, contexts and revision guards.
+- Read reusable-method sources through completed-only, non-recovering snapshots;
+  retain explicit run recovery, exact authority, saved bytes/hashes and legacy exports.
+- Route 213 CLI service imports through 146 lazy shared exports; original command
+  options, control flow, exit codes and output formatting remain. No new agent/tool/UI.
+- Remove all ten direct R5 dependency pairs: 53/55 -> 43/43, with no new debt or
+  classification changes. Remaining ownership/file/server work stays in the roadmap.
+- Focused groups passed: 75 existing, 40 initial boundary/layer, 81 parity/authorization,
+  178 CLI/parity/boundary cases; final CLI/intent 198 and corrected intent/boundary/layer
+  69 passed. Final full make test: 2,607 passed (668.71 s, 13 existing spatial warnings).
+  Frontend and final isolated fixture browser/API/CLI/PTY passed with zero page errors.
+  Check 466 local links (160 fragments), roadmap size and whitespace.
+  Owner manual write check remains pending; no live-service or real-record changes.
+
+# Shared bounded data access and neutral contracts (2026-11-06, R4)
+
+- Move the fixed reader/worker and finite spatial snapshot/rendering to sandbox;
+  keep eligibility, authority, context and recorded-run checks in task actions.
+- Share unchanged action/format/batch contracts, context redaction, root validation
+  and outcome projection without merging distinct redaction profiles. Preserve
+  compatibility identity, limits, saved bytes/hashes and API/CLI behavior.
+- Remove all 12 direct R4 dependency pairs: 65/68 -> 53/55, without new debt or
+  classification changes. Three mixed observer/role-type dependencies remain for R6.
+- 73 focused cases (26 new) and 64 existing integration cases passed; frontend
+  validation and isolated relocated fixture browser/API/CLI/PTY passed with zero page
+  errors. Full make test: 2,581 passed (735.04 s, 13 existing spatial warnings);
+  446 local links (152 fragments), roadmap size and whitespace checks pass.
+  Owner manual validation remains deferred; no live services or records changed.
+
+# Shared metadata boundary and neutral plan contracts (2026-11-05, R3)
+
+- Move metadata transactions/identity/bounded JSON mechanics into storage for five
+  lower-level clients; keep memory/provenance/revision rules in task actions.
+- Move unchanged plan DTOs and shared error identity into neutral contracts, retaining
+  compatibility exports, parser behavior, canonical hashes and exact execution policy.
+- Reduce upward dependencies 75/87 -> 65/68 without new debt. No database schema,
+  runtime feature, agent, real-record migration or live-service change.
+- Focused storage/layer checks: 77 passed (3.73 s); task/model/diagnostic/mode checks:
+  76 passed (16.96 s). Full make test: 2,555 passed (708.70 s, 13 existing spatial
+  warnings). Frontend validation and isolated relocated fixture browser/API/CLI/PTY
+  passed with zero page errors. Check 439 local links including 152 fragments; owner
+  manual validation deferred to a combined later journey.
+
+# Platform configuration and neutral settings (2026-11-05, R2)
+
+- Centralize trusted layout/environment snapshots with lazy typed tool, model,
+  internal-client and replay views. Move shared settings out of transport packages
+  and tool-result schemas into contracts, retaining five identity-preserving aliases.
+- Preserve legacy defaults/root inputs, explicit environment isolation, request-local
+  model/reasoning overrides, generated-code strings and exact execution authority.
+- Reduce the dependency baseline from 109/128 to 75/87 pairs/occurrences without
+  accepting new upward imports. Personal only; project-ID migration/server seams remain.
+- 87 focused and 116 boundary checks, frontend validation and two fixture browser
+  journeys passed; full make test: 2,529 passed (678.41 s, 13 existing spatial warnings).
+  Validate 249 documentation links/anchors. No live database/model acceptance.
+
+# Static dependency baseline and P0/R inventory (2026-11-05, R1)
+
+- Add a non-importing AST layer checker, explicit current-path policy and per-dependency
+  baseline with counts/reasons/follow-ups. New/increased or stale debt fails tests.
+- Include relative, function-local, conditional and common literal dynamic imports;
+  bind non-literal import reviews to source text. Compatibility aliases remain visible.
+- Expose a strict zero-debt exit check and reconcile remaining P0-2b/P0-5b/R work.
+  No package move, runtime/agent/UI/authority change or real workspace migration.
+- Focused layer/import checks: 23 passed (4.69 s); full make test: 2,501 passed
+  (722.32 s, 13 existing spatial warnings). Normal baseline passes; strict mode correctly
+  rejects current debt. Validate 255 documentation links/anchors and roadmap size.
+
 # CI test timeout and timing diagnostics (2026-11-05)
 
 - Increase the offline-test job budget from 15 to 30 minutes after PR #65 reached
