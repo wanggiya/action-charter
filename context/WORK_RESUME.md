@@ -1,3 +1,46 @@
+# Work resume — PR #82 CI fixes verified; owner Git actions next (2026-11-12)
+
+Owner requested PR repair and Git instructions, explicitly excluding #79 and unrelated
+issues. Branch `cleanup/r-series-consolidation`, starting head `a1f0094`; initially
+clean. PR #82 is mergeable but blocked by CI. No branch/stage/commit/push/merge action.
+
+Three observed causes in latest runs (43166189091 / 43166189074):
+1. CI resolved Typer 0.29.1 / Click 8.5.1; frozen CLI parameter/help contracts were
+   captured with Typer 0.27.0 / Click 8.4.2 / Rich 15.0.0. Pin that verified toolchain.
+2. R8 catalog snapshot embeds installed versions, e.g. psycopg 3.3.4; CI has 3.3.8.
+   Fix only probe metadata using its original fixture. Production inventory stays
+   live; regression test checks differing host metadata, preservation and restoration.
+3. GIS `--read-only` fixture cannot create `/workspace/workflow-state` for action
+   audit. Add isolated 16 MiB tmpfs, mode 0700 and UID/GID 1000, only to GIS CI runs.
+   Preserve non-root, no network, no capabilities and read-only source/input policy.
+
+Focused R7/R8 checks: 16 passed. New disposable GIS image built with fresh dependencies;
+all five actual YAML GIS commands passed against copied public vector/raster fixtures,
+including conversion planning without output and controlled path-escape rejection.
+Final verification:
+- `make test`: 2,819 passed, 13 existing spatial warnings, 805.69 seconds.
+- Fresh-image CLI/HTTP checks: 16 passed in 7.26 seconds, with Pydantic 2.14.3 and
+  psycopg 3.3.8 (the CI versions) alongside the pinned CLI toolchain.
+- All five actual hardened GIS YAML commands passed; no output raster created.
+- `make interface-validate` passed (existing chunk-size warning only).
+- Strict layers: 614 modules / 3021 imports / zero dependency debt; compatibility:
+  290 retired / 117 public boundaries / zero errors. Historical CLI/HTTP snapshots
+  are byte-identical to HEAD. YAML, dependency pins, doc links and whitespace passed.
+
+Next: owner reviews/stages the eight modified files, commits and pushes the current
+branch to update existing PR #82, then watches the new remote checks. Local fixes
+are verified; the unchanged old remote failures remain until that push. PR is
+mergeable (no merge conflict) but blocked on those checks. Existing PR description
+explicitly keeps #79 separate and does not auto-close it. No new issue/PR is needed.
+Keep actual Git commands in the conversation, not in documentation.
+Logs: `/tmp/actioncharter-pr82-full-tests.log`, `/tmp/actioncharter-pr82-gis-build.log`,
+`/tmp/actioncharter-pr82-gis-contracts.log`, `/tmp/actioncharter-pr82-fresh-contracts.log`.
+No owner environment install or existing service/database change. The disposable
+`actioncharter-pr82-gis-test:local` image is a test artifact, not a deployment.
+No workspace configuration, identity, migration or #79 code changed.
+
+---
+
 # Work resume — recorded inspection quality reports ready for owner validation (2026-11-11)
 
 Export-control follow-up: fixed the 8 px vertical offset between report format and

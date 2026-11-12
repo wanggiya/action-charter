@@ -15,6 +15,7 @@ def capture_contract(inventory):
     from geoagent_harness.platform.model_gateway import catalog, diagnostics
     from geoagent_harness.capabilities.registry import discovery
     from geoagent_harness.capabilities.registry import api as operations
+    from geoagent_harness.capabilities.registry import registry
     from geoagent_harness.task_actions import execution
     source = Path(__file__).resolve().parents[1]
     with TemporaryDirectory() as directory, ExitStack() as stack:
@@ -27,6 +28,21 @@ def capture_contract(inventory):
         stack.enter_context(patch.object(diagnostics, 'inspect_model_configuration', lambda: {'fixture': True}))
         stack.enter_context(patch.object(discovery, 'library_inventory', lambda *_args: {'fixture': True, 'libraries': []}))
         stack.enter_context(patch.object(operations, 'scan', lambda *_args: {'fixture': True, 'scan_performed': False}))
+        # Host package versions are live capability evidence, not HTTP extraction
+        # changes. Fix only this probe's metadata to its original fixture values;
+        # keep every response field and the historical snapshot unchanged.
+        versions = {item['distribution']: item['installed_version']
+            for operation in inventory['responses']['GET /api/v1/operations/catalog'][1]['operations']
+            for item in operation['runtime_requirements']}
+        missing = registry.metadata.PackageNotFoundError
+
+        def fixture_version(name):
+            if versions.get(name) is None:
+                raise missing(name)
+            return versions[name]
+
+        stack.enter_context(patch.object(registry, 'metadata',
+            SimpleNamespace(version=fixture_version, PackageNotFoundError=missing)))
         stack.enter_context(patch.object(server, 'effective_write_settings', lambda *_args: SimpleNamespace(enable_write_tools=False)))
         stack.enter_context(patch.object(server, '_EXECUTION_PROGRESS', {}))
         stack.enter_context(patch.object(execution, '_EXECUTION_PROGRESS', {}))

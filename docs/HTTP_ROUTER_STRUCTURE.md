@@ -140,3 +140,14 @@ The [R12 integration](EXECUTION_CONTEXT.md) wraps dispatch with trusted action c
 and buffers early responses until its separate audit acknowledges completion. Existing
 route/response contracts stay intact; optional event keys gain explicit duplicate and
 storage-uncertainty responses. The combined manual pass remains deferred.
+
+## Environment-independent response probe (PR #82, 2026-11-12)
+
+The historical operation-catalog response contains installed package versions. Those
+versions describe the environment, rather than router behavior: for example, the
+snapshot's psycopg 3.3.4 can legitimately become 3.3.8 on a fresh CI install. The
+in-memory probe now supplies the snapshot's runtime metadata only within its own
+scoped registry patch. All 104 complete responses and original snapshot bytes remain
+checked. A regression fixture changes host versions, verifies production inventory
+stays live, then confirms the probe restores that environment. It does not normalize
+away fields, replace the catalog, hide availability or alter production behavior.

@@ -137,3 +137,13 @@ R8 decomposes the remaining HTTP handlers into thin routers over the same task a
 Do not repeat the CLI extraction or change command semantics during that work. Keep
 P0-2b project identity/owner cutover, P0-5b ledger/concurrency, R12 server seams and final
 R11 compatibility retirement as explicit remaining Phase 0 gates. Git remains owner-managed.
+
+## Fresh-install CLI dependency contract (PR #82, 2026-11-12)
+
+The original command/help snapshots remain unchanged. Their verified runtime is
+Typer 0.27.0, Click 8.4.2 and Rich 15.0.0; the package now pins those versions.
+CI's former open ranges resolved Typer 0.29.1/Click 8.5.1, changing parameter
+introspection and help formatting. Future upgrades need an explicit compatibility
+review, rather than silently accepting or regenerating historical snapshots.
+Fresh-container tests confirm all CLI contract checks pass with the pinned toolchain
+and newer non-CLI dependencies. No command body or entrypoint changes.

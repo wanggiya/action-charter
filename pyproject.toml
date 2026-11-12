@@ -30,7 +30,10 @@ dependencies = [
   "psycopg[binary]>=3.2,<4",
   "pyyaml>=6.0,<7",
   "sqlalchemy>=2.0,<3",
-  "typer>=0.12,<1",
+  # Frozen CLI help/parameter contracts are verified against this toolchain.
+  "typer==0.27.0",
+  "click==8.4.2",
+  "rich==15.0.0",
 ]
 
 [project.optional-dependencies]

@@ -59,6 +59,24 @@ def test_all_pre_extraction_request_and_error_responses_match():
     assert len(BASELINE['responses']) == 104
 
 
+def test_snapshot_uses_fixture_versions_but_production_catalog_stays_live(tmp_path, monkeypatch):
+    import shutil
+    from types import SimpleNamespace
+    from geoagent_harness.capabilities.registry import registry
+    metadata = SimpleNamespace(version=lambda _name: '99.0.0',
+                               PackageNotFoundError=registry.metadata.PackageNotFoundError)
+    monkeypatch.setattr(registry, 'metadata', metadata)
+    (tmp_path/'context').mkdir()
+    shutil.copyfile(ROOT/'context/SKILLS_INDEX.yaml', tmp_path/'context/SKILLS_INDEX.yaml')
+    actual = registry.operation_catalog(tmp_path)
+    requirements = [r for op in actual['operations'] for r in op['runtime_requirements']]
+    assert requirements and all(r['installed_version'] == '99.0.0' and r['available'] for r in requirements)
+    assert capture_contract(BASELINE) == BASELINE['responses']
+    assert registry.metadata is metadata
+    assert all(r['installed_version'] == '99.0.0'
+               for op in registry.operation_catalog(tmp_path)['operations'] for r in op['runtime_requirements'])
+
+
 def test_native_http_modules_are_small_and_routers_do_not_import_server_or_other_routers():
     directory = ROOT / 'src/geoagent_harness/apps/http'
     for path in directory.rglob('*.py'):

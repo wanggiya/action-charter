@@ -110,6 +110,7 @@ jobs:
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --tmpfs /tmp:size=16m,mode=1777 \
+            --tmpfs /workspace/workflow-state:size=16m,mode=0700,uid=1000,gid=1000 \
             --entrypoint geoagent \
             "geoagent-${{ matrix.name }}:ci" \
             --help
@@ -123,6 +124,7 @@ jobs:
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --tmpfs /tmp:size=16m,mode=1777 \
+            --tmpfs /workspace/workflow-state:size=16m,mode=0700,uid=1000,gid=1000 \
             --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
             --entrypoint geoagent \
             "geoagent-${{ matrix.name }}:ci" \
@@ -140,6 +142,7 @@ jobs:
             --cap-drop ALL \
             --security-opt no-new-privileges \
             --tmpfs /tmp:size=16m,mode=1777 \
+            --tmpfs /workspace/workflow-state:size=16m,mode=0700,uid=1000,gid=1000 \
             --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
             --entrypoint geoagent \
             "geoagent-${{ matrix.name }}:ci" \
@@ -163,6 +166,7 @@ jobs:
               --cap-drop ALL \
               --security-opt no-new-privileges \
               --tmpfs /tmp:size=16m,mode=1777 \
+              --tmpfs /workspace/workflow-state:size=16m,mode=0700,uid=1000,gid=1000 \
               --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
               --volume "$output_root:/workspace/data/output" \
               --entrypoint geoagent \
@@ -202,6 +206,7 @@ jobs:
               --cap-drop ALL \
               --security-opt no-new-privileges \
               --tmpfs /tmp:size=16m,mode=1777 \
+              --tmpfs /workspace/workflow-state:size=16m,mode=0700,uid=1000,gid=1000 \
               --volume "$GITHUB_WORKSPACE/data/input:/workspace/data/input:ro" \
               --entrypoint geoagent \
               "geoagent-${{ matrix.name }}:ci" \

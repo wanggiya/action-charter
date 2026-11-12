@@ -1,3 +1,19 @@
+# PR #82 CI dependency and GIS contract fixes (2026-11-12)
+
+- Pin the verified CLI toolchain (Typer 0.27.0, Click 8.4.2, Rich 15.0.0) so fresh
+  installs preserve the original command/parameter/help contracts.
+- Fix only the HTTP extraction probe's installed-version metadata to its historical
+  fixture. Keep all response fields/snapshots unchanged and production runtime
+  inventory live; add a regression check for changed host versions and restoration.
+- Give hardened GIS CI commands a private 16 MiB audit tmpfs owned by UID/GID 1000.
+  Preserve non-root execution, disabled network, dropped capabilities, read-only
+  filesystem/input and conversion planning without dataset output.
+- Verified: all five actual GIS CI commands passed in a freshly built isolated image;
+  16 CLI/HTTP checks passed both locally and in that image with fresh dependencies.
+  Full offline suite: 2,819 passed (805.69 s; 13 existing spatial warnings).
+  Frontend validation and strict layer/compatibility gates also passed. No owner
+  environment, database or workspace migration; remote checks await the owner push.
+
 # Recorded inspection quality reports (2026-11-11, P0 bug #81)
 
 - Align report format selectors and download buttons by removing inherited select
