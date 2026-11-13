@@ -11,15 +11,14 @@ Older checkpoint labels identify history, not new delivery tasks.
 
 ## Current position and next action
 
-**Phase 0 consolidation exit checks passed; P0-C2/C4 await owner acceptance/merge
-under #84. Phase 1 has not started.** [Closeout and validation](../docs/P0_CLOSEOUT.md).
+**Phase 0 closeout merged in PR #85; Phase 1 B1–B3 are implemented; owner integration pending (#86–#88).** [Closeout and validation](../docs/P0_CLOSEOUT.md).
 
 | Task | Implemented scope / remaining gate | Evidence or specification |
 |---|---|---|
 | P0-C1 | Runtime-marker cleanup and canonical test paths merged in PR #83; source-only workspace verified | [Closeout](../docs/P0_CLOSEOUT.md) |
-| P0-C2 | Mixed valid/invalid plan/recipe inventories, bounded blocked diagnostics and unchanged artifacts; owner UI review/merge next | [Closeout](../docs/P0_CLOSEOUT.md) |
+| P0-C2 | Mixed valid/invalid plan/recipe inventories, bounded blocked diagnostics and unchanged artifacts; merged in PR #85 | [Closeout](../docs/P0_CLOSEOUT.md) |
 | P0-C3 | Delivered issues #60–#64 closed after verifying PR #65 | [Closeout](../docs/P0_CLOSEOUT.md) |
-| P0-C4 | Current status/working method/handoff reconciled, older status preserved in history; owner merge next | [Current status](CURRENT_STATUS.md) |
+| P0-C4 | Current status/working method/handoff reconciled, older status preserved in history; merged in PR #85 | [Current status](CURRENT_STATUS.md) |
 | P0 bug #81 | Recorded inspection quality and MD/PDF coverage delivered; owner reported report acceptance; no new inference method | [Report coverage](../docs/INSPECTION_QUALITY_REPORTS.md) |
 | P0-1 | Documentation/package grouping delivered in PR #59 | [Working method](../docs/product-direction/WORKING_METHOD.md#step-1-tasks-phase-0) |
 | P0-2 / P0-2b | Shared workspace root, guarded offline migration and stable local identity; owner adoption complete, source-only verification passed | [Workspace](../docs/WORKSPACE_STORAGE.md), [identity](../docs/PROJECT_IDENTITY.md) |
@@ -42,17 +41,19 @@ real-local-model benchmark or live write journey is claimed. Current state and
 limitations are in [CURRENT_STATUS](CURRENT_STATUS.md); detailed old status remains
 in [history](../docs/development/STATUS_HISTORY.md).
 
-Next is owner acceptance/merge of #84, then the [Phase 1 plan](../docs/product-direction/PHASE_1_PLAN.md):
-benchmark contracts/runner and provider/egress foundations before measured baselines.
-PA1/PA2 source capture/labelling remains owner data-only work. Do not start Phase 1
-or publish a release as part of P0-C closeout.
+P1-B1–B3 supply [benchmark contracts, CLI/runner and checks](../docs/BENCHMARKS.md).
+Full fixture suite: 2,903 passed; final metadata/budget/selector checks recorded in
+WORK_RESUME. This is one synthetic task, not the complete benchmark or a real-model
+baseline. Next: B4 suite/disposable adapters, B5 actual baseline, M1/M2 providers and
+egress, B6 comparison and closeout. PA1/PA2 remains owner data-only work. No new
+agent role, live DB dispatch, processing capability or release publication is implied.
 
 ## Dependency-ordered delivery
 
 These are concise reminders of the existing delivery plan, not a second task list.
 Each phase follows the previous exit gate unless the owner explicitly changes order.
 Use the [authoritative phase table](../docs/product-direction/WORKING_METHOD.md#delivery-steps-in-order)
-for the full criteria and status. Phases 1–8 have not started.
+for the full criteria and status. Phase 1 is in progress; phases 2–8 have not started.
 
 | Phase | Work after preceding gate | Measurable acceptance focus |
 |---|---|---|

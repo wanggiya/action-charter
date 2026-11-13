@@ -1,3 +1,38 @@
+# Benchmark runner and deterministic checks (2026-11-13, P1-B2/B3, #87/#88)
+
+- Add benchmark list/run CLI over existing governed task actions, one process and
+  isolated project per task, content-free immutable summaries and retained private
+  task evidence. No expected answers enter Planner/Critic prompts.
+- Enforce model-call and worker-deadline budgets, retain interrupted/unknown state,
+  record role calls/usage/resources and separate Critic advisory status from scores.
+  Missing/non-opted-in local data skips explicitly. Synthetic local-file writes need
+  an explicit fixture option and ordinary exact approval; no live DB/service dispatch.
+- Score recorded columns, row counts, finite numeric tolerance, verified output files,
+  exact database-validation receipts and refusal/no-execution evidence. Wrong,
+  missing, ambiguous or tampered evidence cannot pass; optional step selection
+  disambiguates column checks. Database checks do not query live services.
+- Add benchmark-runs to the existing workspace resolver. Preserve old CLI/snapshot
+  contracts while registering the additive group. No new agent role or frontend.
+- Full source-only suite: 2,903 passed (777.77 s; 13 existing spatial warnings).
+  Final focused checks cover subsequent diagnostic/budget/selector refinements;
+  evidence and limits are in [the benchmark guide](docs/BENCHMARKS.md).
+  Fake endpoint tests are fixture evidence, not a real-model baseline.
+
+# Benchmark contracts and task loading (2026-11-13, P1-B1, #86)
+
+- Add strict typed benchmark task/check/result/metric contracts, including explicit
+  fixture/real-model provenance, nullable unmeasured resources/tokens and refusal
+  success requiring observed zero execution.
+- Add bounded read-only YAML loading, exact definition hashes, stable task order,
+  missing-local-data availability and rejection of unsafe paths/links, duplicate
+  keys, aliases, excessive definitions and empty suites. No dataset bytes opened.
+- Include one synthetic task/input and [developer validation](docs/BENCHMARKS.md).
+  No runner/CLI/scorers, provider changes, new agents, authority or live-data access.
+- Preserve compatibility history; classify the new L6 benchmark package and bind
+  the policy baseline without adding import debt. Full suite: 2,878 passed (757.41 s;
+  13 existing spatial warnings); 84 focused and strict layer/compatibility checks
+  passed. Fixture evidence only, not a real-model benchmark.
+
 # Phase 0 closeout (2026-11-13, P0-C1–C4, #84)
 
 - Put labelled unavailable-record notices at the top of Saved records, before the

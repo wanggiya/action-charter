@@ -112,6 +112,14 @@ new folder setup. Migration is an explicit offline owner action, not a launcher 
 The [closeout record](docs/P0_CLOSEOUT.md) distinguishes verified source-only storage
 from historical migration rehearsals; the development checkout has now been adopted.
 
+Phase 1 [benchmarks](docs/BENCHMARKS.md) now include validated task definitions,
+a process-bounded runner, CLI and deterministic evidence checks. Run the current
+synthetic fixture with `.venv/bin/geoagent benchmark run --fixture --project-root .`.
+Results stay in workspace state; expected answers stay out of prompts. Local data
+requires explicit opt-in, and temporary writes require a separate fixture-write
+option plus normal exact authorization. Provider profiles, the full 20–30-task
+suite and a measured real-model baseline remain unfinished.
+
 [Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and directs maintained callers to native services. The 117 documented
 public/schema/generated-SDK boundaries preserve existing supported contracts.

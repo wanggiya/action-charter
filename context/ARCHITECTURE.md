@@ -47,7 +47,7 @@ The platform's fixed internal MCP client remains distinct from application MCP t
 
 R11 [compatibility retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and moves maintained callers/launchers to native owners. The project now
-has 613 modules: 496 native implementations and 117 supported public/SDK/schema
+has 621 modules: 504 native implementations and 117 supported public/SDK/schema
 boundaries (60 package roots, 57 aliases). No ordinary native caller imports a
 compatibility module. The immutable R6 inventory and exhaustive R11 partition bind
 the boundary; source gates reject reintroduced adapters and hidden implementations.
@@ -66,6 +66,27 @@ decomposition is recorded under R8 below. P0-5b contracts are recorded separatel
 below; R12 server seams are not delivered by moving files. Earlier R2–R6b sections below describe extraction stages; their old paths remain
 compatibility paths. [Current ownership and validation](../docs/R6_COMPLETION_AND_ACCEPTANCE.md).
 
+## Benchmark application (P1-B1–B3)
+
+`contracts/benchmark.py` (L0) owns task/check/result/metrics schemas. The L6
+`apps/benchmark` loader reads bounded definitions; runner creates isolated projects,
+stages copies, runs a fixed worker process and records immutable workspace results.
+The worker reuses shared Planner/save/review/authorize/run/Critic actions. Expected
+answers never enter worker input. All injected model clients share the task budget;
+no new role, principal or authority. Fixed local-file operations only; real-model
+mode is restricted to loopback until M1/M2. Database dispatch remains a future
+disposable adapter, not the owner's configured services.
+
+`checks.py` performs dictionary/list evidence lookup, numeric comparisons and
+receipt/hash checks without model judgement or database queries. Critic status is
+separate from scores. Cancellation/deadline stops the worker group, preserving
+partial/unknown state without automatic replay. This is fixed-process containment,
+not a container/MicroVM sandbox. The existing workspace resolver now includes
+`benchmark-runs`; raw private task state stays outside source. Thin CLI registration
+adds `benchmark list/run`; historical help/command snapshots remain unchanged.
+Provider profiles, suite expansion and actual local-model baselines remain later P1.
+[Usage, evidence and limits](../docs/BENCHMARKS.md).
+
 ## Specialized persistence (P0-5b)
 
 `platform/storage/ledger_contracts.py` defines immutable record, attempt/event journal,
@@ -81,8 +102,8 @@ R9's shared PostGIS transaction driver remains in data (L2), since it depends on
 DB inspection; pure policy/ledger/verification contracts stay below it. R10 is the
 existing P0-6 frontend/store split. Their [reconciliation](../docs/LEDGER_CONTRACTS.md#r9-and-r10-reconciliation)
 reuses delivered work, with no second lifecycle or UI redesign. R12 is implemented
-below. Local stable identity is implemented; the real owner cutover remains pending.
-R11 retires compatibility last.
+below. Local stable identity and owner cutover are complete; P0 closeout merged
+in PR #85. R11 compatibility retirement is delivered with the supported boundary.
 
 ## Trusted action context and execution services (R12)
 

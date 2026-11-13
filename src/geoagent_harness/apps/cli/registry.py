@@ -169,6 +169,9 @@ from geoagent_harness.apps.cli.workflow_tools import register as register_workfl
 from geoagent_harness.apps.cli.postgres import install as install_postgres_cli
 
 
+from geoagent_harness.apps.cli.benchmark import app as benchmark_app
+
+
 def register_commands(app):
     register_workspace_commands(app)
     app.command('record-task-event')(record_task_event_command)
@@ -288,3 +291,4 @@ def register_commands(app):
     register_workflow_tools_cli(app)
     app.command('write-policy')(write_policy_command)
     install_postgres_cli(app)
+    app.add_typer(benchmark_app, name='benchmark')

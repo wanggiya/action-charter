@@ -1,3 +1,57 @@
+# Work resume — P1-B2/B3 implemented and verified (2026-11-13)
+
+Owner authorized B2/B3 together on pending B1 changes. All B1 changes preserved;
+main remains c03f11d. No overlapping PR/task found. Tracking: #86 B1, #87 runner,
+#88 checks. Owner manages all Git actions; no branch/stage/commit/push/merge performed.
+[Benchmark guide](../docs/BENCHMARKS.md) owns commands, scope and limits.
+
+Runner: benchmark list/run CLI, per-task process/project/state, staged input hashes,
+minimal context, shared Planner/save/review/authorize/run/Critic services. Expected
+answers are withheld from prompts. All injected clients share the call budget;
+worker deadline/Ctrl+C stops the process group and preserves uncertain state.
+Synthetic writes require explicit CLI opt-in plus normal exact authorization;
+local-data tasks skip unless explicitly included and cannot enable fixture writes.
+Local models only until M1/M2. Database/services/shell/install/code generation are
+not admitted. This is fixed-process containment, not a container/MicroVM sandbox.
+Immutable content-free results and private raw task state use benchmark-runs through
+the existing workspace resolver. Separate Critic status, counts, tokens/resources,
+retry/timeout observations and source-version provenance (null if unavailable).
+
+B3 checks actual completed outcomes: columns/explicit step, integer row counts,
+finite numeric tolerance, output hash+receipt, exact committed PostgreSQL/PostGIS
+validation receipts and deterministic refusal with zero operations/outputs. Missing,
+ambiguous or tampered evidence cannot pass; no DB queries or model scoring. Gold-set
+scoring and disposable DB execution adapters remain future suite work.
+
+Verification: full source-only CI/GitHub/frontend-required make test: **2,903 passed**,
+13 existing spatial warnings, 777.77 seconds. The full snapshot preceded the final
+localized diagnostic/staging-budget/column-selector refinements; **117 final focused
+current-source checks passed** (27.79 s), including B1, B2/B3, R7 snapshots, R11 and
+layer checks. Those cover two added boundary cases after the full run. Strict gate:
+621 modules/3049 imports, zero debt. Compatibility: 504 native, 290 retired/117 public,
+zero errors. Installed CLI fixture smoke passed in a disposable project.
+Final context checks and 370 local documentation links passed. An unrelated
+untracked .claude/ appeared during this turn; left untouched and outside task scope. All endpoint
+checks use a fake local server; no real-model performance/quality or live DB claims.
+No frontend changed; interface/browser checks not repeated.
+
+Owner validation confirmed by read-only evidence inspection: run a476845b8c32437dacf9d01ce55526c4
+is complete, one fixture task passed, one operation, 3 rows/3 columns. Saved result
+matches summary/current definition; both checks independently recomputed as passed;
+summary hash unchanged. Fresh disposable CLI fixture passed; 78 contract/runner
+checks passed (15.46 s). No owner run was replayed, authorized or modified.
+Log: /tmp/actioncharter-p1b23-owner-validation.log.
+
+Next: owner can integrate B1–B3; fixture verification needs no repetition. B4 expands tasks/disposable DB
+adapters; B5 measures actual local-model baseline. M1/M2 providers/egress remain.
+Phase 1 is not complete; no new roles, permissions, data operations or learning added.
+
+Logs: /tmp/actioncharter-p1b23-full.log; /tmp/actioncharter-p1b23-final-gates.log;
+/tmp/actioncharter-p1b23-cli.json. Source-only export:
+/tmp/actioncharter-p1b23-clean-4aeis4wy. Temporary test logs are not source records.
+
+---
+
 # Work resume — P0-C1–C4 implemented and verified (2026-11-13, #84)
 
 Owner authorized all P0-C tasks. Started on clean main at 20b7a38 (PR #83 merged).
