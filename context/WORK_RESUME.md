@@ -1,3 +1,38 @@
+# Work resume — PR #83 fixture-path fix verified (2026-11-13)
+
+Current authorized scope: repair PR #83 CI only, on `cleanup/p0-closeout` at
+`835f09d`; initially clean. No Git mutations, live-data changes or further migration.
+The push and PR Python jobs both fail the same six tests. Two fixture helpers still
+read `PROJECT_ROOT / "skill-definitions"`, removed by this PR's runtime cleanup.
+Canonical YAML copies remain byte-identical in `examples/extension-lifecycle/`.
+Update those two test helpers, retain every assertion and removed runtime marker.
+Other source/test references already use canonical examples. Do not implement the
+separate P0-C2 inventory bug or Phase 1 work in this fix.
+
+Applied only two fixture-path changes; all 28 `assert` ASTs and existing rejection
+checks remain unchanged. Six previously failing cases pass. Canonical YAML bytes
+match the deleted historical copies exactly. No other test/script source-fixture
+references to those root paths remain.
+
+Full verification: exported tracked HEAD source plus these uncommitted changes to
+`/tmp/actioncharter-pr83-clean-9octmjb6`, excluding local config/private data/runtime
+records; reused existing Python/Node dependency links, verified imports use exported
+source. `CI=true GITHUB_ACTIONS=true NO_COLOR=1 ACTIONCHARTER_REQUIRE_FRONTEND_TESTS=1
+make test`: **2,820 passed**, 13 existing spatial warnings, 774.85 seconds. This
+checks the source-only state without leftover runtime copies masking failures.
+No new backend/frontend feature or test skip; no production/schema/authority change.
+
+Next: owner stages the two test files plus CHANGELOG/WORK_RESUME, commits/pushes the
+current branch and watches new PR #83 checks. Old checks still refer to 835f09d;
+GitHub must receive the fix before rerunning can verify it. Keep Git commands in
+conversation. No Git mutation or live state/database/service change performed.
+Snapshot: /tmp/actioncharter-pr83-before.
+Failure logs: /tmp/actioncharter-pr83-python.log and /tmp/actioncharter-pr83-push.log.
+No previous edit or full run was repeated after the coding server restart.
+Full run log: /tmp/actioncharter-pr83-full.log; focused: /tmp/actioncharter-pr83-focused.log.
+
+---
+
 # Work resume — Phase 0 closeout, then Phase 1 (2026-11-12)
 
 R-series merged (PR #82, `8a509dd`). Owner workspace cutover done: stable project ID

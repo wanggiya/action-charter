@@ -34,7 +34,7 @@ def prepared_candidate(
     tmp_path: Path,
 ):
     definition_root = (
-        PROJECT_ROOT / "skill-definitions"
+        PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
     )
 
     definition = load_skill_definition(
