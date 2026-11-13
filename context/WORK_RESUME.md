@@ -1,3 +1,23 @@
+# Work resume — Phase 0 closeout, then Phase 1 (2026-11-12)
+
+R-series merged (PR #82, `8a509dd`). Owner workspace cutover done: stable project ID
+`7b3e2655-…`, state root `~/.local/share/actioncharter/workspaces/geoagent-skill-harness/state`,
+backup `~/.local/share/actioncharter/backups/geoagent-skill-harness/20261112T205838Z/`
+(checkout.tar verified, three dev sessions with 6 links preserved). `workspace-verify`:
+`changed_since_migration` (expected after launch), `source_only: true`.
+
+Pending in the working tree: 12 runtime-marker deletions from the cutover (expected;
+canonical skill definitions remain in `examples/extension-lifecycle/`) → task P0-C1.
+
+Known bug found after cutover (pre-existing, not caused by it): `GET /api/v1/recipes`
+returns 503 because one stored recipe (`planner-d53f96031ec0276c…`, 2026-11-02,
+`inspect_vector` on `sample_orders.csv`) fails the current format policy and the
+inventory is all-or-nothing. 73 of 74 recipes valid. → task P0-C2. Do not edit or
+delete the stored file.
+
+Next: follow [PHASE_1_PLAN.md](../docs/product-direction/PHASE_1_PLAN.md) — section 0
+(P0-C1…C4), then lanes A (benchmark) and B (model providers) in separate worktrees.
+
 # Work resume — PR #82 console snapshot fix verified (2026-11-12)
 
 Owner pushed prior fixes as `f540793`. GitHub GIS/agent/skill-runner/Compose and HTTP
