@@ -1,24 +1,28 @@
 # Phase 1 plan — baseline benchmark and model providers
 
-Recorded 2026-11-12. **Plan for contributors (humans and AI agents); not implemented.**
+Recorded 2026-11-12; closeout updated 2026-11-13. **Plan for contributors (humans and AI agents); not implemented.**
 Read [AGENTS.md](../../AGENTS.md) and [WORKING_METHOD.md](WORKING_METHOD.md) first. This
 file says *what* to build in Phase 1, *where* the code goes, *in which order*, and *how*
 agents work on it.
 
 ## 0. Before Phase 1: close Phase 0
 
-State on 2026-11-12: R-series merged (PR #82). Owner workspace cutover done (state now
-under `~/.local/share/actioncharter/workspaces/geoagent-skill-harness/state`, stable
-project ID). Remaining:
+State on 2026-11-13: R-series merged (PR #82), with owner-reported overall
+acceptance. Owner workspace cutover and stable project adoption are complete.
+[Closeout evidence and acceptance](../P0_CLOSEOUT.md), tracked by #84:
 
-| ID | Task | Who | Done when |
+| ID | Task | Who | Result / final gate |
 |---|---|---|---|
-| P0-C1 | Commit the 12 runtime-marker deletions left by the cutover (`approvals/.gitkeep`, `plans/.gitkeep`, … `skill-definitions/*.skill.yaml`, `builder-requests/example-adapter.json`; canonical copies stay in `examples/extension-lifecycle/`). PR closes #79 | Owner (or agent on request) | Merged; `git status` clean |
-| P0-C2 | **Bug:** `GET /api/v1/recipes` returns 503 when one stored recipe fails the current format policy (`planner-d53f96031ec0276c…`: `inspect_vector` on a `.csv`, saved 2026-11-02 by an old planner bug). Inventory must list it as invalid with the reason, keep it non-executable, not modify the file; other recipes still listed. Apply the same "one bad record must not break the list" rule to other inventories if they share the pattern | Agent | Test with an invalid stored recipe; endpoint 200; owner sees recipes page |
-| P0-C3 | Close issues #60–#64 (delivered in PR #65): `gh issue close 60 61 62 63 64 -c "Delivered in PR #65"` | Owner | Closed |
-| P0-C4 | Mark Phase 0 **Done** in the WORKING_METHOD phase table; move evidence notes to `context/WORK_RESUME.md` | Agent, in the P0-C2 PR | Merged |
+| P0-C1 | Runtime-marker removal and canonical example paths | Owner | Done: PR #83 merged as 20b7a38; read-only verification now reports source-only/no legacy entries. Seven empty old folders removed; no saved records deleted. |
+| P0-C2 | Resilient display inventories; a rejected stored recipe must not break the list | Agent | Implemented/automatically verified: valid records plus bounded non-actionable findings; no stored-file changes; strict approval/execution retained. Owner acceptance/merge pending. |
+| P0-C3 | Close delivered issues #60–#64 | Owner delegated to agent | Done: PR #65 delivery verified; #60 already closed, #61–#64 closed as completed. |
+| P0-C4 | Reconcile current status, roadmap, working-method Status and handoff; preserve history | Agent, with P0-C2 | Documentation complete; consolidation exit checks passed. Owner acceptance/merge pending. |
 
-Phase 1 work starts after P0-C1 and P0-C2 are merged.
+Phase 0 consolidation is recorded Done in the working-method Status column; its
+closeout changes still require the owner's Git integration. Phase 1 starts **after
+P0-C1 and P0-C2/C4 are accepted and merged**, not automatically during this task.
+PA1 source capture and PA2 gold-set labelling remain owner data-only work in parallel;
+no policy corpus or analysis capability is claimed as delivered by consolidation.
 
 ## 1. Goal and exit criterion
 

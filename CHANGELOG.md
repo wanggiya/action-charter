@@ -1,3 +1,25 @@
+# Phase 0 closeout (2026-11-13, P0-C1–C4, #84)
+
+- Put labelled unavailable-record notices at the top of Saved records, before the
+  saved-plan history, so rejected recipes remain discoverable without scrolling.
+- Keep valid saved recipes/plans visible when individual stored records are malformed,
+  unsafe or policy-rejected. Show bounded/redacted, non-actionable reasons in Saved
+  records and Advanced; handle all-invalid lists without a 503. Bad approval/link
+  evidence never becomes verified authority. Stored bytes and strict approval/run
+  validation remain unchanged; no automatic repairs/deletions or new authority.
+- Verify merged P0-C1 source cleanup and the adopted owner workspace. Remove seven
+  empty old folders only; source-only verification passes. Verify PR #65 delivery
+  and close #61–#64; #60 was already closed.
+- Reconcile Phase 0 status, roadmap and handoff; archive the former status overview
+  without losing history. P1 begins after owner closeout acceptance/merge; PA1/PA2
+  remains owner data-only work. No Phase 1 feature or new agent is included.
+- Full source-only/GitHub-environment suite: **2,827 passed** (769.57 s; 13 existing
+  spatial warnings). Final inventory cases, frontend typecheck/build, strict layer/
+  compatibility gates and isolated stable-ID browser/API acceptance passed. Owner
+  inventory checks preserved all 74 file hashes (73 usable + one rejected record).
+  These checks are fixture/read-only evidence, not a new model benchmark/live write.
+  [Behavior, limits and acceptance](docs/P0_CLOSEOUT.md). Git integration remains manual.
+
 # PR #83 source-only fixture paths (2026-11-13)
 
 - Point declarative scaffolding and trusted adapter materialization tests to the

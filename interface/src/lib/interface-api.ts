@@ -114,7 +114,20 @@ const savedRecipeSchema = z.object({
 
 export type SavedInterfaceRecipe = z.infer<typeof savedRecipeSchema>;
 
+const inventoryProblemSchema = z.object({
+  filename: z.string().max(255), kind: z.enum(["recipe", "plan", "recipe_approval", "plan_approval"]),
+  status: z.literal("unavailable"), code: z.string().max(60), reason: z.string().max(300),
+  approval_allowed: z.literal(false), execution_allowed: z.literal(false),
+});
+export type InventoryProblem = z.infer<typeof inventoryProblemSchema>;
+const inventoryProblemsShape = {
+  invalid_records: z.array(inventoryProblemSchema).max(200).optional(),
+  invalid_record_count: z.number().int().nonnegative().optional(),
+  invalid_records_truncated: z.boolean().optional(),
+};
+
 const savedRecipeInventorySchema = z.object({
+  ...inventoryProblemsShape,
   schema_version: z.literal("1.0"),
   status: z.literal("inspected"),
   recipes: z.array(z.object({
@@ -497,6 +510,7 @@ export class PlannerRequestError extends Error {
 }
 
 const savedPlanInventorySchema = z.object({
+  ...inventoryProblemsShape,
   schema_version: z.literal("1.0"), status: z.literal("inspected"),
   plans: z.array(z.object({
     plan_filename: z.string(), plan_sha256: z.string().regex(/^[a-f0-9]{64}$/), saved_at: z.string(),
