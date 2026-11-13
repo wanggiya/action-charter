@@ -17,6 +17,11 @@ from tests.http_contract_probe import capture_contract
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = json.loads((ROOT / 'tests/architecture/r8_http_contract.json').read_text())
 
+# P0-C2 (#84) deliberately changes only these display inventories. Preserve the
+# original R8 fixture bytes and keep all other coordinator ASTs locked to history.
+INVENTORY_FIX_SHA256 = {'interface_saved_plan_inventory': 'b821cafa7922a122f87ce5f7d98b5096fc7cbc25e2ef95dedd815964f442b728', 'interface_saved_recipe_inventory': '4de60d6b3c1f87d9bd7a3978aac5e2b3231b4fab11d3b71a90ce4bc86d3ea5b9'}
+
+
 
 def ast_digest(function):
     return hashlib.sha256(ast.dump(ast.parse(textwrap.dedent(inspect.getsource(function))).body[0],
@@ -33,7 +38,7 @@ def test_all_sixteen_request_schemas_keep_their_exact_contracts():
 def test_original_coordinator_bodies_and_signatures_are_unchanged_and_shared():
     for name, digest in BASELINE['functions'].items():
         function = getattr(server, name)
-        assert ast_digest(function) == digest, name
+        assert ast_digest(function) == INVENTORY_FIX_SHA256.get(name, digest), name
         assert function.__module__.startswith('geoagent_harness.task_actions.'), name
     assert len(BASELINE['functions']) == 24
 

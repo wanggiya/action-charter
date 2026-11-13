@@ -1,10 +1,31 @@
 # Combined R-series manual acceptance
 
-Use this after the final R11 automated gates pass. Git integration and real workspace
-backup/cutover remain separate owner actions. Do not begin by migrating your only
+Reference procedures after R11 automated gates. R-series merged in PR #82; the
+owner subsequently completed workspace adoption. P0-C closeout integration remains
+an owner action ([current record](P0_CLOSEOUT.md)). Do not begin by migrating your only
 workspace or writing to PostgreSQL/PostGIS/GeoServer. Public sample files are enough.
 
 ## Acceptance record
+
+Updated 2026-11-13. Merged [PR #82](https://github.com/wanggiya/action-charter/pull/82)
+records “owner manual acceptance done” in its owner-authored description. This closes
+the previously outstanding overall R-series manual gate. It does not provide
+individual chat/run IDs, model names, screenshots or timings, and does not establish
+a real-model benchmark. Earlier partial confirmation is preserved below.
+
+| Check | Status | Evidence / remaining action |
+|---|---|---|
+| R-series implementation and automated gates | Complete; merged | PR #82; current P0-C suite: 2,827 fixture tests, frontend/strict gates and isolated browser/API checks passed |
+| Startup, read-only inspection and refresh recovery | Owner-reported pass | Original 2026-11-10 confirmation below |
+| Execution History and frontend/terminal continuity | Included in owner-reported overall acceptance | PR #82 description; individual traces/IDs not supplied, not independently re-observed on owner data here |
+| Fresh-file authorization journey | Not separately manually reported; optional | Existing automated fixtures cover authority; do not infer a live write test from overall acceptance |
+| Real workspace adoption | Complete before P0-C task | Owner handoff and read-only verification: stable binding, migration complete, source-only true; changed_since_migration is normal post-use state |
+| P0-C2/C4 closeout | Implemented/automatically verified; owner acceptance/merge next | [Guide](P0_CLOSEOUT.md), #84 |
+
+No further R-series code is planned unless a demonstrated regression requires it.
+Do not repeat migration or live database writes to prove a display-inventory fix.
+
+### Earlier partial record (2026-11-10; superseded)
 
 Updated 2026-11-10 from the owner's confirmation, “those steps passed,” after the
 six-step startup/inspection/refresh test in the conversation. This is owner-reported
@@ -28,13 +49,14 @@ demonstrated R-series regression. If the optional write test is omitted, retain 
 a check reveals a defect. Git integration remains owner-controlled. Phase 0's real
 workspace/source-only-root gate remains open even after R-series manual acceptance.
 
+
 The 2026-11-10 environment review also found legacy/current distribution metadata and
 no `.venv/bin/actioncharter` console script. The repository `./actioncharter` launcher
 exists and is the intended path for this check. Environment refresh is a separate
 maintenance follow-up; no package installation or removal is part of this document
 update. It does not add another R-series code task.
 
-## Two remaining checks
+## History and terminal checks (reference; overall acceptance reported)
 
 **Execution History:** use the completed six-row inspection. Note its run ID, open
 Execution History and the matching recorded outcome, then return to the current
@@ -50,8 +72,8 @@ This check is read-only; `/execute`, `/authorize` and `/writes on` are unnecessa
 Report each as passed or provide the exact failing step/error. Add chat/run IDs if
 available, keeping private transcript/data out of public documentation.
 
-The full procedures below remain available as a reference; the passed startup,
-inspection and refresh steps do not need repeating unless a new failure warrants it.
+The full procedures below remain available as a reference; reported acceptance
+does not need repeating unless a new failure warrants it.
 
 ## 1. Start and confirm the installation
 
@@ -77,8 +99,9 @@ must not run a workflow. Optional read-only checks in a second terminal:
 .venv/bin/python scripts/check_compatibility.py
 ```
 
-The unchanged owner checkout should report `legacy_path`, UUID null and no execution
-authority. Do not add `--initialize` or `--rebind` during this acceptance. Layer and
+The adopted owner checkout should report stable project identity and no execution
+authority. A separate unadopted checkout can still report `legacy_path`, UUID null.
+Do not add `--initialize` or `--rebind` during this acceptance. Layer and
 compatibility checks should report no errors, with 290 retired and 117 retained paths.
 
 ## 2. Read-only frontend journey

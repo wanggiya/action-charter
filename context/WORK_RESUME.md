@@ -1,3 +1,68 @@
+# Work resume — P0-C1–C4 implemented and verified (2026-11-13, #84)
+
+Owner authorized all P0-C tasks. Started on clean main at 20b7a38 (PR #83 merged).
+[Tracking #84](https://github.com/wanggiya/action-charter/issues/84),
+[closeout guide and frontend acceptance](../docs/P0_CLOSEOUT.md).
+
+P0-C1: owner had already completed stable-ID workspace adoption. Read-only verify
+reported seven empty legacy folders; removed only these empty folders. Now
+source_only=true, no legacy entries, migration complete, changed_since_migration.
+No record moved/edited/deleted; no new backup/cutover or rollback performed.
+
+Follow-up: owner could not locate the notice. Read-only GETs to both running ports
+8765/5173 returned 73 valid + one policy-rejected record. The notice was below
+the long Saved plans list. Moved labelled notices directly below Refresh records,
+before both lists; browser checks now require that order and visibility without
+scrolling. Frontend validation and the updated isolated browser journey passed
+(zero page errors/approval/execution calls). The running frontend serves the notice
+component. No owner records or backend logic changed in this follow-up.
+Logs: /tmp/actioncharter-p0c-notice-interface.log and
+/tmp/actioncharter-p0c-notice-browser.log; screenshot:
+/tmp/actioncharter-p0c-saved-records.png.
+
+P0-C2: shared display inventories isolate malformed/unsafe/policy-rejected recipes,
+plans and approval/link records, preserving valid entries. Saved records/Advanced
+show bounded blocked diagnostics and all-invalid states without actions. Matching
+bad plan evidence blocks the definition link. Approval/execution and CLI authority
+inventory remain strict. No new agent, operation, CLI command or Phase 1 feature.
+All 74 owner recipe hashes unchanged: 73 valid + one blocked format mismatch.
+R8 historical snapshot bytes preserved; two intentional display coordinator AST
+expectations recorded explicitly in the existing test. No blanket snapshot update.
+
+P0-C3: verified PR #65 delivery. #60 already closed; closed #61–#64 as completed.
+No other issue closure. P0-C4: working-method/status/roadmap/README/CHANGELOG updated;
+former status overview preserved with rebased links and source hash in STATUS_HISTORY.
+PR #82 supplies owner-reported overall R-series acceptance; individual traces and
+optional live write checks are not invented. PA1/PA2 remains owner data-only work.
+
+Verification:
+- Source-only exported make test with CI/GitHub/frontend-required flags: **2,827
+  passed**, 13 existing spatial warnings, 769.57 seconds.
+- Final seven inventory cases passed, including corrupt matching-plan assertions;
+  48 final focused inventory/HTTP/compatibility/context checks passed. All 392 local
+  documentation paths resolve; original overview/history preservation verified.
+- Frontend typecheck/build passed (existing chunk-size warning); strict layer and
+  compatibility checks passed (zero debt/errors; 290 retired, 117 retained).
+- Final isolated stable-ID/relocated-state browser/API journey passed: valid/invalid/
+  all-invalid lists and long-filename containment; unchanged fixture files; zero approval/execution calls/page errors.
+  No owner browser profile/cache or live service used. This is fixture evidence,
+  not a new real-local-model benchmark.
+
+Next: owner restarts usual launcher and reviews Saved records + valid recipe in
+Advanced, then handles Git integration. No stage, branch, commit, push or merge
+performed. Phase 0 consolidation exit checks passed; P0-C2/C4 acceptance/merge is
+still pending. After merge begin PHASE_1_PLAN: P1-B1 benchmark contracts and P1-M1
+provider foundations in task-sized work, not automatic Phase 1 expansion here.
+
+Logs: /tmp/actioncharter-p0c-full-final.log,
+/tmp/actioncharter-p0c-final-inventory.log, /tmp/actioncharter-p0c-interface-final.log,
+/tmp/actioncharter-p0c-browser-final.log. Screenshot: /tmp/actioncharter-p0c-recipes.png.
+Source-only export: /tmp/actioncharter-p0c-clean-cvp67mbc; pre-edit snapshots:
+/tmp/actioncharter-p0c-before. Temporary logs are not durable source records.
+
+
+---
+
 # Work resume — PR #83 fixture-path fix verified (2026-11-13)
 
 Current authorized scope: repair PR #83 CI only, on `cleanup/p0-closeout` at

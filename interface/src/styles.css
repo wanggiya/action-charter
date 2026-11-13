@@ -1582,3 +1582,14 @@
 .analysis-goal-cards button{margin-top:8px}
 
 .analysis-goal-cards dd{text-transform:none}
+
+/* Non-actionable saved-record diagnostics share the existing inventory surfaces. */
+.recipe-inventory-content {min-width:0}
+.inventory-problems {min-width:0;margin:12px 0 18px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.inventory-problems>summary {color:#f5cb7a;font-weight:700;cursor:pointer}
+.inventory-problems>p {margin:8px 0;color:#b9c7d4}
+.inventory-problems>.execution-attempt {min-width:0;margin-top:8px;gap:5px}
+.inventory-problems .execution-attempt>strong {min-width:0;font-size:12px;color:#e0e7ee}
+.inventory-problems .execution-attempt>p {margin:4px 0}
+.inventory-problems .execution-attempt>small,.inventory-problems .execution-attempt>span {color:#a8b4c0;font-size:10px}
+.recipe-inventory-content>.inventory-problems {margin:20px 20px 0}

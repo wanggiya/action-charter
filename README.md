@@ -108,23 +108,28 @@ records, catalogs and historical lifecycle artifacts. Existing locations remain 
 default until you explicitly use the offline migration tool. It copies and verifies
 records, switches configuration, optionally archives old folders, and provides guarded
 rollback. User input/output files and credentials stay in place. Existing users need no
-new folder setup; no real project records were moved during development.
-The [owner cutover plan](docs/OWNER_WORKSPACE_CUTOVER_PLAN.md) now records the measured
-runtime inventory and preservation steps for old development-session links. Actual
-backup, archival and cutover remain pending explicit approval.
+new folder setup. Migration is an explicit offline owner action, not a launcher step.
+The [closeout record](docs/P0_CLOSEOUT.md) distinguishes verified source-only storage
+from historical migration rehearsals; the development checkout has now been adopted.
 
 [Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and directs maintained callers to native services. The 117 documented
 public/schema/generated-SDK boundaries preserve existing supported contracts.
 Agent roles, workflow controls and exact authorization retain their behavior.
 Use the [combined R-series acceptance guide](docs/R_SERIES_ACCEPTANCE.md) after
-the automated gates; real workspace cutover remains a separate owner action.
+the automated gates; it records the owner's overall acceptance of merged PR #82.
+
+Saved records and Advanced keep valid recipes/plans available when an individual
+stored record is malformed or fails validation. Unavailable records show bounded
+reasons and cannot be opened for approval or execution. Listing never repairs or
+deletes the stored files; exact approval and execution validation remain strict.
+See [Phase 0 closeout and validation](docs/P0_CLOSEOUT.md).
 
 Optional [stable project identity](docs/PROJECT_IDENTITY.md) binds local ownership
 to a project UUID after explicit offline adoption. Verified filesystem renames retain
 identity and audit claims; copied markers/state fail closed. Existing projects need
 no change. Cross-filesystem source transfers and container aliases require future
-provisioning; the owner's real workspace has not been migrated.
+provisioning; they are not implied by local workspace adoption.
 
 Metadata follow-ups such as `inspect it again` use the active workflow input; absent or
 ambiguous sources prompt a question. Inspector/source mismatches are rejected before

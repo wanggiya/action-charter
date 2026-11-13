@@ -18,6 +18,7 @@ from geoagent_harness.capabilities.recipes.execution import RecipePolicyError, v
 from geoagent_harness.capabilities.recipes.execution import RecipeStorageError, load_recipe, recipe_path, save_recipe
 from geoagent_harness.capabilities.recipes.execution import recipe_sha256
 from geoagent_harness.contracts.errors import InterfaceApiError
+from geoagent_harness.contracts.redaction import redact_text
 from geoagent_harness.platform.project import _trusted_root
 from geoagent_harness.task_actions.artifacts import save_interface_reviewed_plan, prepare_interface_plan_approval, record_interface_plan_approval, verify_interface_plan_approval, preview_interface_plan_execution, compile_interface_plan_recipe, _planner_recipe_definition, save_interface_plan_recipe, prepare_interface_recipe_approval, record_interface_recipe_approval, verify_interface_recipe_approval
 from geoagent_harness.contracts.interface_requests import (
@@ -28,6 +29,54 @@ from geoagent_harness.contracts.interface_limits import (
     MAX_INTERFACE_PLAN_APPROVALS,
     MAX_INTERFACE_RECIPES,
 )
+
+
+class _InventoryProblems:
+    """Display-only, bounded diagnostics; never reusable execution/authority data."""
+
+    def __init__(self):
+        self.records = []
+        self.count = 0
+        self.seen = set()
+
+    def add(self, path, kind, error):
+        key = (str(path), kind)
+        if key in self.seen:
+            return
+        self.seen.add(key)
+        self.count += 1
+        if len(self.records) >= MAX_INTERFACE_RECIPES:
+            return
+        if isinstance(error, RecipePolicyError):
+            code, reason = 'policy_rejected', str(error)
+        elif isinstance(error, ValidationError):
+            code, reason = 'invalid_record', 'Stored record failed schema validation'
+        elif isinstance(error, OSError):
+            code, reason = 'unavailable_record', 'Stored record could not be read safely'
+        elif isinstance(error, RecursionError):
+            code, reason = 'invalid_record', 'Stored record exceeds the nesting limit'
+        else:
+            code = 'invalid_record'
+            reason = str(error) if isinstance(error, (RecipeStorageError, RecipeApprovalError, ApprovalError, InterfaceApiError)) else 'Stored record failed validation'
+        reason = ''.join(c if c.isprintable() else ' ' for c in redact_text(reason))[:300]
+        name = path.name if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,249}\.json', path.name) else 'Unrecognized record name'
+        self.records.append({'filename': name, 'kind': kind, 'status': 'unavailable',
+            'code': code, 'reason': reason, 'approval_allowed': False, 'execution_allowed': False})
+
+    def read(self, path, kind, loader):
+        try:
+            if path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1:
+                raise InterfaceApiError('Stored record is not a single regular file')
+            return loader()
+        except (InterfaceApiError, RecipeStorageError, RecipeApprovalError, ApprovalError, OSError, ValueError, RecursionError) as error:
+            self.add(path, kind, error)
+            return None
+
+    def projection(self):
+        # Keep the normal/empty response contract, including historical snapshots.
+        return {} if not self.count else {'invalid_records': self.records,
+            'invalid_record_count': self.count,
+            'invalid_records_truncated': self.count > len(self.records)}
 
 
 def interface_recipe_template_catalog(project_root: Path) -> dict[str, Any]:
@@ -171,15 +220,16 @@ def interface_saved_plan_inventory(
         raise InterfaceApiError("plan root is unsafe")
     if approvals.is_symlink() or (approvals.exists() and not approvals.is_dir()):
         raise InterfaceApiError("approval root is unsafe")
+    problems = _InventoryProblems()
     approval_by_plan: dict[str, list[tuple[dict[str, Any], ApprovalRecord]]] = {}
     if approvals.exists():
         approval_paths = sorted(approvals.glob("approval-*.json"))
         if len(approval_paths) > MAX_INTERFACE_PLAN_APPROVALS:
             raise InterfaceApiError("plan approval inventory exceeds its limit")
         for path in approval_paths:
-            if path.is_symlink():
-                raise InterfaceApiError("approval inventory contains an unsafe artifact")
-            record = load_approval(path=path, approval_root=approvals)
+            record = problems.read(path, 'plan_approval', lambda: load_approval(path=path, approval_root=approvals))
+            if record is None:
+                continue
             approval_by_plan.setdefault(record.plan_sha256, []).append(({
                 "approval_id": record.approval_id,
                 "approval_filename": path.name,
@@ -194,12 +244,13 @@ def interface_saved_plan_inventory(
         if len(paths) > MAX_INTERFACE_PLANS:
             raise InterfaceApiError("saved plan inventory exceeds its limit")
         for path in paths:
-            if path.is_symlink():
-                raise InterfaceApiError("plan inventory contains an unsafe artifact")
-            result = repositories(root).documents('plans',directory=plans).load(path.name)
+            result = problems.read(path, 'plan', lambda: repositories(root).documents('plans',directory=plans).load(path.name))
+            if result is None:
+                continue
             digest = plan_sha256(result.plan)
             if path.name != f"planner-plan.{digest}.json":
-                raise InterfaceApiError("saved plan filename does not match its digest")
+                problems.add(path, 'plan', InterfaceApiError("saved plan filename does not match its digest"))
+                continue
             required_steps = [step.step_id for step in result.plan.steps if step.requires_approval]
             linked_approvals = []
             for summary, record in approval_by_plan.get(digest, []):
@@ -220,7 +271,7 @@ def interface_saved_plan_inventory(
                 "planner_result": result.model_dump(mode="json"),
                 "approvals": linked_approvals,
             })
-    return {"schema_version": "1.0", "status": "inspected", "plans": items, "plan_count": len(items), "files_modified": False, "execution_performed": False}
+    return {"schema_version": "1.0", "status": "inspected", "plans": items, "plan_count": len(items), "files_modified": False, "execution_performed": False, **problems.projection()}
 
 
 def compile_interface_recipe_proposal(
@@ -307,15 +358,16 @@ def interface_saved_recipe_inventory(
         raise InterfaceApiError("approval root is unsafe")
     if plans.is_symlink() or (plans.exists() and not plans.is_dir()):
         raise InterfaceApiError("plan root is unsafe")
+    problems = _InventoryProblems()
     approval_by_recipe: dict[str, list[tuple[Path, Any]]] = {}
     if approvals.exists():
         approval_paths = sorted(approvals.glob("recipe-approval-*.json"))
         if len(approval_paths) > MAX_INTERFACE_PLAN_APPROVALS:
             raise InterfaceApiError("recipe approval inventory exceeds its limit")
         for approval_path in approval_paths:
-            if approval_path.is_symlink():
-                raise InterfaceApiError("approval inventory contains an unsafe artifact")
-            record = load_recipe_approval(approval_path, approval_root=approvals)
+            record = problems.read(approval_path, 'recipe_approval', lambda: load_recipe_approval(approval_path, approval_root=approvals))
+            if record is None:
+                continue
             approval_by_recipe.setdefault(record.recipe_sha256, []).append((approval_path, record))
     if not destination.exists():
         recipes: list[dict[str, Any]] = []
@@ -326,10 +378,12 @@ def interface_saved_recipe_inventory(
         registry = load_skill_registry(root)
         recipes = []
         for path in paths:
-            if path.is_symlink() or path.resolve().parent != destination.resolve():
-                raise InterfaceApiError("recipe inventory contains an unsafe artifact")
-            recipe = load_recipe(path, recipe_root=destination)
-            policy = validate_recipe_policy(recipe, registry=registry)
+            recipe = problems.read(path, 'recipe', lambda: load_recipe(path, recipe_root=destination))
+            if recipe is None:
+                continue
+            policy = problems.read(path, 'recipe', lambda: validate_recipe_policy(recipe, registry=registry))
+            if policy is None:
+                continue
             digest = recipe_sha256(recipe)
             plan_match = "unavailable"
             matched_plan_digest: str | None = None
@@ -340,20 +394,26 @@ def interface_saved_recipe_inventory(
                 if len(plan_paths) > MAX_INTERFACE_PLANS:
                     raise InterfaceApiError("matching Planner inventory exceeds its limit")
                 matches = []
+                invalid_plan = False
                 for plan_path in plan_paths:
-                    if plan_path.is_symlink():
-                        raise InterfaceApiError("matching Planner artifact is unsafe")
-                    planner_result = load_planner_result(path=plan_path, plan_root=plans)
+                    planner_result = problems.read(plan_path, 'plan', lambda: load_planner_result(path=plan_path, plan_root=plans))
+                    if planner_result is None:
+                        invalid_plan = True
+                        continue
                     plan_digest = plan_sha256(planner_result.plan)
                     if plan_path.name != f"planner-plan.{plan_digest}.json":
-                        raise InterfaceApiError("matching Planner filename is invalid")
+                        problems.add(plan_path, 'plan', InterfaceApiError("matching Planner filename is invalid"))
+                        invalid_plan = True
+                        continue
                     try:
                         reconstructed = _planner_recipe_definition(planner_result, plan_digest)
                     except (InterfaceApiError, ValidationError):
                         continue
                     if recipe_sha256(reconstructed) == digest:
                         matches.append(plan_digest)
-                if len(matches) == 1:
+                if invalid_plan:
+                    plan_match, plan_match_reason = 'blocked', 'Matching Planner evidence contains an invalid record'
+                elif len(matches) == 1:
                     plan_match, matched_plan_digest = "verified", matches[0]
                     plan_match_reason = "Canonical recipe definition matches the saved Planner result"
                 elif plan_paths:
@@ -402,6 +462,7 @@ def interface_saved_recipe_inventory(
         "recipe_modified": False,
         "approval_performed": False,
         "execution_performed": False,
+        **problems.projection(),
     }
 
 
