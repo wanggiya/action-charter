@@ -34,7 +34,7 @@ def registry_without_candidate():
 
 def trusted_inputs():
     definition_root = (
-        PROJECT_ROOT / "skill-definitions"
+        PROJECT_ROOT / "examples/extension-lifecycle/skill-definitions"
     )
 
     definition = load_skill_definition(

@@ -28,6 +28,8 @@ Existing checkpoint files stay as history. **Do not create new `CHECKPOINT*.md` 
 Do not start a step before the previous one meets its exit criterion, unless the owner
 says otherwise. Update the **Status** column when a step changes state.
 
+**Phase 1 detail (structure, tasks, agent rules): [PHASE_1_PLAN.md](PHASE_1_PLAN.md).** Phase 0 closeout tasks P0-C1…C4 are listed there.
+
 Workloads and editions: [showcase workloads decision](../decisions/2026-11-06-showcase-workloads-and-editions.md) (2026-11-06).
 Order set by the [own-platform decision](../decisions/2026-11-02-own-platform-direction.md) (2026-11-02)
 and the [model-provider decision](../decisions/2026-11-03-model-providers.md) (2026-11-03).

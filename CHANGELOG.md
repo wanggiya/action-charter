@@ -1,3 +1,15 @@
+# PR #83 source-only fixture paths (2026-11-13)
+
+- Point declarative scaffolding and trusted adapter materialization tests to the
+  canonical `examples/extension-lifecycle/skill-definitions` YAML files. Six tests
+  still used root runtime copies removed by the closeout PR, causing CI failures.
+- Canonical/deleted copies are byte-identical; preserve every assertion and the
+  runtime cleanup. No production, authority, stored-record or migration changes.
+- All six previously failing cases pass. Full `make test` from an exported tracked
+  source tree with GitHub Actions/frontend-required flags: 2,820 passed (774.85 s;
+  13 existing spatial warnings). Local config, records and private data excluded;
+  no runtime copies restored or assertions weakened. Remote checks await owner push.
+
 # PR #82 GitHub console snapshot follow-up (2026-11-12)
 
 - Scope the help snapshot's renderer to its original 120-column, non-interactive

@@ -19,6 +19,7 @@ Read in this order:
 | 7 | [Model providers plan](MODEL_PROVIDERS_PLAN.md) | Local / on-site / gateway / public models: profiles, data-egress gate, steps M0–M5, verification |
 | 8 | [Server autonomy design](SERVER_AUTONOMY_DESIGN.md) | Server-first unattended operation: registered automations, three-part authorization, what can and cannot be automated, build-now vs later |
 | 9 | [Showcase workloads and editions](SHOWCASE_WORKLOADS.md) | Health, data engineering (SHP/DWG → PostGIS), 2026-midterm policy analysis demo, grid monitoring; Personal vs Platform editions; where each sits in the phases |
+| 10 | [Phase 1 plan](PHASE_1_PLAN.md) | Phase 0 closeout, benchmark + model providers: where code goes by layer, task list with lanes, how coding agents and product agents work |
 
 ## Latest decision (2026-11-02)
 

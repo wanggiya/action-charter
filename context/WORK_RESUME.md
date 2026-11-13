@@ -1,3 +1,58 @@
+# Work resume — PR #83 fixture-path fix verified (2026-11-13)
+
+Current authorized scope: repair PR #83 CI only, on `cleanup/p0-closeout` at
+`835f09d`; initially clean. No Git mutations, live-data changes or further migration.
+The push and PR Python jobs both fail the same six tests. Two fixture helpers still
+read `PROJECT_ROOT / "skill-definitions"`, removed by this PR's runtime cleanup.
+Canonical YAML copies remain byte-identical in `examples/extension-lifecycle/`.
+Update those two test helpers, retain every assertion and removed runtime marker.
+Other source/test references already use canonical examples. Do not implement the
+separate P0-C2 inventory bug or Phase 1 work in this fix.
+
+Applied only two fixture-path changes; all 28 `assert` ASTs and existing rejection
+checks remain unchanged. Six previously failing cases pass. Canonical YAML bytes
+match the deleted historical copies exactly. No other test/script source-fixture
+references to those root paths remain.
+
+Full verification: exported tracked HEAD source plus these uncommitted changes to
+`/tmp/actioncharter-pr83-clean-9octmjb6`, excluding local config/private data/runtime
+records; reused existing Python/Node dependency links, verified imports use exported
+source. `CI=true GITHUB_ACTIONS=true NO_COLOR=1 ACTIONCHARTER_REQUIRE_FRONTEND_TESTS=1
+make test`: **2,820 passed**, 13 existing spatial warnings, 774.85 seconds. This
+checks the source-only state without leftover runtime copies masking failures.
+No new backend/frontend feature or test skip; no production/schema/authority change.
+
+Next: owner stages the two test files plus CHANGELOG/WORK_RESUME, commits/pushes the
+current branch and watches new PR #83 checks. Old checks still refer to 835f09d;
+GitHub must receive the fix before rerunning can verify it. Keep Git commands in
+conversation. No Git mutation or live state/database/service change performed.
+Snapshot: /tmp/actioncharter-pr83-before.
+Failure logs: /tmp/actioncharter-pr83-python.log and /tmp/actioncharter-pr83-push.log.
+No previous edit or full run was repeated after the coding server restart.
+Full run log: /tmp/actioncharter-pr83-full.log; focused: /tmp/actioncharter-pr83-focused.log.
+
+---
+
+# Work resume — Phase 0 closeout, then Phase 1 (2026-11-12)
+
+R-series merged (PR #82, `8a509dd`). Owner workspace cutover done: stable project ID
+`7b3e2655-…`, state root `~/.local/share/actioncharter/workspaces/geoagent-skill-harness/state`,
+backup `~/.local/share/actioncharter/backups/geoagent-skill-harness/20261112T205838Z/`
+(checkout.tar verified, three dev sessions with 6 links preserved). `workspace-verify`:
+`changed_since_migration` (expected after launch), `source_only: true`.
+
+Pending in the working tree: 12 runtime-marker deletions from the cutover (expected;
+canonical skill definitions remain in `examples/extension-lifecycle/`) → task P0-C1.
+
+Known bug found after cutover (pre-existing, not caused by it): `GET /api/v1/recipes`
+returns 503 because one stored recipe (`planner-d53f96031ec0276c…`, 2026-11-02,
+`inspect_vector` on `sample_orders.csv`) fails the current format policy and the
+inventory is all-or-nothing. 73 of 74 recipes valid. → task P0-C2. Do not edit or
+delete the stored file.
+
+Next: follow [PHASE_1_PLAN.md](../docs/product-direction/PHASE_1_PLAN.md) — section 0
+(P0-C1…C4), then lanes A (benchmark) and B (model providers) in separate worktrees.
+
 # Work resume — PR #82 console snapshot fix verified (2026-11-12)
 
 Owner pushed prior fixes as `f540793`. GitHub GIS/agent/skill-runner/Compose and HTTP
