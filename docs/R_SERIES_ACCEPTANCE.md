@@ -20,7 +20,7 @@ a real-model benchmark. Earlier partial confirmation is preserved below.
 | Execution History and frontend/terminal continuity | Included in owner-reported overall acceptance | PR #82 description; individual traces/IDs not supplied, not independently re-observed on owner data here |
 | Fresh-file authorization journey | Not separately manually reported; optional | Existing automated fixtures cover authority; do not infer a live write test from overall acceptance |
 | Real workspace adoption | Complete before P0-C task | Owner handoff and read-only verification: stable binding, migration complete, source-only true; changed_since_migration is normal post-use state |
-| P0-C2/C4 closeout | Implemented/automatically verified; owner acceptance/merge next | [Guide](P0_CLOSEOUT.md), #84 |
+| P0-C2/C4 closeout | Complete; merged in PR #85 | [Guide](P0_CLOSEOUT.md), #84 |
 
 No further R-series code is planned unless a demonstrated regression requires it.
 Do not repeat migration or live database writes to prove a display-inventory fix.

@@ -1,0 +1,13 @@
+{
+  "summary": "Inspect a synthetic CSV",
+  "steps": [
+    {
+      "step_id": "step_1",
+      "skill": "inspect_csv",
+      "purpose": "Inspect the fixture table",
+      "arguments": {
+        "path": "data/input/orders.csv"
+      }
+    }
+  ]
+}

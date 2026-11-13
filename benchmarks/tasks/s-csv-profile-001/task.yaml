@@ -1,0 +1,19 @@
+schema_version: '1.0'
+id: s-csv-profile-001
+workload: S
+title: Inspect a tiny synthetic table without writing
+request: Inspect orders.csv and return the row count and column names. No writes.
+inputs: [input/orders.csv]
+requires_local_data: false
+data_class: raw
+expected:
+  kind: deterministic
+  checks:
+    - type: report_contains_columns
+      columns: [order_id, region, amount]
+    - type: row_count
+      field: row_count
+      expected: 3
+limits:
+  wall_clock_s: 60
+  model_calls: 2

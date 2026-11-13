@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measured_on": "2026-11-06",
-  "policy_sha256": "8efd857231d39ee7675c7f4c30a1859dbb0ecde3e55bd5b71badc2345471021d",
+  "policy_sha256": "58cf23da4f0b1ace26cabbac43dd7431da6bab2651e7f9c7be86809fb4417995",
   "description": "R6 native ownership/moves remove all recorded upward dependencies and dynamic import debt. Legacy adapter contents/owners are independently bound by r6_module_owners.json; no native layer bypass.",
   "violations": [],
   "dynamic_import_reviews": []

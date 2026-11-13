@@ -25,12 +25,12 @@ RUNTIME_STORES = frozenset({
     'workflow-state', 'workflow-recipes', 'recipe-runs', 'recipe-evidence',
     'inspection-runs', 'traces', 'reports', 'spatial-contracts', 'task-history',
     'critic-results', 'releases', 'operational-history',
-    'library-discovery', 'operation-packages', 'reusable-recipes',
+    'library-discovery', 'operation-packages', 'reusable-recipes', 'benchmark-runs',
 }) | LIFECYCLE_STORES
 ADOPTED_ARTIFACT_STORES = frozenset({
     'plans', 'approvals', 'workflow-recipes', 'recipe-runs', 'recipe-evidence', 'inspection-runs', 'task-history',
     'traces', 'reports', 'critic-results', 'releases', 'operational-history',
-    'library-discovery', 'operation-packages', 'reusable-recipes',
+    'library-discovery', 'operation-packages', 'reusable-recipes', 'benchmark-runs',
 }) | LIFECYCLE_STORES | {'spatial-contracts'}
 
 

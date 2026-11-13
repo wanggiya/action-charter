@@ -24,6 +24,8 @@ def original_app():
     # 150-command compatibility snapshot rather than replacing its golden hash.
     app = copy.copy(cli.app)
     app.registered_commands = [item for item in app.registered_commands if item.name != 'project-identity']
+    # P1-B2 adds a benchmark group; all original command/help snapshots stay frozen.
+    app.registered_groups = [item for item in app.registered_groups if item.name != 'benchmark']
     return app
 
 

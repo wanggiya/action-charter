@@ -1,6 +1,6 @@
 # Phase 1 plan — baseline benchmark and model providers
 
-Recorded 2026-11-12; closeout updated 2026-11-13. **Plan for contributors (humans and AI agents); not implemented.**
+Recorded 2026-11-12; closeout updated 2026-11-13. **Contributor plan; P1-B1–B3 implemented; remaining P1 work planned.**
 Read [AGENTS.md](../../AGENTS.md) and [WORKING_METHOD.md](WORKING_METHOD.md) first. This
 file says *what* to build in Phase 1, *where* the code goes, *in which order*, and *how*
 agents work on it.
@@ -14,13 +14,12 @@ acceptance. Owner workspace cutover and stable project adoption are complete.
 | ID | Task | Who | Result / final gate |
 |---|---|---|---|
 | P0-C1 | Runtime-marker removal and canonical example paths | Owner | Done: PR #83 merged as 20b7a38; read-only verification now reports source-only/no legacy entries. Seven empty old folders removed; no saved records deleted. |
-| P0-C2 | Resilient display inventories; a rejected stored recipe must not break the list | Agent | Implemented/automatically verified: valid records plus bounded non-actionable findings; no stored-file changes; strict approval/execution retained. Owner acceptance/merge pending. |
+| P0-C2 | Resilient display inventories; a rejected stored recipe must not break the list | Agent | Implemented/automatically verified: valid records plus bounded non-actionable findings; no stored-file changes; strict approval/execution retained. Merged in PR #85 (c03f11d). |
 | P0-C3 | Close delivered issues #60–#64 | Owner delegated to agent | Done: PR #65 delivery verified; #60 already closed, #61–#64 closed as completed. |
-| P0-C4 | Reconcile current status, roadmap, working-method Status and handoff; preserve history | Agent, with P0-C2 | Documentation complete; consolidation exit checks passed. Owner acceptance/merge pending. |
+| P0-C4 | Reconcile current status, roadmap, working-method Status and handoff; preserve history | Agent, with P0-C2 | Documentation complete; consolidation exit checks passed. Merged in PR #85 (c03f11d). |
 
-Phase 0 consolidation is recorded Done in the working-method Status column; its
-closeout changes still require the owner's Git integration. Phase 1 starts **after
-P0-C1 and P0-C2/C4 are accepted and merged**, not automatically during this task.
+Phase 0 closeout merged in PR #85. The owner authorized Phase 1 on 2026-11-13;
+P1-B1 is the first bounded slice. [Contracts and validation](../BENCHMARKS.md).
 PA1 source capture and PA2 gold-set labelling remain owner data-only work in parallel;
 no policy corpus or analysis capability is claimed as delivered by consolidation.
 
@@ -149,19 +148,19 @@ Details: [MODEL_PROVIDERS_PLAN.md](MODEL_PROVIDERS_PLAN.md). Phase 1 specifics:
 
 ## 5. Task list
 
-| ID | Task | Depends on | Lane |
-|---|---|---|---|
-| P1-B1 | Benchmark contracts (L0) and task-file loader with validation | P0-C2 | A |
-| P1-B2 | Runner + result recorder + fixture mode; `geoagent benchmark` CLI | B1 | A |
-| P1-B3 | Deterministic check types (columns, values with tolerance, file/table exists, row counts, refusal + nothing executed) | B1 | A |
-| P1-B4 | Suite v1 task definitions and synthetic inputs (sections 3) | B2, B3 | A |
-| P1-B5 | Baseline: fixture run in CI subset; real qwen3.5:9b run recorded in `benchmarks/results/` | B4 | A |
-| P1-M1 | Provider interface, profiles, credentials, model listing, capability detection, Settings UI | P0-C2 | B |
-| P1-M2 | Egress classes, context tagging, gate, audit fields, leak scan test | M1 | B |
-| P1-M3c | Real-provider checks: Ollama, second endpoint, local LiteLLM proxy with key, blocked-network run | M2 | B |
-| P1-B6 | Benchmark per profile + comparison report | B5, M1 | A+B |
-| P1-X | Phase 1 closeout: update phase table, `CURRENT_STATUS.md`, evidence links | all | — |
-| Owner | PA1 capture election sources (data only); PA2 label 50–100 gold statements | — | — |
+| ID | Task | Depends on | Lane | Status |
+|---|---|---|---|---|
+| P1-B1 | Benchmark contracts (L0) and task-file loader with validation | P0-C2 | A | Implemented/verified; owner integration pending (#86) |
+| P1-B2 | Runner + result recorder + fixture mode; `geoagent benchmark` CLI | B1 | A | Implemented/verified; owner integration pending (#87); local-file scope only |
+| P1-B3 | Deterministic check types (columns, values with tolerance, file/table exists, row counts, refusal + nothing executed) | B1 | A | Implemented/verified; owner integration pending (#88); table checks use recorded verified receipts |
+| P1-B4 | Suite v1 task definitions and synthetic inputs (sections 3) | B2, B3 | A | Not started |
+| P1-B5 | Baseline: fixture run in CI subset; real qwen3.5:9b run recorded in `benchmarks/results/` | B4 | A | Not started |
+| P1-M1 | Provider interface, profiles, credentials, model listing, capability detection, Settings UI | P0-C2 | B | Not started |
+| P1-M2 | Egress classes, context tagging, gate, audit fields, leak scan test | M1 | B | Not started |
+| P1-M3c | Real-provider checks: Ollama, second endpoint, local LiteLLM proxy with key, blocked-network run | M2 | B | Not started |
+| P1-B6 | Benchmark per profile + comparison report | B5, M1 | A+B | Not started |
+| P1-X | Phase 1 closeout: update phase table, `CURRENT_STATUS.md`, evidence links | all | — | Not started |
+| Owner | PA1 capture election sources (data only); PA2 label 50–100 gold statements | — | — | Not started |
 
 Lanes A and B can run **in parallel** (different agents, different worktrees). They
 meet at B6. Each row is one GitHub issue, one branch, one PR.

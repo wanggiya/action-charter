@@ -1,16 +1,17 @@
 # Phase 0 closeout — P0-C1 through P0-C4
 
 Recorded 2026-11-13; [tracking #84](https://github.com/wanggiya/action-charter/issues/84).
-This is consolidation and a bug fix, not Phase 1 implementation or a new agent.
+This records consolidation and a bug fix, not a new agent. Owner acceptance/merge
+completed in PR #85 (c03f11d); subsequent P1-B1 work is in [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Closeout record
 
 | Task | Result | Evidence and remaining condition |
 |---|---|---|
 | P0-C1 | Complete | PR #83 merged as `20b7a38`; runtime marker removals and canonical example paths are committed. Read-only workspace verification reports `source_only: true`, no legacy entries, migration status complete. Seven empty legacy folders were removed; no saved record was removed/moved. |
-| P0-C2 | Implemented and automatically verified; owner acceptance/merge pending | Mixed valid/invalid recipe and plan inventories return safe partial lists. Invalid records are visible, non-actionable and unchanged. The owner's 74 saved recipe files retain their hashes: 73 valid, one format-policy rejection. |
+| P0-C2 | Complete; merged in PR #85 | Mixed valid/invalid recipe and plan inventories return safe partial lists. Invalid records are visible, non-actionable and unchanged. The owner's 74 saved recipe files retain their hashes: 73 valid, one format-policy rejection. |
 | P0-C3 | Complete | PR #65 confirms delivery. #60 was already closed; #61–#64 were verified and closed as completed during this task. |
-| P0-C4 | Documentation complete; owner merge required | Current status, roadmap and working-method status are reconciled. Phase 0 consolidation exit checks passed. Phase 1 begins after this closeout is accepted and merged; no Phase 1 code is included. |
+| P0-C4 | Complete; merged in PR #85 | Current status, roadmap and working-method status are reconciled. Phase 0 consolidation exit checks passed. Phase 1 begins after this closeout is accepted and merged; no Phase 1 code is included. |
 
 The owner performed the actual workspace cutover before this task. Verification now
 reports `changed_since_migration`, not `exact_copy`: normal use has changed saved
@@ -93,7 +94,7 @@ check is read-only and reports aggregate counts, not source data or transcript r
 Automated results are fixtures/fake-model evidence, not a new local-model benchmark.
 No Git commit, push, merge, package install, secret edit or live database change.
 
-## Owner acceptance
+## Owner acceptance (reference; completed before PR #85 merge)
 
 1. Restart the usual launcher so its API loads the updated code:
    `bash scripts/start_actioncharter.sh`, retaining your usual launch options.

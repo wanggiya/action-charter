@@ -5,12 +5,12 @@ Updated: 2026-11-13. [Immediate handoff](WORK_RESUME.md),
 
 ## Phase and closeout
 
-Phase 0 consolidation implementation and exit checks are complete. P0-C1 is merged
-in PR #83; P0-C3 issues #60–#64 are closed (delivery verified in PR #65). P0-C2 fixes
-saved inventories; P0-C4 reconciles status and history. These last changes are ready
-for owner acceptance/merge under [#84](https://github.com/wanggiya/action-charter/issues/84).
-Phase 1 has **not started** and begins after that merge. PA1/PA2 source collection
-and labelling remain owner data-only work, not implemented analysis features.
+Phase 0 closeout is merged in PR #85 (c03f11d). Phase 1 began on 2026-11-13.
+[P1-B1–B3](../docs/BENCHMARKS.md), tracked by #86–#88, now provide typed definitions,
+read-only loading, a process-bounded runner/CLI and deterministic evidence checks.
+The current suite is one synthetic example; B4 expansion, provider/egress changes
+and real-model baseline remain unfinished. B1–B3 Git integration is owner-managed
+and still pending; no new agent roles, permissions or frontend redesign.
 
 The owner completed real workspace adoption before this task. Read-only verification
 now reports stable project binding, migration complete, `source_only: true` and no
@@ -91,17 +91,25 @@ agent, operation, navigation redesign or Phase 1 provider/benchmark feature is a
 
 ## Verification and next work
 
-Full `make test` from a source-only export with GitHub/frontend-required flags:
-**2,827 passed**, 13 existing spatial warnings, 769.57 seconds. Final inventory cases,
-frontend typecheck/build, zero-debt layer/compatibility gates and isolated browser/API
-acceptance passed. Browser checks cover valid/invalid/all-invalid lists, stable
-identity/relocated state, unchanged fixture bytes, zero authority/execution calls and
-zero page errors. Engines/profiles remain separate from normal browser caches.
+B2/B3 full source-only `make test`, with GitHub/frontend-required flags:
+**2,903 passed**, 13 existing spatial warnings, 777.77 seconds. Later focused gates
+verify current diagnostic/budget refinements and explicit step selection. Strict
+source gate has zero debt; compatibility retains 290 retired/117 public boundaries,
+now 621 modules/504 native. Tests use temporary synthetic projects and a fake local
+endpoint, not real-model quality or live-database acceptance. No frontend changed.
 
-Next: owner restarts the launcher, reviews Saved records/Advanced, accepts and merges
-#84's closeout. Then follow [Phase 1](../docs/product-direction/PHASE_1_PLAN.md):
-benchmark contracts/fixture runner and safe model-provider foundations before measured
-real-local-model baselines. No Phase 1 work is included here.
+Benchmark runs retain private task state and immutable content-free results under
+workspace `benchmark-runs`. Expected answers are withheld; unknown execution is
+never counted as zero. Skips/unsupported gaps are not counted as capability passes.
+Optional fixture writes pass ordinary exact authorization; local-data writes and
+live services are not admitted. Table checks inspect exact validation receipts, not
+current live targets. The worker is process-contained, not a general code sandbox.
+
+Saved owner fixture run and both checks independently rechecked: passed, 3 rows/3
+columns, one operation; fresh isolated CLI and 78 runner/contract checks passed.
+Next: integrate B1–B3, then B4 suite/disposable adapters,
+B5 actual local-model baseline and the M1/M2 provider/egress lane under the
+[Phase 1 plan](../docs/product-direction/PHASE_1_PLAN.md). Phase 1 is not complete.
 
 ## Record navigation
 

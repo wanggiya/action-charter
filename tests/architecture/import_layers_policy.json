@@ -76,7 +76,8 @@
     "geoagent_harness.workspaces": 2,
     "geoagent_harness.agents": 4,
     "geoagent_harness.evolution": 4,
-    "geoagent_harness.apps": 6
+    "geoagent_harness.apps": 6,
+    "geoagent_harness.apps.benchmark": 6
   },
   "exact_modules": {
     "geoagent_harness": 0,
