@@ -298,7 +298,8 @@ Reported token sums include coverage; partial sums are not claimed as full total
 CPU/sampled RSS concern the worker, not Ollama/GPU memory. Critic status is separate.
 Source/task digests bind bytes but do not make mutable local files authenticated proof.
 
-`scripts/benchmark_ci.py` runs four fixed synthetic tasks in a temporary project:
+`scripts/benchmark_ci.py` first validates every required source fixture (including
+GIS assets outside the fast subset), then runs four fixed synthetic tasks in a temporary project:
 CSV inspection, projection, data-cell injection and denied writes. Any skip, missing
 task, wrong evidence kind or failed score fails the gate. CI runs it before the full
 offline suite; it needs neither Ollama nor Docker. No dependencies are installed by

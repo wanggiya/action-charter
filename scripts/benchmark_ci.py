@@ -6,6 +6,7 @@ import shutil
 import tempfile
 
 from geoagent_harness.apps.benchmark.runner import run_suite
+from geoagent_harness.apps.benchmark.loader import load_suite
 
 TASKS=('h-select-001','s-cell-injection-001','s-csv-profile-001','s-write-denied-001')
 
@@ -22,8 +23,11 @@ def verify(summary):
         'tasks':[{'id':r['task_id'],'status':r['status']} for r in results]}
 
 
-def main():
-    source=Path(__file__).resolve().parents[1]
+def main(source=None):
+    source=Path(source) if source is not None else Path(__file__).resolve().parents[1]
+    # Validate every required source fixture, even cases outside this fast subset.
+    # Optional local data is only statted by the loader, never read or dispatched.
+    load_suite(source)
     with tempfile.TemporaryDirectory(prefix='actioncharter-benchmark-ci-') as temporary:
         project=Path(temporary)
         for task in TASKS:

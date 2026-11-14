@@ -96,8 +96,10 @@ agent, operation or navigation redesign is added by the benchmark work.
 
 ## Verification and next work
 
-B5 full source-only CI/GitHub/frontend-required `make test`: **2,928 passed**,
-13 existing spatial warnings, 906.58 seconds. Final report, fixture CI, context and
+PR #92 fixture-packaging fix: Git-visible source-only CI/GitHub/frontend-required
+`make test`: **2,929 passed**, 13 existing spatial warnings, 899.28 seconds.
+Five exact synthetic GIS assets are now includable in Git; CI validates all required
+fixtures before its fast subset. Owner commit/push and remote checks remain pending. Final report, fixture CI, context and
 link checks passed; evidence/logs are in [WORK_RESUME](WORK_RESUME.md). The strict
 source gate has zero debt: 623 modules/3060 imports, 506 native implementations,
 290 retired/117 public boundaries. No frontend code changed.

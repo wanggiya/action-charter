@@ -125,3 +125,15 @@ def test_operation_selectors_accept_preinspection_but_never_ambiguous_results(tm
     assert all(v.status=='error' for v in score(expected,run,tmp_path))
     with pytest.raises(ValueError):
         DeterministicExpected(kind='deterministic',checks=[{'type':'report_contains_columns','step_id':'step_1','skill_id':'inspect_csv','columns':['id']}])
+
+
+def test_ci_preflight_rejects_missing_asset_outside_fast_subset(tmp_path,monkeypatch):
+    import importlib.util
+    from geoagent_harness.apps.benchmark.loader import BenchmarkLoadError
+    spec=importlib.util.spec_from_file_location('benchmark_ci',ROOT/'scripts/benchmark_ci.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    shutil.copytree(ROOT/'benchmarks/tasks',tmp_path/'benchmarks/tasks')
+    (tmp_path/'benchmarks/tasks/e-raster-001/input/grid.tif').unlink()
+    def no_dispatch(*args,**kwargs):raise AssertionError('Missing source fixture must fail before dispatch')
+    monkeypatch.setattr(module,'run_suite',no_dispatch)
+    with pytest.raises(BenchmarkLoadError,match='missing'):module.main(tmp_path)

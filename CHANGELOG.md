@@ -1,3 +1,16 @@
+# PR #92: include reviewed benchmark GIS fixtures (2026-11-13)
+
+- Add exact .gitignore exceptions for the five tiny synthetic TIFF/Shapefile assets
+  referenced by benchmark manifests. Broad private GIS, environment and secret
+  ignore rules remain unchanged. The files total 1,065 bytes; no data regenerated.
+- Validate the complete source fixture inventory before the fast CI subset, so a
+  missing asset outside that subset fails before dispatch. Add a regression for
+  the missing TIFF instead of weakening inventory/loading assertions.
+- Four CI failures came from these assets being present locally but excluded from
+  the owner's commit. Git-visible source export: **2,929 passed** (899.28 s;
+  13 existing spatial warnings); 21 focused checks and both standalone CI gates
+  passed. [Evidence](context/WORK_RESUME.md). No model baseline rerun or M1 work.
+
 # Measured local-model baseline and fixture CI (2026-11-13, P1-B5, #91)
 
 - Add a four-task offline CI benchmark gate; missing/skipped/failed tasks and wrong

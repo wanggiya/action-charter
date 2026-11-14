@@ -34,6 +34,13 @@ data/input/*
 *.tif
 *.tiff
 
+# Reviewed synthetic benchmark assets; keep all other GIS data local.
+!/benchmarks/tasks/e-raster-001/input/grid.tif
+!/benchmarks/tasks/e-shapefile-001/input/points.shp
+!/benchmarks/tasks/e-shapefile-001/input/points.shx
+!/benchmarks/tasks/e-shapefile-001/input/points.dbf
+!/benchmarks/tasks/e-shapefile-001/input/points.prj
+
 # Runtime plans and approval records
 plans/*
 !plans/.gitkeep

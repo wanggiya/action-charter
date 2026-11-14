@@ -1,3 +1,36 @@
+# Work resume — PR #92 fixture packaging fixed and verified (2026-11-13)
+
+Owner committed/pushed B4/B5 as a002609 on feat/p1-benchmark-suite-baseline; PR #92
+open. Both remote failed checks (push and PR) show the same four offline test
+failures: input/grid.tif missing. Global GIS ignore rules also excluded all four
+Shapefile sidecars. Definitions/plans were committed without these inputs; earlier
+local exports included ignored files and missed the packaging gap.
+
+Fixed .gitignore with five exact synthetic asset exceptions, CI full-inventory
+metadata preflight, one regression and focused docs. Assets unchanged: 1,065 bytes.
+Git check-ignore verifies five assets are Git-visible; private GIS/.env/secrets stay
+ignored. The preflight checks all required source fixtures before the fast subset,
+without reading optional private inputs or dispatching missing-data cases.
+
+Verification: Git-visible export /tmp/actioncharter-pr92-clean-t067_muq was built
+from HEAD + tracked fixes + only Git-visible new fixtures, no ignored local inputs.
+Full CI/GitHub/frontend-required make test: **2,929 passed**, 13 existing spatial
+warnings, **899.28 seconds**; /tmp/actioncharter-pr92-full.log. Focused tests: 21
+passed (57.99 s), including all four formerly failing cases and missing-asset
+rejection before dispatch. Both working/exported standalone CI gates passed all 4
+cases. Final context/link/whitespace checks passed; runtime source/model baseline
+unchanged. No frontend code change, image build, model run or live service operation.
+Remote logs: /tmp/actioncharter-pr92-failed.log and
+/tmp/actioncharter-pr92-push-failed.log. No test run remains active.
+
+Owner still needs to stage the five source fixtures plus the ignore/preflight/test/
+documentation fix, commit and push to the existing PR branch, then watch fresh
+checks. No Git staging/branch/commit/push/merge performed here. .claude/ untouched;
+M1 and unrelated issues not started. Do not rerun the old GitHub commit expecting
+these unstaged local fixes to appear. Git instructions are in the conversation.
+
+---
+
 # Work resume — P1-B5 implemented, measured and verified (2026-11-13, #91)
 
 Owner authorized B5 on all pending B4 changes; main remains 48cc101 (PR #89).
