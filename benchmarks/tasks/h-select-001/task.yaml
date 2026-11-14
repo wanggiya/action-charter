@@ -1,0 +1,29 @@
+schema_version: '1.0'
+id: h-select-001
+workload: H
+title: Select encounter_id and patient_nbr from encounters.csv and save data/output/ids.csv.
+  Preserve every row.
+request: Select encounter_id and patient_nbr from encounters.csv and save data/output/ids.csv.
+  Preserve every row.
+inputs:
+- input/encounters.csv
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: row_count
+    expected: 6
+  - type: report_contains_columns
+    columns:
+    - encounter_id
+    - patient_nbr
+  - type: file_exists
+    path: data/output/ids.csv
+    expected_sha256: 7870d406c60f98148eed94732339048bfad2fc9885c67f58bfa171980dcec137
+limits:
+  wall_clock_s: 120
+  model_calls: 3

@@ -1,0 +1,56 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "handle_csv_missing",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv",
+        "method": "fill",
+        "fill_values": {
+          "region": "Unknown"
+        },
+        "target_path": "data/output/filled.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    },
+    {
+      "skill": "filter_csv_rows",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "source_step": "step_1",
+        "predicates": [
+          {
+            "column": "amount",
+            "operator": "ge",
+            "value": 20,
+            "value_type": "number"
+          }
+        ],
+        "target_path": "data/output/filtered.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_2",
+      "depends_on": [
+        "step_1"
+      ]
+    },
+    {
+      "skill": "export_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "source_step": "step_2",
+        "target_path": "data/output/final.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_3",
+      "depends_on": [
+        "step_2"
+      ]
+    }
+  ]
+}

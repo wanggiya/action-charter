@@ -1,0 +1,24 @@
+schema_version: '1.0'
+id: e-convert-001
+workload: E
+title: Convert points.geojson into data/output/points.gpkg, then inspect that GeoPackage.
+request: Convert points.geojson into data/output/points.gpkg with deterministic validation.
+inputs:
+- input/points.geojson
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: source_feature_count
+    expected: 2
+  - type: row_count
+    field: '@convert_vector.$validation.target_feature_count'
+    expected: 2
+limits:
+  wall_clock_s: 120
+  model_calls: 3
+requires_gis: true

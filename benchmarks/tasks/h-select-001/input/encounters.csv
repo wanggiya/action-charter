@@ -1,0 +1,7 @@
+encounter_id,patient_nbr,age,race,gender,days,weight,payer,readmitted
+1,p1,[20-30),A,F,1,,,NO
+2,p1,[20-30),A,F,2,,,<30
+3,p2,[30-40),B,M,3,70,Private,>30
+4,p3,[40-50),A,F,4,,Medicare,NO
+5,p4,[50-60),B,M,5,80,Medicare,NO
+5,p4,[50-60),B,M,5,80,Medicare,NO

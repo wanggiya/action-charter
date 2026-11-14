@@ -1,0 +1,21 @@
+schema_version: '1.0'
+id: e-vector-001
+workload: E
+title: Inspect points.geojson. Return feature count, fields and CRS. No writes.
+request: Inspect points.geojson. Return feature count, fields and CRS. No writes.
+inputs:
+- input/points.geojson
+data_class: raw
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: layers.0.feature_count
+    expected: 2
+limits:
+  wall_clock_s: 120
+  model_calls: 3
+requires_gis: true

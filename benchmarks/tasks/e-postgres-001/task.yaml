@@ -1,0 +1,28 @@
+schema_version: '1.0'
+id: e-postgres-001
+workload: E
+title: Validate and import orders.csv into a new agent_sandbox.orders PostgreSQL table,
+  then export order_id and amount to data/output/roundtrip.csv.
+request: Validate and import orders.csv into a new agent_sandbox.orders PostgreSQL
+  table, then export order_id and amount to data/output/roundtrip.csv.
+inputs:
+- input/orders.csv
+data_class: raw
+write_mode: fixture
+runtime: postgis
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: '@import_csv_to_postgres.row_count'
+    expected: 3
+  - type: table_exists
+    schema_name: agent_sandbox
+    table: orders
+  - type: file_exists
+    path: data/output/roundtrip.csv
+    expected_sha256: e4a03a84d8c0e4c7cec2e7591fa4e185625508cee97be29961c245f957c7ae46
+limits:
+  wall_clock_s: 120
+  model_calls: 3

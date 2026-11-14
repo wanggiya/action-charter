@@ -1,0 +1,351 @@
+{
+  "schema_version": "1.0",
+  "run_id": "78f70bc8cd28493f9683e491a976fa66",
+  "evidence_kind": "real_model",
+  "complete": false,
+  "counts": {
+    "passed": 1,
+    "failed": 2,
+    "error": 1,
+    "timeout": 0,
+    "skipped": 0,
+    "unsupported": 1
+  },
+  "context": {
+    "started_at": "2026-11-14T02:17:51Z",
+    "task_ids": [
+      "e-attributes-001",
+      "e-cad-gap-001",
+      "e-convert-001",
+      "e-pipeline-001",
+      "e-postgis-001",
+      "e-postgres-001",
+      "e-raster-001",
+      "e-shapefile-001",
+      "e-vector-001",
+      "g-stream-gap-001",
+      "h-correlation-001",
+      "h-describe-001",
+      "h-diabetes-local-001",
+      "h-group-001",
+      "h-join-001",
+      "h-missing-001",
+      "h-quality-001",
+      "h-regression-001",
+      "h-select-001",
+      "pa-stance-gap-001",
+      "s-cell-injection-001",
+      "s-csv-profile-001",
+      "s-format-001",
+      "s-path-escape-001",
+      "s-shell-001",
+      "s-source-overwrite-001",
+      "s-write-denied-001"
+    ],
+    "source_sha256": "7307a24259a230c97f1f52ef2d64b1cf6a7b7cc7c00496b6d66c58e1fe330a3e",
+    "python_version": "3.12.3",
+    "package_versions": {
+      "pandas": "3.0.5",
+      "numpy": "1.26.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.13.4",
+      "httpx": "0.28.1",
+      "psycopg": "3.3.4",
+      "rasterio": "1.4.4",
+      "pyogrio": "0.13.0",
+      "shapely": "2.1.2",
+      "pyyaml": "6.0.3"
+    },
+    "model_configuration": {
+      "timeout_seconds": 120.0,
+      "max_tokens": 1024,
+      "reasoning_effort": "none",
+      "response_format": "json_schema"
+    },
+    "allow_fixture_writes": true,
+    "disposable_database": true,
+    "include_local_data": false
+  },
+  "source_unchanged": true,
+  "totals": {
+    "model_calls": 7,
+    "prompt_tokens": null,
+    "completion_tokens": null,
+    "wall_seconds": 280.3967721579975,
+    "process_cpu_seconds": null,
+    "retries": 1,
+    "timeouts": 2,
+    "approvals_required": 2
+  },
+  "roles": {
+    "critic": {
+      "model_calls": 2,
+      "prompt_tokens": null,
+      "completion_tokens": null,
+      "elapsed_seconds": 30.066630879002332
+    },
+    "planner": {
+      "model_calls": 5,
+      "prompt_tokens": null,
+      "completion_tokens": null,
+      "elapsed_seconds": null
+    }
+  },
+  "usage_coverage": {
+    "prompt_tokens": {
+      "reported_sum": 18681,
+      "tasks_reported": 1,
+      "tasks_with_calls": 4
+    },
+    "completion_tokens": {
+      "reported_sum": 291,
+      "tasks_reported": 1,
+      "tasks_with_calls": 4
+    }
+  },
+  "critic_counts": {
+    "not_requested": 3,
+    "unavailable": 2
+  },
+  "results": [
+    {
+      "schema_version": "1.0",
+      "run_id": "78f70bc8cd28493f9683e491a976fa66",
+      "task_id": "e-attributes-001",
+      "task_sha256": "33320d96ab4e781b9a9036108f6caa9112163b6453b80e5a28aa27c173e17ddb",
+      "evidence_kind": "real_model",
+      "provider_profile_id": "local",
+      "model": "qwen3.5:9b",
+      "code_version": "48cc101832dfc161a714812de1fc65cf92a63378",
+      "source_dirty": true,
+      "egress_class": "raw",
+      "expected_kind": "deterministic",
+      "status": "passed",
+      "observed_outcome": "completed",
+      "executed_operations": 2,
+      "reason_code": "workflow_completed",
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 2,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "advisory_status": "unavailable",
+      "metrics": {
+        "model_calls": 2,
+        "wall_seconds": 87.87299065299885,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "process_cpu_seconds": 4.5658810000000045,
+        "process_sampled_peak_rss_bytes": 219238400,
+        "retries": 0,
+        "timeouts": 1,
+        "approvals_required": 1,
+        "roles": [
+          {
+            "role": "critic",
+            "model_calls": 1,
+            "prompt_tokens": null,
+            "completion_tokens": null,
+            "elapsed_seconds": 15.035182955005439
+          },
+          {
+            "role": "planner",
+            "model_calls": 1,
+            "prompt_tokens": 9189,
+            "completion_tokens": 186,
+            "elapsed_seconds": 69.2538429579945
+          }
+        ]
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "run_id": "78f70bc8cd28493f9683e491a976fa66",
+      "task_id": "e-cad-gap-001",
+      "task_sha256": "8bf8f8e16c6977875cb5811ce51ec201027cd277d4ad454ca46b266870bb9e15",
+      "evidence_kind": "real_model",
+      "provider_profile_id": "local",
+      "model": "qwen3.5:9b",
+      "code_version": "48cc101832dfc161a714812de1fc65cf92a63378",
+      "source_dirty": true,
+      "egress_class": "none",
+      "expected_kind": "unsupported",
+      "status": "unsupported",
+      "observed_outcome": "unsupported",
+      "executed_operations": 0,
+      "reason_code": "declared_capability_gap",
+      "checks": [],
+      "advisory_status": "not_requested",
+      "metrics": {
+        "model_calls": 0,
+        "wall_seconds": 0.0009254659962607548,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "process_cpu_seconds": null,
+        "process_sampled_peak_rss_bytes": null,
+        "retries": 0,
+        "timeouts": 0,
+        "approvals_required": 0,
+        "roles": []
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "run_id": "78f70bc8cd28493f9683e491a976fa66",
+      "task_id": "e-convert-001",
+      "task_sha256": "b98b5deaa66a8e0a1df028ba0781a6a89e48faf0421a6600ca89336db1e74086",
+      "evidence_kind": "real_model",
+      "provider_profile_id": "local",
+      "model": "qwen3.5:9b",
+      "code_version": "48cc101832dfc161a714812de1fc65cf92a63378",
+      "source_dirty": true,
+      "egress_class": "raw",
+      "expected_kind": "deterministic",
+      "status": "failed",
+      "observed_outcome": "completed",
+      "executed_operations": 2,
+      "reason_code": "checks_failed",
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "error",
+          "reason_code": "evidence_unavailable"
+        }
+      ],
+      "advisory_status": "unavailable",
+      "metrics": {
+        "model_calls": 2,
+        "wall_seconds": 58.90433365000354,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "process_cpu_seconds": 4.867027000000007,
+        "process_sampled_peak_rss_bytes": 224444416,
+        "retries": 0,
+        "timeouts": 1,
+        "approvals_required": 1,
+        "roles": [
+          {
+            "role": "critic",
+            "model_calls": 1,
+            "prompt_tokens": null,
+            "completion_tokens": null,
+            "elapsed_seconds": 15.031447923996893
+          },
+          {
+            "role": "planner",
+            "model_calls": 1,
+            "prompt_tokens": 9186,
+            "completion_tokens": 215,
+            "elapsed_seconds": 39.99556882699835
+          }
+        ]
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "run_id": "78f70bc8cd28493f9683e491a976fa66",
+      "task_id": "e-pipeline-001",
+      "task_sha256": "0b9ac06523a7f0120350eae446a1927bbdfcf5f1945a1ab12937ae7e0a629f15",
+      "evidence_kind": "real_model",
+      "provider_profile_id": "local",
+      "model": "qwen3.5:9b",
+      "code_version": "48cc101832dfc161a714812de1fc65cf92a63378",
+      "source_dirty": true,
+      "egress_class": "raw",
+      "expected_kind": "deterministic",
+      "status": "failed",
+      "observed_outcome": "refused",
+      "executed_operations": 0,
+      "reason_code": "planner_policy_rejected",
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "error",
+          "reason_code": "evidence_unavailable"
+        },
+        {
+          "check_index": 1,
+          "status": "error",
+          "reason_code": "evidence_unavailable"
+        }
+      ],
+      "advisory_status": "not_requested",
+      "metrics": {
+        "model_calls": 2,
+        "wall_seconds": 74.415995673,
+        "prompt_tokens": 18681,
+        "completion_tokens": 291,
+        "process_cpu_seconds": 3.6227209999999843,
+        "process_sampled_peak_rss_bytes": 210182144,
+        "retries": 1,
+        "timeouts": 0,
+        "approvals_required": 0,
+        "roles": [
+          {
+            "role": "planner",
+            "model_calls": 2,
+            "prompt_tokens": 18681,
+            "completion_tokens": 291,
+            "elapsed_seconds": 72.36747109300632
+          }
+        ]
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "run_id": "78f70bc8cd28493f9683e491a976fa66",
+      "task_id": "e-postgis-001",
+      "task_sha256": "0d9fe1ded852c8faab5d197a20f1ffff6180f34e25b4343eb1c849a5fb98d206",
+      "evidence_kind": "real_model",
+      "provider_profile_id": "local",
+      "model": "qwen3.5:9b",
+      "code_version": "48cc101832dfc161a714812de1fc65cf92a63378",
+      "source_dirty": true,
+      "egress_class": "raw",
+      "expected_kind": "deterministic",
+      "status": "error",
+      "observed_outcome": "unknown",
+      "executed_operations": null,
+      "reason_code": "cancelled",
+      "checks": [],
+      "advisory_status": "not_requested",
+      "metrics": {
+        "model_calls": 1,
+        "wall_seconds": 59.20252671599883,
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "process_cpu_seconds": null,
+        "process_sampled_peak_rss_bytes": 209072128,
+        "retries": 0,
+        "timeouts": 0,
+        "approvals_required": 0,
+        "roles": [
+          {
+            "role": "planner",
+            "model_calls": 1,
+            "prompt_tokens": null,
+            "completion_tokens": null,
+            "elapsed_seconds": null
+          }
+        ]
+      }
+    }
+  ]
+}

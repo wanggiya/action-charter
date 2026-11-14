@@ -10,6 +10,8 @@ from geoagent_harness.platform.storage.files import FileJsonRecords
 SAFE_SKILLS = ('inspect_csv','inspect_vector','inspect_raster','select_csv_columns',
     'filter_csv_rows','handle_csv_missing','join_csv','aggregate_csv','export_csv',
     'calculate_csv_columns','vector_attributes_to_csv','convert_vector','convert_raster')
+DATABASE_SKILLS=('validate_postgres_import','import_csv_to_postgres','inspect_postgres_table',
+    'export_postgres_to_csv','load_vector_to_postgis','validate_postgis_layer')
 
 
 class BudgetExceeded(RuntimeError):
@@ -17,11 +19,16 @@ class BudgetExceeded(RuntimeError):
 
 
 class BudgetClient:
-    def __init__(self, settings, plan, limit, deadline, root):
+    def __init__(self, settings, plan, limit, deadline, root, facts=None):
         self.settings, self.plan, self.limit, self.deadline, self.root = settings, plan, limit, deadline, root
-        self.calls = [];self.exhausted=False
+        self.calls = [];self.exhausted=False;self.facts=facts or {}
 
     def complete(self, request):
+        if self.facts:
+            from geoagent_harness.platform.model_gateway.schemas import ChatMessage
+            payload=json.loads(request.messages[0].content)
+            payload['benchmark_resources']=self.facts
+            request=request.model_copy(update={'messages':[ChatMessage(role='system',content=json.dumps(payload)),*request.messages[1:]]})
         from geoagent_harness.platform.model_gateway import SharedModelClient
         from geoagent_harness.platform.model_gateway.schemas import ModelResult
         from geoagent_harness.platform.model_gateway.telemetry import _phase
@@ -79,23 +86,40 @@ def work(root):
     store = FileJsonRecords(root,max_bytes=2_000_000)
     job = store.read('job.json')
     settings = ModelSettings(**job['settings']) if job.get('settings') else None
-    client = BudgetClient(settings,job.get('fixture_plan'),job['model_calls'],time.monotonic()+job['wall_clock_s'],root)
+    plan=job.get('fixture_plan')
+    facts={'inputs':job.get('inputs',[]),'execution_authority':False}
+    skills=(*SAFE_SKILLS,*DATABASE_SKILLS) if job.get('database') else SAFE_SKILLS
+    if job.get('database'):
+        from geoagent_harness.platform.settings import load_settings
+        from geoagent_harness.data.databases.postgres.service import connection_sha256
+        facts['database']={'connection_sha256':connection_sha256(load_settings()),'schema':'agent_sandbox'}
+    if plan is not None:
+        # Fixed fixture reply binds actual resources, never expected answers/credentials.
+        plan=json.loads(json.dumps(plan))
+        inputs={v['path']:v['sha256'] for v in job.get('inputs',[])}
+        for step in plan.get('steps',[]):
+            args=step.get('arguments',{})
+            if args.get('connection_sha256')=='$connection':args['connection_sha256']=facts['database']['connection_sha256']
+            if isinstance(args.get('source_sha256'),str) and args['source_sha256'].startswith('$input:'):
+                args['source_sha256']=inputs[args['source_sha256'][7:]]
+    client = BudgetClient(settings,plan,job['model_calls'],time.monotonic()+job['wall_clock_s'],root,facts)
+
     identity='1'*32
     observation={'observed_outcome':'unknown','executed_operations':0,'output_files':0,'run':{},'reason_code':'worker_error','approvals_required':0}
     try:
         with session(root,enabled=job['allow_writes']):
             state = conversation_turn(TurnRequest(action='turn',conversation_id=identity,message=job['request'],
-                allowed_skill_ids=list(SAFE_SKILLS),use_history=False),project_root=root,
+                allowed_skill_ids=list(skills),use_history=False),project_root=root,
                 model_client=client,helper_client=client,recipe_client=client,critic_client=client)
             candidate=state.get('planner_result')
             if not candidate:
                 observation.update(observed_outcome='unknown',reason_code='proposal_missing')
                 return
             plan = PlannerResult.model_validate({k:candidate[k] for k in PlannerResult.model_fields if k in candidate})
-            if any(s.skill not in SAFE_SKILLS for s in plan.plan.steps):
+            if any(s.skill not in skills for s in plan.plan.steps):
                 observation.update(observed_outcome='refused',reason_code='operation_not_admitted');return
             saved=save_interface_reviewed_plan(InterfaceReviewedPlanSaveRequest(action='save_reviewed_plan',planner_result=plan,
-                confirmed_plan_sha256=plan_sha256(plan.plan),allowed_skill_ids=list(SAFE_SKILLS)),project_root=root)
+                confirmed_plan_sha256=plan_sha256(plan.plan),allowed_skill_ids=list(skills)),project_root=root)
             request=WorkflowRequest(action='prepare_workflow',conversation_id=identity,plan_filename=saved['plan_filename'],confirmed_plan_sha256=saved['plan_sha256'])
             review=prepare_workflow(request,project_root=root)
             observation['approvals_required']=len(review['approval_required_step_ids'])
@@ -119,7 +143,9 @@ def work(root):
                 reviewed=assess_run(root,run['run_id'],model_client=client)
                 observation['critic_status']=reviewed.get('critic_review',{}).get('status')
     except Exception as error:
-        code=error_code(error)
+        from geoagent_harness.core.policy.plan import PlannerPolicyError
+        code='planner_policy_rejected' if isinstance(error,PlannerPolicyError) else error_code(error)
+        observation['failure_type']=type(error).__name__
         observation['reason_code']='call_budget_exhausted' if client.exhausted or isinstance(error,BudgetExceeded) else code
         observation['observed_outcome']='refused' if code=='planner_policy_rejected' and observation['executed_operations']==0 else 'error'
     finally:

@@ -1,0 +1,27 @@
+schema_version: '1.0'
+id: h-group-001
+workload: H
+title: Group measures.csv by region and sum y into total, saving data/output/grouped.csv.
+request: Group measures.csv by region and sum y into total, saving data/output/grouped.csv.
+inputs:
+- input/measures.csv
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: row_count
+    expected: 2
+  - type: report_contains_columns
+    columns:
+    - region
+    - total
+  - type: file_exists
+    path: data/output/grouped.csv
+    expected_sha256: a88da84ada82040c7a0329e25beb021b175201852606aec400191c477ea9a213
+limits:
+  wall_clock_s: 120
+  model_calls: 3

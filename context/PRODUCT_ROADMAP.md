@@ -11,7 +11,7 @@ Older checkpoint labels identify history, not new delivery tasks.
 
 ## Current position and next action
 
-**Phase 0 closeout merged in PR #85; Phase 1 B1–B3 are implemented; owner integration pending (#86–#88).** [Closeout and validation](../docs/P0_CLOSEOUT.md).
+**Phase 0 closeout merged in PR #85; B1–B3 merged in PR #89; B4 implemented (#90), owner integration pending.** [Closeout and validation](../docs/P0_CLOSEOUT.md).
 
 | Task | Implemented scope / remaining gate | Evidence or specification |
 |---|---|---|
@@ -41,12 +41,18 @@ real-local-model benchmark or live write journey is claimed. Current state and
 limitations are in [CURRENT_STATUS](CURRENT_STATUS.md); detailed old status remains
 in [history](../docs/development/STATUS_HISTORY.md).
 
-P1-B1–B3 supply [benchmark contracts, CLI/runner and checks](../docs/BENCHMARKS.md).
-Full fixture suite: 2,903 passed; final metadata/budget/selector checks recorded in
-WORK_RESUME. This is one synthetic task, not the complete benchmark or a real-model
-baseline. Next: B4 suite/disposable adapters, B5 actual baseline, M1/M2 providers and
-egress, B6 comparison and closeout. PA1/PA2 remains owner data-only work. No new
-agent role, live DB dispatch, processing capability or release publication is implied.
+P1-B1–B4 supply [benchmark contracts, CLI/runner and checks](../docs/BENCHMARKS.md)
+and [27 task definitions](../benchmarks/README.md), including explicitly unsupported
+gaps and an optional local-data reference. Actual disposable PostgreSQL/PostGIS
+fixture workflows and automatic expiry/cleanup passed. This is fixture evidence,
+not a local-model baseline or owner/live-database acceptance; final gates are in
+[WORK_RESUME](WORK_RESUME.md). B5 (#91) fixture CI/reporting and the [development baseline](../benchmarks/results/README.md)
+are recorded: 23 fixture passes; real qwen3.5:9b 8 passed/11 failed/4 timed out,
+1 skip/3 gaps. No real Critic assessment completed. Full regression: 2,928 passed.
+Next: owner integration, then M1/M2 profiles/egress,
+M3c provider checks, B6 comparison and X closeout: five remaining P1 tasks after B5.
+PA1/PA2 remains owner data-only work. No new agent role, processing capability or
+release publication is implied.
 
 ## Dependency-ordered delivery
 

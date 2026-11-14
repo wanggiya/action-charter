@@ -1,0 +1,19 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "select_csv_columns",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv",
+        "columns": [
+          "order_id"
+        ],
+        "target_path": "data/output/denied.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    }
+  ]
+}

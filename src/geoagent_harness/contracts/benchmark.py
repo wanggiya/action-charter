@@ -31,7 +31,13 @@ def relative_path(value: str) -> str:
 class ColumnsCheck(BenchmarkModel):
     type: Literal['report_contains_columns']
     step_id: Annotated[str, Field(pattern=r'^step_[1-9][0-9]*$')] | None = None
+    skill_id: Identifier | None = None
     columns: Annotated[tuple[Annotated[str, Field(min_length=1, max_length=160)], ...], Field(min_length=1, max_length=256)]
+
+    @model_validator(mode='after')
+    def one_selector(self):
+        if self.step_id and self.skill_id:raise ValueError('Choose step_id or skill_id, not both')
+        return self
 
 
 class ValueCheck(BenchmarkModel):
@@ -50,6 +56,7 @@ class RowCountCheck(BenchmarkModel):
 class FileCheck(BenchmarkModel):
     type: Literal['file_exists']
     path: Annotated[str, Field(min_length=1, max_length=500)]
+    expected_sha256: Digest | None = None
 
     @field_validator('path')
     @classmethod
@@ -66,7 +73,11 @@ class TableCheck(BenchmarkModel):
     table: Annotated[str, Field(pattern=r'^[a-z_][a-z0-9_]{0,62}$')]
 
 
-Check = Annotated[ColumnsCheck | ValueCheck | RowCountCheck | FileCheck | TableCheck, Field(discriminator='type')]
+class NoFileOutputsCheck(BenchmarkModel):
+    type: Literal['no_file_outputs']
+
+
+Check = Annotated[ColumnsCheck | ValueCheck | RowCountCheck | FileCheck | TableCheck | NoFileOutputsCheck, Field(discriminator='type')]
 
 
 class DeterministicExpected(BenchmarkModel):
@@ -113,6 +124,9 @@ class BenchmarkTask(BenchmarkModel):
     request: Annotated[str, Field(min_length=1, max_length=8000)]
     inputs: Annotated[tuple[str, ...], Field(max_length=32)]
     requires_local_data: StrictBool = False
+    write_mode: Literal['read_only', 'fixture'] = 'read_only'
+    runtime: Literal['local', 'postgis'] = 'local'
+    requires_gis: StrictBool = False
     data_class: DataClass
     expected: Expected
     limits: BenchmarkLimits = Field(default_factory=BenchmarkLimits)
@@ -126,6 +140,8 @@ class BenchmarkTask(BenchmarkModel):
 
     @model_validator(mode='after')
     def input_contract(self):
+        if self.requires_local_data and (self.runtime!='local' or self.write_mode!='read_only'):
+            raise ValueError('Local-data benchmarks are read-only and cannot use disposable database fixtures')
         if len(set(self.inputs)) != len(self.inputs):
             raise ValueError('Duplicate input locators')
         for value in self.inputs:
@@ -162,6 +178,25 @@ class BenchmarkMetrics(BenchmarkModel):
         if self.roles and sum(r.model_calls for r in self.roles) != self.model_calls:
             raise ValueError('Role calls must sum to observed model calls')
         return self
+
+
+class BenchmarkModelConfiguration(BenchmarkModel):
+    timeout_seconds: Annotated[Number, Field(gt=0, le=600)]
+    max_tokens: Annotated[StrictInt, Field(ge=1, le=32768)]
+    reasoning_effort: Literal['none', 'low', 'medium', 'high'] | None
+    response_format: Literal['json_schema', 'json_object']
+
+
+class BenchmarkRunContext(BenchmarkModel):
+    started_at: Annotated[str, Field(pattern=r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')]
+    task_ids: Annotated[tuple[Identifier, ...], Field(min_length=1, max_length=256)]
+    source_sha256: Digest
+    python_version: Annotated[str, Field(pattern=r'^\d+\.\d+\.\d+$')]
+    package_versions: dict[Identifier, Annotated[str, Field(pattern=r'^[A-Za-z0-9.+_-]{1,100}$')]]
+    model_configuration: BenchmarkModelConfiguration | None
+    allow_fixture_writes: StrictBool
+    disposable_database: StrictBool
+    include_local_data: StrictBool
 
 
 class CheckResult(BenchmarkModel):

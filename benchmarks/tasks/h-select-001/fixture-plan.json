@@ -1,0 +1,20 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "select_csv_columns",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/encounters.csv",
+        "columns": [
+          "encounter_id",
+          "patient_nbr"
+        ],
+        "target_path": "data/output/ids.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    }
+  ]
+}

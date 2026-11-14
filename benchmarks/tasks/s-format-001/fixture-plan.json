@@ -1,0 +1,15 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "inspect_vector",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv"
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    }
+  ]
+}

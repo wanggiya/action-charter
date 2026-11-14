@@ -1,0 +1,16 @@
+schema_version: '1.0'
+id: e-cad-gap-001
+workload: E
+title: Import a DWG electrical drawing and infer network topology.
+request: Import a DWG electrical drawing and infer network topology.
+inputs: []
+data_class: none
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: unsupported
+  reason_code: not_implemented
+limits:
+  wall_clock_s: 120
+  model_calls: 3

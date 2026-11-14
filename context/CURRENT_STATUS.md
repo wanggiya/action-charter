@@ -6,11 +6,16 @@ Updated: 2026-11-13. [Immediate handoff](WORK_RESUME.md),
 ## Phase and closeout
 
 Phase 0 closeout is merged in PR #85 (c03f11d). Phase 1 began on 2026-11-13.
-[P1-B1–B3](../docs/BENCHMARKS.md), tracked by #86–#88, now provide typed definitions,
-read-only loading, a process-bounded runner/CLI and deterministic evidence checks.
-The current suite is one synthetic example; B4 expansion, provider/egress changes
-and real-model baseline remain unfinished. B1–B3 Git integration is owner-managed
-and still pending; no new agent roles, permissions or frontend redesign.
+[P1-B1–B3](../docs/BENCHMARKS.md), tracked by #86–#88, merged in PR #89 (48cc101).
+B4 (#90) now adds [27 definitions](../benchmarks/README.md) and opt-in disposable
+database fixtures over the typed loader, process-bounded runner/CLI and evidence
+checks. Three definitions are explicit gaps; one references optional local data.
+B5 (#91) adds a four-task fixture CI gate, sanitized report CLI and source/settings
+provenance. [Real-model baseline](../benchmarks/results/README.md) is recorded:
+8 passed, 11 failed, 4 timed out, 1 skipped, 3 unsupported, versus 23 fixture passes.
+No real Critic assessment completed. B5 verification passed; integration is pending.
+Provider/egress changes remain
+unfinished. Git integration is owner-managed; no new agent role or frontend redesign.
 
 The owner completed real workspace adoption before this task. Read-only verification
 now reports stable project binding, migration complete, `source_only: true` and no
@@ -87,29 +92,35 @@ packaging are not made complete by consolidation.
 
 Current graph, result tabs, report downloads and terminal/history continuity keep
 existing behavior. Unavailable-record notices reuse existing UI surfaces. No new
-agent, operation, navigation redesign or Phase 1 provider/benchmark feature is added.
+agent, operation or navigation redesign is added by the benchmark work.
 
 ## Verification and next work
 
-B2/B3 full source-only `make test`, with GitHub/frontend-required flags:
-**2,903 passed**, 13 existing spatial warnings, 777.77 seconds. Later focused gates
-verify current diagnostic/budget refinements and explicit step selection. Strict
-source gate has zero debt; compatibility retains 290 retired/117 public boundaries,
-now 621 modules/504 native. Tests use temporary synthetic projects and a fake local
-endpoint, not real-model quality or live-database acceptance. No frontend changed.
+PR #92 fixture-packaging fix: Git-visible source-only CI/GitHub/frontend-required
+`make test`: **2,929 passed**, 13 existing spatial warnings, 899.28 seconds.
+Five exact synthetic GIS assets are now includable in Git; CI validates all required
+fixtures before its fast subset. Owner commit/push and remote checks remain pending. Final report, fixture CI, context and
+link checks passed; evidence/logs are in [WORK_RESUME](WORK_RESUME.md). The strict
+source gate has zero debt: 623 modules/3060 imports, 506 native implementations,
+290 retired/117 public boundaries. No frontend code changed.
 
 Benchmark runs retain private task state and immutable content-free results under
 workspace `benchmark-runs`. Expected answers are withheld; unknown execution is
 never counted as zero. Skips/unsupported gaps are not counted as capability passes.
-Optional fixture writes pass ordinary exact authorization; local-data writes and
-live services are not admitted. Table checks inspect exact validation receipts, not
-current live targets. The worker is process-contained, not a general code sandbox.
+Positive synthetic writes need a manifest requirement, operator opt-in and ordinary
+exact authorization. Read-only safety/local-data tasks cannot inherit that authority.
+Database cases additionally require a disposable-runtime opt-in. They use generated
+credentials and a private Unix socket to a fresh network-disabled, bounded container;
+no owner connection is used, and no image is pulled. Both actual disposable DB cases
+and automatic expiry/removal passed. Table scores inspect exact recorded independent
+verification receipts, not a new live query. The analytical worker remains a fixed
+process boundary, not a general code sandbox. B4 results are fixture/temporary-service evidence. B5 separately records a real
+local-model baseline, with failure and Critic limits in the linked reports; neither
+is live owner-database acceptance.
 
-Saved owner fixture run and both checks independently rechecked: passed, 3 rows/3
-columns, one operation; fresh isolated CLI and 78 runner/contract checks passed.
-Next: integrate B1–B3, then B4 suite/disposable adapters,
-B5 actual local-model baseline and the M1/M2 provider/egress lane under the
-[Phase 1 plan](../docs/product-direction/PHASE_1_PLAN.md). Phase 1 is not complete.
+Next: owner integration, then M1/M2 provider/egress, M3c provider checks,
+B6 comparison and X closeout under the [Phase 1 plan](../docs/product-direction/PHASE_1_PLAN.md).
+Phase 1 is not complete. Optional local diabetes data was not read in B4.
 
 ## Record navigation
 

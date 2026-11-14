@@ -1,0 +1,33 @@
+schema_version: '1.0'
+id: h-describe-001
+workload: H
+title: Compute descriptive statistics for x in measures.csv. No writes.
+request: Compute descriptive statistics for x in measures.csv. No writes.
+inputs:
+- input/measures.csv
+data_class: raw
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: value_close
+    field: table_analysis.statistics.descriptive.0.mean
+    expected: 1.5
+    tolerance: 1.0e-09
+  - type: value_close
+    field: table_analysis.statistics.descriptive.0.variance
+    expected: 1.6666666666666667
+    tolerance: 1.0e-09
+  - type: value_close
+    field: table_analysis.statistics.descriptive.0.standard_deviation
+    expected: 1.2909944487358056
+    tolerance: 1.0e-09
+  - type: value_close
+    field: '@inspect_csv./table_analysis/statistics/descriptive/0/percentiles/50.0'
+    expected: 1.5
+    tolerance: 1.0e-09
+limits:
+  wall_clock_s: 120
+  model_calls: 3

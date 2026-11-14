@@ -1,0 +1,24 @@
+schema_version: '1.0'
+id: e-raster-001
+workload: E
+title: Inspect grid.tif. Return dimensions, bands and CRS. No writes.
+request: Inspect grid.tif. Return dimensions, bands and CRS. No writes.
+inputs:
+- input/grid.tif
+data_class: raw
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: width
+    expected: 2
+  - type: row_count
+    field: height
+    expected: 2
+limits:
+  wall_clock_s: 120
+  model_calls: 3
+requires_gis: true

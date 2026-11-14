@@ -1,0 +1,47 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "inspect_vector",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/points.geojson"
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    },
+    {
+      "skill": "load_vector_to_postgis",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/points.geojson",
+        "target_schema": "agent_sandbox",
+        "target_table": "points"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_2",
+      "depends_on": [
+        "step_1"
+      ]
+    },
+    {
+      "skill": "validate_postgis_layer",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "target_schema": "agent_sandbox",
+        "target_table": "points",
+        "expected_row_count": 2,
+        "expected_srid": 4326,
+        "expected_geometry_type": "POINT"
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_3",
+      "depends_on": [
+        "step_2"
+      ]
+    }
+  ]
+}
