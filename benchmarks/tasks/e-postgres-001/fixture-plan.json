@@ -1,0 +1,90 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "validate_postgres_import",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv",
+        "source_sha256": "$input:data/input/orders.csv",
+        "connection_sha256": "$connection",
+        "target_schema": "agent_sandbox",
+        "target_table": "orders",
+        "columns": [
+          {
+            "source": "order_id",
+            "name": "order_id",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "source": "amount",
+            "name": "amount",
+            "type": "numeric",
+            "nullable": false
+          }
+        ],
+        "key_columns": [
+          "order_id"
+        ]
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    },
+    {
+      "skill": "import_csv_to_postgres",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv",
+        "source_sha256": "$input:data/input/orders.csv",
+        "connection_sha256": "$connection",
+        "target_schema": "agent_sandbox",
+        "target_table": "orders",
+        "columns": [
+          {
+            "source": "order_id",
+            "name": "order_id",
+            "type": "text",
+            "nullable": false
+          },
+          {
+            "source": "amount",
+            "name": "amount",
+            "type": "numeric",
+            "nullable": false
+          }
+        ],
+        "key_columns": [
+          "order_id"
+        ]
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_2",
+      "depends_on": [
+        "step_1"
+      ]
+    },
+    {
+      "skill": "export_postgres_to_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "target_schema": "agent_sandbox",
+        "target_table": "orders",
+        "columns": [
+          "order_id",
+          "amount"
+        ],
+        "source_step": "step_2",
+        "target_path": "data/output/roundtrip.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_3",
+      "depends_on": [
+        "step_2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "join_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/orders.csv",
+        "right_path": "data/input/regions.csv",
+        "keys": [
+          "region"
+        ],
+        "how": "left",
+        "cardinality": "many_to_one",
+        "target_path": "data/output/joined.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    }
+  ]
+}

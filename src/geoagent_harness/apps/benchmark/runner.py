@@ -16,6 +16,7 @@ from uuid import uuid4
 from geoagent_harness.contracts.benchmark import BenchmarkResult, BenchmarkMetrics, RoleMetrics
 from geoagent_harness.apps.benchmark.loader import load_suite, _safe_file, BenchmarkLoadError
 from geoagent_harness.apps.benchmark.checks import score, refusal_passes
+from geoagent_harness.apps.benchmark.reporting import run_context, source_sha256
 from geoagent_harness.platform.workspace import runtime_store_path, ensure_state_root
 from geoagent_harness.platform.storage.files import FileJsonRecords
 
@@ -80,7 +81,7 @@ def _metrics(root, elapsed):
         retries=sum(c.get('correction') is True for c in calls),timeouts=sum(c.get('timeout') is True for c in calls))
 
 
-def run_suite(project_root, *, fixture=False, profile='local', include_local_data=False, allow_fixture_writes=False, task_id=None, suite='v1'):
+def run_suite(project_root, *, fixture=False, profile='local', include_local_data=False, allow_fixture_writes=False, task_id=None, suite='v1', disposable_database=False):
     repo=Path(project_root).resolve()
     if suite!='v1' or profile!='local':raise ValueError('Only suite v1 and the implicit local profile are available before M1')
     loaded=load_suite(repo)
@@ -104,26 +105,35 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
     directory=runtime_store_path(repo,'benchmark-runs')/uuid4().hex
     directory.mkdir(mode=0o700,parents=True)
     store=FileJsonRecords(directory,max_bytes=512_000,immutable=True)
-    summary={'schema_version':'1.0','run_id':directory.name,'evidence_kind':'fixture' if fixture else 'real_model','results':[], 'complete':False}
+    context=run_context(source_root,loaded,settings,allow_fixture_writes=allow_fixture_writes,
+        disposable_database=disposable_database,include_local_data=include_local_data)
+    summary={'schema_version':'1.0','run_id':directory.name,'evidence_kind':'fixture' if fixture else 'real_model','results':[], 'complete':False,'context':context}
     # Started marker survives cancellation/crashes; no continuation/replay is automatic.
     store.create('started.json',json.dumps({k:v for k,v in summary.items() if k!='results'}))
     staged_bytes=0
     for item in loaded:
         task=item.task;started=time.monotonic();root=directory/'tasks'/task.id;root.mkdir(parents=True)
         outcome={'observed_outcome':'not_dispatched','executed_operations':0,'reason_code':'missing_local_data','run':{}}
-        status='skipped';checks=();identities=[];process=None;cpu=None;peak=None
+        status='skipped';checks=();identities=[];process=None;cpu=None;peak=None;database=None
         try:
             if not item.available:pass
             elif task.requires_local_data and not include_local_data:outcome['reason_code']='local_data_not_enabled'
+            elif task.write_mode=='fixture' and not allow_fixture_writes:outcome['reason_code']='fixture_writes_not_enabled'
+            elif task.requires_gis and not all(shutil.which(name) for name in ('ogrinfo','ogr2ogr','gdalinfo')):outcome['reason_code']='gis_runtime_unavailable'
+            elif task.runtime=='postgis' and not disposable_database:outcome['reason_code']='disposable_database_not_enabled'
             elif task.expected.kind=='unsupported':
                 status='unsupported';outcome.update(observed_outcome='unsupported',reason_code='declared_capability_gap')
             else:
                 identities=_stage(repo,item,root,byte_budget=min(MAX_INPUT_BYTES,max(0,MAX_RUN_INPUT_BYTES-staged_bytes)))
+                if task.runtime=='postgis':
+                    from geoagent_harness.apps.benchmark.database import DisposableDatabase
+                    database=DisposableDatabase(root,lifetime=min(86460,task.limits.wall_clock_s+60));database.__enter__()
                 plan=FileJsonRecords(repo/'benchmarks/tasks'/task.id,max_bytes=65536).read('fixture-plan.json') if fixture else None
                 # Deliberately exclude task.expected, titles and gold labels from worker input.
                 job={'request':task.request,'fixture_plan':plan,'settings':asdict(settings) if settings else None,
                     'wall_clock_s':task.limits.wall_clock_s,'model_calls':task.limits.model_calls,
-                    'allow_writes':bool(allow_fixture_writes and not task.requires_local_data)}
+                    'allow_writes':bool(allow_fixture_writes and task.write_mode=='fixture' and not task.requires_local_data),
+                    'inputs':identities,'database':database.env if database else None}
                 FileJsonRecords(root,max_bytes=2_000_000).create('job.json',json.dumps(job))
                 keep=('PATH','LANG','LC_ALL','LD_LIBRARY_PATH','SYSTEMROOT')
                 env={k:os.environ[k] for k in keep if k in os.environ}
@@ -131,6 +141,7 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
                     ENABLE_WRITE_TOOLS='true' if job['allow_writes'] else 'false',MODEL_NAME=settings.model if settings else 'benchmark-fixture',
                     MODEL_BASE_URL=settings.base_url if settings else 'http://127.0.0.1:1/v1',
                     POSTGRES_HOST='127.0.0.1',POSTGRES_PORT='1',GEOSERVER_BASE_URL='http://127.0.0.1:1')
+                if database:env.update(database.env)
                 if settings:env.update(MODEL_TIMEOUT_SECONDS=str(settings.timeout_seconds),MODEL_MAX_TOKENS=str(settings.max_tokens),
                     MODEL_REASONING_EFFORT=settings.reasoning_effort or '',MODEL_RESPONSE_FORMAT=settings.response_format)
                 if time.monotonic()-started>=task.limits.wall_clock_s:raise TimeoutError('Staging exhausted task deadline')
@@ -167,7 +178,13 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
             status='error';outcome.update(reason_code='cancelled',observed_outcome='unknown',executed_operations=None)
         except Exception:
             if process:_stop(process)
-            status='error';outcome.update(reason_code='benchmark_setup_error',observed_outcome='unknown',executed_operations=None)
+            status='error';outcome['reason_code']='benchmark_result_error' if outcome['observed_outcome']=='completed' else 'benchmark_setup_error'
+            if process and outcome['observed_outcome']!='completed':outcome.update(observed_outcome='unknown',executed_operations=None)
+        if database:
+            try:database.__exit__(None,None,None)
+            except Exception:
+                status='error'
+                if outcome['reason_code']!='cancelled':outcome['reason_code']='database_cleanup_required'
         staged_bytes+=sum(p.stat().st_size for p in (root/'data/input').rglob('*') if p.is_file() and not p.is_symlink())
         if outcome['reason_code']=='model_timeout' and outcome['observed_outcome']!='completed':status='timeout'
         if status=='timeout' and outcome['reason_code']!='model_timeout':outcome['reason_code']='task_deadline'
@@ -189,5 +206,6 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
         if outcome['reason_code']=='cancelled':break
     summary['complete']=len(summary['results'])==len(loaded) and all(r['reason_code']!='cancelled' for r in summary['results'])
     summary['counts']={status:sum(r['status']==status for r in summary['results']) for status in ('passed','failed','error','timeout','skipped','unsupported')}
+    summary['source_unchanged']=source_sha256(source_root)==context['source_sha256']
     FileJsonRecords(directory,max_bytes=8*1024*1024,immutable=True).create('summary.json',json.dumps(summary))
     return summary, directory

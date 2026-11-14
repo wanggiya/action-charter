@@ -47,7 +47,7 @@ The platform's fixed internal MCP client remains distinct from application MCP t
 
 R11 [compatibility retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and moves maintained callers/launchers to native owners. The project now
-has 621 modules: 504 native implementations and 117 supported public/SDK/schema
+has 623 modules: 506 native implementations and 117 supported public/SDK/schema
 boundaries (60 package roots, 57 aliases). No ordinary native caller imports a
 compatibility module. The immutable R6 inventory and exhaustive R11 partition bind
 the boundary; source gates reject reintroduced adapters and hidden implementations.
@@ -66,25 +66,40 @@ decomposition is recorded under R8 below. P0-5b contracts are recorded separatel
 below; R12 server seams are not delivered by moving files. Earlier R2–R6b sections below describe extraction stages; their old paths remain
 compatibility paths. [Current ownership and validation](../docs/R6_COMPLETION_AND_ACCEPTANCE.md).
 
-## Benchmark application (P1-B1–B3)
+## Benchmark application (P1-B1–B5)
 
 `contracts/benchmark.py` (L0) owns task/check/result/metrics schemas. The L6
 `apps/benchmark` loader reads bounded definitions; runner creates isolated projects,
 stages copies, runs a fixed worker process and records immutable workspace results.
 The worker reuses shared Planner/save/review/authorize/run/Critic actions. Expected
 answers never enter worker input. All injected model clients share the task budget;
-no new role, principal or authority. Fixed local-file operations only; real-model
-mode is restricted to loopback until M1/M2. Database dispatch remains a future
-disposable adapter, not the owner's configured services.
+no new role, principal or authority. Real-model mode is restricted to loopback until
+M1/M2. B4 supplies 27 definitions, including explicit unsupported gaps and one
+optional read-only local-data reference. Positive synthetic writes require both a
+manifest requirement and operator opt-in; read-only safety cases never inherit it.
 
-`checks.py` performs dictionary/list evidence lookup, numeric comparisons and
+`database.py` adds an independently opted-in disposable PostgreSQL/PostGIS target.
+It uses a cached image, disabled networking and a private Unix socket, temporary
+credentials, bounded tmpfs data and an enforced lifetime. Ownership labels gate
+cleanup. No owner service address/credentials are accepted; no image pull occurs.
+This container is a test target, not a new Executor agent or general code sandbox.
+
+`checks.py` supports exact step and operation-identity selectors (ambiguous matches
+fail), then performs dictionary/list evidence lookup, numeric comparisons and
 receipt/hash checks without model judgement or database queries. Critic status is
 separate from scores. Cancellation/deadline stops the worker group, preserving
 partial/unknown state without automatic replay. This is fixed-process containment,
 not a container/MicroVM sandbox. The existing workspace resolver now includes
 `benchmark-runs`; raw private task state stays outside source. Thin CLI registration
 adds `benchmark list/run`; historical help/command snapshots remain unchanged.
-Provider profiles, suite expansion and actual local-model baselines remain later P1.
+`reporting.py` renders validated content-free JSON/Markdown from recorded summaries
+and matching task records. New runs retain generation settings, package versions,
+selected tasks and a SHA-256 of native Python, manifests, staged context and fixed
+suite bytes; an end check flags changes during execution. Endpoints, credentials,
+transcripts and dataset values are excluded. Legacy unmeasured context stays unknown.
+A four-task offline CI gate rejects skips as failures. Reports do not authorize work
+or substitute fixture evidence for a real-model baseline. Provider profiles remain
+later P1; B5 baseline evidence is linked from the benchmark guide.
 [Usage, evidence and limits](../docs/BENCHMARKS.md).
 
 ## Specialized persistence (P0-5b)

@@ -1,0 +1,32 @@
+schema_version: '1.0'
+id: h-join-001
+workload: H
+title: Left join orders.csv to regions.csv by region, with many-to-one cardinality.
+  Save data/output/joined.csv.
+request: Left join orders.csv to regions.csv by region, with many-to-one cardinality.
+  Save data/output/joined.csv.
+inputs:
+- input/orders.csv
+- input/regions.csv
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: row_count
+    expected: 3
+  - type: report_contains_columns
+    columns:
+    - order_id
+    - region
+    - amount
+    - label
+  - type: file_exists
+    path: data/output/joined.csv
+    expected_sha256: 4dcae1a0506b4ba65af3af459441a7389a226a244e96ca8d0eb37bcf932c8136
+limits:
+  wall_clock_s: 120
+  model_calls: 3

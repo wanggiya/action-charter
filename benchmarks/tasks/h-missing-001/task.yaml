@@ -1,0 +1,24 @@
+schema_version: '1.0'
+id: h-missing-001
+workload: H
+title: Inspect encounters.csv and return missing counts for weight and payer. No writes.
+request: Inspect encounters.csv and return missing counts for weight and payer. No
+  writes.
+inputs:
+- input/encounters.csv
+data_class: raw
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: missing_counts.weight
+    expected: 3
+  - type: row_count
+    field: missing_counts.payer
+    expected: 2
+limits:
+  wall_clock_s: 120
+  model_calls: 3

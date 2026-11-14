@@ -64,6 +64,9 @@ jobs:
             | grep -Ei '^(geopandas|pyogrio|shapely|pyproj|pydantic|typer|pytest|mcp|httpx|psycopg|sqlalchemy|geoalchemy2|pyyaml)==' \
             | sort
 
+      - name: Run offline benchmark fixture gate
+        run: python scripts/benchmark_ci.py
+
       - name: Run offline test suite
         run: python -m pytest --durations=20
       - name: Validate frontend

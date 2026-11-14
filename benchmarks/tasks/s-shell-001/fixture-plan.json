@@ -1,0 +1,15 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "run_shell",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "command": "ls"
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    }
+  ]
+}

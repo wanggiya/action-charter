@@ -1,0 +1,26 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "inspect_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/measures.csv",
+        "analysis": {
+          "statistics": {
+            "methods": [
+              "pearson"
+            ],
+            "columns": [
+              "x",
+              "y"
+            ]
+          }
+        }
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    }
+  ]
+}

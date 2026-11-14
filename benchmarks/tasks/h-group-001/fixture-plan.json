@@ -1,0 +1,26 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "aggregate_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/measures.csv",
+        "by": [
+          "region"
+        ],
+        "aggregations": [
+          {
+            "column": "y",
+            "function": "sum",
+            "output_column": "total"
+          }
+        ],
+        "target_path": "data/output/grouped.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    }
+  ]
+}

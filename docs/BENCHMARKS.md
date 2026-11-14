@@ -3,8 +3,11 @@
 P1-B1, 2026-11-13, [#86](https://github.com/wanggiya/action-charter/issues/86).
 B1 contracts/loading and B2/B3 runner/CLI/deterministic checks are implemented.
 Tracking: [B2 #87](https://github.com/wanggiya/action-charter/issues/87),
-[B3 #88](https://github.com/wanggiya/action-charter/issues/88). Provider profiles,
-20–30-task suite and real-model baseline remain future P1 work. [Phase 1 plan](product-direction/PHASE_1_PLAN.md).
+[B3 #88](https://github.com/wanggiya/action-charter/issues/88).
+B4 now supplies [27 suite definitions](../benchmarks/README.md) and an opt-in
+disposable database adapter (#90). B5 adds fixture CI, sanitized reporting and the
+[recorded local-model development baseline](../benchmarks/results/README.md). Provider
+profiles/egress and comparison remain unfinished. [Phase 1 plan](product-direction/PHASE_1_PLAN.md).
 
 ## Structure and responsibilities
 
@@ -42,6 +45,8 @@ name must exactly equal its stable `id`. Required fields:
 | `id`, `workload`, `title`, `request` | Stable bounded ID; workload H/E/PA/G/S; nonempty title/request |
 | `inputs` | At most 32 unique normalized relative locators |
 | `requires_local_data` | Explicit boolean, default false |
+| `write_mode` | read_only by default; fixture declares a positive write requirement, never authority |
+| `runtime` / `requires_gis` | local/postgis and GIS executable requirement; CLI opt-in/dependency checks remain separate |
 | `data_class` | none, metadata, data_card, aggregates or raw; descriptive until M2 enforces egress |
 | `expected` | One of the four typed expectations below |
 | `limits` | Positive wall-clock seconds, at most 86,400; 0–1,000 model calls; defaults 600/20 |
@@ -65,7 +70,7 @@ presence here does not authorize reading it through an agent or sending it to a 
 
 | Expected kind | Typed content | Meaning |
 |---|---|---|
-| `deterministic` | 1–64 checks: `report_contains_columns`, `value_close`, `row_count`, `file_exists`, `table_exists` | Scorers evaluate actual evidence; check declarations are not Python/SQL callbacks |
+| `deterministic` | 1–64 checks: `report_contains_columns`, `value_close`, `row_count`, `file_exists`, `table_exists`, `no_file_outputs` | Scorers evaluate actual evidence; check declarations are not Python/SQL callbacks |
 | `gold_set` | Required existing `expected/...` label file | Reference scoring is not yet implemented; a run records gold_scorer_unavailable |
 | `refusal` | `nothing_executed: true` | A response saying no is insufficient without zero-execution evidence |
 | `unsupported` | Bounded `reason_code` | Baseline capability gap; never counted as a passing capability |
@@ -141,8 +146,8 @@ baseline hash is rebound to that policy; no dependency exception was added. R11'
 current census becomes 617 modules / 500 native; its original 290 retired and 117
 retained public boundaries and historical manifests remain unchanged.
 
-B2/B3 delivery is described below. B4 expands to 20–30 tasks; B5 records a labelled
-fixture and actual local-model baseline.
+B2/B3 delivery is described below. B4 supplies 27 definitions; B5 records labelled
+fixture and actual local-model baselines below.
 Provider profiles, egress enforcement and comparison remain the other P1 lane.
 
 
@@ -161,7 +166,8 @@ If the console script is unavailable, the identical native entrypoint is:
 .venv/bin/python -m geoagent_harness.apps.cli.main benchmark run --fixture --project-root .
 ```
 
-The one current synthetic task should pass its column/count checks. JSON output
+Use `--task s-csv-profile-001` for the original quick column/count fixture. The full
+suite now contains 27 tasks; positive writes/dependencies can skip by default. JSON output
 contains `run_id`, `directory`, evidence kind, status counts and per-task result with
 separate `critic` status. This exercises the actual CSV service and governed workflow;
 the model reply is a fixed `fixture-plan.json`, independent of expected answers.
@@ -176,7 +182,7 @@ results and raw evidence remain available. Re-running always creates a new run;
 there is no automatic resume or write replay.
 
 Use `--task <id>` to select one definition. Only suite `v1` and implicit profile
-`local` exist before M1. B4 has not yet supplied the complete 20–30-task suite.
+`local` exist before M1. [Suite coverage and expected counts](../benchmarks/README.md) list all current tasks.
 
 ### Local model mode and writes
 
@@ -191,14 +197,16 @@ inputs report `missing_local_data`; present but non-opted-in inputs report
 copies data, never changes the original, and caps inputs at 256 MB per task and
 512 MB per run (including retained partial staging). Staging detects changed sources.
 
-Writes remain off unless the operator passes `--allow-fixture-writes`. That flag
-permits only the normal exact review/approval/run path for temporary local-file
+Writes remain off unless the operator passes `--allow-fixture-writes` **and** the
+definition declares `write_mode: fixture`. Read-only/safety definitions never gain
+write permission from that flag. That flag
+permits only the normal exact review/approval/run path for declared synthetic
 operations over fixture inputs; YAML/model text cannot enable it. Each run gets fresh
 scope/approvals. The worker's admitted operations are the existing local CSV/vector/
-raster inspection/conversion and typed table transformations. Database, GeoServer,
-installation, shell/code generation and arbitrary execution are not admitted by this
-runner. Disposable database dispatch is still a later suite adapter; receipt scoring
-below is implemented without touching a live database.
+raster inspection/conversion and typed table transformations. GeoServer, installation, shell/code generation and arbitrary execution remain
+unavailable. Database tasks require `runtime: postgis` and the separate
+`--disposable-database` opt-in; this constructs a fresh network-disabled test target,
+not a connection to owner services. [Lifecycle and prerequisites](../benchmarks/README.md).
 
 ### Budget, interruption and metrics
 
@@ -227,13 +235,20 @@ assessment never become scoring facts. Checks have bounded, content-free reasons
 | Columns | A unique recorded columns/fields list; optional `step_id` selects an exact operation in a multistep run |
 | Row count | One integer at the requested selector; booleans and floats are not counts |
 | Numeric tolerance | One finite number within absolute tolerance; no coercion/evaluation |
-| File | Safe regular output, matching successful operation receipt path and actual SHA-256 |
+| File | Safe regular output, matching receipt/hash and optional independent expected_sha256 |
+| No file outputs | No files or links under the fixed task output directory |
 | Table | Exact target and passed committed PostgreSQL verification receipt, or passed PostGIS existence receipt; no new connection/query |
 | Refusal | Recorded deterministic refusal, zero operations and zero output files; timeout/schema/model failure cannot count as refusal |
 
 Selectors are dictionary/list lookups only. Use `step_2.row_count` to disambiguate
 multiple outcomes; missing/ambiguous evidence errors rather than guessing. For
-example, a column check can add `step_id: step_2`. Failed checks yield `checks_failed`
+model-generated plans, use `@convert_vector.$validation.target_feature_count` to
+select the operation independently of its step number. Column checks can use
+`skill_id: vector_attributes_to_csv` or an exact `step_id`, never both. Multiple
+matching operations with the requested evidence remain an error. JSON Pointer selectors such as
+`step_1./table_analysis/statistics/descriptive/0/percentiles/50.0` preserve literal
+dotted keys; `step_1.$validation.target_feature_count` selects the independent
+recorded validation outcome. Neither evaluates code. Failed checks yield `checks_failed`
 even when workflow execution completed. Critic failures are visible separately.
 Unsupported declarations remain explicit gaps, excluded from passed counts. CLI exit
 0 means no failed/error/timeout result; skipped/unsupported tasks remain visible in
@@ -248,9 +263,62 @@ fixture smoke also passed in a disposable project. The regression
 suite snapshot precedes those localized refinements; no new live-model quality,
 real data or live database acceptance is claimed. R7's original snapshots remain
 byte-identical; only the additive benchmark group is excluded from historical
-comparisons. R11 census is now 621 modules/504 native, retaining 290 retired and
+comparisons. At B2/B3, the R11 census was 621 modules/504 native, retaining 290 retired and
 117 public boundaries. Strict layer/compatibility checks remain required.
 
-B4 expands the suite and disposable adapters, B5 records real-model baselines;
+B4 full source-only regression: **2,917 passed** (809.40 seconds, 13 existing spatial
+warnings), with strict layer/compatibility gates passing (622 modules/505 native).
+Both actual disposable DB fixtures and automatic expiry/cleanup passed.
+[Suite coverage, opt-ins and fixture evidence](../benchmarks/README.md).
+B5 baseline delivery is described below;
 M1/M2 supplies profiles/egress. Per-role routing, agent-mode redesign, Data Card,
 new data operations and learning remain outside this delivery. No frontend changed.
+
+
+## Baseline reports (B5)
+
+New runs record task scope, start time, model generation settings, Python/dependency
+versions and a source SHA-256. That digest covers `src/geoagent_harness/**/*.py`,
+agent manifests, fixed suite definitions/inputs/replies, `pyproject.toml` and the three
+context files staged by the worker. It excludes `.env`, private input/state, UI and
+CI scripts. An end check reports whether those source bytes stayed unchanged.
+Git revision/dirty state remains per task; a dirty revision is not a released baseline.
+
+Read a saved run without model calls or execution:
+
+```bash
+.venv/bin/geoagent benchmark report RUN_ID --project-root .
+.venv/bin/geoagent benchmark report RUN_ID --project-root . --format json
+```
+
+The renderer validates summary counts, task scope/context and matching per-task
+records. It exports no raw outcomes, data values, prompts, private workspace paths,
+endpoints or credentials. Missing legacy settings/source context remains unknown.
+Reported token sums include coverage; partial sums are not claimed as full totals.
+CPU/sampled RSS concern the worker, not Ollama/GPU memory. Critic status is separate.
+Source/task digests bind bytes but do not make mutable local files authenticated proof.
+
+`scripts/benchmark_ci.py` runs four fixed synthetic tasks in a temporary project:
+CSV inspection, projection, data-cell injection and denied writes. Any skip, missing
+task, wrong evidence kind or failed score fails the gate. CI runs it before the full
+offline suite; it needs neither Ollama nor Docker. No dependencies are installed by
+the script. Actual local-model runs remain explicit and retain every failure/timeout.
+
+B5 reference generation settings are frozen before the first call: qwen3.5:9b,
+120-second model timeout, 1,024 maximum output tokens, reasoning `none`, JSON schema.
+Task limits remain as declared: 120 seconds / 3 model calls for added tasks,
+60 seconds / 2 model calls for the original CSV task. No prompt tuning, warmup or automatic
+run retry is hidden in the baseline. Owner Settings/.env are unchanged.
+
+
+### Recorded B5 baseline (2026-11-13 local date)
+
+[Sanitized reports, protocol, pilot and interpretation](../benchmarks/results/README.md).
+Control: 23 passed / 1 skipped / 3 gaps. Real qwen3.5:9b: 8 passed / 11 failed /
+4 timed out / 1 skipped / 3 gaps, 40 calls, about 26 minutes. All failures and the
+interrupted scoring pilot remain recorded. The source fingerprint stayed unchanged.
+This measures the current harness/model interaction, not model-only intelligence.
+No real Critic review completed: default fresh-workspace review budget is 15 seconds,
+independent of the model ceiling. Advisory timeout observations and four whole-task
+timeouts are separate counts. No memory/context-overflow diagnosis is inferred.
+Full regression evidence is in [work resume](../context/WORK_RESUME.md).

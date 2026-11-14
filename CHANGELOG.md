@@ -1,3 +1,42 @@
+# Measured local-model baseline and fixture CI (2026-11-13, P1-B5, #91)
+
+- Add a four-task offline CI benchmark gate; missing/skipped/failed tasks and wrong
+  counts fail explicitly. No model service, Docker or private inputs required.
+- Add read-only `benchmark report` JSON/Markdown rendering, validated against task
+  records/counts/context. Retain generation settings, dependency versions and a
+  source fingerprint; omit prompts, values, credentials, endpoints and private paths.
+  Unknown tokens stay unknown; partial sums carry coverage. Legacy context stays unknown.
+- Bind numeric/column checks to operation identity as well as exact step IDs. This
+  fixes false failures when a valid preinspection shifts a conversion step; ambiguous
+  evidence still errors. Expected numeric values/tolerances/export hashes unchanged.
+- Retain the interrupted selector pilot and corrected fixed-source control/model
+  baselines. Fixture: 23 passed/1 skipped/3 gaps. Real qwen3.5:9b: 8 passed/11 failed/
+  4 timed out/1 skipped/3 gaps, 40 calls and about 26 minutes. No completed real
+  Critic assessment; timing/protocol/output-path failures remain visible. No model
+  optimization, new skill/agent role or live owner-database operation.
+- Full source-only suite: **2,928 passed** (906.58 s; 13 existing spatial warnings).
+  Final report/fixture CI/context/link and strict layer/compatibility checks passed.
+  [Protocol, evidence and limits](benchmarks/results/README.md).
+
+# Benchmark suite and disposable database fixtures (2026-11-13, P1-B4, #90)
+
+- Expand to 27 definitions: synthetic health/statistics, spatial/engineering and
+  safety tasks, one optional read-only local diabetes reference and three declared
+  unsupported gaps. Independent numeric expectations/export hashes stay outside
+  model prompts; fixtures contain no downloaded or private patient data.
+- Add explicit write/GIS/runtime requirements and a separate disposable-database
+  opt-in. Read-only safety cases stay read-only when positive fixture writes are on.
+- Use a cached PostgreSQL/PostGIS image, disabled networking, private Unix socket,
+  generated credentials, bounded tmpfs data, enforced lifetime and ownership-checked
+  cleanup. No existing service, secret or image installation is used.
+- Add independent export hashes, no-output checks, literal-key/validation selectors
+  and committed PostgreSQL verification scoring. Skip null output receipts and
+  preserve known execution state if scoring fails.
+- Full source-only suite: **2,917 passed** (809.40 s; 13 existing spatial warnings).
+  Both actual disposable database workflows and automatic expiry/removal passed;
+  strict layer/compatibility and final context/link checks passed. Evidence is in
+  [work resume](context/WORK_RESUME.md). No real-model baseline or frontend change.
+
 # Benchmark runner and deterministic checks (2026-11-13, P1-B2/B3, #87/#88)
 
 - Add benchmark list/run CLI over existing governed task actions, one process and

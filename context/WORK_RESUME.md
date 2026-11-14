@@ -1,3 +1,111 @@
+# Work resume — P1-B5 implemented, measured and verified (2026-11-13, #91)
+
+Owner authorized B5 on all pending B4 changes; main remains 48cc101 (PR #89).
+[Issue #91](https://github.com/wanggiya/action-charter/issues/91),
+[protocol/results/pilot](../benchmarks/results/README.md). No Git actions, secrets,
+owner datasets/state, browser cache or live service/database changes. `.claude/`
+untouched. No overlapping issue/PR. Preserve all B4/B5 changes.
+
+Implemented four-task offline CI gate with exact pass/count assertions, sanitized
+read-only benchmark report CLI, runtime/source/settings/package provenance and
+operation selectors robust to extra preinspection. Duplicate evidence errors;
+expected numbers/tolerances/hashes and request/operation schemas unchanged. Native
+runtime count 623 / 506 implementations; layer gate 3060 imports, zero debt.
+
+Reference qwen3.5:9b (installed) run only via loopback, 120 s model ceiling, 1024
+output tokens, reasoning none, json_schema. Task declarations unchanged: added
+120 s/3 calls; original CSV 60 s/2 calls. Fresh projects, synthetic writes and owned
+disposable DB enabled, no local data. Owner qwen3:4b-instruct selection/.env unchanged.
+Original selector pilot was preserved and cancelled safely after false conversion
+score (extra inspection shifted step number); new @skill/skill_id checks fix it.
+Corrected baseline may be warm due to pilot. No hidden retry or prompt tuning.
+
+Corrected control 1a1c60a808884872bf18fca33fba1431: 23 passed/1 skip/3 gaps.
+Actual 6937acf3ce8741e7824ae7f61e43b041: passed=8, failed=11, error=0, timeout=4, skipped=1, unsupported=3.
+40 model calls, 7 corrections, 1564.88 s total; reported partial 124317 prompt /
+2643 completion tokens across 11 of 23 calling tasks. 13 timeout observations
+include advisory calls, distinct from 4 task deadline statuses. Critic: 9 unavailable,
+1 unknown, 17 not requested, none complete; existing fresh-workspace 15 s review
+limit applies below model ceiling. PostGIS completed/verified 3 operations before
+review deadline; join content was correct but destination filename wrong. Five
+negative cases returned no proposal/zero operations; not scored from prose as refusal.
+No model memory/context-overflow or comparative performance claim.
+Both control/model source SHA-256 bf88e2d57b94c3b2b8c9a7a798ec4135d0583064408039fc70b5a6458fae003b
+and source_unchanged=true. No tests/builds concurrent with real measurement.
+Current raw project /tmp/actioncharter-b5-baseline-k810n1sq (temporary; may clear at reboot).
+Exported JSON/Markdown in benchmarks/results retain content-free evidence.
+Pilot raw project /tmp/actioncharter-b5-baseline-zbuyx2mc; exported pilot is incomplete.
+All disposable fixtures cleaned; verify final label inventory before closeout.
+
+Full source-only CI/GitHub/frontend-required make test: **2,928 passed**, 13 existing
+spatial warnings, **906.58 seconds**; /tmp/actioncharter-b5-full.log;
+snapshot /tmp/actioncharter-b5-clean-o0t3n9g3. Current runtime/test/fixture bytes
+match the completed snapshot. Final report tests: 11 passed (4.02 s); standalone
+CI gate: 4 passed, no skips. Selector/suite/contract/layer gates: 104 passed.
+Context checks: 15 passed; all 400 local doc links resolve; diff whitespace clean.
+Strict gate: 623 modules/3060 imports, zero debt. Compatibility: 506 native,
+290 retired/117 public, zero errors. Both baseline exports/Markdown reproduced
+from saved records; source fingerprint matches measured runtime; no private fields.
+All 27 tasks retain original values/tolerances/hashes/requests after selector fix.
+Final Docker fixture label inventory empty. No frontend changed or browser run.
+Logs: /tmp/actioncharter-b5-report-final.log, /tmp/actioncharter-b5-ci-final.log,
+/tmp/actioncharter-b5-context-final.log, /tmp/actioncharter-b5-layers-final.log,
+/tmp/actioncharter-b5-compatibility-final.log. Model log:
+/tmp/actioncharter-b5-baseline-corrected.log. No model/test run remains active.
+
+Next: owner validates quick CI and saved reports, then handles Git integration.
+After B5, M1/M2, M3c, B6 and X remain; Phase 1 is not done.
+No new processing operations, agent roles, learning or provider/egress capability.
+
+---
+
+# Work resume — P1-B4 implemented and verified (2026-11-13, #90)
+
+B1–B3 merged by owner in PR #89, 48cc101. Tracking: [#90](https://github.com/wanggiya/action-charter/issues/90).
+Started with only unrelated `.claude/` untracked; left untouched. No branch/stage/
+commit/push/merge, owner secret edit or live database operation performed.
+
+Added 27 definitions: eight synthetic health/statistics, one optional local diabetes
+reference (not read), eight spatial/engineering, seven safety and three explicit
+gaps. [Suite guide and commands](../benchmarks/README.md), [runner contracts](../docs/BENCHMARKS.md).
+Independent arithmetic expectations and export hashes are not model input. Added
+write_mode/runtime/requires_gis, positive-write opt-in and separate disposable DB
+opt-in. Read-only safety/local-data tasks never gain write authority from those flags.
+Checks add literal-key/validation selectors, expected hashes and no-file-output facts.
+Fixed null output receipts in PG scoring; scoring errors preserve known execution.
+
+Disposable adapter: cached postgis/postgis:16-3.4, no pull, fresh UUID/ownership label,
+network none, private Unix socket, generated credentials, non-root/read-only/cap-drop,
+bounded tmpfs/CPU/RAM and fixed in-container lifetime. No owner profile/address used.
+Both actual fixture workflows passed: CSV preflight/import/export (all 3 checks),
+vector inspect/load/validate (both checks); cleanup removed both containers. Separate
+short-lifetime test proved automatic container expiry/removal. No fixture containers
+remain in the final read-only label inventory. Host-crash scratch leftovers remain a
+documented limit; this is Linux/Docker evidence, not cross-platform certification.
+
+Verification so far: 129 focused runner/suite/compatibility/layer checks passed;
+87 final lifetime/boundary checks passed. Strict source gate: 622 modules/3055 imports,
+zero debt. Compatibility: 505 native, 290 retired/117 public, zero errors.
+Full source-only CI/GitHub/frontend-required make test: **2,917 passed**, 13 existing
+spatial warnings, **809.40 seconds**; log /tmp/actioncharter-b4-full-retry.log;
+snapshot /tmp/actioncharter-b4-clean-7xe883lf. First attempt was externally terminated
+(signal 143, about 32%, no reported test failure); it is not counted as a pass.
+Source export excludes owner config, private data/state and `.claude/`; current
+production Python and fixture bytes match the completed snapshot. Final context
+checks: 15 passed; all 380 local documentation links resolve; diff whitespace clean.
+No frontend changes, no extra interface/browser run; no actual Ollama calls.
+
+Logs: /tmp/actioncharter-b4-gates.log, /tmp/actioncharter-b4-boundaries.log,
+/tmp/actioncharter-b4-db-final.log, /tmp/actioncharter-b4-lifetime.log.
+DB smoke state: /tmp/actioncharter-b4-db-7o65xfyn/state/benchmark-runs/.
+Temporary generator/debug scripts are not source and should not be rerun.
+
+Next: owner can run the documented fixture CLI checks and integrate B4.
+Then B5 actual model baseline; M1/M2, M3c, B6 and X remain. Phase 1 is not complete;
+no new agent/skill, learning or unrestricted execution added.
+
+---
+
 # Work resume — P1-B2/B3 implemented and verified (2026-11-13)
 
 Owner authorized B2/B3 together on pending B1 changes. All B1 changes preserved;

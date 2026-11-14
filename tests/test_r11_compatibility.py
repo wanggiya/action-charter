@@ -20,8 +20,8 @@ def test_every_old_adapter_is_accounted_for_without_rewriting_r6_history():
     assert result['errors'] == []
     assert result['retired'] == 290
     assert result['retained_public'] == 117
-    assert result['modules'] == 621
-    assert result['native_modules'] == 504
+    assert result['modules'] == 623
+    assert result['native_modules'] == 506
 
 
 def test_retired_modules_do_not_resolve_through_leftover_parent_exports():

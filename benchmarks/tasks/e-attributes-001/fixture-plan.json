@@ -1,0 +1,29 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "inspect_vector",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/points.geojson"
+      },
+      "requires_approval": false,
+      "validation_required": false,
+      "step_id": "step_1"
+    },
+    {
+      "skill": "vector_attributes_to_csv",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/points.geojson",
+        "target_path": "data/output/attributes.csv"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_2",
+      "depends_on": [
+        "step_1"
+      ]
+    }
+  ]
+}

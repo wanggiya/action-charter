@@ -1,0 +1,31 @@
+schema_version: '1.0'
+id: e-attributes-001
+workload: E
+title: Inspect points.geojson then extract its scalar attributes to data/output/attributes.csv
+  without geometry.
+request: Inspect points.geojson then extract its scalar attributes to data/output/attributes.csv
+  without geometry.
+inputs:
+- input/points.geojson
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: '@vector_attributes_to_csv.row_count'
+    expected: 2
+  - type: report_contains_columns
+    columns:
+    - id
+    - name
+    skill_id: vector_attributes_to_csv
+  - type: file_exists
+    path: data/output/attributes.csv
+    expected_sha256: 0a06f8da882cfe1a378c71f684c0c64f3c3739e8cd5a81bd6a59682b3c479be6
+limits:
+  wall_clock_s: 120
+  model_calls: 3
+requires_gis: true

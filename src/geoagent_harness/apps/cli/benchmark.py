@@ -5,8 +5,20 @@ import typer
 
 from geoagent_harness.apps.benchmark.loader import load_suite
 from geoagent_harness.apps.benchmark.runner import run_suite
+from geoagent_harness.apps.benchmark.reporting import build_report, markdown_report
+from typing import Literal
 
 app=typer.Typer(help='Validate and measure governed workflows using isolated benchmark fixtures.')
+
+
+@app.command('report')
+def report(run_id: str, project_root: Path=typer.Option(Path('.'),'--project-root'),
+        format: Literal['json','markdown']=typer.Option('markdown','--format')):
+    try:
+        result=build_report(project_root,run_id)
+        typer.echo(json.dumps(result) if format=='json' else markdown_report(result))
+    except (ValueError,OSError):
+        typer.echo('Benchmark report evidence is invalid or unavailable.',err=True);raise typer.Exit(2)
 
 
 @app.command('list')
@@ -22,10 +34,11 @@ def run(project_root: Path=typer.Option(Path('.'),'--project-root'),
         suite: str=typer.Option('v1','--suite'),fixture: bool=typer.Option(False,'--fixture'),
         profile: str=typer.Option('local','--profile'),task: str|None=typer.Option(None,'--task'),
         include_local_data: bool=typer.Option(False,'--include-local-data'),
-        allow_fixture_writes: bool=typer.Option(False,'--allow-fixture-writes')):
+        allow_fixture_writes: bool=typer.Option(False,'--allow-fixture-writes'),
+        disposable_database: bool=typer.Option(False,'--disposable-database')):
     try:
         result,path=run_suite(project_root,fixture=fixture,profile=profile,task_id=task,suite=suite,
-            include_local_data=include_local_data,allow_fixture_writes=allow_fixture_writes)
+            include_local_data=include_local_data,allow_fixture_writes=allow_fixture_writes,disposable_database=disposable_database)
         typer.echo(json.dumps({'run_id':result['run_id'],'directory':str(path),'complete':result['complete'],
             'evidence_kind':result['evidence_kind'],'counts':result['counts'],'tasks':[{'id':r['task_id'],'status':r['status'],'reason':r['reason_code'],'critic':r['advisory_status']} for r in result['results']]}))
     except (ValueError,OSError):

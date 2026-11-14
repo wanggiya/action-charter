@@ -1,0 +1,32 @@
+schema_version: '1.0'
+id: h-quality-001
+workload: H
+title: Inspect encounters.csv. Return rows and columns. No writes.
+request: Inspect encounters.csv. Return row count, distinct patient_nbr count and
+  whole-row duplicate counts. No writes.
+inputs:
+- input/encounters.csv
+data_class: raw
+write_mode: read_only
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: row_count
+    expected: 6
+  - type: report_contains_columns
+    columns:
+    - patient_nbr
+    - age
+    - readmitted
+  - type: row_count
+    field: table_analysis.distinct_counts.patient_nbr
+    expected: 4
+  - type: row_count
+    field: table_analysis.quality.duplicate_rows.excess_occurrences
+    expected: 1
+limits:
+  wall_clock_s: 120
+  model_calls: 3

@@ -17,7 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @pytest.fixture
 def project(tmp_path):
     import shutil
-    shutil.copytree(ROOT/'benchmarks/tasks',tmp_path/'benchmarks/tasks')
+    shutil.copytree(ROOT/'benchmarks/tasks/s-csv-profile-001',tmp_path/'benchmarks/tasks/s-csv-profile-001')
     (tmp_path/'actioncharter.workspace.json').write_text(json.dumps({'version':1,'state_root':str(tmp_path/'state')}))
     return tmp_path
 
@@ -79,6 +79,7 @@ def test_tiny_wall_budget_stops_process_and_does_not_claim_refusal_or_success(pr
 def test_explicit_fixture_write_requires_exact_normal_authorization(project):
     path,value=task(project);value['request']='Select order_id and amount from orders.csv and save to data/output/projected.csv. Prepare only.'
     value['expected']={'kind':'deterministic','checks':[{'type':'file_exists','path':'data/output/projected.csv'}]}
+    value['write_mode']='fixture'
     path.write_text(yaml.safe_dump(value))
     plan={'summary':'Fixture column projection','steps':[{'step_id':'step_1','skill':'select_csv_columns','purpose':'Project columns',
         'arguments':{'path':'data/input/orders.csv','columns':['order_id','amount'],'target_path':'data/output/projected.csv'},
@@ -86,7 +87,8 @@ def test_explicit_fixture_write_requires_exact_normal_authorization(project):
     (path.parent/'fixture-plan.json').write_text(json.dumps(plan))
     blocked,blocked_dir=run_suite(project,fixture=True)
     assert blocked['results'][0]['executed_operations']==0
-    assert not list((blocked_dir/'tasks/s-csv-profile-001/data/output').iterdir())
+    assert blocked['results'][0]['status']=='skipped'
+    assert not (blocked_dir/'tasks/s-csv-profile-001/data/output').exists()
     result,directory=run_suite(project,fixture=True,allow_fixture_writes=True)
     record=result['results'][0]
     assert record['status']=='passed',json.dumps(record)

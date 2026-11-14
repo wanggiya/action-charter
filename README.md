@@ -112,13 +112,19 @@ new folder setup. Migration is an explicit offline owner action, not a launcher 
 The [closeout record](docs/P0_CLOSEOUT.md) distinguishes verified source-only storage
 from historical migration rehearsals; the development checkout has now been adopted.
 
-Phase 1 [benchmarks](docs/BENCHMARKS.md) now include validated task definitions,
-a process-bounded runner, CLI and deterministic evidence checks. Run the current
-synthetic fixture with `.venv/bin/geoagent benchmark run --fixture --project-root .`.
-Results stay in workspace state; expected answers stay out of prompts. Local data
-requires explicit opt-in, and temporary writes require a separate fixture-write
-option plus normal exact authorization. Provider profiles, the full 20–30-task
-suite and a measured real-model baseline remain unfinished.
+Phase 1 [benchmarks](docs/BENCHMARKS.md) now include a process-bounded runner,
+CLI, deterministic evidence checks and [27 task definitions](benchmarks/README.md).
+Start with `.venv/bin/geoagent benchmark run --fixture --task s-csv-profile-001`.
+The full suite tests existing tabular/statistical/spatial skills and governance;
+positive synthetic writes and disposable databases require separate CLI opt-ins
+plus normal exact backend authorization. Results remain in workspace state, and
+expected answers stay out of prompts. [B5 baseline evidence](benchmarks/results/README.md)
+now records fixture and real qwen3.5:9b runs: 23 fixture passes versus 8 real-model
+passes, 11 failures and 4 timeouts (both retain 1 skip/3 gaps). Critic review did not
+complete on the real model. These are measured limits, not release readiness.
+`benchmark report RUN_ID` renders saved metadata without execution; the four-task
+offline CI gate runs with `python scripts/benchmark_ci.py`. Provider profiles and
+egress controls remain unfinished.
 
 [Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and directs maintained callers to native services. The 117 documented
@@ -546,7 +552,7 @@ Templates help create recipe proposals. They neither install skills nor grant ap
 
 New durable runs automatically save eligible successful workflows as indexed method records, with no extra model call or registration. In **Reusable recipes**, use **Recipe list** for short summary rows or switch to **Keywords** to filter the list. Select a row for method details and expandable evidence; discussion shortcuts are secondary under More actions. Manual composition stays in Advanced, labelled Validate composition and open draft. Records are scoped to their originating chat; they grant no permission and are separate from generalized templates. Indexing failure preserves execution results and permits indexing-only retry. Legacy synchronous execution/Snakemake export and old runs without contract snapshots are outside this path. [Implementation and validation](docs/development/checkpoints/CHECKPOINT27_RETENTION.md).
 
-[Planner-owned recipe discovery](docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md) can search/inspect sanitized catalog structures and eligible own-chat examples, then propose an adaptation directly from ordinary conversation. Initial lookup needs no inference; optional discovery permits at most two extra read-only exchanges, with a maximum four Planner calls including final generation/correction. Browsing recipes is never required. CSV prompts carry focused schemas and report safe request/timing diagnostics; actual local-model latency remains unverified. The remaining [checkpoint 27 plan](docs/development/checkpoints/CHECKPOINT27_PLAN.md) covers optional Critic enrichment, bounded charts/maps and laptop evaluation before prototype/demo preparation. Existing Advanced controls remain available; this adds no cross-chat memory or new agent hierarchy.
+[Planner-owned recipe discovery](docs/development/checkpoints/CHECKPOINT27_DISCOVERY.md) can search/inspect sanitized catalog structures and eligible own-chat examples, then propose an adaptation directly from ordinary conversation. Initial lookup needs no inference; optional discovery permits at most two extra read-only exchanges, with a maximum four Planner calls including final generation/correction. Browsing recipes is never required. CSV prompts carry focused schemas and report safe request/timing diagnostics; recipe lookup’s effect on local-model latency remains unbenchmarked; [B5](benchmarks/results/README.md) separately records task-baseline timings. The remaining [checkpoint 27 plan](docs/development/checkpoints/CHECKPOINT27_PLAN.md) covers optional Critic enrichment, bounded charts/maps and laptop evaluation before prototype/demo preparation. Existing Advanced controls remain available; this adds no cross-chat memory or new agent hierarchy.
 
 ## Verify your development environment
 

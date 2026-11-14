@@ -1,0 +1,16 @@
+{
+  "summary": "Bounded synthetic workflow",
+  "steps": [
+    {
+      "skill": "convert_vector",
+      "purpose": "Perform the requested bounded operation",
+      "arguments": {
+        "path": "data/input/points.geojson",
+        "target_path": "data/output/points.gpkg"
+      },
+      "requires_approval": true,
+      "validation_required": true,
+      "step_id": "step_1"
+    }
+  ]
+}

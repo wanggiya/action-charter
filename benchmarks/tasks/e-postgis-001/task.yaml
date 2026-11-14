@@ -1,0 +1,26 @@
+schema_version: '1.0'
+id: e-postgis-001
+workload: E
+title: Inspect points.geojson, load it into a new agent_sandbox.points PostGIS layer,
+  then validate two POINT features with SRID 4326.
+request: Inspect points.geojson, load it into a new agent_sandbox.points PostGIS layer,
+  then validate two POINT features with SRID 4326.
+inputs:
+- input/points.geojson
+data_class: raw
+write_mode: fixture
+runtime: postgis
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: table_exists
+    schema_name: agent_sandbox
+    table: points
+  - type: row_count
+    field: '@validate_postgis_layer.row_count'
+    expected: 2
+limits:
+  wall_clock_s: 120
+  model_calls: 3
+requires_gis: true

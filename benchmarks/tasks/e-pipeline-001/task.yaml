@@ -1,0 +1,25 @@
+schema_version: '1.0'
+id: e-pipeline-001
+workload: E
+title: Fill missing region with Unknown in orders.csv, filter amount at least 20,
+  then export the result to data/output/final.csv.
+request: Fill missing region with Unknown in orders.csv, filter amount at least 20,
+  then export the result to data/output/final.csv.
+inputs:
+- input/orders.csv
+data_class: raw
+write_mode: fixture
+runtime: local
+requires_local_data: false
+expected:
+  kind: deterministic
+  checks:
+  - type: row_count
+    field: '@export_csv.row_count'
+    expected: 2
+  - type: file_exists
+    path: data/output/final.csv
+    expected_sha256: f963f6a2496a9cb62aba3492b4863456ecc3e926c18be63e1ca5f2ae93984b21
+limits:
+  wall_clock_s: 120
+  model_calls: 3
