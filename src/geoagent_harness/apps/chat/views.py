@@ -4,6 +4,24 @@ from pathlib import PurePosixPath
 from geoagent_harness.apps.chat.client import ChatError
 VIEWS={'overview','columns','table','chart','groups','checks','report'}
 
+def render_model_usage(value):
+    """Present the shared read-only summary; never infer missing consumption."""
+    scopes=(value.get('reported_model_usage') or {}).get('scopes',[])
+    item=next((s for s in scopes if s['kind']=='chat'),None)
+    if item is None:return ''  # Older API: keep individual diagnostics readable.
+    def number(v):return 'Unknown' if v is None else f'{v:,}'
+    lines=['Reported model tokens · recent retained chat records',
+        'Input / context: '+number(item['reported_input_tokens']),
+        'Generated output: '+number(item['reported_output_tokens']),
+        f"Calls reporting both counts: {item['calls_with_both_counts']} of {item['calls_expected_usage']}",
+        f"Recorded calls: {item['recorded_calls']} · stopped before dispatch: {item['not_sent_calls']}"]
+    if item['collection_incomplete'] or (value.get('reported_model_usage') or {}).get('records_truncated'):
+        lines.append('Collection/window is incomplete; these are known observations only.')
+    elif item['coverage']=='partial':lines.append('Partial reported usage; missing counts remain unknown.')
+    if item['model_call_seconds'] is not None:lines.append(f"Measured model-call time: {item['model_call_seconds']:.2f} s")
+    lines.append('Tokens are not network bytes or lifetime billing.\n')
+    return '\n'.join(lines)+'\n'
+
 def cross_tab(groups,keys,matching,*,measure='count',swap=False):
     """Bound the displayed matrix, never its population or marginal totals."""
     if len(keys)!=2:return None
@@ -50,6 +68,8 @@ def saved_view(state,view='overview',*,source=None,field=None,offset=0,limit=20,
         if not assessment:raise ChatError('No readiness report recorded for this older profile. No read was repeated.')
         result['report_markdown']=assessment['report_markdown']
     elif view=='overview':
+        from geoagent_harness.data.discovery.cards import from_evidence
+        result['data_card'] = from_evidence(r)
         result.update(summary=session.get('message'),field_guidance=r.get('field_guidance'),field_count=len(r['columns']),roles={role:sum(p['analytical_role']==role for p in r['profiles']) for role in sorted({p['analytical_role'] for p in r['profiles']})},runtime=r['runtime'].get('mode'),limitations=r['limitations'])
     elif view=='columns':result.update(total=len(columns),offset=offset,profiles=columns[offset:offset+limit])
     elif view in {'table','groups'}:
@@ -93,6 +113,12 @@ def render_view(v):
         lines += [clean(line,2000) for line in v['report_markdown'].splitlines()]
     elif view=='overview':
         lines += [clean(v.get('summary') or '',4000),f"Fields: {v['field_count']} · Runtime: {v['runtime']}",table(['Role','Fields'],list(v['roles'].items()))]
+        card = v.get('data_card')
+        if card:
+            lines += ['Data Card · recorded read, current freshness not checked',
+                clean(f"Scope: {card['scope']} · identity: {card['identity_basis']}"),
+                table(['Field', 'Candidate role', 'Missing', 'Distinct'], [[f['name'], f['candidate_role'], f['missing_count'], f['distinct_count']] for f in card['fields']]),
+                f"Omitted fields: {card['fields_omitted']} · unknown is not zero."]
         if v.get('field_guidance'):
             lines += ['Suggested fields (advisory, not confirmed domain meanings):',*[clean(kind+': '+', '.join(names),2000) for kind,names in v['field_guidance']['candidates'].items()]]
     elif view=='columns':

@@ -14,7 +14,7 @@ from geoagent_harness.platform.model_settings import ModelSettings
 @pytest.fixture
 def settings() -> ModelSettings:
     return ModelSettings(
-        base_url="http://ollama.test/v1",
+        base_url="http://127.0.0.1:11434/v1",
         model="qwen-test",
         timeout_seconds=10,
         max_tokens=128,

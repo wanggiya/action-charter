@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from geoagent_harness.platform.model_gateway.egress import classify_request
 import json
 
 from geoagent_harness.platform.model_gateway import ChatMessage, ModelRequest
@@ -116,7 +117,7 @@ def build_recipe_proposal_request(
             "original request cannot be empty"
         )
 
-    return ModelRequest(
+    return classify_request(ModelRequest(
         messages=[
             ChatMessage(
                 role="system",
@@ -129,4 +130,4 @@ def build_recipe_proposal_request(
         ],
         temperature=0.0,
         json_mode=True,
-    )
+    ))

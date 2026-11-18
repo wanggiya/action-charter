@@ -80,7 +80,7 @@ def test_model_transport_honors_remaining_timeout_without_exposing_it_as_model_i
     def reply(request):
         observed.append(request)
         return httpx.Response(200,json={'model':'fixture','choices':[{'message':{'content':'{}'}}],'usage':{'prompt_tokens':5,'completion_tokens':2}})
-    client=SharedModelClient(ModelSettings(base_url='http://fixture/v1',model='fixture',timeout_seconds=120,max_tokens=100),transport=httpx.MockTransport(reply))
+    client=SharedModelClient(ModelSettings(base_url='http://127.0.0.1:11434/v1',model='fixture',timeout_seconds=120,max_tokens=100),transport=httpx.MockTransport(reply))
     result=client.complete(ModelRequest(messages=[ChatMessage(role='user',content='test')],timeout_seconds=3))
     assert observed[0].extensions['timeout']['read']==3
     assert 'timeout_seconds' not in json.loads(observed[0].content)

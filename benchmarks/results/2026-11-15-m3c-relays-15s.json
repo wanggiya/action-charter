@@ -1,0 +1,230 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T02:37:50.546251+00:00",
+  "model": "qwen3.5:9b",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "92e985140afd6bcd3446c7238386c523966bd73793a00cdb1cd73db921d3f78c",
+  "versions": {
+    "python": "3.12.3",
+    "httpx": "0.28.1"
+  },
+  "same_backend_relays": true,
+  "results": {
+    "compatible-relay": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "model_timeout",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 33.33116311000049,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "elapsed_seconds": 15.039049169999998,
+          "correction": false,
+          "timeout": true
+        }
+      ],
+      "seconds": 50.805,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3.5:9b",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 14.203
+      },
+      "broker": {
+        "forwarded": 3,
+        "rejected": 0
+      }
+    },
+    "authenticated-relay": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "model_timeout",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 28.87373881500025,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "elapsed_seconds": 15.039198005000799,
+          "correction": false,
+          "timeout": true
+        }
+      ],
+      "seconds": 46.545,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "missing_credential_reference": {
+        "blocked": true,
+        "upstream_calls": 0
+      },
+      "authentication": {
+        "missing_status": 401,
+        "wrong_status": 401,
+        "blocked": true,
+        "upstream_calls_for_rejections": 0
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3.5:9b",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 36.763
+      },
+      "broker": {
+        "forwarded": 3,
+        "rejected": 2
+      },
+      "gateway_kind": "test_harness_not_LiteLLM"
+    },
+    "isolated": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "model_timeout",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 64.5417639770003,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "elapsed_seconds": 15.036538039001243,
+          "correction": false,
+          "timeout": true
+        }
+      ],
+      "seconds": 82.831,
+      "exit_code": 0,
+      "network": {
+        "namespace_changed": true,
+        "interfaces": [
+          "lo"
+        ],
+        "external_network_unreachable": true,
+        "allowed_model_calls": 2
+      },
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "connectivity": {
+        "status": "tested_by_isolated_workflow"
+      },
+      "broker": {
+        "forwarded": 2,
+        "rejected": 0
+      }
+    },
+    "gateway": {
+      "status": "unavailable",
+      "reason_code": "real_gateway_not_configured"
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_unchanged": true,
+    "writes": false
+  }
+}

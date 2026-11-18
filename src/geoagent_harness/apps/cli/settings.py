@@ -57,3 +57,55 @@ def write_policy_command(
     except (ValueError,OSError) as exc:
         typer.echo(f'Error: {exc}',err=True)
         raise typer.Exit(code=2) from exc
+
+
+models_app=typer.Typer(help='Manage trusted model profiles; changes grant no execution authority.')
+
+
+def _models_emit(function):
+    try:typer.echo(json.dumps(function(),indent=2))
+    except (ValueError,OSError,RuntimeError):
+        typer.echo('Model profile action failed; check configuration and refresh its revision.',err=True)
+        raise typer.Exit(2) from None
+
+
+@models_app.command('profiles')
+def model_profiles(project_root: Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import list_profiles
+    _models_emit(lambda:list_profiles(project_root))
+
+
+@models_app.command('save')
+def save_model_profile(file: Path,expected_revision:int=typer.Option(...,'--expected-revision'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import save_profile,ProviderUpdate
+    def action():
+        if not file.is_file() or file.stat().st_size>65536:raise ValueError()
+        return save_profile(project_root,ProviderUpdate(profile=json.loads(file.read_text()),expected_revision=expected_revision))
+    _models_emit(action)
+
+
+@models_app.command('use')
+def use_model_profile(profile_id:str,expected_revision:int=typer.Option(...,'--expected-revision'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import select_profile,ProviderSelection
+    _models_emit(lambda:select_profile(project_root,ProviderSelection(profile_id=profile_id,expected_revision=expected_revision)))
+
+
+@models_app.command('list')
+def available_models(project_root:Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import list_models
+    _models_emit(lambda:list_models(project_root))
+
+
+@models_app.command('select')
+def choose_model(model:str,expected_revision:int=typer.Option(...,'--expected-revision'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import select_model,Selection,list_profiles
+    def action():
+        state=list_profiles(project_root)
+        return select_model(project_root,Selection(model=model,expected_revision=expected_revision,provider_id=state['selected_profile'],provider_revision=state['revision']))
+    _models_emit(action)
+
+
+@models_app.command('check')
+def check_model_profile(profile_id:str,model:str,expected_revision:int=typer.Option(...,'--expected-revision'),project_root:Path=typer.Option(Path('.'),'--project-root')):
+    from geoagent_harness.task_actions.model_providers import check_profile,ProviderCheck
+    _models_emit(lambda:check_profile(project_root,ProviderCheck(profile_id=profile_id,model=model,expected_revision=expected_revision)))

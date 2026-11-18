@@ -93,6 +93,9 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
                 raise InterfaceApiError(result['error'])
             if action == 'spatial_view' and result.get('error'):
                 raise InterfaceApiError(result['error'])
+            if action in {'csv_probe', 'spatial_probe', 'csv_discover', 'spatial_discover', 'inspect', 'dataset_profile'}:
+                from geoagent_harness.data.discovery.cards import attach
+                result = attach(result)
             return result
         finally:
             if process.poll() is None:

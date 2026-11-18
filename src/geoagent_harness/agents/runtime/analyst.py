@@ -2,6 +2,7 @@
 
 A role is a responsibility, not an authority boundary or a separate agent process.
 """
+from geoagent_harness.platform.model_gateway.egress import classify_request
 from dataclasses import replace
 from copy import deepcopy
 import json
@@ -172,8 +173,8 @@ def run_session(root,message,directory,*,previous=None,model_client=None,max_sec
                 step_schema['properties']={k:v for k,v in step_schema['properties'].items() if k in fields}
                 step_schema['required']=fields
                 if action_kind!='profile_table':step_schema.pop('$defs',None)
-            request=ModelRequest(messages=conversation+[ChatMessage(role='user',content='Recorded read-only evidence: '+payload)],
-                json_mode=True,response_schema=step_schema,timeout_seconds=min(30,max(.1,deadline-time.monotonic())))
+            request=classify_request(ModelRequest(messages=conversation+[ChatMessage(role='user',content='Recorded read-only evidence: '+payload)],
+                json_mode=True,response_schema=step_schema,timeout_seconds=min(30,max(.1,deadline-time.monotonic()))))
             size=sum(len(m.content.encode()) for m in request.messages)
             if size>30000:raise ValueError('Analytical request exceeds 30 KB; narrow the request')
             prompt_bytes=max(prompt_bytes,size);model_calls+=1

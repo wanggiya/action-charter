@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T03:34:21.293374+00:00",
+  "model": "qwen3.5:9b",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "74954ca8e4462cc46761f6e1776a8931ee06568b7a795033e7fe0965a351c558",
+  "worker_sha256": "2aa9faeea1876d2df989d8306ab5405c73c5f1dad126c8c9eaf081ce136a7027",
+  "versions": {
+    "python": "3.12.3",
+    "httpx": "0.28.1",
+    "ollama": "0.32.4"
+  },
+  "same_backend_relays": true,
+  "results": {
+    "isolated": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "request_failed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 45.50402889399993,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1164,
+          "completion_tokens": 389,
+          "elapsed_seconds": 49.432047979000345,
+          "correction": false,
+          "timeout": false,
+          "assessment_schema_valid": true,
+          "assessment_status": "completed",
+          "assessment_operations": [
+            "[unknown operation]",
+            "[unknown operation]",
+            "[unknown operation]"
+          ]
+        }
+      ],
+      "seconds": 97.869,
+      "exit_code": 0,
+      "network": {
+        "namespace_changed": true,
+        "interfaces": [
+          "lo"
+        ],
+        "external_network_unreachable": true,
+        "allowed_model_calls": 2
+      },
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "connectivity": {
+        "status": "tested_by_isolated_workflow"
+      },
+      "broker": {
+        "forwarded": 2,
+        "rejected": 0
+      }
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_seconds": 60,
+    "product_critic_default_unchanged": true,
+    "writes": false
+  }
+}

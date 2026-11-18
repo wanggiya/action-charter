@@ -192,8 +192,9 @@ def inspect_csv(path,settings,delimiter=',',preview_rows=5,analysis=None):
     from geoagent_harness.data.tabular.inspection import inspect_table as inspect
     from geoagent_harness.platform.execution_control import checkpoint
     try:
-        return inspect(root,path,delimiter=args.delimiter,preview_rows=args.preview_rows,checkpoint=checkpoint,
-                       analysis=args.analysis.model_dump(mode='json') if args.analysis is not None else None)
+        from geoagent_harness.data.discovery.cards import attach
+        return attach(inspect(root,path,delimiter=args.delimiter,preview_rows=args.preview_rows,checkpoint=checkpoint,
+                       analysis=args.analysis.model_dump(mode='json') if args.analysis is not None else None))
     except (ValueError, UnicodeError, csv.Error, StopIteration) as error:
         if Path(path).suffix.lower() in {'.xlsx','.json','.jsonl','.ndjson'}:raise TabularError(str(error)) from error
         raise TabularError('CSV inspection failed: invalid, changed or over-budget input') from error

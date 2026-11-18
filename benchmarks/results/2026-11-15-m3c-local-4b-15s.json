@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T02:35:40.903042+00:00",
+  "model": "qwen3:4b-instruct",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "72b619f8d9baf2b14a29762583ff36766f7a9b77e5a1926944dad98e18a546a7",
+  "same_backend_relays": true,
+  "results": {
+    "direct": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3108,
+          "completion_tokens": 180,
+          "elapsed_seconds": 18.596162627000012,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "elapsed_seconds": 15.029162242000893,
+          "correction": false,
+          "timeout": true
+        }
+      ],
+      "seconds": 37.213,
+      "exit_code": 0,
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3:4b-instruct",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 15,
+        "completion_tokens": 6,
+        "seconds": 8.673
+      }
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_unchanged": true,
+    "writes": false
+  }
+}

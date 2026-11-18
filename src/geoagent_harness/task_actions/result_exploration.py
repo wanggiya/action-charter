@@ -214,6 +214,10 @@ def view_context(root, conversation_id, base, *, goal_schema=False):
         if not isinstance(outcome, dict):
             continue
         extra = {'recorded_facts':recorded_facts(outcome,step.get('validation_outcome'))}
+        from geoagent_harness.data.discovery.cards import from_evidence
+        card = from_evidence(outcome)
+        if card is not None:
+            extra['data_card'] = card
         if isinstance(outcome.get('field_guidance'),dict):
             from geoagent_harness.data.tabular.field_guidance import compact_guidance
             extra['field_guidance']=compact_guidance(outcome['field_guidance'])

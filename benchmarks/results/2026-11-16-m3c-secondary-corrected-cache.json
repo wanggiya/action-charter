@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T21:18:05.489212+00:00",
+  "model": "qwen3.5:9b",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "98e709a21b39f35bd9d33a323128536c779f3d779ebba7a9a206e6fbe5b2372e",
+  "worker_sha256": "2aa9faeea1876d2df989d8306ab5405c73c5f1dad126c8c9eaf081ce136a7027",
+  "service_controller_sha256": "7c55581f4eaa7b955a473c40e2dea2405007b164c19b341ed9eeb32a019ba774",
+  "windows_controller_sha256": "cbb86fe8741713c1ed44d44cf72432970b63fe11a195036a937db4b2ea17c40c",
+  "source_sha256": "a5cfd574e468e5fe48d9e1bc34587aab79d96a94c88d1227aa74239ca2d39033",
+  "source_unchanged": true,
+  "versions": {
+    "python": "3.12.3",
+    "httpx": "0.28.1",
+    "ollama": "0.32.4"
+  },
+  "same_backend_relays": true,
+  "results": {
+    "secondary": {
+      "status": "passed",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": null,
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3108,
+          "completion_tokens": 176,
+          "elapsed_seconds": 17.237126011999862,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1171,
+          "completion_tokens": 399,
+          "elapsed_seconds": 21.037352035000367,
+          "correction": false,
+          "timeout": false,
+          "assessment_schema_valid": true,
+          "assessment_status": "completed",
+          "assessment_operations": []
+        }
+      ],
+      "seconds": 42.722,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": null
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3:4b-instruct",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 15,
+        "completion_tokens": 6,
+        "seconds": 43.72
+      },
+      "model": "qwen3:4b-instruct",
+      "runtime": {
+        "software": "ollama",
+        "version": "0.32.4",
+        "binary_sha256": "9648169dfef645752ff8b25fded65d57e4b519fda9b0c9710a938af025cec2a1",
+        "separately_started_process": true,
+        "same_model_cache": true,
+        "new_model_downloads": false,
+        "cache_inventory_unchanged": true,
+        "managed_process_stopped": true
+      }
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_seconds": 90,
+    "product_critic_default_unchanged": true,
+    "writes": false
+  }
+}

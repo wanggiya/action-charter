@@ -24,8 +24,8 @@ def original_app():
     # 150-command compatibility snapshot rather than replacing its golden hash.
     app = copy.copy(cli.app)
     app.registered_commands = [item for item in app.registered_commands if item.name != 'project-identity']
-    # P1-B2 adds a benchmark group; all original command/help snapshots stay frozen.
-    app.registered_groups = [item for item in app.registered_groups if item.name != 'benchmark']
+    # P1 adds benchmark/models groups; all original command/help snapshots stay frozen.
+    app.registered_groups = [item for item in app.registered_groups if item.name not in {'benchmark','models'}]
     return app
 
 
@@ -92,11 +92,12 @@ def test_every_help_screen_matches_before_extraction(monkeypatch):
 
 
 def test_help_snapshot_is_stable_with_github_console_environment():
+    # The child runs one snapshot check; inherited file selectors can recurse.
     result = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
         'tests/test_r7_cli_structure.py::test_every_help_screen_matches_before_extraction'],
         cwd=ROOT, capture_output=True, text=True, timeout=60,
         env={**os.environ, 'CI': 'true', 'GITHUB_ACTIONS': 'true', 'FORCE_COLOR': '1',
-             'PY_COLORS': '1', 'TERMINAL_WIDTH': '77'})
+             'PY_COLORS': '1', 'TERMINAL_WIDTH': '77', 'PYTEST_ADDOPTS': ''})
     assert result.returncode == 0, result.stdout + result.stderr
 
 

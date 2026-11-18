@@ -4,6 +4,7 @@ from typing import Literal
 import typer
 from geoagent_harness.apps.chat.client import ChatClient, ChatError
 from geoagent_harness.apps.chat.views import clean, table, render_chat, render_view, saved_view, interactive_view
+from geoagent_harness.apps.chat.views import render_model_usage
 
 def register(app):
     chat=typer.Typer(help='Continue frontend chats and inspect their saved results. Start the normal launcher first.',no_args_is_help=True)
@@ -27,7 +28,7 @@ def register(app):
     def diagnostics(ctx:typer.Context,chat_id:str,as_json:bool=typer.Option(False,'--json')):
         """Read bounded content-free usage records, including failed requests."""
         value=call(lambda:ctx.obj.post('/api/v1/planner/diagnostics',{'conversation_id':chat_id}))
-        emit(value,lambda:table(['Kind','Status','Phase','Error','Seconds'],[[r['kind'],r['status'],r.get('phase','submission'),r.get('error_code') or '',(r.get('resources') or {}).get('elapsed_seconds','unknown')] for r in value['records']])+'\nRAM is sampled API process RSS; unknown tokens remain unknown. No retry or execution.',as_json)
+        emit(value,lambda:render_model_usage(value)+table(['Kind','Status','Phase','Error','Seconds'],[[r['kind'],r['status'],r.get('phase','submission'),r.get('error_code') or '',(r.get('resources') or {}).get('elapsed_seconds','unknown')] for r in value['records']])+'\nRAM is sampled API process RSS; unknown tokens remain unknown. No retry or execution.',as_json)
 
     @chat.command('report')
     def report(ctx:typer.Context,run_id:str,kind:Literal['analytical','technical','json']=typer.Option('technical','--kind')):

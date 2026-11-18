@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from geoagent_harness.platform.model_gateway.egress import classify_request
 import json
 
 from geoagent_harness.agents.runtime.manifest import AgentManifest
@@ -132,7 +133,7 @@ def build_planner_request(
         "warnings": context_pack.warnings,
     }
 
-    return ModelRequest(
+    return classify_request(ModelRequest(
         messages=[
             ChatMessage(
                 role="system",
@@ -153,4 +154,4 @@ def build_planner_request(
         ],
         temperature=0.0,
         json_mode=True,
-    )
+    ))

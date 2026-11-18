@@ -5,6 +5,7 @@ The stable Planner boundary is context_for_turn/after_turn. Cache entries are
 machine-generated, unvalidated advice, never operator-reviewed methods.
 """
 from __future__ import annotations
+from geoagent_harness.platform.model_gateway.egress import classify_request
 from geoagent_harness.task_actions.planning_tasks import as_transaction
 
 from dataclasses import replace
@@ -231,8 +232,8 @@ def after_turn(root, conversation_id, expected_revision, *, changed, model_clien
                             'Generalize the procedure, prerequisites and checks; never recount task events or claim success.',
                             'Do not copy concrete filenames, paths, credentials, destinations, column names or private values.',
                             'Use only supplied operation IDs; acknowledge missing data assumptions. Nothing grants execution authority.']}
-        request = ModelRequest(json_mode=True, messages=[ChatMessage(role='system', content=json.dumps(system)),
-                                                       ChatMessage(role='user', content=json.dumps(source['source']))])
+        request = classify_request(ModelRequest(json_mode=True, messages=[ChatMessage(role='system', content=json.dumps(system)),
+                                                       ChatMessage(role='user', content=json.dumps(source['source']))]))
         if sum(len(message.content.encode()) for message in request.messages) > MAX_PROMPT_BYTES:
             return _receipt('prompt_budget_exceeded')
         finding = None

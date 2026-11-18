@@ -1,5 +1,5 @@
 """Fixed benchmark application runner; expected answers never enter worker prompts."""
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import hashlib
 import json
 import os
@@ -13,15 +13,48 @@ from time import sleep as _pause
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from geoagent_harness.contracts.benchmark import BenchmarkResult, BenchmarkMetrics, RoleMetrics
+from geoagent_harness.contracts.benchmark import BenchmarkResult, BenchmarkMetrics, RoleMetrics, BenchmarkProviderBinding
 from geoagent_harness.apps.benchmark.loader import load_suite, _safe_file, BenchmarkLoadError
 from geoagent_harness.apps.benchmark.checks import score, refusal_passes
-from geoagent_harness.apps.benchmark.reporting import run_context, source_sha256
+from geoagent_harness.apps.benchmark.reporting import run_context, source_sha256, input_manifest_digest
 from geoagent_harness.platform.workspace import runtime_store_path, ensure_state_root
 from geoagent_harness.platform.storage.files import FileJsonRecords
 
 MAX_INPUT_BYTES=256_000_000
 MAX_RUN_INPUT_BYTES=512_000_000
+
+
+def _profile_snapshot(repo, profile):
+    """Read-only explicit selection; never select/edit the owner's active profile."""
+    from geoagent_harness.platform.model_gateway import profiles
+    from geoagent_harness.platform.model_gateway.catalog import preference, reasoning_preference, review_timeout_preference
+    from geoagent_harness.platform.model_gateway.egress import allowance
+    model=preference(repo);reasoning=reasoning_preference(repo)
+    binding=profiles.capture(repo,model_override=model['model'],reasoning_override=reasoning['selection'])
+    if binding.invalid:raise profiles.ProviderError('Provider configuration is invalid or unavailable')
+    state=binding.state
+    if profile!='local' and (state is None or profile not in {p.id for p in state.profiles}):
+        raise ValueError('Unknown saved benchmark provider profile')
+    if state is not None:binding=replace(binding,state=state.model_copy(update={'selected':profile}))
+    settings=binding.settings()
+    url=urlparse(settings.base_url)
+    if not profiles.loopback(settings.base_url) or url.username or url.password or url.query or url.fragment:
+        raise ValueError('Benchmark models require a loopback endpoint without embedded credentials')
+    configured,effective,_=allowance(settings)
+    # Hash configuration, never credential values. Endpoints/references stay private.
+    identity={k:v for k,v in asdict(settings).items() if k!='credential_root'}
+    evidence=BenchmarkProviderBinding(profile_id=profile,provider_revision=state.revision if state else 0,
+        model_selection_revision=model['revision'],reasoning_selection_revision=reasoning['revision'],
+        configuration_sha256=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+        model=settings.model,kind=settings.provider_kind,location=settings.provider_location,
+        data_allowed=configured,effective_data_allowed=effective).model_dump(mode='json')
+    credential_environment={}
+    if settings.credential_ref and settings.credential_ref.startswith('env:') and effective=='raw':
+        # All workflow constructors currently classify free context as raw.
+        # Forward only the selected credential, never the ambient environment.
+        name=settings.credential_ref[4:]
+        if name in os.environ:credential_environment[name]=os.environ[name]
+    return settings,evidence,review_timeout_preference(repo)['seconds'],credential_environment
 
 
 def _stop(process):
@@ -83,18 +116,15 @@ def _metrics(root, elapsed):
 
 def run_suite(project_root, *, fixture=False, profile='local', include_local_data=False, allow_fixture_writes=False, task_id=None, suite='v1', disposable_database=False):
     repo=Path(project_root).resolve()
-    if suite!='v1' or profile!='local':raise ValueError('Only suite v1 and the implicit local profile are available before M1')
+    if suite!='v1':raise ValueError('Only suite v1 is available')
+    if fixture and profile!='local':raise ValueError('Fixture runs do not use provider profiles')
     loaded=load_suite(repo)
     if task_id:
         loaded=tuple(t for t in loaded if t.task.id==task_id)
         if not loaded:raise ValueError('Unknown benchmark task')
-    settings=None
+    settings=None;provider_binding=None;review_timeout=15;credential_environment={}
     if not fixture:
-        from geoagent_harness.platform.model_settings import load_model_settings
-        settings=load_model_settings()
-        url=urlparse(settings.base_url)
-        if url.hostname not in {'127.0.0.1','localhost','::1'} or url.username or url.password or url.query or url.fragment:
-            raise ValueError('Before M2, benchmark models require a loopback endpoint without embedded credentials')
+        settings,provider_binding,review_timeout,credential_environment=_profile_snapshot(repo,profile)
     source_root=Path(__file__).resolve().parents[4]
     try:
         code=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source_root,text=True,stderr=subprocess.DEVNULL).strip()
@@ -106,7 +136,8 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
     directory.mkdir(mode=0o700,parents=True)
     store=FileJsonRecords(directory,max_bytes=512_000,immutable=True)
     context=run_context(source_root,loaded,settings,allow_fixture_writes=allow_fixture_writes,
-        disposable_database=disposable_database,include_local_data=include_local_data)
+        disposable_database=disposable_database,include_local_data=include_local_data,
+        provider_binding=provider_binding,review_timeout_seconds=review_timeout)
     summary={'schema_version':'1.0','run_id':directory.name,'evidence_kind':'fixture' if fixture else 'real_model','results':[], 'complete':False,'context':context}
     # Started marker survives cancellation/crashes; no continuation/replay is automatic.
     store.create('started.json',json.dumps({k:v for k,v in summary.items() if k!='results'}))
@@ -133,17 +164,20 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
                 job={'request':task.request,'fixture_plan':plan,'settings':asdict(settings) if settings else None,
                     'wall_clock_s':task.limits.wall_clock_s,'model_calls':task.limits.model_calls,
                     'allow_writes':bool(allow_fixture_writes and task.write_mode=='fixture' and not task.requires_local_data),
-                    'inputs':identities,'database':database.env if database else None}
+                    'inputs':identities,'database':database.env if database else None,
+                    'review_timeout_seconds':review_timeout}
                 FileJsonRecords(root,max_bytes=2_000_000).create('job.json',json.dumps(job))
                 keep=('PATH','LANG','LC_ALL','LD_LIBRARY_PATH','SYSTEMROOT')
                 env={k:os.environ[k] for k in keep if k in os.environ}
+                env.update(credential_environment)
                 env.update(PYTHONPATH=str(Path(__file__).resolve().parents[3]),GEOAGENT_PROJECT_ROOT=str(root),
                     ENABLE_WRITE_TOOLS='true' if job['allow_writes'] else 'false',MODEL_NAME=settings.model if settings else 'benchmark-fixture',
                     MODEL_BASE_URL=settings.base_url if settings else 'http://127.0.0.1:1/v1',
                     POSTGRES_HOST='127.0.0.1',POSTGRES_PORT='1',GEOSERVER_BASE_URL='http://127.0.0.1:1')
                 if database:env.update(database.env)
                 if settings:env.update(MODEL_TIMEOUT_SECONDS=str(settings.timeout_seconds),MODEL_MAX_TOKENS=str(settings.max_tokens),
-                    MODEL_REASONING_EFFORT=settings.reasoning_effort or '',MODEL_RESPONSE_FORMAT=settings.response_format)
+                    MODEL_REASONING_EFFORT=settings.reasoning_effort or '',MODEL_RESPONSE_FORMAT=settings.response_format,
+                    MODEL_DATA_ALLOWED=settings.data_allowed)
                 if time.monotonic()-started>=task.limits.wall_clock_s:raise TimeoutError('Staging exhausted task deadline')
                 process=subprocess.Popen([sys.executable,'-m','geoagent_harness.apps.benchmark.worker',str(root)],cwd=root,
                     env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=os.name=='posix')
@@ -199,7 +233,8 @@ def run_suite(project_root, *, fixture=False, profile='local', include_local_dat
             egress_class=task.data_class,status=status,expected_kind=task.expected.kind,
             observed_outcome=outcome['observed_outcome'],executed_operations=outcome.get('executed_operations'),
             advisory_status=outcome.get('critic_status','unknown' if any(r.role=='critic' for r in metrics.roles) else 'not_requested'),
-            reason_code=outcome['reason_code'],checks=checks,metrics=metrics)
+            reason_code=outcome['reason_code'],checks=checks,metrics=metrics,
+            input_manifest_sha256=input_manifest_digest(identities),failure_details=outcome.get('failure_details'))
         store.create(task.id+'.json',record.model_dump_json())
         store.create(task.id+'.inputs.json',json.dumps({'inputs':identities}))
         summary['results'].append(record.model_dump(mode='json'))

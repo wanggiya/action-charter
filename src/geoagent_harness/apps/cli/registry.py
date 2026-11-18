@@ -170,6 +170,7 @@ from geoagent_harness.apps.cli.postgres import install as install_postgres_cli
 
 
 from geoagent_harness.apps.cli.benchmark import app as benchmark_app
+from geoagent_harness.apps.cli.settings import models_app
 
 
 def register_commands(app):
@@ -292,3 +293,4 @@ def register_commands(app):
     app.command('write-policy')(write_policy_command)
     install_postgres_cli(app)
     app.add_typer(benchmark_app, name='benchmark')
+    app.add_typer(models_app, name='models')

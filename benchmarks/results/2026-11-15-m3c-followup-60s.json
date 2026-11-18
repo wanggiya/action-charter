@@ -1,0 +1,292 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T02:45:09.317605+00:00",
+  "model": "qwen3.5:9b",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "abdd412c8f2ff45add0a07a9cbdd9962156bad44dc2e96f49568406a69d03475",
+  "worker_sha256": "e2417812f49068d4b5f3bddcc1f7cec6e42572bf44eb72a77ad49e886757c43c",
+  "versions": {
+    "python": "3.12.3",
+    "httpx": "0.28.1",
+    "ollama": "0.32.4"
+  },
+  "same_backend_relays": true,
+  "results": {
+    "direct": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "request_failed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 27.923762696000267,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1164,
+          "completion_tokens": 410,
+          "elapsed_seconds": 51.55033951000041,
+          "correction": false,
+          "timeout": false
+        }
+      ],
+      "seconds": 82.688,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": null
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3.5:9b",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 1.29
+      }
+    },
+    "compatible-relay": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "request_failed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 28.239973228999588,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1165,
+          "completion_tokens": 437,
+          "elapsed_seconds": 55.28217837900047,
+          "correction": false,
+          "timeout": false
+        }
+      ],
+      "seconds": 85.8,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3.5:9b",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 1.333
+      },
+      "broker": {
+        "forwarded": 3,
+        "rejected": 0
+      }
+    },
+    "authenticated-relay": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "request_failed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 30.047214326001267,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1165,
+          "completion_tokens": 389,
+          "elapsed_seconds": 48.96370446199944,
+          "correction": false,
+          "timeout": false
+        }
+      ],
+      "seconds": 81.343,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "missing_credential_reference": {
+        "blocked": true,
+        "upstream_calls": 0
+      },
+      "authentication": {
+        "missing_status": 401,
+        "wrong_status": 401,
+        "blocked": true,
+        "upstream_calls_for_rejections": 0
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qwen3.5:9b",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 1.474
+      },
+      "broker": {
+        "forwarded": 3,
+        "rejected": 2
+      },
+      "gateway_kind": "test_harness_not_LiteLLM"
+    },
+    "isolated": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "unavailable",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": "request_failed",
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 28.508486865001032,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1165,
+          "completion_tokens": 375,
+          "elapsed_seconds": 47.3131369440016,
+          "correction": false,
+          "timeout": false
+        }
+      ],
+      "seconds": 77.979,
+      "exit_code": 0,
+      "network": {
+        "namespace_changed": true,
+        "interfaces": [
+          "lo"
+        ],
+        "external_network_unreachable": true,
+        "allowed_model_calls": 2
+      },
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "connectivity": {
+        "status": "tested_by_isolated_workflow"
+      },
+      "broker": {
+        "forwarded": 2,
+        "rejected": 0
+      }
+    },
+    "gateway": {
+      "status": "unavailable",
+      "reason_code": "real_gateway_not_configured"
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_seconds": 60,
+    "product_critic_default_unchanged": true,
+    "writes": false
+  }
+}

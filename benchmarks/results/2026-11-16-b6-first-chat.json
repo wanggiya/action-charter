@@ -1,0 +1,66 @@
+{
+  "schema_version": "b6-functional-observations-v1",
+  "local_date": "2026-11-16",
+  "issue": 96,
+  "evidence_kind": "real_local_model",
+  "task": "Inspect sample_orders.csv and suggest useful analysis questions based on its columns. Do not write files or modify any database.",
+  "input": {
+    "path": "data/input/sample_orders.csv",
+    "sha256": "f64a12589012734445f82b83c55ab509ec835824c27d0d6a8f19a024f8069e55",
+    "kind": "shipped_fixture"
+  },
+  "observations": [
+    {
+      "status": "failed",
+      "error_code": "model_timeout",
+      "evidence_kind": "real_local_model",
+      "model": "qwen3.5:9b",
+      "reasoning_effort": null,
+      "elapsed_seconds": 121.128,
+      "calls": [
+        {
+          "prompt_bytes": 11439,
+          "operation_schemas": [
+            "inspect_csv"
+          ],
+          "prompt_profile": "table-inspection-focused-v1"
+        }
+      ],
+      "settings_changed": false
+    },
+    {
+      "status": "passed",
+      "operations": [
+        "inspect_csv"
+      ],
+      "execution_performed": false,
+      "approval_performed": false,
+      "evidence_kind": "real_local_model",
+      "model": "qwen3.5:9b",
+      "reasoning_effort": "none",
+      "elapsed_seconds": 39.008,
+      "calls": [
+        {
+          "prompt_bytes": 11439,
+          "operation_schemas": [
+            "inspect_csv"
+          ],
+          "prompt_profile": "table-inspection-focused-v1",
+          "input_tokens": 2466,
+          "output_tokens": 225
+        }
+      ],
+      "settings_changed": false
+    }
+  ],
+  "controlled_performance_comparison": false,
+  "execution_exercised": false,
+  "owner_settings_changed": false,
+  "limitations": [
+    "Separate explicit temporary-project invocations; no automatic timeout retry.",
+    "Fixture tests overlapped some observations; load/cache conditions uncontrolled.",
+    "Only model proposal validity was exercised; this is not a completed data-analysis workflow, general reliability benchmark or RAM diagnosis.",
+    "No endpoints, credentials, owner chat IDs, raw transcripts or model responses are included.",
+    "Final evidence-report schema-routing guard was added after these calls; this task does not request an evidence-report operation."
+  ]
+}

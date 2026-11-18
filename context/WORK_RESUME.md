@@ -1,3 +1,711 @@
+# Work resume — Phase 2 plan updated: skills before code, targets, P2-0 first (2026-11-18)
+
+Owner decisions recorded (docs only; no code, Git or data changes):
+[decision](../docs/decisions/2026-11-18-skills-before-code-and-phase-2-targets.md),
+[PHASE_2_PLAN.md](../docs/product-direction/PHASE_2_PLAN.md).
+- **Skills before code:** know-how goes into agent skill files (`agent-skills/<id>/SKILL.md`,
+  task P2-K); code only for new abilities, guarantees or benchmark-proven speed needs.
+  Existing `skills/<id>/` packages are operations, not agent skills.
+- **Targets vs B5:** ≥15/27 pass, timeouts halved, median <60 s, diabetes journey 4/5,
+  traceable plain-language report, clear refusals for safety tasks.
+- **Order:** P2-0 (identity check after WSL device-number change — blocks owner
+  testing; do not initialize/rebind/reset) → D2 → D3 + K → M3 → H + S → H2; E2 when
+  the DWG converter is chosen (DXF may start).
+- Still uncommitted on `main`: M1/M2/M3c/B6/P1-X/P2-D1 (#93–#98). Owner integrates via
+  one PR before new Phase 2 branches. Agents: commit locally on the task branch, do not push.
+
+# Work resume — P1-X and P2-D1 implemented/verified (2026-11-18, #97/#98)
+
+Owner authorized both implementations and creation of issues97/98 (created). No
+Git branch/stage/commit/push/merge, secret/owner-setting/live DB change or download.
+Preserve all pending M1/M2/M3c/B6 and owner .claude. Git integration remains owner.
+
+P1-X engineering exit evidence: docs/PHASE_1_CLOSEOUT.md. Phase2 dependencies:
+docs/product-direction/PHASE_2_PLAN.md; AGENTS now points to it. D1 guide/manual
+checks: docs/DATA_CARDS.md. Current status/roadmap/README/CHANGELOG updated.
+
+D1 adds two shared modules: L0 contracts/data_cards.py and L2 data/discovery/cards.py.
+Bounded pure projection (8KB/32fields) over existing readers; no scanner/cache or
+new role/container/operation/authority. Source/digest/selection/population, candidate
+types/roles, available quality/numeric facts; nulls stay unknown, no raw row/category
+examples. Explicit selection literals are not anonymized; egress raw fallback stays.
+Existing Planner same-turn discovery and recorded context, CLI/MCP and Overview
+reuse it. Normal/latest run responses derive cards; original workflow/profile
+artifacts store original evidence without consuming budgets for duplicate cards.
+Analytical model input avoids a duplicate card; full profile retains it for display.
+Malformed optional legacy details omit cards without breaking original saved facts.
+Opening/expanding/refreshing adds no source scan, model call or operation replay.
+
+Verification COMPLETE, no tests/models left running:
+- Full make test:3,114 passed,13 existing warnings,1209.77s. Frozen source-only export
+  /tmp/actioncharter-p2d1-clean-u609f0bo; log/tmp/actioncharter-p2d1-full.log.
+- Final80 affected checks passed22.50s after narrow legacy/artifact/context follow-ups;
+  log/tmp/actioncharter-p2d1-completion.log. Added6 cases after full collection;74
+  overlapping passes. Final3120 collected/3120 passing coverage,0 missing/unexpected
+  IDs. Not a single uninterrupted final-source invocation. /tmp/actioncharter-p2d1-
+  coverage.json; collected IDs/tmp/actioncharter-p2d1-collected.log. All970 final
+  Python source/test files match synchronized export. No test exclusions/CI changes.
+- Focused60 passed15.10s; final analytic/card30 passed9.90s; legacy21 passed2.25s.
+  Logs/tmp/actioncharter-p2d1-{final-focused,final-analytical,legacy-guard}.log.
+- make interface-validate passed12.06s (existing chunk warning). Short isolated
+  actual-API/fake-model browser plus CLI/PTY passed card expansion + refresh/latest,
+  0 page errors/0 authorization calls; no personal browser cache. Screenshot visually
+  inspected. Logs/tmp/actioncharter-p2d1-{interface,final-browser}.log. Full hero
+  journey/owner health data not exercised by this short synthetic check.
+- Strict630 modules/3140 imports/zero debt; compatibility513 native/117 retained/
+  290 retired/zero errors. Final context15 passed0.80s in synchronized source-only export; local Markdown
+  targets/public observation privacy/whitespace checks passed. Direct checkout
+  context checks6 failed/9 passed because ownership guard reports Copied project
+  identity; not a D1 code failure. See operator blocker below.
+
+Real local4B observations: benchmarks/results/2026-11-18-p2d1-card-context.json;
+1 call/context, reasoningnone/90s/768tokens. No reader context -> clarification
+23.167s,2081 input/58output; same-turn preliminary card -> valid inspect_csv proposal
+34.515s,2505 input/214output. Actual reader checks3rows/3fields/hash. No workflow
+or authority, owner data/configuration, dependency or DB change. This is current-code
+context ablation, not frozen pre-feature code or a speed/reliability improvement.
+Deterministic budget/legacy/artifact/context follow-ups happened afterward, tested
+with final fixtures; no final-source real repetition claimed. Do not rerun B6 matrix.
+
+Operator verification blocker: current coding-session checkout read-only command
+.venv/bin/geoagent project-identity --project-root . exits2 with Copied project
+identity. platform/project_identity.py and workspace.py unchanged. Do not edit or
+initialize/rebind ownership markers or move state. Asked owner asynchronously to
+run same read-only command in usual launcher terminal, distinguish mounted-session
+identity from actual workspace problem. Owner confirmed the same error. Read-only
+diagnosis: source/state expected st_dev2128, actual2096; source inode783 and state
+inode327492 both unchanged; exact source path and state-owner UUID match. This is
+consistent with WSL device renumbering after restart; current v1 guard treats it as
+a copy. No ownership marker, state/config file or identity code changed. Existing
+initialize/rebind are not a valid recovery for this same-path/device-change case.
+A separately reviewed offline remount recovery preserving UUID/history/ledger claims
+is needed; do not initialize fresh state or bypass the identity check. If same error there, resolve
+through a separately reviewed offline ownership recovery before manual frontend/data
+testing; do not interpret guard message as permission to reset existing state.
+
+Next: P2-D2 source selection + freshness/reuse scheduling BEFORE planning, then D3
+focused context/recipe routing, M3 role budgets and measured CSV/Excel/diabetes hero
+journey. D1 does not provide a fresh card before every Send or an automatic cache.
+Identity helper requires independently obtained digest/selection; it is not a cache.
+Broader dictionary/reader-version lifecycle needs D2. No RL/cross-chat/server/live DB
+work is authorized implicitly. Owner decides Git integration; issues remain open for
+owner PR linkage. P1-X closes engineering evidence, not every model-quality gap.
+Temporary logs/exports may disappear on reboot; public observations and guides stay.
+
+---
+
+# Work resume — B6 implemented/verified; P1-X closeout next (2026-11-17, #96)
+
+Owner authorized continuation. Reused open#96; no new issue, Git action, secret/
+owner-setting/live DB/data change or dependency/model download. Preserve all pending
+M1/M2/M3c/B6 changes and owner .claude content. Owner controls Git integration.
+
+This slice adds optional bounded failure facts to existing L0 BenchmarkResult and
+L6 worker/report/comparison: safe stage/category/correction/known reason, selected
+fixed policy codes and schema findings. Existing trusted Planner field formatter,
+eight-entry cause cap, six findings of1024 chars; unknown names masked, no raw
+model/exception/data/credential export. Legacy unknowns remain. No new agent,
+operation, authority, dependency, interface control or native module.
+
+Broader REAL installed-model measurements COMPLETE: all27 declarations per model,
+54 observations,27 matching recorded pairs;3 pairs passed on both. Each model
+(qwen3.5:9b, qwen3:4b-instruct):4 passed/7 failed/10 deadlines/3 skipped/3 gaps.
+Seven deadlines retain completed execution with Critic unfinished; never relabelled
+as passes. Quality9B rejected after correction with only a response-level field-rule
+finding (exact cause unknown); quality4B planning deadline. Two unavailable-provider
+failures do not establish RAM/context overflow. Missing proposal is not a verified
+refusal. All failures kept, no automatic timeout/write replay or performance winner.
+
+Evidence: benchmarks/results/2026-11-17-b6-broader-matrix.{json,md}; results index and
+docs/BENCHMARKS.md. JSON568133 bytes; source unchanged DURING measurements:
+a66b86c82de06fc0d7bbdb9ccea5a2329f82aaa4a741ad30d8af6b0a5373008e.
+Final docs removed two stale architecture-status sentences AFTER measurement; that
+file is fingerprinted agent context. Native Python/manifests/tasks/settings unchanged;
+no post-documentation model repetition claim. Measured architecture preserved in
+clean export below. Controller37545 exited0; do NOT restart it. Private audit root
+locator/tmp/actioncharter-b6-broader-root; no raw job export. Existing task deadlines
+and call bounds; reasoningnone/120s/1024, temporary60s Critic (owner/default15 unchanged).
+Only fresh synthetic fixture writes opted in under normal exact-scope approval;
+DB/private data opt-ins off. No fixture tests overlapped real measurement.
+
+Verification:
+- **make test:3,098 passed,13 existing warnings,924.32s**, uninterrupted source-only
+  export /tmp/actioncharter-b6-matrix-clean-m4yh7ke7; CI/GITHUB_ACTIONS/frontend-required,
+  -x -rA. Session58908 exited0; log/tmp/actioncharter-b6-matrix-full.log. All967 Python
+  source/test files match checkout. No test exclusions/CI changes introduced.
+- Focused136 benchmark/qualification/privacy passed93.95s; final16 findings/report
+  checks passed8.04s. Logs/tmp/actioncharter-b6-matrix-{focused,final-findings}.log.
+- make interface-validate passed4.86s (existing chunk warning), log/tmp/actioncharter-
+  b6-matrix-interface.log. No frontend edits this slice; prior isolated actual-API/
+  fake-model Settings browser evidence retained, no new owner Save reproduction.
+- Strict628 modules/3130 imports/zero upward debt; compatibility511 native/117
+  retained/290 retired, zero errors. Public capture metadata/privacy checks and
+  local Markdown targets pass. Final context/bounds/redaction15 checks passed0.56s;
+  log/tmp/actioncharter-b6-matrix-context.log. Final equality check confirms967
+  Python source/test files match; only documented ARCHITECTURE status text changed
+  among runtime-provenance inputs after measurement. Whitespace check clean.
+
+B6 is implemented/verified within local/synthetic scope. P1-X is NEXT, not started:
+one closeout issue (not yet authorized/created), reconcile Phase1 exit evidence and
+remaining limits; owner Git handoff, then Phase2 Data Card/focused context and the
+agreed health CSV/Excel hero journey. Do not start Phase2/RL/cross-chat memory or
+live database work implicitly. Phase1 is not marked complete by this B6 slice.
+M1 owner-reported Save-provider behavior remains unconfirmed; remote/public/vendor
+coverage and private-data analytical acceptance unqualified. Existing old pilots and
+B5 baseline stay history, not evidence of improvement on matching source/options.
+
+---
+
+# Work resume — B6 broader measurements complete; final regression running (2026-11-17, #96)
+
+The real matrix FINISHED as a recorder: 54 observations/27 comparisons, all27 pairs
+matching recorded source/settings/input conditions. Each installed model (qwen3.5:9b,
+qwen3:4b-instruct) recorded4 passes/7 failures/10 deadlines/3 skips/3 gaps. Three
+pairs passed on both. Seven deadlines preserve completed execution with Critic call
+unfinished; no timeout is relabelled a pass. Exact quality9B policy cause remains
+unknown beyond safe response-level field-rule finding; quality4B deadline. Two
+provider-unavailable failures are not a RAM/context diagnosis.
+
+Public evidence: benchmarks/results/2026-11-17-b6-broader-matrix.{json,md}. JSON568133
+bytes; all reports validated at recording, source SHA
+a66b86c82de06fc0d7bbdb9ccea5a2329f82aaa4a741ad30d8af6b0a5373008e.
+Controller session37545 exited0; do NOT restart it. Private temp project locator
+/tmp/actioncharter-b6-broader-root retained for audit only. Summary renderer:
+/tmp/actioncharter_b6_matrix_summary.py. No raw job/response/endpoint/key export.
+Generation120s/1024/none, temporary60s Critic; existing task budgets retained.
+Synthetic fresh file writes opted in only for declared fixture tasks; DB/private
+data opt-ins off. No fixture tests overlapped; no owner settings/secret/live DB/
+Git/dependency/model change. Source stayed fixed throughout. Old pilots preserved.
+
+FINAL OFFLINE REGRESSION NOW RUNNING: session58908; source-only clean export
+/tmp/actioncharter-b6-matrix-clean-m4yh7ke7; log/tmp/actioncharter-b6-matrix-full.log.
+CI/GITHUB_ACTIONS/frontend-required, PYTEST_ADDOPTS=-x -rA, explicit export src
+PYTHONPATH; make test. Do not launch a duplicate. Interface validate passed4.86s
+(existing chunk warning), log/tmp/actioncharter-b6-matrix-interface.log. Strict628
+modules/3130 imports/zero debt; compatibility511 native/117 retained/290 retired.
+Earlier focused136 checks and final16 findings/report checks passed as below.
+No new native module, agent, operation or permission. .claude owner content untouched.
+
+Next: finish/poll regression; source/export equality, final context/Markdown checks;
+update CURRENT_STATUS/roadmap/phase Status and this handoff with final evidence.
+B6 measurement gate complete, final validation pending. P1-X not yet claimed or
+started; closeout preparation stays within#96. Phase2 not started. Owner manages Git.
+
+---
+
+# Work resume — B6 broader measurements in progress (2026-11-17, #96)
+
+Owner authorized broader comparison and closeout preparation; existing open issue96
+reused, no overlapping PR. Preserve pending M1/M2/M3c/B6 and .claude. No Git actions,
+owner settings/secret/live database changes or new package/model downloads allowed.
+
+Added optional BenchmarkFailureDetails in existing L0 contract; existing L6 worker
+captures safe stage/category/correction/known reason/policy code and bounded schema
+findings via existing Planner formatter. Eight-entry cause-chain cap, six findings/
+1024 chars each, unknown field names masked. No raw exception/response/data copied.
+Existing reporting/comparison render these optional facts; legacy unknowns preserved.
+No new native module, agent, operation, authority or UI. Census remains628/511/117/290.
+
+Focused benchmark/qualification/privacy136 passed93.95s; final findings budget/report
+checks16 passed8.04s. Logs /tmp/actioncharter-b6-matrix-{focused,final-findings}.log.
+All source edits must finish before real runs; source consistency is measured.
+
+Next measurement protocol: existing27 task declarations, both installed qwen3.5:9b
+andqwen3:4b-instruct, sequential profiles, reasoningnone/120s/1024 tokens and uniform
+TEMPORARY60s Critic timeout. Synthetic fresh file outputs may be authorized only for
+tasks explicitly marked fixture. Disposable database opt-in stays OFF; both DB tasks
+must skip. Optional owner diabetes data stays OFF/missing; three declared gaps remain
+unsupported. No owner data/dB/service configuration used. Every case persists progress;
+no failed/unknown write is retried and no expired authority reused. Record all failures,
+not just successes. Entire model suite can take tens of minutes; communicate progress.
+
+Broader matrix is NOW RUNNING (tool session37545). Controller:
+/tmp/actioncharter_b6_broader_matrix.py; log /tmp/actioncharter-b6-broader-matrix.log.
+Progress is atomically retained after every case in
+benchmarks/results/2026-11-17-b6-broader-matrix.json (complete:false until all54
+profile/task observations and27 comparisons finish). Private temp project locator:
+/tmp/actioncharter-b6-broader-root. Do not restart/retry cases on recovery; inspect
+recorded state/process first. No native source, agents, task definitions, pyproject,
+context/ARCHITECTURE.md, SKILLS_INDEX or DECISIONS edits while running; source hashes
+are checked. Other documentation/evidence is outside that runtime fingerprint.
+Clean test export already prepared: /tmp/actioncharter-b6-matrix-clean-m4yh7ke7.
+
+No concurrent fixture/full tests during real measurements. After all model cases,
+validate/retain sanitized comparison evidence, run full make test and final gates,
+update current status/roadmap/phase Status and handoff. P1-X not started; Phase2 not
+advanced. Do not claim full eligibility/private-data or performance superiority.
+
+---
+
+# Work resume — B6 profile binding/comparison implemented and verified (2026-11-17, #96)
+
+Owner authorized continuation; existing open issue96 reused, no overlapping open PR.
+Preserved pending M1/M2/M3c/B6 and untracked .claude. No Git branch/stage/commit/push/
+merge, owner profile/secret edits, dependency installation or live database changes.
+No new agent role, processing operation, execution authority or interface navigation.
+
+Implemented --profile ID benchmark selection over existing L1 provider/preferences,
+without changing active Settings selection. Implicitlocal honors launcher/project
+model and reasoning choices. Whole-run model/settings/allowance/review timeout pinned;
+selected env credential only, no secret value in stored jobs/reports. Guarded secret
+files stay runtime-resolved against configured credential root, no copy/frozen-secret
+claim. Workers create one temp profile or verify/reuse an already prepared identical
+profile; mismatch refuses without overwrite. Loopback/M2 gates unchanged.
+
+L0 benchmark context adds optional non-secret profile/revision/fingerprint/review
+metadata; task records bind full staged-input manifest hashes. Old reports retain
+unknown fields. One new L6 apps/benchmark/comparison.py; CLI compare RUN_A RUN_B
+renders validated JSON/Markdown over local recorded evidence. Mismatched/unknown
+conditions surfaced; deltas only matching passes; no performance winner inferred.
+Token sides stay separate. Legacy benchmark token coverage is task-level; partial
+calls within an incomplete task are not reconstructed. Existing chat diagnostics
+call-level reporting remains separate. No new dependencies or UI controls.
+
+Real local scope: four SEQUENTIAL runs, TWO shipped read-only tasks; no concurrent
+fixture tests. UniformNone/120s/1024 tokens and explicit temp60s Critic review;
+normal15s/owner settings unchanged. h-describe passed all4 deterministic checks with
+complete Critic on9B/4B (106.94s/103.28s;2 calls each). h-quality9B plan policy rejected
+after one correction (70.16s,0 operations);4B hit task deadline during correction
+(120.07s,unknown execution/usage). Both failures retained, no automatic timeout retry.
+Matching recorded pair conditions and unchanged source during all4 observations;
+not full27-task comparison/repeated speed evidence/private-data acceptance.
+[Capture](../benchmarks/results/2026-11-17-b6-profile-observations.json),
+[descriptive comparison](../benchmarks/results/2026-11-17-b6-h-describe-001.md),
+[quality comparison](../benchmarks/results/2026-11-17-b6-h-quality-001.md).
+Observations precede the final prepared-profile compatibility correction: fresh-worker
+behavior unchanged semantically; not a claimed final-source real-model repetition.
+Original measured worker copy: /tmp/actioncharter-b6-measured-worker.py.
+
+Verification — complete collection coverage across batches:
+- Initial clean-export make test1454 passed, then qualification fixture failed when
+  worker tried saving its pre-staged profile (574.60s). Fixed by read-only equality
+  verification/reuse, with mismatch refusal. Final91 benchmark/qualification caller
+  tests passed97.94s; /tmp/actioncharter-b6-binding-callers.log. Earlier115 focused
+  benchmark/privacy/R11 tests passed49.71s before this final compatibility correction.
+- Completion make test: **1765 passed**,13 existing spatial warnings,396.01s. Reused
+  1329 completed unaffected checks and repeated125 prior affected tests plus all
+  remaining/new checks. Union: **3094 collected/3094 passing**,125 overlap,0 missing/
+  unexpected IDs. Not one uninterrupted final-source full-suite invocation. No CI,
+  Makefile or committed test exclusion changed. /tmp/actioncharter-b6-binding-coverage.json;
+  /tmp/actioncharter-b6-binding-{full,completion,collected}.log. Source-only export:
+  /tmp/actioncharter-b6-binding-clean-eqv6t9v6; all71 final changed source/test/tooling
+  files match completed export. Final documentation follows verification.
+- Interface validate passed4.37s (existing chunk warning); no new UI. Existing
+  isolated Settings browser passed persistence/shared endpoints/errors/CLI parity,
+  2 synthetic calls,0 workflow calls/page errors/secret leaks. No owner Save-report
+  reproduction claimed. /tmp/actioncharter-b6-provider-browser.log.
+- Strict628 modules/3127 imports/zero debt; compatibility511 native/117 retained/
+  290 retired/zero errors.15 context/bounds/redaction passed0.51s; whitespace and
+  local Markdown targets verified. /tmp/actioncharter-b6-binding-context.log.
+
+[Commands/limits](../docs/BENCHMARKS.md#saved-provider-runs-and-comparison-p1-b6-96).
+Read-only owner config inventory found existing ollama-test (qwen3.5:9b), loopback,
+raw allowance, activeprofilelocal, reasoningnone, review15. No endpoint/key printed.
+Manual CLI test can use that profile, with Ollama running; frontend/API not required:
+.venv/bin/geoagent benchmark run --profile ollama-test --task h-describe-001 --project-root .
+Then report returned run_id; compare TWO actual returned IDs. Real observations used
+TEMPORARY60s review, not the owner's15s; Critic availability is separate from score.
+
+B6 remains IN PROGRESS for complete controlled-suite profile measurements, then P1-X
+closeout. Do not claim2-task observations complete the full suite. P1/Phase2 not
+advanced; real diabetes acceptance belongs early Phase2 as agreed. M1 Save-provider
+owner report still unconfirmed, though isolated journey and stored profile exist.
+All Git integration stays with owner. Prior work follows.
+
+---
+
+# Work resume — B6 first-chat routing/reason fixes verified (2026-11-17, #96)
+
+Owner reported the first new CSV inspection/advice Send failed without a reason.
+Read-only owner telemetry showed one qwen3.5:9b Planner call timed out120s with
+prompt23780 bytes/schema5317, unknown tokens and no run. The assistant-supplied
+sentence reproducibly routed “Do not write files or modify any database” to the
+PostgreSQL inspection schema. Source selection now ignores only explicit prohibited
+effects, preserves positive work, and focuses CSV inspection-plus-advice on inspect_csv.
+Plain metadata behavior and explicit evidence-report scope remain compatible.
+Final decoder, deferred-schema repair, deterministic policy and authority unchanged.
+
+Existing submission receipts now store a safe category/fixed reason. Legacy failed
+receipts recover a matching retained diagnostic category on read without rewriting
+storage. Missing diagnostics stay unknown. Immediate errors scroll into view;
+refresh recovery retains the actual reason and never resends planning/execution.
+No new agent, operation, dependency, fallback, timeout retry or automatic model-setting
+change. Preserve all pending M1/M2/M3c/B6 and owner .claude content. No Git action,
+owner settings/secret change or live data/database write was made.
+
+Real local functional evidence: corrected exact sentence supplies inspect_csv with
+11439 prompt bytes. Provider-default reasoning still timed out121.128s, one call.
+A separate explicit TEMPORARY reasoning-none invocation passed39.008s, one call,
+2466 input/225 output tokens and an inspection proposal; no approval/execution.
+Not a controlled speed or reliability comparison: load/cache uncontrolled and
+fixture tests overlapped. Neither invocation was an automatic retry. Initial /tmp
+controller import failed before inference; explicit PYTHONPATH fixed that setup.
+[Sanitized observations](../benchmarks/results/2026-11-16-b6-first-chat.json).
+
+Verification — complete collection coverage, not one uninterrupted final-source run:
+- Initial clean-export make test:1689 passed before the metadata schema-focus
+  compatibility assertion stopped it (676.33s). Narrowed the new path to advice;
+  final85 Planner/readiness checks passed29.91s. Sandbox-only HTTP socket refusals
+  were rerun with sockets enabled. /tmp/actioncharter-b6-first-chat-compatibility.log.
+- Completion make test: **1865 passed**,13 existing spatial warnings,741.03s.
+  Ignored154 fully completed unaffected files (1218 checks), repeated all21 prior
+  affected conversation-caller files plus the remaining suite. No Makefile, CI or
+  committed test exclusion changed. Union: **3083 collected/3083 passing**,471
+  overlapping passes, zero missing/unexpected IDs. Evidence:
+  /tmp/actioncharter-b6-first-chat-coverage.json; initial/full and completion logs
+  /tmp/actioncharter-b6-first-chat-{full,completion}.log. Source-only export:
+  /tmp/actioncharter-b6-first-chat-clean-5kdxt5v7. Final changed source/test/tooling
+  files match that completed export. Documentation updates follow verification.
+- Earlier focused68 passed183.33s; final15 context/bounds/redaction passed0.56s.
+  Interface typecheck/build passed4.48s, existing chunk warning. Final fixture browser
+  passed usage scopes/export/old API/chat isolation AND visible first-send timeout,
+  reason across refresh, no replay, no page errors/workflow actions. Logs:
+  /tmp/actioncharter-b6-first-chat-{focused,context,interface,browser-final}.log.
+- Strict627 modules/3119 imports/zero debt; compatibility510 native/117 public/
+  290 retired/zero errors. Whitespace and local documentation link targets checked.
+
+[Exact manual retest](../docs/REQUEST_DIAGNOSTICS.md#failed-first-submissions--b6-follow-up-2026-11-16):
+restart launcher for code, refresh, Settings → Model service → Reasoning effort →
+None · no thinking → Use reasoning setting. The saved reasoning preference applies
+without another restart. Resend the same CSV inspection/advice message once. The
+proposal is not inspection evidence: use Execute for actual results. Inspect latest
+submission diagnostics; past timeout usage remains unknown. Reopening past failure
+never constitutes a successful retry. Owner model settings were deliberately untouched.
+
+B6 remains IN PROGRESS: saved-profile benchmark binding/comparison then X closeout
+are next. No Phase2 feature started. M1 owner Save-provider unresponsiveness remains
+unconfirmed. Git integration stays with the owner. Prior work/evidence follows.
+
+---
+
+# Work resume — P1-B6 reported model-token usage slice verified (2026-11-16, #96)
+
+Owner authorized [issue #96](https://github.com/wanggiya/action-charter/issues/96).
+Preserved pending M1/M2/M3c and untracked .claude changes. No Git staging, branch,
+commit, push, merge, live data/database change, secret edit or dependency install.
+No new real-model call was needed for this read-only reporting slice.
+
+Added **Reported model tokens** to Request diagnostics. Input/context and generated
+output stay separate; no unqualified total, lifetime billing or byte-transfer claim.
+The existing telemetry read aggregates at most100 recent records, deduplicates calls,
+uses explicit chat/submission/run links, exposes truncation and missing collection,
+and distinguishes unknown, known zero and stopped-before-dispatch. Timing sums model
+calls without double-counting parent intervals; output rate includes waiting/load/
+context and is not native decoding speed. Role/model details are collapsed by default.
+The summary precedes older diagnostics controls so figures fit the narrow panel.
+CLI diagnostics and JSON export share the backend projection; Zod preserves additive
+metadata. Older APIs keep individual records usable with a restart hint.
+
+Validation:
+- Source-only CI/GitHub/frontend-required make test: **3,075 passed**,13 existing
+  spatial warnings,895.44s; /tmp/actioncharter-b6-usage-full.log. Export:
+  /tmp/actioncharter-b6-usage-clean-6321hoek. Backend/CLI final sources covered.
+- Final frontend hierarchy, short control labels and passthrough export adjustments
+  were made after that suite. Final interface typecheck/build passed4.82s (existing
+  chunk warning); /tmp/actioncharter-b6-usage-interface-final.log. Browser fixture
+  journey passed: visible figures, three scopes, exact API/export projection parity,
+  old API fallback, chat isolation, no page errors or workflow actions. Screenshot
+  /tmp/actioncharter-reported-model-usage.png inspected. Browser log:
+  /tmp/actioncharter-b6-usage-browser-verified.log. This is fixture evidence,
+  not a new real-model efficiency benchmark or one final-source full-suite invocation.
+- Focused telemetry/egress/diagnostics/Planner caller tests119 passed29.74s;
+  /tmp/actioncharter-b6-usage-focused-final.log. No full-suite rerun required for the
+  separately verified frontend-only final changes.
+
+Final gates: strict627 modules/3117 import occurrences/zero debt; compatibility510
+native/117 public/290 retired/zero errors.15 context/bounds/redaction checks passed;
+local Markdown link targets and git diff whitespace checked. Final frontend/browser
+sources copied into the completed export; this does not imply a full-suite rerun.
+
+[Behavior, limits and manual validation](../docs/REQUEST_DIAGNOSTICS.md).
+Next: finish B6 saved-profile benchmark binding and controlled provider comparison,
+then X Phase1 closeout. B6 is IN PROGRESS; this slice does not complete it. M3c local
+qualification remains as recorded below; remote/public/vendor qualification absent.
+M1 owner Save-provider unresponsiveness is still unconfirmed; do not mark it fixed.
+Git integration remains the owner's responsibility. Restart the normal launcher to
+load the additive backend projection, then inspect existing chat diagnostics; no
+Authorize/Execute/model retry is needed simply to view usage.
+
+---
+
+# Work resume — P1-M3c local qualification implemented and verified (2026-11-16, #95)
+
+Existing owner-authorized issue95 reused. M1/M2 and .claude changes preserved. No
+Git staging/branch/commit/push/merge, owner settings/secrets/database edits, browser
+cache access or model/image download. Only synthetic three-row CSV workflows.
+
+Optional LiteLLM1.109.1 is installed under ignored .local/qualification/venv. Its
+117-package hash lock targets Linux x86_64/Python3.12. Installer uses isolated
+cache/wheels, leaves .venv alone, passes repeat and UV_OFFLINE=true runs. About
+658MiB environment/627MiB download cache. No normal-launcher change or new agent.
+
+scripts/qualification_services.py manages real LiteLLM and a separate Windows
+Ollama process. Private child env/HOME/cache/temp/logs, ephemeral ports,420s lifetime
+and owned process cleanup. Gateway has no retries/fallbacks/callbacks; generated key
+by env reference. Valid-body auth probes prove missing401 and native wrong-key400/
+no_db_connection refused before upstream; narrow exception only pinned managed
+runtime+exact type+zero dispatch+passing correct-key workflow. Generic400 fails.
+Core authorization/client policy unchanged. Shutdown happens before key-log scan.
+
+Windows controller allocates its port on Windows (Linux-free can be host-reserved),
+uses PID/start-time guarded process-tree cleanup, records binary identity, reuses
+cached weights with no cloud/pruning/pulls, checks blob size/mtime/exact-manifest
+inventory. Version-only preflight passed. First workflow used the default empty
+cache and failed model lookup with zero operations. Read only OLLAMA_MODELS user
+setting to locate actual custom cache, then explicitly reran only secondary.
+PrivateHOME/key files deleted with temporary state; normal Windows service untouched.
+
+All SIX modes passed across TWO matching-source captures: direct, compatible relay,
+auth relay, isolated worker, actual LiteLLM and owned second Windows Ollama server.
+Accepted Planner/execution/Critic on each, one operation/zero data outputs. Matched
+runner/worker/controllers/task/native-source fingerprints; unchanged source during
+both runs. Prior matrix retains failed secondary attempt; corrected capture is a
+separate explicit run, not an automatic retry or single green invocation.
+Both models installed: primaryqwen3.5:9b, secondaryqwen3:4b-instruct. Temporary review
+budget90s; production default15s retained. No speed/general reliability claim; full
+fixture regression overlapped the development exercise. Same runtime vendor and
+laptop, separate actual process; vLLM/LM Studio/remote/public coverage unqualified.
+
+[Acceptance manifest](../benchmarks/results/2026-11-16-m3c-acceptance.json),
+[exact retained captures](../benchmarks/results/README.md),
+[setup/validation and limits](../docs/MODEL_PROVIDER_QUALIFICATION.md).
+All earlier Nov15 and Nov16 pilot/configuration failures are retained. Every original
+capture complete:false; acceptance_complete:true explicitly combines the two.
+
+Validation: source-only CI/GitHub/frontend-required make test **3,060 passed**,13
+existing spatial warnings,1006.40s. /tmp/actioncharter-m3c-managed-full.log; export
+/tmp/actioncharter-m3c-managed-clean-qbkpbswg. All58 final changed source/test/tooling files match the tested export. Focused
+130 passed10.27s;15 context checks passed0.66s. Strict627 modules/3116 imports/zero
+debt; compatibility510 native/117 public/290 retired/zero errors. Installer repeat
+and cached-offline checks passed. No M3c frontend change; prior interface checks
+retained.444 local Markdown links resolve; whitespace clean. Capture hashes match
+acceptance; both private preflight directories/test keys were removed. All owned
+services/test processes stopped. .local optional files ignored; source manifests/scripts/tests/evidence only.
+
+Next: B6 provider-profile benchmark comparison, then X Phase1 closeout. M3c local
+work is implemented/verified, owner Git integration pending. Keep explicit nonlocal
+profiles blocked; no public/owner-data approval follows from local qualification.
+M1 unresponsive Save-provider report is still unconfirmed. Do not mark it fixed.
+No B6 issue/implementation, Git action or next-phase feature was started.
+
+---
+
+# Work resume — P1-M3c available checks verified; external qualification gaps remain (2026-11-15, #95)
+
+Owner approved [issue #95](https://github.com/wanggiya/action-charter/issues/95).
+Preserved all pending M1/M2 and untracked .claude content. No Git staging/branches/
+commits/pushes/merges, owner profile/secret edits, real dataset/database writes,
+package installation or image changes. M1 unresponsive Save report is unconfirmed.
+
+Added scripts/qualify_model_providers.py over the existing benchmark worker and
+shared profile/Planner/workflow/Critic services. Fixed synthetic three-row CSV,
+only inspect_csv, no writes/database skills. Temporary projects/profiles, explicit
+optional review preference, allowlisted child environment and private HOME/cache.
+Default workflow240s/3 calls; request120s/max1536 tokens/reasoning none. Product
+Critic default15s unchanged. No automatic timeout retry; existing bounded Planner
+correction remains. No new role, routing, product route or native source module.
+Worker additions: trusted operation narrowing, Unix model transport, planning-stage
+marker, Critic error code and content-free qualification schema/operation findings.
+
+Real direct qwen3:4b-instruct and qwen3.5:9b through compatible/auth relays and a
+separate user/network namespace planned/executed correct inspections with no data
+outputs. Missing/wrong synthetic keys401; missing reference/over-allowance requests
+refused pre-send with zero upstream calls. Onlylo in namespace, different identity,
+external ENETUNREACH, successful model access through fixed-route private Unix
+broker. Network isolation only: host filesystem/broker/model are outside that
+boundary. Relays share Ollama; custom auth relay is not LiteLLM.
+
+Preserved default15s timeouts and explicit60s rejected Critic responses. Diagnosis:
+valid assessment schema/status, but three method operations were not observed IDs.
+Fix: shared Critic generation schema enumerates successful observed operation IDs;
+stopped runs permit no method. Final status/subset validation remains unchanged.
+One final isolated REAL workflow passed with explicit TEMPORARY60s: Planner64.654s,
+3112prompt/215completion; Critic53.385s,1176prompt/262completion, accepted inspect_csv.
+Two model calls, no correction/retry; exactly one operation, zero data outputs.
+Source fingerprint unchanged during this accepted run. Ollama0.32.4/Python3.12.3/
+httpx0.28.1. Five sanitized JSON captures retained, including all earlier failures.
+No speed/general reliability claim; fixture tests overlapped some real development
+checks. Each report complete:false because full five-mode qualification is missing.
+
+Verification:
+- Source-only CI/GitHub/frontend-required make test: **3,044 passed**,13 existing
+  spatial warnings,876.87s; /tmp/actioncharter-m3c-full.log.
+- Final three-file difference (Critic service/test and runner provenance) copied to
+  that completed export; make test affected callers: **166 passed**,95.70s;
+  /tmp/actioncharter-m3c-completion.log. Full-suite plus final-difference validation,
+  not a claimed single final-source green invocation. Earlier focused166/55/140
+  checks passed. Export /tmp/actioncharter-m3c-clean-a6ef1lye excludes private
+  data/settings/secrets/.claude. No concurrent real model during the full suite.
+- Interface typecheck/build passed6.00s, existing chunk warning;
+  /tmp/actioncharter-m3c-interface.log. No new M3c frontend behavior/browser journey.
+- Strict gate627 modules/3116 import occurrences, zero debt; compatibility510 native/
+  117 public/290 retired, zero errors. Final15 context/bounds/redaction tests passed
+  1.19s;433 local Markdown links resolve; whitespace clean. All52 final changed
+  source/test/UI/script/example files match the tested export. No test/model process
+  remains running. /tmp/actioncharter-m3c-context-final.log.
+
+[Guide and exact rerun commands](../docs/MODEL_PROVIDER_QUALIFICATION.md),
+[retained observations](../benchmarks/results/README.md). No test/model run remains
+required after final checks. All source changes remain unstaged for the owner.
+
+Next: M3c stays OPEN: actual LiteLLM authenticated gateway and independent second
+runtime/host are not installed/configured. Public API/data-card check not claimed;
+explicit nonloopback profiles remain blocked. Do not call relay evidence independent
+provider qualification. Choose a reviewed, pinned real gateway/runtime setup, then
+use the existing runner with synthetic data. B6 profile comparison and X Phase1
+closeout follow the remaining qualification gate. Do not silently advance to Phase2.
+
+
+---
+
+# Work resume — P1-M2 implemented and verified (2026-11-15, #94)
+
+Owner authorized [issue #94](https://github.com/wanggiya/action-charter/issues/94).
+All pending M1/UI changes preserved. No Git staging/branches/commits/pushes/merges,
+owner secret/settings edits, real dataset reads or live service/database writes.
+M1 owner's unresponsive Save action remains unconfirmed; same-endpoint profiles
+passed isolated browser tests and remain allowed. Do not mark that report resolved.
+
+One new L1 module platform/model_gateway/egress.py, existing L0 provider contracts,
+private ModelRequest context-part fingerprints and 14 conservative construction-site
+wrappers. Copy, classify and enforce before credentials/completion HTTP. Serialized
+labels, mutations/appends/schemas and unknown parts cannot lower raw fallback.
+Fixed compatibility check is none; most conversations/evidence remain raw. No Data
+Card generation, new agent/role, per-role routing or execution authority. Settings
+and diagnostics show active/effective allowance, required class and blocked/allowed
+verdict. Ordinary nonloopback generation capped none; explicit nonloopback profiles
+remain blocked pending M3c. Implicit MODEL_DATA_ALLOWED is pinned with request config;
+existing implicit Docker host bridge retained as operator-trusted local runtime.
+Monitoring stays best effort. Scoped/standalone configured calls reuse existing
+records; rootless embedders use content-free logging. Started allowed calls record
+unknown dispatch until outcome, never false no-send evidence on interruption.
+HTTP policy refusals use 403 and allowance-specific guidance. [Guide](../docs/MODEL_EGRESS.md),
+[decision](../docs/decisions/2026-11-14-model-egress.md), [profiles](../docs/MODEL_PROVIDERS.md).
+
+All **3,028 collected tests have passing coverage across three batches**, proved by
+/tmp/actioncharter-m2-final-coverage.json (141 overlapping passes):
+- Initial source-only CI/GitHub/frontend-required make test: 1,588 passed before an
+  old nonlocal fake hostname was blocked (695.15 s), /tmp/actioncharter-m2-full.log.
+- Completion: 496 passed before a nested pytest inherited parent file selectors
+  and exceeded 60s (147.76 s), /tmp/actioncharter-m2-completion.log.
+- Final: **1,085 passed, 13 existing spatial warnings, 237.74 s**,
+  /tmp/actioncharter-m2-remainder.log. Fresh source export /tmp/actioncharter-m2-final-e42vb201.
+
+Four fixture files now use loopback instead of nonlocal mock names; timeout/error/
+structured-output assertions preserved. Nested R7 child clears PYTEST_ADDOPTS only;
+60s and all165 help hashes unchanged. One diagnostic recursion was interrupted,
+no model/product timeout change. This is complete coverage, not a claimed single
+uninterrupted green full-suite invocation. No test remains running.
+
+Focused gateway/privacy/compatibility 135 passed (10.85 s), caller/config/conversation
+135 passed (28.03 s), final audit checks77 passed (11.88 s), HTTP guidance137 passed
+(34.98 s). Interface typecheck/build passed (5.34 s build, existing size warning).
+Final strict gate627 modules/3115 imports, zero debt; compatibility510 native,
+117 public/290 retired, zero errors. Final isolated browser actual API/gateway plus
+fake HTTP model passed save/select/persistence/CLI, synthetic none success and raw
+planning refusal: 4 synthetic calls, no fifth HTTP request, zero workflow dispatch,
+page errors or key leakage. Screenshot /tmp/actioncharter-m2-blocked.png. No owner
+browser/cache or real model calls. Logs /tmp/actioncharter-m2-{http-guidance,browser-final,
+interface-final,layers-final,compatibility}.log. Earlier B5 real-model limits unchanged;
+this is not a speed/quality improvement or real LiteLLM/provider qualification claim.
+
+Final checks: 15 context/bounds/redaction tests passed (0.74 s), 404 local
+Markdown links resolve, whitespace clean. All 48 changed source/test/UI/script/
+example files match the final tested export. .claude/settings.json unchanged and
+unstaged; no new Git actions. Final log /tmp/actioncharter-m2-context-final.log.
+Next: owner manual gate validation/Git integration, then M3c real-provider checks,
+B6 profile comparison and X Phase1 closeout. M3c not started. Manual fallback for
+unconfirmed profile Save: select local, stop launcher, run MODEL_DATA_ALLOWED=none
+bash scripts/start_actioncharter.sh, ask a planning explanation (not an exact
+model-free inspection), confirm raw/none/blocked/Not attempted in diagnostics,
+then stop and restart normally. Keep writes OFF. No stored review edits or secrets.
+
+---
+
+# Work resume — P1-M1 implemented and verified (2026-11-14, #93)
+
+Settings feedback follow-up: owner could change models but Check was disabled;
+read-only running API showed selected=local/revision0/no explicit profiles. Owner
+then reported Save looked enabled but unclickable with no console error. Root cause
+not confirmed. Same-endpoint profiles are allowed: isolated actual API browser saved
+two successfully. Label local as launcher settings, explain disabled Save/check and
+unapplied profile choices, validate reserved/invalid IDs locally and display save
+errors beside Save. No backend/authority change or owner preference mutation.
+Only ModelSettings, its browser test and docs changed after the original export.
+Follow-up checks: targeted make test 44 passed (2.48 s), interface typecheck/build
+passed (3.91 s build, existing chunk-size warning), final isolated browser passed
+missing-field/ID validation, inline conflict, shared-endpoint save, persistence, CLI
+parity and format check (2 fake calls, 0 workflow actions/page errors/key leaks).
+Logs /tmp/actioncharter-m1-settings-feedback-{tests,build,browser}.log. No full-suite
+rerun for this frontend-only feedback change; original batch evidence is below.
+M2 not started.
+
+Owner authorized M1; B4/B5+packaging fix merged as d045216 (PR #92). Started clean
+main except .claude/settings.json; left unchanged. [Issue #93](https://github.com/wanggiya/action-charter/issues/93)
+created with approval. No Git mutations, owner secrets/model preferences/workspace
+writes or live database changes. No new agents or execution authority.
+
+Implemented three native modules: contracts/model_providers (L0), platform/model_gateway/
+profiles (L1), task_actions/model_providers (L5). Reused gateway/catalogue, lazy config,
+request pinning, CLI settings, HTTP settings and ModelSettings UI. Config canonical
+workspace model-providers.json via existing atomic JSON + metadata write transaction;
+no schema migration. Env/project .secrets references only, privately resolved at send.
+Typed profiles, compatible or optional Ollama discovery, explicit synthetic format
+check with shared configured timeout capped120/<=3 attempts/<=64 output tokens.
+No user-request format downgrade/retry; actual typed validation unchanged. Active
+profile/model/limits pin per request; CAS and stale-check guards preserve updates.
+Explicit profiles loopback-only; ordinary unclassified requests count raw. Legacy
+MODEL_* host semantics preserved; M2 context-part tagging/egress not implemented.
+Public diagnostics have profile ID/kind/location, never keys/URLs; successful secret
+reflection is rejected. Existing benchmark local stays implicit environment until B6.
+CLI models profiles/save/use/list/select/check shares actions with HTTP/Settings.
+[Guide](../docs/MODEL_PROVIDERS.md), [decision](../docs/decisions/2026-11-14-provider-profiles.md),
+[example](../examples/model-providers/local-proxy.json). B5 evidence untouched.
+
+Verification: final focused security/compat group 61 passed (28.92 s), earlier
+105 and 112 focused groups passed; latest privacy group 40 passed (4.22 s). Current
+strict gate 626 modules/3091 imports, zero debt; compatibility 509 native/117 public,
+290 retired, zero errors. Historical R7/R8 snapshot bytes preserved, only additive
+models group/three provider POSTs/one GET asserted separately. Interface typecheck/
+build passed (existing chunk-size warning). Isolated browser actual API+CLI, fake
+model endpoint, temporary workspace/browser profile passed: persistence, auth,
+synthetic schema->object check, reload, return to legacy; 2 synthetic calls, zero
+workflow actions/page errors/key leakage. Screenshot /tmp/actioncharter-m1-settings.png.
+No owner browser/cache; local cached browser binaries only. Latest source scripts
+include scoped matching button styles and exact execution-action audit (history-list
+POSTs are reads). Browser final log /tmp/actioncharter-m1-browser-final.log.
+
+Real Ollama qwen3.5:9b synthetic connection only: initial15s legacy probe timed out;
+retained /tmp/actioncharter-m1-real-smoke-15s.json. Explicit follow-up at configured
+120s: legacy valid JSON29.478s, temporary profile valid JSON2.823s, each29prompt/
+6completion tokens. Second call may be warm: compatibility proof, not performance
+benefit or full workflow qualification. No owner selection/.env changed, no real
+proxy key/gateway qualification claimed. M3c remains. Final evidence:
+/tmp/actioncharter-m1-real-smoke.json and /tmp/actioncharter-m1-real-smoke-final.log.
+
+Full source-only CI/GitHub/frontend-required make test started in export
+/tmp/actioncharter-m1-clean-etrrlf_d (HEAD + Git-visible tracked/new source, no ignored
+inputs/config/private state/.claude). Initial run: 2,766 passed before one obsolete
+test_task_actions guard assumed every new native service had a legacy HTTP adapter
+(963.03 s, 13 existing spatial warnings), /tmp/actioncharter-m1-full.log. Corrected
+that guard to assert model_providers is native and has no legacy adapter; did not
+create/retire an adapter or weaken historical compatibility manifests. No production
+source changed. Completion make test selected the corrected file and every remaining
+test: **208 passed in 56.60 s**, /tmp/actioncharter-m1-completion.log. Collection/set
+accounting proves all **2,959 unique tests** have passing coverage (15 overlapped);
+/tmp/actioncharter-m1-coverage.json. This is two-batch completion, not a claimed
+single green full-suite invocation. No test remains running.
+
+Final checks: 15 context/bounds/redaction tests passed (0.69 s), 390 local Markdown
+links resolve, whitespace clean; all 25 changed source/test/UI/script/example files
+match the tested export. .claude/settings.json remains unchanged and unstaged.
+Logs: /tmp/actioncharter-m1-final-gates.log, /tmp/actioncharter-m1-interface-final.log,
+/tmp/actioncharter-m1-layers-final.log, /tmp/actioncharter-m1-compatibility.log.
+Next: owner manual provider validation/Git integration, then M2 egress, M3c real
+provider qualification, B6 profile comparison and X closeout. No M2 work started.
+
+---
+
 # Work resume — PR #92 fixture packaging fixed and verified (2026-11-13)
 
 Owner committed/pushed B4/B5 as a002609 on feat/p1-benchmark-suite-baseline; PR #92

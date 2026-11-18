@@ -1,0 +1,72 @@
+{
+  "schema_version": "p2d1-context-observations-v1",
+  "evidence_kind": "real_local_model",
+  "complete": true,
+  "model": "qwen3:4b-instruct",
+  "source_sha256": "1dc79c8583956af79f635b887b8b126ffb58737b90586081de6b6d3012652932",
+  "synthetic_input_sha256": "f5d4305421b04b7efbf8c3528cf075d3605deca58dda47718f418ee8d91c168d",
+  "protocol": {
+    "timeout_seconds": 90,
+    "max_tokens": 768,
+    "reasoning_effort": "none",
+    "model_call_limit_per_observation": 1,
+    "workflow_dispatch": false
+  },
+  "observations": [
+    {
+      "context": "without_discovery_context",
+      "status": "clarification",
+      "model_calls": [
+        {
+          "prompt_bytes": 9599,
+          "supplied_schema_count": 1,
+          "data_card_count": 0,
+          "reported_input_tokens": 2081,
+          "reported_output_tokens": 58
+        }
+      ],
+      "proposed_operations": [],
+      "approval_performed": false,
+      "execution_performed": false,
+      "elapsed_seconds": 23.167,
+      "reader_check": {
+        "source_rows": 3,
+        "field_count": 3,
+        "digest_matches": true,
+        "execution_authority": false
+      }
+    },
+    {
+      "context": "with_same_turn_data_card",
+      "status": "validated_proposal",
+      "model_calls": [
+        {
+          "prompt_bytes": 11444,
+          "supplied_schema_count": 1,
+          "data_card_count": 1,
+          "reported_input_tokens": 2505,
+          "reported_output_tokens": 214
+        }
+      ],
+      "proposed_operations": [
+        "inspect_csv"
+      ],
+      "approval_performed": false,
+      "execution_performed": false,
+      "elapsed_seconds": 34.515,
+      "reader_check": {
+        "source_rows": 3,
+        "field_count": 3,
+        "digest_matches": true,
+        "execution_authority": false
+      }
+    }
+  ],
+  "limitations": [
+    "Both observations use current code: absent versus same-turn preliminary reader context; not a frozen pre-feature code comparison.",
+    "One observation per context, model order/cache/load uncontrolled; no latency or reliability improvement claim.",
+    "Only synthetic data; no owner setting, secret, data output or database change. No automatic request retry.",
+    "After measurement, wide-card serialization budgeting and malformed-legacy handling were tightened, and duplicate analytical prompt metadata removed; no final-source real-model repetition is claimed. Final fixtures cover these follow-ups."
+  ],
+  "source_unchanged": true
+}

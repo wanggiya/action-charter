@@ -1,5 +1,105 @@
 # Durable request diagnostics — 2026-10-29
 
+## Failed first submissions — B6 follow-up, 2026-11-16
+
+A first chat can fail before a conversation or workflow exists. Its submission
+receipt now retains a safe failure category and fixed recovery explanation, without
+raw exception or prompt text. Reopening/refreshing shows that explanation; legacy
+failed receipts use matching retained diagnostics when available, without rewriting
+them. Unavailable telemetry leaves an explicit unknown reason. Recovery never
+resends planning, executes a run or changes the selected model. Immediate frontend
+errors scroll into view instead of requiring a search for an off-screen alert.
+
+The inspection/advice test sentence “Do not write files or modify any database”
+previously selected the PostgreSQL reader schema. Descriptive routing now removes
+only explicit prohibited effects and keeps positive work in the same sentence.
+Simple CSV inspection/advice supplies its CSV contract and focused instructions;
+the final decoder, policy, deferred-schema correction and execution gates remain.
+
+Read-only owner diagnostics established an attempted qwen3.5:9b call timing out at
+120 seconds, unknown tokens and no run. In a separate temporary-project real-model
+test, the corrected sentence supplied inspect_csv with an11,439-byte prompt, but
+provider-default reasoning still timed out121.128s. An explicit separate test with
+temporary reasoning effort **none** passed in39.008s, one call,2,466 reported input/
+225 output tokens, no approval or execution. This is a functional observation, not
+a controlled speed comparison or RAM/context-overflow diagnosis. Owner settings
+were not changed; no timeout was automatically retried.
+[Sanitized functional observations](../benchmarks/results/2026-11-16-b6-first-chat.json)
+retain both separate attempts; neither exercised workflow execution.
+
+To retest: restart the launcher for the code fix, refresh the browser, then choose
+**Settings → Model service → Reasoning effort → None · no thinking**, then click
+**Use reasoning setting** for the
+compatible local model. That saved reasoning preference applies to new requests
+without another restart. Start a new chat and send:
+
+> Inspect sample_orders.csv and suggest useful analysis questions based on its columns. Do not write files or modify any database.
+
+Expect a CSV inspection proposal, rather than a database operation. With Inspect on
+send OFF, use Execute to obtain actual inspection facts before expecting advice
+based on those facts. Planning alone must not be presented as inspection evidence.
+Check the new submission under Request diagnostics for counts or a visible reason.
+Reopening an old failure only shows its recorded result; it is not a successful retry.
+
+## Reported model tokens — P1-B6 usage slice, 2026-11-16
+
+The owner requested communication-token reporting without an unqualified “Total”.
+The existing diagnostics disclosure now has a compact **Reported model tokens**
+summary with separate **Input / context** and **Generated output** figures. Tokens
+are provider-reported units, not network bytes, whole-machine computation or billing.
+Repeated context is counted on every call. Provider definitions apply; this view
+does not independently separate caching, reasoning or hidden computation.
+
+The shared backend read returns additive `reported_model_usage` metadata. It derives
+all figures from existing observations, with no model/provider query, execution,
+storage migration or lifetime ledger. HTTP, JSON export and `geoagent chat diagnostics`
+use this same aggregation. Legacy fields remain compatible; an older API without
+the additive field leaves individual records usable and shows a restart hint.
+
+Available scopes are recent chat records, retained submission intervals and recorded
+workflow IDs. Workflow attribution uses only an explicit call/run link or its retained
+parent link; planning without a recorded run association is not guessed into a run.
+Submissions can use the parent interval identity when an older record has no submission
+ID. Scope selection does not read another chat or regenerate a workflow.
+
+Counts sum only known nonnegative integer observations, separately for input and
+output. A partially reported call can contribute its known side while the missing
+side stays unknown. Known zero differs from missing usage. Confirmed pre-dispatch
+refusals show **Not sent**; a timeout after attempted dispatch has unknown consumption.
+Parent call counters and storage-failure flags expose missing records where known.
+Records/calls are deduplicated within each scope, and grouped by role, provider and
+model. These overlapping scope views must not be added together.
+
+Timing/call-outcome details show model-call intervals, correction and timeout counts,
+and end-to-end output rate for calls with reported output and positive measured time.
+The rate includes loading, prompt processing, waiting and transport. It is not native
+decoding speed. Parent submission/workflow intervals are not added to nested call
+durations. Missing durations remain unknown. A completed model call does not establish
+valid planning, successful execution or a correct analytical answer.
+
+All scopes cover at most **100 recently retained diagnostic records**, not the full
+chat/project lifetime. The view shows returned/retained counts when the window is
+truncated. Retention and best-effort collection can omit earlier records; known
+figures cannot reconstruct them. Model/GPU memory remains unavailable here.
+
+Manual validation:
+
+1. Restart the existing launcher, open a chat and expand **Request diagnostics**.
+2. Find **Reported model tokens**. Inspect the separate input/context and output
+   figures and call-reporting coverage; an exact model-free inspection can have no
+   recorded model calls. Do not expect invented zero usage.
+3. Switch **Usage scope** between available submission/workflow/chat entries.
+   Expand **Timing and call outcomes** and **By role and model** when needed.
+4. Refresh or export diagnostics. Neither action retries a model call or workflow.
+5. Switch chats: the old chat's figures must disappear. An empty scope says no model
+   calls were recorded. Counts from a timed-out call may remain unknown.
+6. `geoagent chat diagnostics CHAT_ID --json` returns the same scoped metadata;
+   without `--json`, the CLI shows the recent-chat summary plus individual records.
+
+This is the first B6 reporting slice [#96](https://github.com/wanggiya/action-charter/issues/96).
+Saved-profile benchmark binding and controlled comparison remain unfinished. No new
+agent, permission, model-native timing adapter or processing operation is added.
+
 ## Problem and delivered behavior
 
 Failed first submissions previously retained only a fixed “Submission stopped”
@@ -44,7 +144,7 @@ Records exclude prompts, dataset rows, model response bodies, endpoints, credent
 source paths and schema content. Exports still contain technical IDs and model names.
 Retention keeps up to 600 finished intervals and their calls, plus at most 6,000
 finished calls; active records are retained separately. Reads return at most 100 recent
-records for the requested chat, with totals explicitly scoped to those records.
+records for the requested chat, with reported figures explicitly scoped to those records.
 The existing 64 MB SQLite storage ceiling still applies. If collection storage fails,
 execution is not retried, approved or changed; the parent record marks incomplete
 collection when it can still be saved. Exports are manual local downloads.

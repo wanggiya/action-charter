@@ -3,6 +3,7 @@
 A role is a reasoning context, never an independent permission grant. All model
 calls are sequential; fixed services retain sole dispatch/validation authority.
 """
+from geoagent_harness.platform.model_gateway.egress import classify_request
 from contextvars import ContextVar
 from contextlib import AbstractContextManager
 from collections.abc import Callable
@@ -74,7 +75,7 @@ class Coordinator:
         if len(json.dumps(source).encode())>16000:
             source['evidence']={k:v for k,v in evidence.items() if k not in {'arguments','steps'}}
             source['evidence']['limitation']='Detailed arguments exceeded review context; deterministic validators remain authoritative.'
-        request=ModelRequest(json_mode=True,response_schema=Review.model_json_schema(),timeout_seconds=60,messages=[
+        request=classify_request(ModelRequest(json_mode=True,response_schema=Review.model_json_schema(),timeout_seconds=60,messages=[
             ChatMessage(role='system',content=json.dumps({'role':role,'task':phase,'rules':[
                 'Review the supplied work order or recorded evidence. Do not execute, authorize or claim independent validation.',
                 'For preflight use ready or needs_revision; for final recorded results use supported or needs_attention.',
@@ -82,7 +83,7 @@ class Coordinator:
                 'An unavailable check is a limitation, not a success. Failed or incomplete executions require needs_attention.',
                 'For statistics assess the question, fields, source scope, missing policy, exclusions, grouping, observation unit and supplied diagnostics. Report omitted evidence and unresolved assumptions; separate computed facts from interpretation. Completion does not prove independence, clinical validity or causality.',
                 'The single mode is self-review in one primary context. Three mode uses isolated role contexts and explicit evidence handoffs.'],
-                'required_json_schema':Review.model_json_schema()})),ChatMessage(role='user',content=json.dumps(source))])
+                'required_json_schema':Review.model_json_schema()})),ChatMessage(role='user',content=json.dumps(source))]))
         try:
             response=self.complete(request,role,phase)
             if len(response.content.encode())>8000:raise ValueError('Role review exceeds 8 KB')
