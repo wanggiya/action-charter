@@ -15,6 +15,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--root',required=True)
 parser.add_argument('--acquisition-fixture',action='store_true')
 parser.add_argument('--planning-task-fixture',action='store_true')
+parser.add_argument('--model-gateway-fixture',action='store_true',help='Use the real gateway against a caller-provided synthetic HTTP endpoint')
 parser.add_argument('--analytical-fixture',action='store_true')
 parser.add_argument('--statistics-fixture',action='store_true')
 parser.add_argument('--csv-discovery-fixture',action='store_true')
@@ -370,8 +371,9 @@ class FixtureModel:
             return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review the installed adapter; nothing authorized or executed.','plan':adapted}))
         return ModelResult(model='temporary deterministic browser fixture',content=json.dumps({'message':'Review regional totals; no operation has run.', 'plan':plan}))
 from geoagent_harness.agents.roles.planner import acquisition as capability_service
-capability_service.SharedModelClient=lambda settings:FixtureModel()
-conversation.SharedModelClient=lambda settings:FixtureModel()
+if not args.model_gateway_fixture:
+    capability_service.SharedModelClient=lambda settings:FixtureModel()
+    conversation.SharedModelClient=lambda settings:FixtureModel()
 if args.agent_modes_fixture:
     import geoagent_harness.agents.runtime.orchestrator.task_agents as task_agents
     task_agents.SharedModelClient=lambda settings:FixtureModel()
@@ -379,10 +381,12 @@ if args.analytical_fixture:
     os.environ['ACTIONCHARTER_ANALYTICAL_RUNTIME']='docker' if os.environ.get('ACTIONCHARTER_BROWSER_DOCKER')=='1' else 'local'
     from geoagent_harness.agents.runtime import analyst
     analyst.SharedModelClient=lambda settings:FixtureModel()
-method_memory.SharedModelClient=lambda settings:FixtureModel()
-method_helper.SharedModelClient=lambda settings:FixtureModel()
+if not args.model_gateway_fixture:
+    method_memory.SharedModelClient=lambda settings:FixtureModel()
+    method_helper.SharedModelClient=lambda settings:FixtureModel()
 from geoagent_harness.task_actions import run_assessment
-run_assessment.SharedModelClient=lambda settings:FixtureModel()
+if not args.model_gateway_fixture:
+    run_assessment.SharedModelClient=lambda settings:FixtureModel()
 if args.recipe_runs_fixture or args.write_policy_fixture:
     from geoagent_harness.agents.roles.planner import recipe_authoring
     from geoagent_harness.capabilities.recipes.execution import runner

@@ -9,7 +9,7 @@ import { helperReceiptSchema, helperStatusSchema } from "./method-helper";
 import { z } from "zod";
 import { plannerResultSchema, type InterfacePlannerResult } from "./interface-api";
 
-export const submissionReceiptSchema = z.object({submission_id:z.string().regex(/^[a-f0-9]{32}$/),conversation_id:z.string().regex(/^[a-f0-9]{32}$/),status:z.string(),finding:z.string(),run_id:z.string().nullable()});
+export const submissionReceiptSchema = z.object({submission_id:z.string().regex(/^[a-f0-9]{32}$/),conversation_id:z.string().regex(/^[a-f0-9]{32}$/),status:z.string(),finding:z.string(),run_id:z.string().nullable(),failure_code:z.string().nullable().optional()});
 
 export const conversationSchema = z.object({
   agent_mode:agentMode.nullable().optional(),agent_coordination:coordinationSchema.nullable().optional(),agent_attempt:coordinationSchema.nullable().optional(),

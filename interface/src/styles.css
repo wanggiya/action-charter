@@ -1566,6 +1566,20 @@
 .request-diagnostics dd{text-align:right}
 .request-diagnostics-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .request-diagnostics-actions button{font-size:12px;padding:5px 8px}
+.reported-model-usage{min-width:0;margin:10px 0 14px;padding:10px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#58a6e70b,transparent 55%)}
+.reported-model-usage h4{margin:0 0 8px;font-size:14px;color:var(--foreground)}
+.reported-model-usage .usage-scope{display:grid;gap:5px;margin:0;font-size:12px;color:var(--muted)}
+.usage-scope select{width:100%;min-width:0;padding:7px;border:1px solid var(--line);border-radius:6px;color:var(--foreground);background:var(--panel);font:inherit}
+.usage-token-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.usage-token-grid>div{display:flex;flex-direction:column;gap:4px;padding:9px;min-width:0;border-block:1px solid var(--line)}
+.usage-token-grid span,.usage-token-grid small,.reported-model-usage .usage-caption{font-size:11px;color:var(--muted)}
+.usage-token-grid strong{font-size:20px;color:var(--foreground);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.reported-model-usage .usage-coverage{color:var(--foreground);margin:8px 0}
+.reported-model-usage .usage-caution{color:#f0c77b}
+.usage-breakdown{min-width:0;max-width:100%}
+.usage-role{padding:8px 0;border-bottom:1px solid var(--line)}
+.usage-role>header{display:grid;gap:4px;font-size:12px}
+.usage-role>header small{color:var(--muted);overflow-wrap:anywhere}
 
 .app-shell .planner-dialogue>.intent-error{flex:0 0 auto;max-height:28vh;overflow:auto}
 .app-shell .planner-dialogue>.request-diagnostics{flex:0 0 auto;max-height:38vh;overflow:auto;scrollbar-gutter:stable}
@@ -1593,3 +1607,19 @@
 .inventory-problems .execution-attempt>p {margin:4px 0}
 .inventory-problems .execution-attempt>small,.inventory-problems .execution-attempt>span {color:#a8b4c0;font-size:10px}
 .recipe-inventory-content>.inventory-problems {margin:20px 20px 0}
+
+/* Model profiles reuse the Settings writing/control surfaces. */
+.model-provider-editor { margin:12px 0; }
+.model-provider-editor summary { cursor:pointer; color:var(--text-primary, #e8eaed); padding:8px 0; }
+.model-provider-editor label { display:block; margin:10px 0; }
+.model-provider-editor input { box-sizing:border-box; width:100%; padding:10px; color:#e8eaed; background:#0f1115; border:1px solid #526279; border-radius:6px; }
+
+.model-service-settings > label { display:block; margin:12px 0 6px; }
+.model-service-settings small { display:block; margin:6px 0 12px; line-height:1.5; }
+.model-service-settings button { margin:8px 8px 8px 0; }
+.data-card-source { overflow-wrap: anywhere; }
+.data-card details { margin-block: .65rem; }
+.data-card-table { overflow-x: auto; max-width: 100%; }
+.data-card-table table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.data-card-table th, .data-card-table td { padding: .5rem .65rem; text-align: left; border-bottom: 1px solid var(--line, #253442); }
+.data-card-table th { overflow-wrap: anywhere; }

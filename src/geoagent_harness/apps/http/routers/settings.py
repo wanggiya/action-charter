@@ -49,7 +49,7 @@ def get_3_models(self, route_context, match=None):
     try:
         self._send(HTTPStatus.OK, catalog(project_root))
     except (CatalogError, route_context.services.ModelSettingsError, OSError, ValueError):
-        self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Ollama discovery unavailable. Check the configured endpoint and service. No model call or download occurred.'})
+        self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Model discovery unavailable. Check the selected profile and service. No model call or download occurred.'})
     return RESPONSE_SENT
 
 def post_4_select(self, route_context, payload):
@@ -57,13 +57,34 @@ def post_4_select(self, route_context, payload):
     recipe_root = route_context.recipe_root
     approval_root = route_context.approval_root
     task_root = route_context.task_root
-    from geoagent_harness.platform.model_gateway.catalog import select, Selection, CatalogError
+    from geoagent_harness.task_actions.model_providers import select_model as select, Selection
+    from geoagent_harness.platform.model_gateway.catalog import CatalogError
     try:
         response = select(project_root, Selection.model_validate(payload))
     except CatalogError as error:
         self._send(HTTPStatus.CONFLICT, {'error': str(error), 'execution_performed': False})
         return RESPONSE_SENT
     return response
+
+
+def get_providers(self,route_context,match=None):
+    from geoagent_harness.task_actions.model_providers import list_profiles
+    from geoagent_harness.platform.model_gateway.profiles import ProviderError
+    try:self._send(HTTPStatus.OK,list_profiles(route_context.project_root))
+    except (ProviderError,OSError):self._send(HTTPStatus.SERVICE_UNAVAILABLE,{'error':'Provider configuration unavailable'})
+    return RESPONSE_SENT
+
+
+def post_provider(self,route_context,payload):
+    from geoagent_harness.task_actions.model_providers import save_profile,select_profile,check_profile
+    from geoagent_harness.contracts.model_providers import ProviderUpdate,ProviderSelection,ProviderCheck
+    from geoagent_harness.platform.model_gateway.profiles import ProviderError
+    actions={'/api/v1/providers/save':(ProviderUpdate,save_profile),'/api/v1/providers/select':(ProviderSelection,select_profile),'/api/v1/providers/check':(ProviderCheck,check_profile)}
+    contract,action=actions[self.path]
+    try:return action(route_context.project_root,contract.model_validate(payload))
+    except ProviderError as error:
+        self._send(HTTPStatus.CONFLICT,{'error':str(error),'model_called':False,'execution_performed':False})
+        return RESPONSE_SENT
 
 def post_5_reasoning(self, route_context, payload):
     project_root = route_context.project_root

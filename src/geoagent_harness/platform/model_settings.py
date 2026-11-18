@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from geoagent_harness.platform.configuration import selected_model, selected_reasoning
@@ -23,6 +23,13 @@ class ModelSettings:
     max_tokens: int
     reasoning_effort: str | None = None
     response_format: str = "json_schema"
+    provider_profile_id: str = 'local'
+    provider_kind: str = 'local'
+    provider_location: str = 'machine'
+    data_allowed: str = 'raw'
+    credential_ref: str | None = field(default=None,repr=False)
+    credential_root: str = field(default='',repr=False)
+    listing: str = 'ollama'
 
 
 def _parse_model_settings(
@@ -86,6 +93,9 @@ def _parse_model_settings(
     response_format = values.get("MODEL_RESPONSE_FORMAT", "json_schema").strip()
     if response_format not in {"json_schema", "json_object"}:
         raise ModelSettingsError("MODEL_RESPONSE_FORMAT must be json_schema or json_object")
+    data_allowed=values.get('MODEL_DATA_ALLOWED','raw').strip()
+    if data_allowed not in {'none','metadata','data_card','aggregates','raw'}:
+        raise ModelSettingsError('MODEL_DATA_ALLOWED must be a declared data class')
     return ModelSettings(
         base_url=base_url,
         model=model,
@@ -93,6 +103,7 @@ def _parse_model_settings(
         max_tokens=max_tokens,
         reasoning_effort=reasoning,
         response_format=response_format,
+        data_allowed=data_allowed,
     )
 
 

@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "acceptance_complete": true,
+  "single_green_invocation": false,
+  "verification_method": "six passing modes across original matrix plus explicit corrected-cache secondary run; failed attempt retained",
+  "identity": {
+    "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+    "runner_sha256": "98e709a21b39f35bd9d33a323128536c779f3d779ebba7a9a206e6fbe5b2372e",
+    "worker_sha256": "2aa9faeea1876d2df989d8306ab5405c73c5f1dad126c8c9eaf081ce136a7027",
+    "service_controller_sha256": "7c55581f4eaa7b955a473c40e2dea2405007b164c19b341ed9eeb32a019ba774",
+    "windows_controller_sha256": "cbb86fe8741713c1ed44d44cf72432970b63fe11a195036a937db4b2ea17c40c",
+    "source_sha256": "a5cfd574e468e5fe48d9e1bc34587aab79d96a94c88d1227aa74239ca2d39033"
+  },
+  "captures": [
+    {
+      "file": "2026-11-16-m3c-gateway-status-pilot.json",
+      "sha256": "3f245ce271d16d7c1bef679fe8aa8c6ed819093eb93a8a4d36fb0c751b9de0ce"
+    },
+    {
+      "file": "2026-11-16-m3c-managed-matrix.json",
+      "sha256": "4e6a263210dd2b250ceca69b012263c1b2cd7fbea9ea5a87764419273b345953"
+    },
+    {
+      "file": "2026-11-16-m3c-secondary-corrected-cache.json",
+      "sha256": "aa8084c01d5296839108413bb57d6dc988f5be39d9febbd1de3bba54965868ab"
+    }
+  ],
+  "modes": {
+    "direct": {
+      "status": "passed",
+      "model": "qwen3.5:9b",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-managed-matrix.json"
+    },
+    "compatible-relay": {
+      "status": "passed",
+      "model": "qwen3.5:9b",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-managed-matrix.json"
+    },
+    "authenticated-relay": {
+      "status": "passed",
+      "model": "qwen3.5:9b",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-managed-matrix.json"
+    },
+    "isolated": {
+      "status": "passed",
+      "model": "qwen3.5:9b",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-managed-matrix.json"
+    },
+    "gateway": {
+      "status": "passed",
+      "model": "qualification-model",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-managed-matrix.json"
+    },
+    "secondary": {
+      "status": "passed",
+      "model": "qwen3:4b-instruct",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "data_outputs": 0,
+      "capture": "2026-11-16-m3c-secondary-corrected-cache.json"
+    }
+  },
+  "limits": [
+    "Synthetic three-row CSV only; not B6 performance comparison or production readiness.",
+    "Secondary is another Windows Ollama process, same vendor and existing weight cache; not another vendor or physical host.",
+    "Explicit temporary review timeout 90 seconds; product default remains 15.",
+    "Gateway network/filesystem sandboxing, public API/data-card redaction and live databases are not established."
+  ],
+  "automated_verification": {
+    "evidence_kind": "fixture",
+    "full_make_test": {
+      "passed": 3060,
+      "warnings": 13,
+      "seconds": 1006.4
+    },
+    "focused_services_provider_checks": {
+      "passed": 130,
+      "seconds": 10.27
+    },
+    "final_context_checks": {
+      "passed": 15,
+      "seconds": 0.66
+    },
+    "installer_repeat_and_cached_offline": "passed",
+    "strict_layers": "zero_debt",
+    "compatibility": "zero_errors",
+    "frontend": "unchanged; prior validation retained"
+  }
+}

@@ -7,7 +7,90 @@ Tracking: [B2 #87](https://github.com/wanggiya/action-charter/issues/87),
 B4 now supplies [27 suite definitions](../benchmarks/README.md) and an opt-in
 disposable database adapter (#90). B5 adds fixture CI, sanitized reporting and the
 [recorded local-model development baseline](../benchmarks/results/README.md). Provider
-profiles/egress and comparison remain unfinished. [Phase 1 plan](product-direction/PHASE_1_PLAN.md).
+profiles and context egress are implemented. B6 adds pinned profile runs, read-only
+comparison and [broader local measurements](../benchmarks/results/2026-11-17-b6-broader-matrix.md).
+[Phase 1 plan](product-direction/PHASE_1_PLAN.md).
+
+## Saved-provider runs and comparison (P1-B6, #96)
+
+`benchmark run --profile ID` now selects a saved profile for this run without changing
+the selected provider in Settings. The default `local` explicitly uses the implicit
+launcher profile, including the project's saved local model/reasoning preference.
+Fixture mode uses no provider and accepts only the default profile argument.
+Unknown profiles, invalid configuration and nonloopback endpoints reject before
+staging. M2's content gate remains active on every actual model request; selecting
+a profile or installing a package grants no data access or execution authority.
+
+The runner snapshots the provider revision, selected model, effective timeout/token/
+reasoning/response-format settings, allowance and standalone Critic review timeout
+once. Workers receive those settings and a temporary copy of the one explicit profile;
+changing Settings during a run cannot reroute later calls. Public context records a
+non-secret configuration fingerprint and preference revisions, never endpoint URLs,
+credential references or credential values. No new agent or role is added.
+
+Only a selected environment credential is forwarded into the bounded worker; unrelated
+environment secrets are excluded. That value is never written into a job/report. Secret
+files use the existing guarded resolver against the configured project root, after
+the per-call egress gate, without copying the file into task state. Secret-file values
+remain runtime-resolved: rotation can fail authentication; the runner does not retry
+or promise frozen secret contents. Private `job.json` still contains connection
+configuration/reference paths; export the validated report, not raw run directories.
+This remains a fixed local process boundary, not a new filesystem sandbox.
+
+```bash
+geoagent benchmark run --profile my-local-profile --task h-describe-001
+geoagent benchmark run --profile another-profile --task h-describe-001
+geoagent benchmark compare RUN_A RUN_B --format markdown
+geoagent benchmark compare RUN_A RUN_B --format json
+```
+
+Use actual saved profile IDs and returned 32-character run IDs; `--project-root PATH`
+works on each command. Omit `--task` to run suite v1. Profiles/models are configured
+through the existing Settings or `geoagent models` commands. These commands do not
+create profiles or choose models automatically. Explicit write/disposable-database/
+local-data opt-ins remain independent; ordinary comparison is entirely read-only.
+
+Comparison validates each saved summary against its task records and start context.
+New results bind the staged input manifest's normalized paths, sizes and full hashes;
+changed input bytes are detected even when the YAML definition is unchanged. It flags
+different source, task scope/order/definition/budgets, inputs, package/Python versions,
+generation settings, review timeout, runtime options, allowance or missing legacy
+context. Unrecorded legacy fields remain unknown. The report is local consistency
+checking, not a cryptographic signature against an attacker rewriting every record.
+
+Each row shows both statuses; differences in recorded measurements are calculated
+only for matching successful cases. Skips/gaps are not successes and Critic findings
+remain separate. Input/context and generated tokens stay separate, with reporting
+coverage and unknowns. The old JSON `totals` field remains for compatibility; it is
+scoped to recorded task metrics, not lifetime billing or combined token consumption.
+Benchmark token coverage remains task-level: if any call lacks a token side, that
+task's legacy sum for that side is unknown. Sums of fully reported tasks do not
+reconstruct known partial calls; the chat diagnostics view has separate call-level
+coverage. Inspect the coverage figures when a Critic review or request times out.
+Hardware/load/cache warmth and repeated-run uncertainty are not controlled by reading
+two reports, so comparison always leaves `performance_winner` unknown. Run sequentially
+without tests/background model calls for useful observations; no general superiority
+claim follows from one pair. Comparison performs no inference, execution or retry.
+
+Failed worker records now include bounded failure stage/category, correction status,
+known Planner reason, selected fixed policy-rule codes and safe schema findings from
+the existing trusted field formatter. Exception chains are bounded to eight entries;
+at most six findings of1,024 characters are retained. Unknown fields are masked and
+raw model/exception text, paths, dataset values and credentials are not copied. These
+observations explain a rejection; they do not repair a plan or grant authority. Legacy
+records have no reconstructed findings. JSON/Markdown reports and comparisons use the
+same optional contract.
+
+The broader B6 capture accounts for27 declarations per installed model, 54 observations
+and27 matching recorded pairs. Each model recorded4 passes/7 failures/10 timeouts/
+3 skips/3 gaps. Database/private-data opt-ins were disabled; fresh synthetic file
+outputs were explicitly enabled through ordinary authorization. Source stayed fixed,
+no fixture tests overlapped, and no timed-out write was replayed. Seven deadlines
+retain completed execution while Critic review was unfinished; deadlines still count
+as timeouts, not passes. The report distinguishes proposal absence, policy rejection,
+execution failure and model unavailability without inventing exact causes. Single
+observations and uncontrolled hardware/cache do not establish a performance ranking.
+Phase1 closeout and private-data analytical acceptance remain separate gates.
 
 ## Structure and responsibilities
 

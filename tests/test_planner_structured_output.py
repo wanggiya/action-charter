@@ -40,7 +40,7 @@ def test_schema_is_sent_to_provider_and_old_json_mode_remains_supported():
     def reply(request):
         seen.append(json.loads(request.content))
         return httpx.Response(200,json={'choices':[{'message':{'content':'{"message":"Which column?","plan":null}'},'finish_reason':'stop'}]})
-    settings=ModelSettings(base_url='http://fixture/v1',model='fixture',timeout_seconds=10,max_tokens=1000)
+    settings=ModelSettings(base_url='http://127.0.0.1:11434/v1',model='fixture',timeout_seconds=10,max_tokens=1000)
     request=ModelRequest(messages=[ChatMessage(role='user',content='Return JSON')],json_mode=True,response_schema=Reply.model_json_schema())
     transport=httpx.MockTransport(reply)
     result=SharedModelClient(settings,transport=transport).complete(request)
@@ -58,7 +58,7 @@ def test_schema_rejection_does_not_silently_retry_or_downgrade(detail):
     def reject(request):
         seen.append(request)
         return httpx.Response(400,json={'error':detail})
-    settings=ModelSettings(base_url='http://fixture/v1',model='fixture',timeout_seconds=10,max_tokens=1000)
+    settings=ModelSettings(base_url='http://127.0.0.1:11434/v1',model='fixture',timeout_seconds=10,max_tokens=1000)
     client=SharedModelClient(settings,transport=httpx.MockTransport(reject))
     with pytest.raises(ModelClientError) as caught:
         client.complete(ModelRequest(messages=[ChatMessage(role='user',content='Return JSON')],response_schema=Reply.model_json_schema()))

@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import time
-from dataclasses import replace
+from dataclasses import replace,asdict
 
 from geoagent_harness.platform.storage.files import FileJsonRecords
 
@@ -14,14 +14,66 @@ DATABASE_SKILLS=('validate_postgres_import','import_csv_to_postgres','inspect_po
     'export_postgres_to_csv','load_vector_to_postgis','validate_postgis_layer')
 
 
+def bind_profile(root,settings):
+    """Prepare a fresh worker or verify an already prepared qualification root."""
+    if settings is None or settings.provider_profile_id=='local':return
+    from geoagent_harness.platform.model_gateway import profiles
+    from geoagent_harness.contracts.model_providers import ProviderProfile,ProviderUpdate,ProviderSelection,ProviderLimits
+    state=profiles.read(root)
+    if state.profiles:
+        if state.selected!=settings.provider_profile_id:
+            raise ValueError('Worker profile differs from pinned configuration')
+        actual=profiles.capture(root).settings()
+        def comparable(value):return {key:v for key,v in asdict(value).items() if key!='credential_root'}
+        if comparable(actual)!=comparable(settings):
+            raise ValueError('Worker profile differs from pinned configuration')
+        return
+    profile=ProviderProfile(id=settings.provider_profile_id,base_url=settings.base_url,
+        kind=settings.provider_kind,location=settings.provider_location,data_allowed=settings.data_allowed,
+        model=settings.model,listing=settings.listing,capabilities=settings.response_format,
+        credential_ref=settings.credential_ref,
+        limits=ProviderLimits(timeout_s=settings.timeout_seconds,max_tokens=settings.max_tokens))
+    profiles.save(root,ProviderUpdate(profile=profile,expected_revision=state.revision))
+    profiles.select(root,ProviderSelection(profile_id=profile.id,expected_revision=state.revision+1))
+
+
+def failure_details(error,observation):
+    """Only trusted field descriptions/fixed codes, never exception/model text."""
+    from pydantic import ValidationError
+    from geoagent_harness.agents.roles.planner.agent import _schema_findings
+    from geoagent_harness.platform.model_gateway.telemetry import error_code
+    from geoagent_harness.contracts.benchmark import BenchmarkFailureDetails
+    reasons={'capability_gap_unresolved','unverified_reuse_claim','request_coverage_incomplete',
+             'schema_repair_deferred','output_truncated'}
+    rules={'Referenced operation must produce a CSV table':'csv_producer_required',
+           'Input format does not match the operation data contract':'input_format_mismatch',
+           'file paths must be safe normalized relative paths':'unsafe_input_path',
+           'Output paths must remain under data/output':'unsafe_output_path',
+           'Calculation references unknown source columns or collides with the source schema':'missing_calculation_columns'}
+    current=error;seen=set();findings=[];policy=None
+    while current is not None and id(current) not in seen and len(seen)<8:
+        seen.add(id(current))
+        if isinstance(current,ValidationError) and not findings:findings=[text[:1024] for text in _schema_findings(current)]
+        if str(current) in rules:policy=rules[str(current)]
+        current=current.__cause__
+    stage='planning' if not observation.get('planning_status') else 'advisory_review' if observation.get('observed_outcome')=='completed' else 'execution'
+    reason=getattr(error,'reason',None)
+    return BenchmarkFailureDetails(stage=stage,category=error_code(error),
+        correction_attempted=getattr(error,'correction_attempted',False) is True,
+        planner_reason=reason if isinstance(reason,str) and reason in reasons else None,policy_rule=policy,
+        schema_findings=findings).model_dump(mode='json')
+
+
 class BudgetExceeded(RuntimeError):
     pass
 
 
 class BudgetClient:
-    def __init__(self, settings, plan, limit, deadline, root, facts=None):
+    def __init__(self, settings, plan, limit, deadline, root, facts=None, model_socket=None, qualification=False):
         self.settings, self.plan, self.limit, self.deadline, self.root = settings, plan, limit, deadline, root
         self.calls = [];self.exhausted=False;self.facts=facts or {}
+        self.model_socket = model_socket  # Trusted qualification runner only; never a model argument.
+        self.qualification = qualification
 
     def complete(self, request):
         if self.facts:
@@ -56,9 +108,25 @@ class BudgetClient:
                 result = ModelResult(model='benchmark-fixture', content=json.dumps(response))
             else:
                 remaining = max(.001, self.deadline-time.monotonic())
-                result = SharedModelClient(replace(self.settings, timeout_seconds=min(self.settings.timeout_seconds,remaining))).complete(
+                import httpx
+                transport = httpx.HTTPTransport(uds=self.model_socket) if self.model_socket else None
+                result = SharedModelClient(replace(self.settings, timeout_seconds=min(self.settings.timeout_seconds,remaining)), transport=transport).complete(
                     request.model_copy(update={'timeout_seconds':min(request.timeout_seconds or 600,remaining,600)}))
             call.update(prompt_tokens=result.prompt_tokens,completion_tokens=result.completion_tokens)
+            if self.qualification and role=='critic':
+                from geoagent_harness.contracts.outcome_assessment import OutcomeAssessment, MethodSuggestion
+                from pydantic import ValidationError
+                try:
+                    assessment=OutcomeAssessment.model_validate_json(result.content)
+                    call['assessment_schema_valid']=True
+                    call['assessment_status']=assessment.deterministic_status
+                    call['assessment_operations']=[s if s in (*SAFE_SKILLS,*DATABASE_SKILLS) else '[unknown operation]'
+                        for s in assessment.reusable_method.operations] if assessment.reusable_method else []
+                except ValidationError as error:
+                    fields=set(OutcomeAssessment.model_fields)|set(MethodSuggestion.model_fields)
+                    call['assessment_schema_valid']=False
+                    call['schema_findings']=[{'field':'.'.join(str(p) if type(p) is int or p in fields else '[unexpected field]' for p in e['loc']),
+                        'type':e['type']} for e in error.errors(include_input=False,include_context=False)[:8]]
             return result
         except Exception as error:
             call['timeout']=getattr(error,'code',None)=='model_timeout'
@@ -86,9 +154,18 @@ def work(root):
     store = FileJsonRecords(root,max_bytes=2_000_000)
     job = store.read('job.json')
     settings = ModelSettings(**job['settings']) if job.get('settings') else None
+    bind_profile(root,settings)
+    if 'review_timeout_seconds' in job:
+        from geoagent_harness.platform.model_gateway.catalog import select_review_timeout,ReviewTimeoutSelection
+        select_review_timeout(root,ReviewTimeoutSelection(seconds=job['review_timeout_seconds'],expected_revision=0))
     plan=job.get('fixture_plan')
     facts={'inputs':job.get('inputs',[]),'execution_authority':False}
     skills=(*SAFE_SKILLS,*DATABASE_SKILLS) if job.get('database') else SAFE_SKILLS
+    if 'allowed_skill_ids' in job:
+        selected=job['allowed_skill_ids']
+        if not isinstance(selected,list) or not selected or any(s not in skills for s in selected):
+            raise ValueError('Qualification skills must be a nonempty subset of admitted operations')
+        skills=tuple(selected)
     if job.get('database'):
         from geoagent_harness.platform.settings import load_settings
         from geoagent_harness.data.databases.postgres.service import connection_sha256
@@ -102,7 +179,7 @@ def work(root):
             if args.get('connection_sha256')=='$connection':args['connection_sha256']=facts['database']['connection_sha256']
             if isinstance(args.get('source_sha256'),str) and args['source_sha256'].startswith('$input:'):
                 args['source_sha256']=inputs[args['source_sha256'][7:]]
-    client = BudgetClient(settings,plan,job['model_calls'],time.monotonic()+job['wall_clock_s'],root,facts)
+    client = BudgetClient(settings,plan,job['model_calls'],time.monotonic()+job['wall_clock_s'],root,facts,job.get('model_socket'),job.get('qualification',False))
 
     identity='1'*32
     observation={'observed_outcome':'unknown','executed_operations':0,'output_files':0,'run':{},'reason_code':'worker_error','approvals_required':0}
@@ -122,6 +199,7 @@ def work(root):
                 confirmed_plan_sha256=plan_sha256(plan.plan),allowed_skill_ids=list(skills)),project_root=root)
             request=WorkflowRequest(action='prepare_workflow',conversation_id=identity,plan_filename=saved['plan_filename'],confirmed_plan_sha256=saved['plan_sha256'])
             review=prepare_workflow(request,project_root=root)
+            observation['planning_status']='validated'
             observation['approvals_required']=len(review['approval_required_step_ids'])
             if review['write_step_ids'] and not job['allow_writes']:
                 observation.update(observed_outcome='refused',reason_code='write_not_authorized');return
@@ -142,10 +220,12 @@ def work(root):
             if run['status']=='completed' and len(client.calls)<client.limit:
                 reviewed=assess_run(root,run['run_id'],model_client=client)
                 observation['critic_status']=reviewed.get('critic_review',{}).get('status')
+                observation['critic_reason_code']=reviewed.get('critic_review',{}).get('error_code')
     except Exception as error:
         from geoagent_harness.core.policy.plan import PlannerPolicyError
         code='planner_policy_rejected' if isinstance(error,PlannerPolicyError) else error_code(error)
         observation['failure_type']=type(error).__name__
+        observation['failure_details']=failure_details(error,observation)
         observation['reason_code']='call_budget_exhausted' if client.exhausted or isinstance(error,BudgetExceeded) else code
         observation['observed_outcome']='refused' if code=='planner_policy_rejected' and observation['executed_operations']==0 else 'error'
     finally:

@@ -1,5 +1,6 @@
 """Bounded intent reasoning from independently rechecked context."""
 from __future__ import annotations
+from geoagent_harness.platform.model_gateway.egress import classify_request
 from geoagent_harness.contracts.intent import IntentError
 from geoagent_harness.platform.workspace import runtime_store_path, WorkspaceError
 from geoagent_harness.core.ledger.task_history.service import history_directory
@@ -72,7 +73,7 @@ def reason_task_intent(*, project_root: Path, review_filename: str | None, reque
     safe_request = redact_value(request.strip())
     safe_answers = redact_value([item.strip() for item in answers])
     context = reviewed["context"] if reviewed is not None else {"excerpts": [], "content_trust": "no_history_selected"}
-    prompt = ModelRequest(json_mode=True, messages=[
+    prompt = classify_request(ModelRequest(json_mode=True, messages=[
         ChatMessage(role="system", content=(
             "You are the reasoning-only Intent Agent. Interpret the current request, ask questions when ambiguous. "
             "Focus on the user's current objective. Explicit clarification answers are current user statements, "
@@ -86,7 +87,7 @@ def reason_task_intent(*, project_root: Path, review_filename: str | None, reque
             "Return exactly one JSON object matching this schema. Cite only provided excerpt sequence numbers. When no excerpts are supplied, cited_sequences must be empty; do not invent historical context. "
             + json.dumps(IntentProposal.model_json_schema()))),
         ChatMessage(role="user", content=json.dumps({"current_request": safe_request,
-            "clarification_answers": safe_answers, "selected_input": selected_input, "untrusted_reviewed_history": context}, ensure_ascii=False))])
+            "clarification_answers": safe_answers, "selected_input": selected_input, "untrusted_reviewed_history": context}, ensure_ascii=False))]))
     client = model_client if model_client is not None else SharedModelClient(load_model_settings())
     available = {item["sequence"] for item in context["excerpts"]}
     def parse(result):

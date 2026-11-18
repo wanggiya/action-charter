@@ -1,0 +1,4 @@
+# Optional local M3c gateway test only. Install in .local/qualification/venv.
+# Kept separate from the application environment and normal launcher.
+# 1.109.1 includes GHSA-2rwg-2wh4-7c4f's upstream patch.
+litellm[proxy]==1.109.1

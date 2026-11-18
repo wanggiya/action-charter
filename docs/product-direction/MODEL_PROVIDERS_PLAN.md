@@ -1,8 +1,14 @@
 # Multiple model sources — how, when and how to verify
 
-Recorded 2026-11-03. **Plan, not implemented.** Decision:
+Recorded 2026-11-03. **M1 implemented and verified (#93); M2 implemented/verified (#94, 2026-11-15). M3c (#95) local checks verified (2026-11-16): actual LiteLLM and separate Windows Ollama, six passing modes across two matching-source captures; same vendor/cache, temporary90s review. Remote/vendor coverage unqualified. Owner Git integration pending; B6 broader local measurements recorded with failures/timeouts retained and3,098-test regression/interface/strict checks passed; per-role routing remains Phase2.** Decision:
 [2026-11-03 model providers](../decisions/2026-11-03-model-providers.md).
-Code references are from a scan of `src/geoagent_harness/model/` on 2026-11-03.
+The original scan/design is retained below. Current native ownership and M1 usage:
+[model-provider guide](../MODEL_PROVIDERS.md). M1 uses atomic workspace JSON rather
+than the illustrative YAML profile; nonlocal use remains blocked for explicit profiles.
+Current [M2 enforcement and audit limits](../MODEL_EGRESS.md) supersede the original
+scan/design below; product Data Card and per-role routing remain later work.
+The [M3c runner and qualification limits](../MODEL_PROVIDER_QUALIFICATION.md) distinguish
+same-backend relay evidence from an independent provider and retain failed reviews.
 
 ## Goal
 

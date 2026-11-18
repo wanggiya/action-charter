@@ -54,8 +54,8 @@ try{
  await page.goto(origin);console.log('audit: app loaded');
  assert.ok((await page.locator('.topbar .execute-button').getAttribute('title')).includes('No saved executable proposal'));
  await page.getByRole('button',{name:'Settings',exact:true}).click();
- await page.getByLabel('Ollama model').waitFor();console.log('audit: models visible');
- await page.getByLabel('Ollama model').selectOption('fixture:other');
+ await page.getByLabel('Provider model').waitFor();console.log('audit: models visible');
+ await page.getByLabel('Provider model').selectOption('fixture:other');
  await page.getByRole('button',{name:'Use selected model',exact:true}).click();
  await page.getByText('Model selected for new requests.',{exact:false}).waitFor();
  await page.getByLabel('Model reasoning effort',{exact:true}).selectOption('none');
@@ -66,7 +66,7 @@ try{
  await page.getByText('Review timeout saved for future requests.',{exact:false}).waitFor();
  await page.getByRole('button',{name:'Close settings',exact:true}).click();
  await page.getByRole('button',{name:'Settings',exact:true}).click();
- await page.waitForFunction(()=>document.querySelector('select[aria-label="Ollama model"]')?.value==='fixture:other');
+ await page.waitForFunction(()=>document.querySelector('select[aria-label="Provider model"]')?.value==='fixture:other');
  assert.equal(await page.getByLabel('Model reasoning effort',{exact:true}).inputValue(),'none');
  assert.equal(await page.getByLabel('Critic outcome review timeout',{exact:true}).inputValue(),'30');
  await page.getByRole('button',{name:'Close settings',exact:true}).click();
@@ -95,6 +95,20 @@ try{
 
  await page.locator('.topbar button.execute-button').click();
  await page.locator('.results-workspace .outcome-step').first().waitFor({timeout:30000});
+ await page.getByRole('region',{name:'Data Card',exact:true}).waitFor();
+ const dataCard=page.getByRole('region',{name:'Data Card',exact:true});
+ assert.ok((await dataCard.innerText()).includes('Recorded inspection'));
+ const cardCallsBefore=calls.filter(c=>c.url==='/api/v1/workflow/runs'&&['table_analysis','start'].includes(c.body?.action)).length;
+ await dataCard.getByText(/Field facts/).click();
+ assert.ok((await dataCard.innerText()).includes('patient_nbr'));
+ assert.ok((await dataCard.innerText()).includes('identifier'));
+ assert.equal(calls.filter(c=>c.url==='/api/v1/workflow/runs'&&['table_analysis','start'].includes(c.body?.action)).length,cardCallsBefore);
+ const cardTurnsBefore=calls.filter(c=>c.body?.action==='submit'||c.body?.action==='turn').length;
+ await page.reload();
+ await page.getByRole('button',{name:'Outcome',exact:true}).click();
+ await page.getByRole('region',{name:'Data Card',exact:true}).waitFor();
+ assert.equal(calls.filter(c=>c.body?.action==='submit'||c.body?.action==='turn').length,cardTurnsBefore);
+ assert.equal(calls.filter(c=>c.url==='/api/v1/workflow/runs'&&['table_analysis','start'].includes(c.body?.action)).length,cardCallsBefore);
  await page.screenshot({path:process.env.ACTIONCHARTER_AUDIT_ONLY?'/tmp/actioncharter-analytical-ui-audit.png':'/tmp/actioncharter-analytical-ui-after.png'});
  console.log(JSON.stringify({audit:'Results workspace rendered',tabs:await page.getByRole('tab').allTextContents(),horizontalOverflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)}));
  await page.getByRole('region',{name:'Suggested statistical fields',exact:true}).waitFor();

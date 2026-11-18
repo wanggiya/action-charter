@@ -75,6 +75,8 @@ export function TextPlanner({ onConversationChange, onHistoryOpen,onHistoryCurre
   const [diagnosticsReveal,setDiagnosticsReveal]=useState(0);
   const [pendingMessage, setPendingMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(()=>{if(error&&visible)errorRef.current?.scrollIntoView({block:'nearest'});},[error,visible]);
   const conversationRef = useRef(conversation);
   conversationRef.current = conversation;
   const currentRef = useRef({ plan, editsPending, id, busy });
@@ -91,9 +93,7 @@ export function TextPlanner({ onConversationChange, onHistoryOpen,onHistoryCurre
     void readPlannerSubmission(pendingSubmission,id).then(receipt=>{
       if(!active)return;
       setSubmissionState({id:receipt.submission.submission_id,status:receipt.submission.status,runId:receipt.submission.run_id});
-      setSubmissionNotice(receipt.submission.status==='failed'
-        ?'The last submission failed. Any workflow shown is saved work, not a successful retry. Refreshing does not rerun planning or execution. Check the saved chat and recorded runs before retrying.'
-        :receipt.submission.finding);
+      setSubmissionNotice(receipt.submission.finding);
     }).catch(()=>{/* Keep explicit Check last submission available. */});
     return()=>{active=false;};
   },[id,pendingSubmission,loaded,busy]);
@@ -275,7 +275,7 @@ export function TextPlanner({ onConversationChange, onHistoryOpen,onHistoryCurre
     {conversation?.context_usage?.model_request?.stage==='deterministic_inspection'&&<small role="status">Exact inspection workflow · no model call</small>}
     <small className="planner-submit-mode" role="status">{conversation?.context_usage?.model_request?.stage==='analytical_exploration'?'Current response contains analytical findings, not a workflow proposal.':inspectOnSend?'Send and inspect eligible local datasets · other proposals require Execute':'Send creates a proposal · Execute runs it'}</small>
     {pendingSubmission&&!busy&&<button type="button" onClick={()=>void checkSubmission()}>Check last submission · no retry</button>}
-    {submissionNotice&&<p className="planner-submission-notice" role="status">{submissionNotice}</p>}
+    {submissionNotice&&<p className="planner-submission-notice" role={submissionState?.status==='failed'?'alert':'status'}>{submissionNotice}</p>}
     <details className="planner-chat-context"><summary>Chat history &amp; context</summary><div className="planner-chat-context-body">
     <details className="planner-task-history"><summary>Saved chat history · {conversation?.messages.length??0} messages</summary><small>This chat only. Saved without Authorize or Execute. The full transcript appears below; these are recent excerpts.</small><div className="planner-history-bubbles" aria-label="Saved chat excerpts">{conversation?.task_history_preview.map((entry,index)=><article className={`planner-message role-${entry.role}`} key={index}><small>{entry.role==='user'?'You':'Planner'}</small><p>{entry.content}</p>{entry.content_truncated&&<small>Excerpt shortened</small>}</article>)}{!conversation?.messages.length&&<p>No saved messages yet.</p>}</div></details>
     <PlannerContextDisclosure helper={conversation?.method_helper} update={conversation?.method_helper_update} includeHistory={useHistory} workflowState={plan?.plan_sha256!==conversation?.planner_result?.plan_sha256?"unbound":plan?"included":"none"} usage={conversation?.context_usage}/>
@@ -306,7 +306,7 @@ export function TextPlanner({ onConversationChange, onHistoryOpen,onHistoryCurre
     {conversation?.context_usage?.analysis_goals&&<AnalysisGoals value={conversation.context_usage.analysis_goals} disabled={busy||editsPending||!loaded} onPrepare={message=>void send(message)}/>}
     {conversation?.active_task_id&&plan&&conversation.planner_result?.plan_sha256!==plan.plan_sha256&&<button type="button" disabled={busy||editsPending} onClick={()=>void bindWorkflow()}>Use current workflow in this conversation</button>}
     {conversation?.planner_result && conversation.planner_result.plan_sha256 !== plan?.plan_sha256 && <button disabled={busy || editsPending} onClick={() => { setBusy(true); setError(""); void publish(conversation.planner_result!).catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not open conversation plan")).finally(() => setBusy(false)); }}>Open conversation plan</button>}
-    {error && <div className="intent-error" role="alert"><button type="button" onClick={()=>{setDiagnosticsReveal(v=>v+1);requestAnimationFrame(()=>document.getElementById(`request-diagnostics-${id}`)?.scrollIntoView({block:'nearest'}));}}>View request diagnostics</button><p>{error}</p><small>{pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.status==='failed'&&!submissionState.runId?'Submission failed before dispatch. No workflow run was created. Your saved workflow is preserved.':pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.runId?'This submission has a recorded run. Inspect it in Execution History before retrying.':pendingSubmission?'Submission status is not confirmed. Check the last submission and recorded runs before retrying.':'Current workflow preserved. Nothing approved or executed.'}</small><button disabled={busy} onClick={() => { setBusy(true); void plannerConversation("read", id).then((state) => { setConversation(state); setSelectedSkills(state.selected_skill_ids);setAgentMode(state.agent_mode??null); setError(""); }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Recovery failed")).finally(() => setBusy(false)); }}>Reload conversation</button></div>}
+    {error && <div ref={errorRef} className="intent-error" role="alert"><button type="button" onClick={()=>{setDiagnosticsReveal(v=>v+1);requestAnimationFrame(()=>document.getElementById(`request-diagnostics-${id}`)?.scrollIntoView({block:'nearest'}));}}>View request diagnostics</button><p>{error}</p><small>{pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.status==='failed'&&!submissionState.runId?'Submission failed before dispatch. No workflow run was created. Your saved workflow is preserved.':pendingSubmission&&submissionState?.id===pendingSubmission&&submissionState.runId?'This submission has a recorded run. Inspect it in Execution History before retrying.':pendingSubmission?'Submission status is not confirmed. Check the last submission and recorded runs before retrying.':'Current workflow preserved. Nothing approved or executed.'}</small><button disabled={busy} onClick={() => { setBusy(true); void plannerConversation("read", id).then((state) => { setConversation(state); setSelectedSkills(state.selected_skill_ids);setAgentMode(state.agent_mode??null); setError(""); }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Recovery failed")).finally(() => setBusy(false)); }}>Reload conversation</button></div>}
     <RequestDiagnostics conversationId={id} version={`${conversation?.revision??0}:${busy}:${pendingSubmission??''}`} reveal={diagnosticsReveal}/>
     {editsPending && <p className="intent-notice">Validate and save, or discard your graph edits before sending a planner message.</p>}
     {successfulSelection&&<div className="planner-saved-method-choice"><span>Saved workflow selected · this chat</span><button type="button" aria-label="Clear saved workflow selection" disabled={busy} onClick={()=>setSuccessfulSelection(null)}><X size={13}/></button></div>}

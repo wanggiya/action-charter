@@ -179,6 +179,37 @@ def test_basic_metadata_inspection_uses_focused_profile_without_analysis(project
     assert 'analysis' not in system['operation_argument_schemas']['inspect_csv']['properties']
 
 
+@pytest.mark.parametrize('restriction',[
+    'Do not write files or modify any database.',
+    'Do not modify any database.',
+    "Don't write files or change the database.",
+    'Never update PostgreSQL.',
+    'No database writes.',
+])
+def test_new_csv_inspection_and_advice_does_not_route_to_prohibited_database(project,restriction):
+    from tests.test_planner_conversation import Client,turn
+    reply={'message':'Inspection proposed. Analysis advice needs its recorded result; nothing executed.',
+           'plan':{'summary':'Inspect orders','steps':[{'step_id':'step_1','skill':'inspect_csv',
+                   'purpose':'Inspect the supplied CSV','arguments':{'path':'sample_orders.csv'}}]}}
+    client=Client(reply)
+    result=turn(project,client,'Inspect sample_orders.csv and suggest useful analysis questions based on its columns. '+restriction)
+    system=json.loads(client.requests[0].messages[0].content)
+    assert list(system['operation_argument_schemas'])==['inspect_csv']
+    assert system['prompt_profile']=='table-inspection-focused-v1'
+    assert sum(len(m.content.encode()) for m in client.requests[0].messages)<12000
+    assert len(client.requests)==1
+    assert result['planner_result']['plan']['steps'][0]['arguments']['path']=='data/input/sample_orders.csv'
+    assert not result['execution_performed'] and not result['approval_performed']
+
+
+def test_negative_effect_routing_preserves_positive_operations_in_same_sentence():
+    from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
+    available=['inspect_csv','export_csv','inspect_postgres_table','discover_postgres_tables']
+    assert 'inspect_postgres_table' in schema_scope('Do not modify any database, but inspect the PostgreSQL table.',available)
+    assert 'export_csv' in schema_scope('Inspect sample_orders.csv. Do not modify any database, but export the CSV to a new file.',available)
+    assert set(schema_scope('Inspect sample_orders.csv and generate_report.',[*available,'generate_report']))>{'inspect_csv'}
+
+
 def test_report_metric_coverage_requires_calculated_evidence(data):
     r=profile_table(data,'measurements.csv',options())
     report=r['readiness_assessment']['report_markdown']

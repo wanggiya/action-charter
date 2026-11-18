@@ -1,4 +1,5 @@
 """Planner-owned recipe authoring with isolated tests and Critic assessment."""
+from geoagent_harness.platform.model_gateway.egress import classify_request
 import json
 from dataclasses import replace
 from typing import Literal
@@ -32,7 +33,7 @@ def _request(manifest, task, schema, data):
         ChatMessage(role='user',content=json.dumps(redact_value(data)))]
     if sum(len(m.content.encode()) for m in messages)>32_000:
         raise ValueError('Reusable recipe preparation exceeds the 32 KB model budget')
-    return ModelRequest(messages=messages,json_mode=True)
+    return classify_request(ModelRequest(messages=messages,json_mode=True))
 
 
 def prepare_recipe(base, root, *, model_client=None, critic_client=None, execution_evidence=None, effort_budget=None):

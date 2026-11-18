@@ -105,13 +105,16 @@ def send_post_error(self, route_context, exc):
             if isinstance(exc, route_context.services.ModelClientError):
                 message, code = (str(exc), exc.code)
                 guidance = 'The model did not finish before MODEL_TIMEOUT_SECONDS. The saved workflow is preserved; nothing executed and the timed-out call is not retried automatically. Request diagnostics show the stage, bytes and elapsed time when available. In Settings → Model service, try Reasoning effort None for a compatible model, fewer selected skills, or a smaller installed model. Saved project reasoning settings apply to new requests without a launcher restart. Inspect Ollama logs if it still times out; timeout alone does not prove context overflow.' if code == 'model_timeout' else 'The configured endpoint rejected JSON-schema output. Check its structured-output support. For a compatible endpoint that only supports JSON mode, explicitly set MODEL_RESPONSE_FORMAT=json_object in the launcher environment and restart. No automatic fallback or retry occurred.' if code == 'model_response_format_rejected' else 'Planner reached its call or configured time limit. Review request diagnostics; reduce the scope or adjust trusted launcher settings. Nothing executed.' if code == 'planner_budget_exhausted' else 'Check the exact installed model name and endpoint in Settings. HTTP 404 can indicate a missing model or unsupported route.'
+                if code == 'model_data_class_blocked':
+                    from geoagent_harness.platform.model_gateway.diagnostics import model_failure
+                    guidance = model_failure(exc)['retry_guidance']
             elif isinstance(exc, route_context.services.ModelSettingsError):
                 message, code = ('Planner model configuration is invalid or missing', 'model_configuration_failed')
                 guidance = 'Check MODEL_NAME and MODEL_BASE_URL in the launcher environment, then restart the launcher.'
             else:
                 message, code = ('Planner context could not be prepared', 'planner_context_failed')
                 guidance = 'Check trusted context files and the current workflow. Disable previous messages or reduce selected skills if the prompt exceeds its budget.'
-            self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': message, 'code': code, 'planner_diagnostics': getattr(exc, 'planner_diagnostics', None), 'retry_guidance': guidance, 'approval_performed': False, 'execution_performed': False})
+            self._send(HTTPStatus.FORBIDDEN if code == 'model_data_class_blocked' else HTTPStatus.SERVICE_UNAVAILABLE, {'error': message, 'code': code, 'planner_diagnostics': getattr(exc, 'planner_diagnostics', None), 'retry_guidance': guidance, 'approval_performed': False, 'execution_performed': False})
             return True
         if self.path == '/api/v1/critic-evidence/run':
             self._send(HTTPStatus.SERVICE_UNAVAILABLE, {'error': 'Critic model service is unavailable'})

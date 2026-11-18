@@ -1,4 +1,5 @@
 import {StatisticsPanel} from './StatisticsPanel';
+import {DataCard} from './DataCard';
 import {ReadinessReport} from './ReadinessReport';
 import {WorkflowHandoff} from './WorkflowHandoff';
 import {FieldGuidance} from './FieldGuidance';
@@ -126,6 +127,7 @@ function ResultViews({record,stepId,view,setView,initialSpec,onViewApplied}:{rec
         {view==='Statistics'&&(recordedAnalysis?.statistics?<><StatisticsPanel result={recordedAnalysis.statistics}/>{record.durable&&<details className="statistics-assessment"><summary>Agent assessment · advisory</summary><CriticOutcome run={record.durable}/></details>}</>:<p>No statistical analysis recorded for this operation. Ask Planner to include descriptive statistics, correlation or an explicit regression specification, then execute the read-only inspection.</p>)}
         {view==='Report'&&(csvAnalysisAvailable&&outcome.readiness_assessment?<><ReadinessReport value={outcome.readiness_assessment} statistics={recordedAnalysis?.statistics} source={String(outcome.source??'')} sha256={String(outcome.source_sha256??'')}/>{typeof outcome.readiness_status==='string'&&<p>{outcome.readiness_status}</p>}{record.durable&&<details className="statistics-assessment"><summary>Agent assessment · advisory</summary><CriticOutcome run={record.durable}/></details>}<details><summary>Workflow technical handoff</summary><WorkflowHandoff record={record} technicalOnly/></details></>:<WorkflowHandoff record={record}/>)}
         {view==='Overview'&&completed&&<FieldGuidance value={outcome.field_guidance}/>}
+        {view==='Overview'&&<DataCard value={outcome.data_card}/>}
         {analytical&&view==='Overview'&&<AnalyticalProfile analysis={analytical} onTable={()=>setView('Table')}/>}
         {!completed&&<p role="status">This operation has no completed result. Any recorded values may be partial; inspect its status and recovery evidence.</p>}
         {record.finding&&<p className="result-notice">{record.finding}</p>}

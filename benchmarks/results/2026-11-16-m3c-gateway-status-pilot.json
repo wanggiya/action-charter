@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "task": "P1-M3c",
+  "evidence_kind": "real_model",
+  "created_at": "2026-11-16T20:57:01.714363+00:00",
+  "model": "qwen3.5:9b",
+  "task_sha256": "a2169f6c46f7344524822dcd28e0bc123ae1fc2dc264020cbb96410078973adc",
+  "runner_sha256": "516bfcad0ddbeea0900597b66fdd5574e665ffbe8081ee9b37bcd4d4678a1cae",
+  "worker_sha256": "2aa9faeea1876d2df989d8306ab5405c73c5f1dad126c8c9eaf081ce136a7027",
+  "source_sha256": "a5cfd574e468e5fe48d9e1bc34587aab79d96a94c88d1227aa74239ca2d39033",
+  "source_unchanged": true,
+  "versions": {
+    "python": "3.12.3",
+    "httpx": "0.28.1",
+    "ollama": "0.32.4"
+  },
+  "same_backend_relays": true,
+  "results": {
+    "gateway": {
+      "status": "not_qualified",
+      "planning": "validated",
+      "execution": "passed",
+      "critic": "complete",
+      "reason_code": "workflow_completed",
+      "critic_reason_code": null,
+      "model_planner_called": true,
+      "executed_operations": 1,
+      "data_outputs": 0,
+      "checks": [
+        {
+          "check_index": 0,
+          "status": "passed",
+          "reason_code": "matches"
+        },
+        {
+          "check_index": 1,
+          "status": "passed",
+          "reason_code": "matches"
+        }
+      ],
+      "calls": [
+        {
+          "role": "planner",
+          "phase": "planner_generation",
+          "prompt_tokens": 3112,
+          "completion_tokens": 215,
+          "elapsed_seconds": 37.51760386699971,
+          "correction": false,
+          "timeout": false
+        },
+        {
+          "role": "critic",
+          "phase": "outcome_review",
+          "prompt_tokens": 1176,
+          "completion_tokens": 302,
+          "elapsed_seconds": 43.5762918319997,
+          "correction": false,
+          "timeout": false,
+          "assessment_schema_valid": true,
+          "assessment_status": "completed",
+          "assessment_operations": [
+            "inspect_csv"
+          ]
+        }
+      ],
+      "seconds": 84.647,
+      "exit_code": 0,
+      "egress": {
+        "blocked_before_dispatch": true,
+        "upstream_calls": 0
+      },
+      "missing_credential_reference": {
+        "blocked": true,
+        "upstream_calls": 0
+      },
+      "authentication": {
+        "missing_status": 401,
+        "wrong_status": 400,
+        "blocked": false,
+        "upstream_calls_for_rejections": 0
+      },
+      "connectivity": {
+        "status": "passed",
+        "code": "valid_json",
+        "model": "qualification-model",
+        "format": "json_schema",
+        "finish_reason": "stop",
+        "prompt_tokens": 19,
+        "completion_tokens": 6,
+        "seconds": 19.158
+      },
+      "broker": {
+        "forwarded": 3,
+        "rejected": 0
+      },
+      "gateway": {
+        "software": "litellm",
+        "version": "1.109.1",
+        "managed_process_stopped": true,
+        "retries": 0,
+        "fallbacks": false,
+        "dependency_lock_sha256": "66caca8d2f11309a28baf048c4e32aefed0cc6f419394eabf4952405d7f29419"
+      }
+    }
+  },
+  "complete": false,
+  "limits": {
+    "model_calls_per_workflow": 3,
+    "workflow_wall_seconds": 240,
+    "request_timeout_seconds": 120,
+    "max_output_tokens": 1536,
+    "critic_timeout_seconds": 60,
+    "product_critic_default_unchanged": true,
+    "writes": false
+  }
+}

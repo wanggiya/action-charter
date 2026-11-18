@@ -1,0 +1,13 @@
+{
+  "id": "local-proxy",
+  "kind": "gateway",
+  "api": "openai-compatible",
+  "base_url": "http://127.0.0.1:4000/v1",
+  "credential_ref": "env:MODEL_GATEWAY_KEY",
+  "location": "organisation",
+  "data_allowed": "raw",
+  "model": "qwen3.5:9b",
+  "listing": "openai-compatible",
+  "capabilities": "auto",
+  "limits": {"timeout_s": 120, "max_tokens": 1024}
+}

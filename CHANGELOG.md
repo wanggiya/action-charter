@@ -1,3 +1,163 @@
+# Data Card foundation and Phase 1 evidence closeout (2026-11-18, #97/#98)
+
+- Add one bounded typed projection over existing discovery/inspection evidence,
+  shared by Planner context, CLI/MCP results and expandable Overview presentation.
+- Preserve source/selection/population identity, candidate roles and unknown quality
+  facts. No new scan on opening, agent role, processing operation or authority.
+- Derive cards from original run evidence on read/latest without duplicate storage;
+  automatic freshness/cache scheduling remains P2-D2.
+- Record Phase 1 exit evidence and retain model failures, deadlines and provider limits.
+- All3,120 collected offline checks have passing coverage across full/completion
+  runs; interface, isolated browser/CLI and strict gates passed. Real local4B
+  synthetic context observations retained, with no performance-improvement claim.
+
+# Bounded benchmark failure findings (2026-11-17, P1-B6 measurement follow-up, #96)
+
+- Record safe stage/category/correction/schema findings and selected fixed policy
+  rules for failed benchmark proposals; bound exception traversal and text sizes.
+- Preserve legacy unknowns and share optional findings across validated JSON,
+  Markdown and comparison reports. No raw response/exception values or new authority.
+- Retain54 real local observations across27 declarations on each installed model,
+  with27 matching recorded pairs. Each model:4 passes/7 failures/10 timeouts/3 skips/
+  3 gaps. Seven deadlines preserve completed execution before unfinished review.
+  Synthetic file writes only, database/private data excluded, no automatic replay or
+  performance winner. [Measurements](benchmarks/results/2026-11-17-b6-broader-matrix.md).
+- Full source-only regression:3,098 passed in924.32s; interface validation and
+  strict layer/compatibility checks passed. No new agent role or operation.
+
+# Saved-profile benchmark binding and comparison (2026-11-17, P1-B6, #96)
+
+- Pin the named provider/model, generation settings and review timeout for an entire
+  run without changing the active Settings selection. Preserve loopback/egress gates;
+  forward only the selected environment credential and keep secret values out of state.
+- Bind input manifest identities and retain non-secret profile/preference provenance.
+  Keep legacy results readable with unrecorded context marked unknown.
+- Add read-only `benchmark compare` JSON/Markdown output over validated saved runs.
+  Flag mismatched settings, tasks, sources or inputs; calculate differences only for
+  matching passes, with separate reported token sides and no inferred winner.
+- Four sequential real local observations: both models passed descriptive statistics
+  and Critic review; retain9B quality policy rejection and4B deadline. Two tasks,
+  temporary60s review, not full-suite qualification or a performance ranking.
+- All3,094 collected offline checks have passing coverage across two batches;91
+  final affected callers passed after fixing prepared-profile reuse. Interface,
+  isolated Settings browser and strict boundaries passed. [Accounting](context/WORK_RESUME.md).
+- No new agent role, execution authority, dependency or interface panel.
+
+# Failed first-chat routing and recovery (2026-11-17, P1-B6 follow-up, #96)
+
+- Keep CSV inspection/advice on the table contract when the request explicitly
+  prohibits database writes; preserve positive work later in the same sentence.
+- Retain safe failure categories/recovery text in submission receipts and recover
+  legacy reasons from matching diagnostics without rewriting records. Keep reasons
+  visible after refresh and scroll immediate errors into view. No automatic replay,
+  model fallback, settings change or new execution authority.
+- Real local qwen3.5:9b with temporary reasoning none produced the inspection plan
+  in39.008s (2,466 input/225 output tokens); corrected default-reasoning attempt
+  still timed out. Separate functional tests, not a performance comparison.
+- Complete offline coverage:3,083 collected checks passed across initial/completion
+  batches; final85 Planner/readiness checks, interface build, fixture browser and
+  strict boundaries passed. Initial compatibility failure was corrected; no CI or
+  committed test exclusions changed. [Accounting](context/WORK_RESUME.md).
+
+# Reported model-token usage summaries (2026-11-16, P1-B6 first slice, #96)
+
+- Reuse recorded diagnostics for separate input/context and generated-output token
+  figures, scoped to recent chat/submission/workflow records. Preserve partial,
+  unknown, zero and pre-dispatch-refusal distinctions; avoid lifetime or byte claims.
+- Add a compact expandable diagnostics view with call timing/outcomes and role/model
+  breakdown, plus shared CLI/JSON/export data. Read/refresh never calls a model or
+  executes a workflow. Keep older API responses compatible.
+- Model-call time excludes parent intervals. End-to-end output rate explicitly
+  includes waiting/context/load time and is not decoding speed. No new agent,
+  operation, permission, dependency or production setting. B6 comparison remains.
+- Verification: 3,075 offline tests passed (895.44s, 13 existing warnings), with
+  final frontend layout/export changes separately passing typecheck/build and an
+  isolated synthetic-record browser journey; 119 focused caller tests passed.
+
+# Managed real-provider qualification (2026-11-16, P1-M3c, #95)
+
+- Add an optional hash-locked LiteLLM environment and installer, isolated from the
+  application environment/browser caches. Reuse installed weights through an owned
+  second Windows Ollama process, with private HOME/temp and guarded tree cleanup.
+- Qualify six local modes across two matching-source captures; retain the initial
+  empty-cache failure and native gateway-status pilot. Real Planner, execution and
+  Critic completed, with one inspection/no data outputs per accepted workflow.
+- Count gateway upstream requests and use valid auth-probe bodies. Accept native
+  database-free400/no_db_connection only for pinned managed LiteLLM with zero
+  upstream dispatch and positive correct-key checks. Generic400 remains failure.
+- Full source-only regression:3,060 passed (1006.40s,13 existing warnings);130
+  focused service/provider and15 context checks passed. Strict/compatibility and
+  repeat/cached-offline installer checks passed. No new frontend, agent, operation,
+  permission, owner setting or Git action. B6 comparison/X closeout remain.
+  [Evidence and limits](docs/MODEL_PROVIDER_QUALIFICATION.md).
+
+# Real-provider qualification runner and retained gaps (2026-11-15, P1-M3c, #95)
+
+- Reuse the existing governed benchmark worker with a fixed synthetic inspection,
+  temporary profiles, role/stage results, bounded calls/time, credential/egress
+  rejection and a private Unix model broker for Linux network-namespace checks.
+  No new agent, product route, execution authority or dependency installation.
+- Real direct/relay/isolated inspections passed deterministic checks with no data
+  writes. Missing/wrong key requests were blocked without upstream dispatch.
+  Same-backend relays are not independent providers or LiteLLM qualification.
+- Preserve 15-second Critic timeouts and explicit temporary 60-second follow-ups.
+  Content-free diagnosis shows valid assessment schema with unobserved method
+  operation names, correctly rejected. Restrict the shared Critic generation schema
+  to successful observed IDs and permit no method for stopped runs, retaining all
+  final validation. One real isolated Critic assessment then completed with the
+  explicit temporary 60-second budget. Complete M3c qualification is not claimed;
+  real gateway/independent-runtime checks remain gaps.
+  [Usage, isolation limits and evidence](docs/MODEL_PROVIDER_QUALIFICATION.md).
+- Full source-only regression: 3,044 passed; final contract/provenance difference:
+  166 affected-caller checks passed. Frontend typecheck/build and strict layer/
+  compatibility gates passed. Earlier timeout/rejection captures remain intact;
+  no baseline comparison, owner configuration or Git action changed.
+
+# Model context classification and egress gate (2026-11-15, P1-M2, #94)
+
+- Classify internal model context with private content-bound tags; unchanged copies
+  retain them, mutations/unclassified parts fall back raw. Serialized labels cannot
+  lower policy. Reuse existing agents and payloads; no new execution authority.
+- Check implicit and explicit settings before credential resolution/HTTP dispatch.
+  Add allowlisted MODEL_DATA_ALLOWED for the implicit profile; preserve its local
+  Docker host bridge. Nonloopback project-data use remains restricted.
+- Reuse content-free diagnostics/storage for highest/effective/configured class,
+  policy decision and dispatch state. Interrupted allowed calls remain unknown;
+  monitoring is best effort and does not bypass the gate. Settings shows allowance;
+  diagnostics explains blocked requests without exposing credentials/context.
+- All 3,028 tests have passing coverage in three batches; interface, browser and
+  strict checks passed. Align four old fake-host fixture files with loopback policy
+  and clear parent selectors from the nested CLI snapshot test, retaining its 60 s
+  deadline and all 165 snapshots. Return HTTP 403 with allowance-specific guidance
+  for blocked planning. No new real-model/provider qualification claim.
+  [Scope and exact validation](docs/MODEL_EGRESS.md).
+
+# Model-provider profiles and private credentials (2026-11-14, P1-M1, #93)
+
+- Reuse the existing gateway/catalogue and request selection with typed workspace
+  profiles, env/project-secret references, bounded compatible/Ollama discovery and
+  shared Settings/CLI/HTTP actions. No owner migration, new role or authority.
+- Pin active configuration, preserve legacy MODEL_* behaviour and project choices,
+  guard revisions, reject URL credentials/redirects/proxy forwarding and secret
+  reflection. New explicit profiles stay loopback-only; unclassified requests
+  conservatively count as raw. M2 granular classification/egress remains pending.
+- Add explicit synthetic schema/object/text checks under a profile-limited deadline
+  capped at 120 s; fallback only on format rejection, no user-request auto-retry.
+  Existing workflow/plan validation and Critic budgets remain unchanged.
+- Clarify local launcher versus saved profiles; show missing-field/disabled-check
+  explanations, validate profile IDs and keep save errors beside the button.
+  Same-endpoint profiles are supported; a reported unresponsive owner Save action
+  remains unconfirmed, rather than being attributed to duplicate Ollama endpoints.
+  Follow-up: 44 focused tests, frontend validation and the expanded isolated browser
+  journey passed; the earlier full-suite evidence below predates this UI follow-up.
+- Fixture auth/privacy/pinning/HTTP/CLI and isolated browser checks passed. A real
+  qwen3.5:9b synthetic connection smoke passed via legacy and temporary-profile
+  paths after retaining a 15-second timeout; not a performance comparison or live
+  gateway qualification. All 2,959 collected tests have passing coverage in two
+  batches after correcting a legacy-adapter test assumption; interface/strict gates
+  passed. Exact full/completion evidence is in WORK_RESUME.
+  [Usage and limits](docs/MODEL_PROVIDERS.md).
+
 # PR #92: include reviewed benchmark GIS fixtures (2026-11-13)
 
 - Add exact .gitignore exceptions for the five tiny synthetic TIFF/Shapefile assets

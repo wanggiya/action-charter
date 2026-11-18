@@ -47,7 +47,7 @@ The platform's fixed internal MCP client remains distinct from application MCP t
 
 R11 [compatibility retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and moves maintained callers/launchers to native owners. The project now
-has 623 modules: 506 native implementations and 117 supported public/SDK/schema
+has 630 modules: 513 native implementations and 117 supported public/SDK/schema
 boundaries (60 package roots, 57 aliases). No ordinary native caller imports a
 compatibility module. The immutable R6 inventory and exhaustive R11 partition bind
 the boundary; source gates reject reintroduced adapters and hidden implementations.
@@ -66,6 +66,47 @@ decomposition is recorded under R8 below. P0-5b contracts are recorded separatel
 below; R12 server seams are not delivered by moving files. Earlier R2–R6b sections below describe extraction stages; their old paths remain
 compatibility paths. [Current ownership and validation](../docs/R6_COMPLETION_AND_ACCEPTANCE.md).
 
+## Data Card foundation (P2-D1)
+
+L0 `contracts/data_cards.py` defines a bounded evidence projection; L2
+`data/discovery/cards.py` derives it without file reads, caching or inference.
+Existing reader parents and inspection services attach it after their normal
+validation. Workflow storage keeps original evidence; read/latest responses derive
+the card without changing saved records. Planner same-turn discovery, recorded
+result context, CLI/MCP and Overview share it. Source digest, selection, population,
+unknowns and candidate roles stay explicit. The identity helper requires an
+independently obtained digest; automatic freshness/reuse scheduling is P2-D2.
+No new role, container, processing operation, authority or egress downgrade.
+[Contract, scope and validation](../docs/DATA_CARDS.md).
+
+## Model profiles (P1-M1)
+
+B6 now binds an explicitly named profile to each benchmark run: the existing L6
+runner reads the L1 profile/preference snapshot and gives fixed settings to every
+worker. Owner Settings selection is unchanged. Temporary explicit profiles keep
+worker metadata and effective gateway settings consistent, including text-mode
+providers. Credentials use the guarded resolver; only a selected environment key
+is forwarded, never persisted. L0 benchmark contracts add optional provider/review
+context and staged-input manifest digests. The one new L6 `apps/benchmark/comparison.py`
+reads validated reports, flags mismatched/unknown conditions and computes descriptive
+differences only for matching successful tasks. CLI uses this same service, with no
+new role, authority, registry operation, dependency or frontend navigation.
+The B6 measurement follow-up adds optional bounded failure metadata to the existing
+benchmark record. Worker L6 reuses the Planner's trusted schema-field formatter,
+records fixed policy codes and forwards that evidence through existing report readers.
+No raw exception/response content, new agent or execution path is introduced.
+
+`contracts/model_providers.py` owns strict non-executable profiles and revisioned
+configuration. `platform/model_gateway/profiles.py` reads bounded workspace JSON,
+serializes edits under existing metadata transactions and resolves env/project secret
+references privately. The existing gateway/catalogue pin settings per request and
+support compatible or optional Ollama discovery. `task_actions/model_providers.py`
+shares selection and synthetic checks between CLI, HTTP and Settings. No new agent.
+New explicit endpoints stay loopback-only pending qualification. The M2 gate below
+supersedes the coarse guard: private content-bound tags and raw fallback cover both
+explicit and implicit settings. No cross-provider/per-role routing is added.
+[Scope, credential handling and limits](../docs/MODEL_PROVIDERS.md).
+
 ## Benchmark application (P1-B1–B5)
 
 `contracts/benchmark.py` (L0) owns task/check/result/metrics schemas. The L6
@@ -73,8 +114,9 @@ compatibility paths. [Current ownership and validation](../docs/R6_COMPLETION_AN
 stages copies, runs a fixed worker process and records immutable workspace results.
 The worker reuses shared Planner/save/review/authorize/run/Critic actions. Expected
 answers never enter worker input. All injected model clients share the task budget;
-no new role, principal or authority. Real-model mode is restricted to loopback until
-M1/M2. B4 supplies 27 definitions, including explicit unsupported gaps and one
+no new role, principal or authority. Real-model benchmark mode remains restricted
+to loopback; local comparisons do not qualify remote/public providers. B4 supplies
+27 definitions, including explicit unsupported gaps and one
 optional read-only local-data reference. Positive synthetic writes require both a
 manifest requirement and operator opt-in; read-only safety cases never inherit it.
 
@@ -532,3 +574,64 @@ reporting; candidate numerical moments reuse field guidance. Existing workflow h
 and readiness projections render those facts for transports/downloads, without a
 source read or model call. No agent/authority boundary or public input schema changes.
 [Contract, budgets and validation](../docs/INSPECTION_QUALITY_REPORTS.md).
+
+## Model context allowance (P1-M2)
+
+`contracts/model_providers.py` owns context-part and decision contracts; the one new
+L1 `model_gateway/egress.py` classifies exact message/schema content using private
+fingerprints. All product constructors use it conservatively; changes, serialized
+labels and unclassified parts cannot lower raw fallback. The gateway snapshots,
+checks the highest class against the effective provider allowance, then resolves
+credentials and dispatches. Implicit settings support MODEL_DATA_ALLOWED and keep
+the existing Docker host bridge scope; other nonloopback project-data dispatch is
+restricted pending qualification. Diagnostics/storage are reused with content-free
+decision fields and honest interrupted-dispatch uncertainty. Monitoring remains
+best effort; no new ledger, agent, route or execution permission is added.
+[Policy, compatibility and limits](../docs/MODEL_EGRESS.md).
+
+
+## Opt-in provider qualification (P1-M3c)
+
+`scripts/qualify_model_providers.py` is a development adapter over the existing
+benchmark worker, profile actions, Planner, workflow execution/checks and Critic.
+Its fixed synthetic CSV and admitted operation set cannot authorize writes.
+Temporary profile/review preferences never modify the owner's workspace. A
+fixed-destination Unix broker permits model requests from a separate user/network
+namespace; this establishes a network boundary, not filesystem isolation. Relays
+use the same model runtime. Sanitized stage evidence and explicit missing-provider
+findings are described in [the qualification guide](../docs/MODEL_PROVIDER_QUALIFICATION.md).
+No new service owner, agent role, source module or product route is introduced.
+
+The optional `scripts/qualification_services.py` controls real LiteLLM and a
+separate Windows Ollama process from WSL. Its hash-locked gateway environment and
+download cache live under ignored `.local/qualification`, outside the application
+`.venv` and browser caches. LiteLLM is an external test endpoint; the shared gateway
+still enforces egress policy before model calls. Temporary profiles use normal
+workflow policy. Gateway retries/fallbacks are disabled; counted upstream requests
+and valid-body probes distinguish credential refusal from generic bad input. The
+database-free wrong-key400/no_db_connection exception is qualification-only.
+The Windows helper clears child environment, allocates its port on Windows and
+uses PID/start-time guarded tree cleanup. Services have bounded lifetimes; cached
+weights are reused and their inventory checked. This is process/environment
+containment, not a new filesystem sandbox. Six local modes passed across two
+matching-source captures; other runtime vendors and remote/public use remain
+unqualified. No operation registry, production agent role or authority changed.
+
+## Read-only reported model usage (P1-B6 first slice)
+
+The existing `platform/model_gateway/telemetry.py` owns a pure aggregation of at
+most 100 visible diagnostic records. Input/context and generated-output tokens stay
+separate; explicit parent/submission/run links define scopes. Missing, pre-dispatch
+and known-zero observations remain distinct. Nested model-call time excludes parent
+request durations. The additive `reported_model_usage` projection serves HTTP, chat
+CLI and frontend JSON export without new persistence, provider queries or authority.
+The compact diagnostics component renders these facts and supports older API
+responses. Saved-provider comparison uses the separate benchmark service described
+above; it reads evidence without querying a model or granting authority.
+
+The first-chat follow-up keeps prohibited file/database effects out of descriptive
+schema selection, preserving positive requests and final operation policy. Existing
+submission receipts retain safe failure categories; their read projection can recover
+legacy reasons from explicitly linked diagnostics without rewriting them. Frontend
+recovery displays those facts and never retries inference or execution. No model
+setting is automatically changed, and no new agent or authority owner is introduced.

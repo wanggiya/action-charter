@@ -123,8 +123,48 @@ now records fixture and real qwen3.5:9b runs: 23 fixture passes versus 8 real-mo
 passes, 11 failures and 4 timeouts (both retain 1 skip/3 gaps). Critic review did not
 complete on the real model. These are measured limits, not release readiness.
 `benchmark report RUN_ID` renders saved metadata without execution; the four-task
-offline CI gate runs with `python scripts/benchmark_ci.py`. Provider profiles and
-egress controls remain unfinished.
+offline CI gate runs with `python scripts/benchmark_ci.py`. Provider support is
+described below; broader provider qualification remains unfinished.
+
+[Model-provider profiles (M1)](docs/MODEL_PROVIDERS.md) extend the existing gateway
+with saved connection settings, credential references, model discovery and explicit
+synthetic compatibility checks in Settings and CLI. Active requests keep their
+captured configuration; new explicit profiles remain loopback-only. The [M2 gate](docs/MODEL_EGRESS.md)
+checks exact classified context before credential resolution and model HTTP dispatch,
+including launcher settings. Changed/unclassified content defaults raw. Broader
+provider qualification uses an opt-in [synthetic M3c runner](docs/MODEL_PROVIDER_QUALIFICATION.md).
+Local qualification now includes real LiteLLM and a separately started Windows
+Ollama process, with six passing modes across two matching-source captures.
+Temporary review budgets are explicit; the normal 15-second default stays unchanged.
+The optional gateway has a separate hash-locked environment. Saved-profile
+comparison is available; remote hosts and other runtime vendors remain unqualified.
+Existing MODEL_NAME/MODEL_BASE_URL and execution authorization keep their scope.
+The existing [Request diagnostics](docs/REQUEST_DIAGNOSTICS.md) panel now summarizes
+**Reported model tokens**: input/context and generated output separately, with
+submission/workflow/recent-chat scopes, partial-usage coverage and role/model detail.
+The CLI and export share these read-only figures; they are not lifetime billing or
+network-byte measurements.
+Saved profiles can now be pinned with `geoagent benchmark run --profile ID` without
+changing the active Settings selection. `geoagent benchmark compare RUN_A RUN_B`
+compares validated saved observations and flags mismatched tasks, inputs or settings;
+it makes no model call and declares no performance winner. [Commands and limits](docs/BENCHMARKS.md#saved-provider-runs-and-comparison-p1-b6-96).
+The [broader B6 comparison](benchmarks/results/2026-11-17-b6-broader-matrix.md)
+records all 27 declarations on each of two installed local models. Each recorded
+4 passes, 7 failures, 10 timeouts, 3 skips and 3 unsupported capabilities. These
+are baseline measurements, not analytical-readiness or model-superiority claims.
+Bounded failure findings omit raw responses and data values; unknowns remain explicit.
+Failed first submissions retain a safe reason across refresh; reopening never retries
+them. CSV inspection/advice stays on the table contract when database writes are
+explicitly prohibited. See the [failure retest guide](docs/REQUEST_DIAGNOSTICS.md#failed-first-submissions--b6-follow-up-2026-11-16).
+The built-in local option is labelled launcher settings; explicit saved profiles
+share endpoints when needed, and disabled/save controls explain their requirements.
+
+[Data Cards](docs/DATA_CARDS.md) now present bounded source identity, scope, field
+types/candidate roles and recorded quality in the existing Overview and CLI/MCP
+results. Opening a card does not scan again. Preliminary samples and unknowns remain
+explicit; automatic freshness/reuse scheduling is still planned. Phase 1
+[engineering closeout](docs/PHASE_1_CLOSEOUT.md) is recorded; owner Git integration
+remains pending.
 
 [Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and directs maintained callers to native services. The 117 documented

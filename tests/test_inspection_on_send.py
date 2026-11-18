@@ -59,6 +59,46 @@ def receipt(project):
     return submission_action(SubmissionRequest(action='read', submission_id=SUBMISSION, conversation_id=CHAT), project_root=project)
 
 
+def test_failed_first_submission_retains_safe_reason_and_reopen_never_retries(project):
+    from geoagent_harness.platform.model_gateway.client import ModelClientError
+    from geoagent_harness.platform.storage.metadata import transaction
+    from geoagent_harness.platform.model_gateway import telemetry
+    client=Client(hook=lambda: (_ for _ in ()).throw(ModelClientError.timeout()))
+    with pytest.raises(ModelClientError):
+        submission_action(request(enabled=False),project_root=project,model_client=client)
+    first=receipt(project)
+    assert first['conversation'] is None and first['run'] is None
+    assert first['submission']['failure_code']=='model_timeout'
+    assert 'configured timeout' in first['submission']['finding']
+    assert 'Reasoning effort' in first['submission']['finding']
+    assert client.calls==1
+    # Historical fixed-only receipts can recover the category from diagnostics
+    # without changing the stored receipt or any existing authority/run.
+    with transaction(project,write=True) as connection:
+        store=connection.records('inspection_submissions_v1')
+        record=json.loads(store.get(SUBMISSION));record.pop('failure_code')
+        record['finding']='Submission stopped.'
+        original=json.dumps(record);store.put(SUBMISSION,original)
+    recovered=receipt(project)
+    assert recovered['submission']['failure_code']=='model_timeout'
+    with transaction(project) as connection:
+        assert connection.records('inspection_submissions_v1').get(SUBMISSION)==original
+    assert receipt(project)==recovered and client.calls==1
+    assert telemetry.read(project,CHAT)['records'][0]['error_code']=='model_timeout'
+    assert not (project/'approvals').exists()
+    assert not (project/'workflow-state/interface-runs').exists()
+
+
+def test_unknown_submission_failure_does_not_persist_raw_exception(project):
+    client=Client(hook=lambda: (_ for _ in ()).throw(RuntimeError('private prompt secret=value')))
+    with pytest.raises(RuntimeError):
+        submission_action(request(enabled=False),project_root=project,model_client=client)
+    result=receipt(project)
+    assert result['submission']['failure_code']=='request_failed'
+    assert 'Request diagnostics' in result['submission']['finding']
+    assert 'secret=value' not in json.dumps(result)
+
+
 def test_one_send_runs_and_duplicate_read_or_retry_never_repeats(project):
     client = Client()
     response = submission_action(request(), project_root=project, model_client=client, background=False)

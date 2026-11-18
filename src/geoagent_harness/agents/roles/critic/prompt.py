@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from geoagent_harness.platform.model_gateway.egress import classify_request
 import json
 
 from geoagent_harness.agents.runtime.manifest import AgentManifest
@@ -73,7 +74,7 @@ risk has been eliminated.
         "critic_evidence": evidence.as_prompt_payload(),
     }
 
-    return ModelRequest(
+    return classify_request(ModelRequest(
         messages=[
             ChatMessage(
                 role="system",
@@ -90,4 +91,4 @@ risk has been eliminated.
         ],
         temperature=0.0,
         json_mode=True,
-    )
+    ), message_classes=('none','raw'))

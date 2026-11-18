@@ -34,7 +34,15 @@ def schema_scope(message, available, existing=(), *, selected=False, acquisition
     # Negative scope statements are not requests for spatial capabilities.
     # Only remove explicit lists of excluded operation families, not whole
     # sentences that might also request a spatial operation.
-    spatial_text=re.sub(r"\b(?:no|without|do not use|don't use)\s+(?:(?:postgresql|postgres|postgis|geoserver|spatial|vector|raster|database)(?:\s+operations?)?\b(?:\s*(?:,|or|and)\s*|\s*)?)+", '', text)
+    # Descriptive schema routing must not interpret a prohibition on database
+    # writes as a request for database operations. Remove only the matched
+    # prohibited effects, preserving positive work later in the same sentence.
+    effect = (r'(?:write\s+(?:(?:any|new|existing)\s+)?files?\b|'
+              r'(?:modify|change|alter|update|write\s+to)\s+'
+              r'(?:(?:the|any|an?|existing)\s+){0,2}'
+              r'(?:postgresql|postgres|postgis|geoserver|database)\b)')
+    spatial_text=re.sub(r"\b(?:do not|don't|never)\s+"+effect+r'(?:\s*(?:,|or|and)\s*'+effect+r')*', ' ', text)
+    spatial_text=re.sub(r"\b(?:no|without|do not use|don't use)\s+(?:(?:postgresql|postgres|postgis|geoserver|spatial|vector|raster|database)(?:\s+operations?)?\b(?:\s*(?:,|or|and)\s*|\s*)?)+", '', spatial_text)
     spatial=bool(re.search(r'geojson|geopackage|postgis|geoserver|raster|vector|\.tif\b|\.gpkg\b',spatial_text))
     calculation = bool(re.search(r'calculat|derived|formula|multipl|divid|discount|revenue|unit conversion|conditional|(?:new|numeric|computed)\s+column|\b(?:double|triple)\w*\b', text))
     # Follow-ups often say "keep the inspection" instead of repeating a
@@ -45,6 +53,15 @@ def schema_scope(message, available, existing=(), *, selected=False, acquisition
     from geoagent_harness.agents.roles.planner.request_coverage import requested_table_operations, requests_statistics
     table_requested=requested_table_operations(message,existing)
     from geoagent_harness.agents.roles.planner.request_coverage import requests_evidence_report
+    # Inspection plus advice still needs the table reader contract. Advice is
+    # not a request to run all transforms. The final decoder/policy stay broad
+    # and supply any deferred operation schema during the bounded correction.
+    if (csv and not spatial and not calculation and not text_candidate and not table_requested
+        and not requests_evidence_report(message)
+        and re.search(r'\b(?:suggest|recommend|propose)\b.{0,120}\b(?:questions?|analysis|analyses|steps?)\b',text)
+        and set(existing).issubset({'inspect_csv'}) and re.search(r'\b(?:inspect|profile)\b',text)
+        and not re.search(r'\b(?:postgresql|postgres|database|export|save|persist|write|import|load|convert|join|merge|filter|select|fill|impute|clean|decode|group|aggregate|snakemake)\b',spatial_text)):
+        return [skill for skill in available if skill=='inspect_csv']
     if (csv and not spatial and not calculation and not table_requested and set(existing).issubset({'inspect_csv'})
         and re.search(r'\breport\b',text) and not requests_evidence_report(message)
         and not re.search(r'\b(?:export|save|persist|write|import|load|convert|join|merge|filter|select|fill|impute)\b',text)):

@@ -1,0 +1,808 @@
+{
+  "schema_version": "b6-profile-observations-v1",
+  "evidence_kind": "real_local_model",
+  "scope": "two_synthetic_read_only_tasks",
+  "comparisons": [
+    {
+      "schema_version": "benchmark-comparison-v1",
+      "left": {
+        "schema_version": "1.0",
+        "run_id": "a1edf288ba3649859aadaba931bf4b19",
+        "evidence_kind": "real_model",
+        "complete": true,
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "skipped": 0,
+          "unsupported": 0
+        },
+        "context": {
+          "started_at": "2026-11-17T18:44:32Z",
+          "task_ids": [
+            "h-describe-001"
+          ],
+          "source_sha256": "9d689c815fe3b210637388d0ce3a53650af06d63d902f5436d1ac1663ef41110",
+          "python_version": "3.12.3",
+          "package_versions": {
+            "pandas": "3.0.5",
+            "numpy": "1.26.4",
+            "scipy": "1.17.1",
+            "pydantic": "2.13.4",
+            "httpx": "0.28.1",
+            "psycopg": "3.3.4",
+            "rasterio": "1.4.4",
+            "pyogrio": "0.13.0",
+            "shapely": "2.1.2",
+            "pyyaml": "6.0.3"
+          },
+          "model_configuration": {
+            "timeout_seconds": 120.0,
+            "max_tokens": 1024,
+            "reasoning_effort": "none",
+            "response_format": "json_schema"
+          },
+          "allow_fixture_writes": false,
+          "disposable_database": false,
+          "include_local_data": false,
+          "provider_binding": {
+            "profile_id": "pilot-9b",
+            "provider_revision": 2,
+            "model_selection_revision": 0,
+            "reasoning_selection_revision": 1,
+            "configuration_sha256": "7f7e7bd0c010ab2dbc8b502f270d65ea8cb68542074b973f1d34583784ca74eb",
+            "model": "qwen3.5:9b",
+            "kind": "local",
+            "location": "machine",
+            "data_allowed": "raw",
+            "effective_data_allowed": "raw"
+          },
+          "review_timeout_seconds": 60
+        },
+        "source_unchanged": true,
+        "totals": {
+          "model_calls": 2,
+          "prompt_tokens": 6561,
+          "completion_tokens": 528,
+          "wall_seconds": 106.94132413800025,
+          "process_cpu_seconds": 6.468969,
+          "retries": 0,
+          "timeouts": 0,
+          "approvals_required": 0
+        },
+        "roles": {
+          "critic": {
+            "model_calls": 1,
+            "prompt_tokens": 2406,
+            "completion_tokens": 349,
+            "elapsed_seconds": 49.88853495300009
+          },
+          "planner": {
+            "model_calls": 1,
+            "prompt_tokens": 4155,
+            "completion_tokens": 179,
+            "elapsed_seconds": 51.506797198000186
+          }
+        },
+        "usage_coverage": {
+          "prompt_tokens": {
+            "reported_sum": 6561,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          },
+          "completion_tokens": {
+            "reported_sum": 528,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          }
+        },
+        "critic_counts": {
+          "complete": 1
+        },
+        "results": [
+          {
+            "schema_version": "1.0",
+            "run_id": "a1edf288ba3649859aadaba931bf4b19",
+            "task_id": "h-describe-001",
+            "task_sha256": "1742dc5648c9c4caed0046518731c188d6e3370e3e797143b09510ce2771cfca",
+            "evidence_kind": "real_model",
+            "provider_profile_id": "pilot-9b",
+            "model": "qwen3.5:9b",
+            "code_version": "d045216be4a43143891ce6d988fe9248dbeb86f7",
+            "source_dirty": true,
+            "egress_class": "raw",
+            "expected_kind": "deterministic",
+            "status": "passed",
+            "observed_outcome": "completed",
+            "executed_operations": 1,
+            "reason_code": "workflow_completed",
+            "checks": [
+              {
+                "check_index": 0,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 1,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 2,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 3,
+                "status": "passed",
+                "reason_code": "matches"
+              }
+            ],
+            "advisory_status": "complete",
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 106.94132413800025,
+              "prompt_tokens": 6561,
+              "completion_tokens": 528,
+              "process_cpu_seconds": 6.468969,
+              "process_sampled_peak_rss_bytes": 216412160,
+              "retries": 0,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "critic",
+                  "model_calls": 1,
+                  "prompt_tokens": 2406,
+                  "completion_tokens": 349,
+                  "elapsed_seconds": 49.88853495300009
+                },
+                {
+                  "role": "planner",
+                  "model_calls": 1,
+                  "prompt_tokens": 4155,
+                  "completion_tokens": 179,
+                  "elapsed_seconds": 51.506797198000186
+                }
+              ]
+            },
+            "input_manifest_sha256": "0e46c07787d788bb6d16e2b43c7253938b3c1041559dfe14e90570aa5e6251d4"
+          }
+        ]
+      },
+      "right": {
+        "schema_version": "1.0",
+        "run_id": "d89500ee27fa434fb12a08c6cebe94a8",
+        "evidence_kind": "real_model",
+        "complete": true,
+        "counts": {
+          "passed": 1,
+          "failed": 0,
+          "error": 0,
+          "timeout": 0,
+          "skipped": 0,
+          "unsupported": 0
+        },
+        "context": {
+          "started_at": "2026-11-17T18:47:46Z",
+          "task_ids": [
+            "h-describe-001"
+          ],
+          "source_sha256": "9d689c815fe3b210637388d0ce3a53650af06d63d902f5436d1ac1663ef41110",
+          "python_version": "3.12.3",
+          "package_versions": {
+            "pandas": "3.0.5",
+            "numpy": "1.26.4",
+            "scipy": "1.17.1",
+            "pydantic": "2.13.4",
+            "httpx": "0.28.1",
+            "psycopg": "3.3.4",
+            "rasterio": "1.4.4",
+            "pyogrio": "0.13.0",
+            "shapely": "2.1.2",
+            "pyyaml": "6.0.3"
+          },
+          "model_configuration": {
+            "timeout_seconds": 120.0,
+            "max_tokens": 1024,
+            "reasoning_effort": "none",
+            "response_format": "json_schema"
+          },
+          "allow_fixture_writes": false,
+          "disposable_database": false,
+          "include_local_data": false,
+          "provider_binding": {
+            "profile_id": "pilot-4b",
+            "provider_revision": 2,
+            "model_selection_revision": 0,
+            "reasoning_selection_revision": 1,
+            "configuration_sha256": "0a0e44f85624ebf7192114fdab8d7079bf33899ad71e9a146549f407f6e2352d",
+            "model": "qwen3:4b-instruct",
+            "kind": "local",
+            "location": "machine",
+            "data_allowed": "raw",
+            "effective_data_allowed": "raw"
+          },
+          "review_timeout_seconds": 60
+        },
+        "source_unchanged": true,
+        "totals": {
+          "model_calls": 2,
+          "prompt_tokens": 6556,
+          "completion_tokens": 942,
+          "wall_seconds": 103.27580249000039,
+          "process_cpu_seconds": 5.008483,
+          "retries": 0,
+          "timeouts": 0,
+          "approvals_required": 0
+        },
+        "roles": {
+          "critic": {
+            "model_calls": 1,
+            "prompt_tokens": 2405,
+            "completion_tokens": 647,
+            "elapsed_seconds": 57.74999619099981
+          },
+          "planner": {
+            "model_calls": 1,
+            "prompt_tokens": 4151,
+            "completion_tokens": 295,
+            "elapsed_seconds": 42.074502264999865
+          }
+        },
+        "usage_coverage": {
+          "prompt_tokens": {
+            "reported_sum": 6556,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          },
+          "completion_tokens": {
+            "reported_sum": 942,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          }
+        },
+        "critic_counts": {
+          "complete": 1
+        },
+        "results": [
+          {
+            "schema_version": "1.0",
+            "run_id": "d89500ee27fa434fb12a08c6cebe94a8",
+            "task_id": "h-describe-001",
+            "task_sha256": "1742dc5648c9c4caed0046518731c188d6e3370e3e797143b09510ce2771cfca",
+            "evidence_kind": "real_model",
+            "provider_profile_id": "pilot-4b",
+            "model": "qwen3:4b-instruct",
+            "code_version": "d045216be4a43143891ce6d988fe9248dbeb86f7",
+            "source_dirty": true,
+            "egress_class": "raw",
+            "expected_kind": "deterministic",
+            "status": "passed",
+            "observed_outcome": "completed",
+            "executed_operations": 1,
+            "reason_code": "workflow_completed",
+            "checks": [
+              {
+                "check_index": 0,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 1,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 2,
+                "status": "passed",
+                "reason_code": "matches"
+              },
+              {
+                "check_index": 3,
+                "status": "passed",
+                "reason_code": "matches"
+              }
+            ],
+            "advisory_status": "complete",
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 103.27580249000039,
+              "prompt_tokens": 6556,
+              "completion_tokens": 942,
+              "process_cpu_seconds": 5.008483,
+              "process_sampled_peak_rss_bytes": 214368256,
+              "retries": 0,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "critic",
+                  "model_calls": 1,
+                  "prompt_tokens": 2405,
+                  "completion_tokens": 647,
+                  "elapsed_seconds": 57.74999619099981
+                },
+                {
+                  "role": "planner",
+                  "model_calls": 1,
+                  "prompt_tokens": 4151,
+                  "completion_tokens": 295,
+                  "elapsed_seconds": 42.074502264999865
+                }
+              ]
+            },
+            "input_manifest_sha256": "0e46c07787d788bb6d16e2b43c7253938b3c1041559dfe14e90570aa5e6251d4"
+          }
+        ]
+      },
+      "matched_recorded_conditions": true,
+      "findings": [],
+      "tasks": [
+        {
+          "task_id": "h-describe-001",
+          "matched_recorded_conditions": true,
+          "findings": [],
+          "both_passed": true,
+          "left": {
+            "status": "passed",
+            "reason_code": "workflow_completed",
+            "advisory_status": "complete",
+            "executed_operations": 1,
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 106.94132413800025,
+              "prompt_tokens": 6561,
+              "completion_tokens": 528,
+              "process_cpu_seconds": 6.468969,
+              "process_sampled_peak_rss_bytes": 216412160,
+              "retries": 0,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "critic",
+                  "model_calls": 1,
+                  "prompt_tokens": 2406,
+                  "completion_tokens": 349,
+                  "elapsed_seconds": 49.88853495300009
+                },
+                {
+                  "role": "planner",
+                  "model_calls": 1,
+                  "prompt_tokens": 4155,
+                  "completion_tokens": 179,
+                  "elapsed_seconds": 51.506797198000186
+                }
+              ]
+            }
+          },
+          "right": {
+            "status": "passed",
+            "reason_code": "workflow_completed",
+            "advisory_status": "complete",
+            "executed_operations": 1,
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 103.27580249000039,
+              "prompt_tokens": 6556,
+              "completion_tokens": 942,
+              "process_cpu_seconds": 5.008483,
+              "process_sampled_peak_rss_bytes": 214368256,
+              "retries": 0,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "critic",
+                  "model_calls": 1,
+                  "prompt_tokens": 2405,
+                  "completion_tokens": 647,
+                  "elapsed_seconds": 57.74999619099981
+                },
+                {
+                  "role": "planner",
+                  "model_calls": 1,
+                  "prompt_tokens": 4151,
+                  "completion_tokens": 295,
+                  "elapsed_seconds": 42.074502264999865
+                }
+              ]
+            }
+          },
+          "right_minus_left_on_matched_passes": {
+            "model_calls": 0,
+            "wall_seconds": -3.665521647999867,
+            "prompt_tokens": -5,
+            "completion_tokens": 414,
+            "process_cpu_seconds": -1.4604860000000004
+          }
+        }
+      ],
+      "performance_winner": null,
+      "limitations": [
+        "Recorded settings, task definitions and staged input identities are compared; no model or workflow is called.",
+        "Hardware identity, background load, cache warmth and repeated-run uncertainty are not controlled or inferred.",
+        "One observation does not establish model superiority. Deltas are descriptive and only shown for matching successful cases.",
+        "Fixture calls are logical test observations, not real model usage. Unknown token/resource measurements stay unknown.",
+        "Skipped and unsupported cases are not passes. Critic assessment remains separate from deterministic correctness."
+      ],
+      "model_called": false,
+      "execution_performed": false,
+      "authority_granted": false
+    },
+    {
+      "schema_version": "benchmark-comparison-v1",
+      "left": {
+        "schema_version": "1.0",
+        "run_id": "97ead91fa42e48d383cc873a8e280699",
+        "evidence_kind": "real_model",
+        "complete": true,
+        "counts": {
+          "passed": 0,
+          "failed": 1,
+          "error": 0,
+          "timeout": 0,
+          "skipped": 0,
+          "unsupported": 0
+        },
+        "context": {
+          "started_at": "2026-11-17T18:46:30Z",
+          "task_ids": [
+            "h-quality-001"
+          ],
+          "source_sha256": "9d689c815fe3b210637388d0ce3a53650af06d63d902f5436d1ac1663ef41110",
+          "python_version": "3.12.3",
+          "package_versions": {
+            "pandas": "3.0.5",
+            "numpy": "1.26.4",
+            "scipy": "1.17.1",
+            "pydantic": "2.13.4",
+            "httpx": "0.28.1",
+            "psycopg": "3.3.4",
+            "rasterio": "1.4.4",
+            "pyogrio": "0.13.0",
+            "shapely": "2.1.2",
+            "pyyaml": "6.0.3"
+          },
+          "model_configuration": {
+            "timeout_seconds": 120.0,
+            "max_tokens": 1024,
+            "reasoning_effort": "none",
+            "response_format": "json_schema"
+          },
+          "allow_fixture_writes": false,
+          "disposable_database": false,
+          "include_local_data": false,
+          "provider_binding": {
+            "profile_id": "pilot-9b",
+            "provider_revision": 2,
+            "model_selection_revision": 0,
+            "reasoning_selection_revision": 1,
+            "configuration_sha256": "7f7e7bd0c010ab2dbc8b502f270d65ea8cb68542074b973f1d34583784ca74eb",
+            "model": "qwen3.5:9b",
+            "kind": "local",
+            "location": "machine",
+            "data_allowed": "raw",
+            "effective_data_allowed": "raw"
+          },
+          "review_timeout_seconds": 60
+        },
+        "source_unchanged": true,
+        "totals": {
+          "model_calls": 2,
+          "prompt_tokens": 7260,
+          "completion_tokens": 379,
+          "wall_seconds": 70.15661667299992,
+          "process_cpu_seconds": 4.078314000000001,
+          "retries": 1,
+          "timeouts": 0,
+          "approvals_required": 0
+        },
+        "roles": {
+          "planner": {
+            "model_calls": 2,
+            "prompt_tokens": 7260,
+            "completion_tokens": 379,
+            "elapsed_seconds": 67.84589758399989
+          }
+        },
+        "usage_coverage": {
+          "prompt_tokens": {
+            "reported_sum": 7260,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          },
+          "completion_tokens": {
+            "reported_sum": 379,
+            "tasks_reported": 1,
+            "tasks_with_calls": 1
+          }
+        },
+        "critic_counts": {
+          "not_requested": 1
+        },
+        "results": [
+          {
+            "schema_version": "1.0",
+            "run_id": "97ead91fa42e48d383cc873a8e280699",
+            "task_id": "h-quality-001",
+            "task_sha256": "6f6e084c649ff598baba63c32bedaca6781106a14d6cbdeb097451fa0919ddab",
+            "evidence_kind": "real_model",
+            "provider_profile_id": "pilot-9b",
+            "model": "qwen3.5:9b",
+            "code_version": "d045216be4a43143891ce6d988fe9248dbeb86f7",
+            "source_dirty": true,
+            "egress_class": "raw",
+            "expected_kind": "deterministic",
+            "status": "failed",
+            "observed_outcome": "refused",
+            "executed_operations": 0,
+            "reason_code": "planner_policy_rejected",
+            "checks": [
+              {
+                "check_index": 0,
+                "status": "error",
+                "reason_code": "evidence_unavailable"
+              },
+              {
+                "check_index": 1,
+                "status": "error",
+                "reason_code": "evidence_unavailable"
+              },
+              {
+                "check_index": 2,
+                "status": "error",
+                "reason_code": "evidence_unavailable"
+              },
+              {
+                "check_index": 3,
+                "status": "error",
+                "reason_code": "evidence_unavailable"
+              }
+            ],
+            "advisory_status": "not_requested",
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 70.15661667299992,
+              "prompt_tokens": 7260,
+              "completion_tokens": 379,
+              "process_cpu_seconds": 4.078314000000001,
+              "process_sampled_peak_rss_bytes": 210755584,
+              "retries": 1,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "planner",
+                  "model_calls": 2,
+                  "prompt_tokens": 7260,
+                  "completion_tokens": 379,
+                  "elapsed_seconds": 67.84589758399989
+                }
+              ]
+            },
+            "input_manifest_sha256": "284c7e8a163a83919d8b8380b4558ab37e9436b7db856d84465ff1f3ca7d4265"
+          }
+        ]
+      },
+      "right": {
+        "schema_version": "1.0",
+        "run_id": "0f811a33e76046dbbd5b57390ef0cf4e",
+        "evidence_kind": "real_model",
+        "complete": true,
+        "counts": {
+          "passed": 0,
+          "failed": 0,
+          "error": 0,
+          "timeout": 1,
+          "skipped": 0,
+          "unsupported": 0
+        },
+        "context": {
+          "started_at": "2026-11-17T18:49:40Z",
+          "task_ids": [
+            "h-quality-001"
+          ],
+          "source_sha256": "9d689c815fe3b210637388d0ce3a53650af06d63d902f5436d1ac1663ef41110",
+          "python_version": "3.12.3",
+          "package_versions": {
+            "pandas": "3.0.5",
+            "numpy": "1.26.4",
+            "scipy": "1.17.1",
+            "pydantic": "2.13.4",
+            "httpx": "0.28.1",
+            "psycopg": "3.3.4",
+            "rasterio": "1.4.4",
+            "pyogrio": "0.13.0",
+            "shapely": "2.1.2",
+            "pyyaml": "6.0.3"
+          },
+          "model_configuration": {
+            "timeout_seconds": 120.0,
+            "max_tokens": 1024,
+            "reasoning_effort": "none",
+            "response_format": "json_schema"
+          },
+          "allow_fixture_writes": false,
+          "disposable_database": false,
+          "include_local_data": false,
+          "provider_binding": {
+            "profile_id": "pilot-4b",
+            "provider_revision": 2,
+            "model_selection_revision": 0,
+            "reasoning_selection_revision": 1,
+            "configuration_sha256": "0a0e44f85624ebf7192114fdab8d7079bf33899ad71e9a146549f407f6e2352d",
+            "model": "qwen3:4b-instruct",
+            "kind": "local",
+            "location": "machine",
+            "data_allowed": "raw",
+            "effective_data_allowed": "raw"
+          },
+          "review_timeout_seconds": 60
+        },
+        "source_unchanged": true,
+        "totals": {
+          "model_calls": 2,
+          "prompt_tokens": null,
+          "completion_tokens": null,
+          "wall_seconds": 120.06852246400013,
+          "process_cpu_seconds": 3.3414680000000008,
+          "retries": 1,
+          "timeouts": 1,
+          "approvals_required": 0
+        },
+        "roles": {
+          "planner": {
+            "model_calls": 2,
+            "prompt_tokens": null,
+            "completion_tokens": null,
+            "elapsed_seconds": null
+          }
+        },
+        "usage_coverage": {
+          "prompt_tokens": {
+            "reported_sum": null,
+            "tasks_reported": 0,
+            "tasks_with_calls": 1
+          },
+          "completion_tokens": {
+            "reported_sum": null,
+            "tasks_reported": 0,
+            "tasks_with_calls": 1
+          }
+        },
+        "critic_counts": {
+          "not_requested": 1
+        },
+        "results": [
+          {
+            "schema_version": "1.0",
+            "run_id": "0f811a33e76046dbbd5b57390ef0cf4e",
+            "task_id": "h-quality-001",
+            "task_sha256": "6f6e084c649ff598baba63c32bedaca6781106a14d6cbdeb097451fa0919ddab",
+            "evidence_kind": "real_model",
+            "provider_profile_id": "pilot-4b",
+            "model": "qwen3:4b-instruct",
+            "code_version": "d045216be4a43143891ce6d988fe9248dbeb86f7",
+            "source_dirty": true,
+            "egress_class": "raw",
+            "expected_kind": "deterministic",
+            "status": "timeout",
+            "observed_outcome": "unknown",
+            "executed_operations": null,
+            "reason_code": "task_deadline",
+            "checks": [],
+            "advisory_status": "not_requested",
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 120.06852246400013,
+              "prompt_tokens": null,
+              "completion_tokens": null,
+              "process_cpu_seconds": 3.3414680000000008,
+              "process_sampled_peak_rss_bytes": 210034688,
+              "retries": 1,
+              "timeouts": 1,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "planner",
+                  "model_calls": 2,
+                  "prompt_tokens": null,
+                  "completion_tokens": null,
+                  "elapsed_seconds": null
+                }
+              ]
+            },
+            "input_manifest_sha256": "284c7e8a163a83919d8b8380b4558ab37e9436b7db856d84465ff1f3ca7d4265"
+          }
+        ]
+      },
+      "matched_recorded_conditions": true,
+      "findings": [],
+      "tasks": [
+        {
+          "task_id": "h-quality-001",
+          "matched_recorded_conditions": true,
+          "findings": [],
+          "both_passed": false,
+          "left": {
+            "status": "failed",
+            "reason_code": "planner_policy_rejected",
+            "advisory_status": "not_requested",
+            "executed_operations": 0,
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 70.15661667299992,
+              "prompt_tokens": 7260,
+              "completion_tokens": 379,
+              "process_cpu_seconds": 4.078314000000001,
+              "process_sampled_peak_rss_bytes": 210755584,
+              "retries": 1,
+              "timeouts": 0,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "planner",
+                  "model_calls": 2,
+                  "prompt_tokens": 7260,
+                  "completion_tokens": 379,
+                  "elapsed_seconds": 67.84589758399989
+                }
+              ]
+            }
+          },
+          "right": {
+            "status": "timeout",
+            "reason_code": "task_deadline",
+            "advisory_status": "not_requested",
+            "executed_operations": null,
+            "metrics": {
+              "model_calls": 2,
+              "wall_seconds": 120.06852246400013,
+              "prompt_tokens": null,
+              "completion_tokens": null,
+              "process_cpu_seconds": 3.3414680000000008,
+              "process_sampled_peak_rss_bytes": 210034688,
+              "retries": 1,
+              "timeouts": 1,
+              "approvals_required": 0,
+              "roles": [
+                {
+                  "role": "planner",
+                  "model_calls": 2,
+                  "prompt_tokens": null,
+                  "completion_tokens": null,
+                  "elapsed_seconds": null
+                }
+              ]
+            }
+          },
+          "right_minus_left_on_matched_passes": null
+        }
+      ],
+      "performance_winner": null,
+      "limitations": [
+        "Recorded settings, task definitions and staged input identities are compared; no model or workflow is called.",
+        "Hardware identity, background load, cache warmth and repeated-run uncertainty are not controlled or inferred.",
+        "One observation does not establish model superiority. Deltas are descriptive and only shown for matching successful cases.",
+        "Fixture calls are logical test observations, not real model usage. Unknown token/resource measurements stay unknown.",
+        "Skipped and unsupported cases are not passes. Critic assessment remains separate from deterministic correctness."
+      ],
+      "model_called": false,
+      "execution_performed": false,
+      "authority_granted": false
+    }
+  ],
+  "all_full_suite_tasks_exercised": false,
+  "settings_changed": false,
+  "owner_data_used": false,
+  "concurrent_fixture_tests": false,
+  "limitations": [
+    "Sequential scoped functional observations, not the full suite or repeated statistical performance evidence.",
+    "Model order is 9B then 4B; cache/load/hardware controls are not established.",
+    "Temporary profiles and uniform review preference60s; product default remains15s.",
+    "No data-write, live database, remote provider or public service exercised."
+  ]
+}

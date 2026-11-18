@@ -83,6 +83,15 @@ def test_legacy_services_are_identical_shared_modules(module):
     legacy = 'tools' if module == 'data_tools' else module
     path = f'geoagent_harness.{namespace}.{legacy}'
     retired = json.loads((SOURCE / 'tests/architecture/r11_compatibility.json').read_text())['retired']
+    if module == 'model_providers':
+        # M1 is native-only: never create or retire an adapter that did not exist.
+        assert path not in retired
+        native = import_module(f'geoagent_harness.task_actions.{module}')
+        assert Path(native.__file__).resolve() == (
+            SOURCE / 'src/geoagent_harness/task_actions/model_providers.py').resolve()
+        with pytest.raises(ModuleNotFoundError):
+            import_module(path)
+        return
     if path in retired:
         with pytest.raises(ModuleNotFoundError):
             import_module(path)

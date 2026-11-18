@@ -184,7 +184,33 @@ class BenchmarkModelConfiguration(BenchmarkModel):
     timeout_seconds: Annotated[Number, Field(gt=0, le=600)]
     max_tokens: Annotated[StrictInt, Field(ge=1, le=32768)]
     reasoning_effort: Literal['none', 'low', 'medium', 'high'] | None
-    response_format: Literal['json_schema', 'json_object']
+    response_format: Literal['json_schema', 'json_object', 'text']
+
+
+class BenchmarkProviderBinding(BenchmarkModel):
+    profile_id: Identifier
+    provider_revision: Count
+    model_selection_revision: Count
+    reasoning_selection_revision: Count
+    configuration_sha256: Digest
+    model: Annotated[str, Field(min_length=1, max_length=160)]
+    kind: Literal['local', 'onsite', 'gateway', 'public']
+    location: Literal['machine', 'site', 'organisation', 'external']
+    data_allowed: DataClass
+    effective_data_allowed: DataClass
+
+
+class BenchmarkInputIdentity(BenchmarkModel):
+    path: str
+    sha256: Digest
+    bytes: Count
+
+    @field_validator('path')
+    @classmethod
+    def safe_input(cls, value):
+        value=relative_path(value)
+        if not value.startswith('data/input/'):raise ValueError('Invalid staged input identity')
+        return value
 
 
 class BenchmarkRunContext(BenchmarkModel):
@@ -197,12 +223,25 @@ class BenchmarkRunContext(BenchmarkModel):
     allow_fixture_writes: StrictBool
     disposable_database: StrictBool
     include_local_data: StrictBool
+    provider_binding: BenchmarkProviderBinding | None = None
+    review_timeout_seconds: Annotated[StrictInt, Field(ge=5, le=180)] | None = None
 
 
 class CheckResult(BenchmarkModel):
     check_index: Annotated[StrictInt, Field(ge=0, le=63)]
     status: Literal['passed', 'failed', 'error']
     reason_code: Identifier
+
+
+class BenchmarkFailureDetails(BenchmarkModel):
+    stage: Literal['planning', 'execution', 'advisory_review']
+    category: Identifier
+    correction_attempted: StrictBool = False
+    planner_reason: Literal['capability_gap_unresolved','unverified_reuse_claim',
+        'request_coverage_incomplete','schema_repair_deferred','output_truncated'] | None = None
+    policy_rule: Literal['csv_producer_required','input_format_mismatch','unsafe_input_path',
+        'unsafe_output_path','missing_calculation_columns'] | None = None
+    schema_findings: Annotated[tuple[Annotated[str,Field(max_length=1024)], ...],Field(max_length=6)] = ()
 
 
 class BenchmarkResult(BenchmarkModel):
@@ -224,6 +263,8 @@ class BenchmarkResult(BenchmarkModel):
     checks: Annotated[tuple[CheckResult, ...], Field(max_length=64)] = Field(default_factory=tuple)
     advisory_status: Literal['complete', 'unavailable', 'not_requested', 'deferred', 'unknown'] = 'not_requested'
     metrics: BenchmarkMetrics
+    input_manifest_sha256: Digest | None = None
+    failure_details: BenchmarkFailureDetails | None = None
 
     @model_validator(mode='after')
     def consistent_evidence(self):

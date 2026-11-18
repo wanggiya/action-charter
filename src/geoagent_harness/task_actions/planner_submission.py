@@ -59,6 +59,18 @@ def _put(connection, record):
     connection.records('inspection_submissions_v1').put(record['submission_id'], encoded)
 
 
+def _failure_finding(code):
+    reasons = {
+        'model_timeout': 'The Planner model did not finish before its configured timeout. In Settings → Model service, check Reasoning effort and try None for a compatible model, or select a smaller installed model.',
+        'model_data_class_blocked': 'The provider data allowance blocked this request before model dispatch. Check the selected provider and its permitted data class in Settings.',
+        'model_unavailable': 'The configured model service could not be reached. Check that its service is running and its endpoint is correct.',
+        'planner_invalid_schema': 'The model reply did not match the required workflow schema after bounded correction.',
+        'planner_policy_rejected': 'The proposed workflow did not pass deterministic operation validation.',
+        'process_interrupted': 'The recording process stopped before this submission finished.',
+    }
+    return reasons.get(code,'Submission stopped. Inspect Request diagnostics for the recorded failure category.') + ' Saved work is preserved. Nothing is automatically retried; check any recorded run before sending again.'
+
+
 def _present(root, record):
     from geoagent_harness.task_actions.workflow_runs import run_action, RunRequest
     from geoagent_harness.task_actions.inspection_planning import clarification_usage
@@ -75,8 +87,23 @@ def _present(root, record):
             if run.get('submission_id') != record['submission_id'] or run.get('conversation_id') != record['conversation_id']:
                 from geoagent_harness.contracts.errors import InterfaceApiError
                 raise InterfaceApiError('Submission run provenance does not match')
-    return {'submission': {key: record.get(key) for key in (
-                'submission_id', 'conversation_id', 'status', 'finding', 'run_id', 'discovery')},
+    submission = {key: record.get(key) for key in (
+        'submission_id', 'conversation_id', 'status', 'finding', 'run_id', 'discovery')}
+    if record.get('status')=='failed':
+        code=record.get('failure_code')
+        if not code:
+            # Recover a safe category for legacy receipts without modifying them
+            # or exposing exception/prompt text. Reads never retry the request.
+            from geoagent_harness.platform.model_gateway.telemetry import read
+            try:
+                observations=read(root,record['conversation_id'])['records']
+                code=next((r.get('error_code') for r in observations
+                           if r.get('submission_id')==record['submission_id'] and r.get('error_code')),None)
+            except Exception:
+                # Telemetry failure must not make the submission receipt unreadable.
+                code=None
+        submission.update(failure_code=code,finding=_failure_finding(code))
+    return {'submission': submission,
             'conversation': conversation, 'run': run,
             'discovery_performed':bool(record.get('discovery')),
             'approval_performed': False, 'execution_performed': bool(run and run['execution_performed'])}
@@ -217,11 +244,13 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
         with database(root, write=True) as connection:
             _put(connection, record)
         return _present(root, record)
-    except Exception:
+    except Exception as error:
         # Do not hide the existing safe Planner error contract. Record only a
-        # fixed finding; raw exceptions may contain prompts, paths or settings.
+        # safe category/fixed finding; raw exceptions may contain private input.
+        from geoagent_harness.platform.model_gateway.telemetry import error_code
         record['status'] = 'failed'
-        record['finding'] = 'Submission stopped. Saved chat and any recorded run are preserved. Check them before a deliberate new submission; nothing is automatically retried.'
+        record['failure_code'] = error_code(error)
+        record['finding'] = _failure_finding(record['failure_code'])
         with database(root, write=True) as connection:
             _put(connection, record)
         raise

@@ -1,6 +1,6 @@
 # Phase 1 plan — baseline benchmark and model providers
 
-Recorded 2026-11-12; closeout updated 2026-11-13. **Contributor plan; P1-B1–B5 implemented; remaining P1 work planned.**
+Recorded 2026-11-12; status updated 2026-11-17. **Contributor plan; P1-B1–B5 merged and M1/M2 implemented/verified; M3c local checks and B6 verified; engineering closeout recorded (#97), owner Git pending.**
 Read [AGENTS.md](../../AGENTS.md) and [WORKING_METHOD.md](WORKING_METHOD.md) first. This
 file says *what* to build in Phase 1, *where* the code goes, *in which order*, and *how*
 agents work on it.
@@ -153,13 +153,13 @@ Details: [MODEL_PROVIDERS_PLAN.md](MODEL_PROVIDERS_PLAN.md). Phase 1 specifics:
 | P1-B1 | Benchmark contracts (L0) and task-file loader with validation | P0-C2 | A | Merged in PR #89 (#86) |
 | P1-B2 | Runner + result recorder + fixture mode; `geoagent benchmark` CLI | B1 | A | Merged in PR #89 (#87); B4 adds disposable database fixtures |
 | P1-B3 | Deterministic check types (columns, values with tolerance, file/table exists, row counts, refusal + nothing executed) | B1 | A | Merged in PR #89 (#88); table checks use recorded verified receipts |
-| P1-B4 | Suite v1 task definitions and synthetic inputs (sections 3) | B2, B3 | A | Implemented/verified (#90), owner integration pending; 27 definitions, disposable DB fixtures, 2,917 regression tests passed |
-| P1-B5 | Baseline: fixture run in CI subset; real qwen3.5:9b run recorded in `benchmarks/results/` | B4 | A | Implemented/measured/verified (#91), owner integration pending; 2,928 tests passed: fixture 23 passes; qwen3.5:9b 8 passed/11 failed/4 timed out; 1 skip/3 gaps; Critic incomplete |
-| P1-M1 | Provider interface, profiles, credentials, model listing, capability detection, Settings UI | P0-C2 | B | Not started |
-| P1-M2 | Egress classes, context tagging, gate, audit fields, leak scan test | M1 | B | Not started |
-| P1-M3c | Real-provider checks: Ollama, second endpoint, local LiteLLM proxy with key, blocked-network run | M2 | B | Not started |
-| P1-B6 | Benchmark per profile + comparison report | B5, M1 | A+B | Not started |
-| P1-X | Phase 1 closeout: update phase table, `CURRENT_STATUS.md`, evidence links | all | — | Not started |
+| P1-B4 | Suite v1 task definitions and synthetic inputs (sections 3) | B2, B3 | A | Merged in PR #92 (#90); 27 definitions, disposable DB fixtures, 2,917 regression tests passed |
+| P1-B5 | Baseline: fixture run in CI subset; real qwen3.5:9b run recorded in `benchmarks/results/` | B4 | A | Merged in PR #92 (#91); 2,928 tests passed: fixture 23 passes; qwen3.5:9b 8 passed/11 failed/4 timed out; 1 skip/3 gaps; Critic incomplete |
+| P1-M1 | Provider interface, profiles, credentials, model listing, capability detection, Settings UI | P0-C2 | B | Implemented/verified (#93), owner Git integration pending; 2,959-test passing coverage in two batches, interface/browser/strict checks and real Ollama synthetic smoke; explicit profiles loopback-only |
+| P1-M2 | Egress classes, context tagging, gate, audit fields, leak scan test | M1 | B | Implemented/verified (#94), owner Git integration pending; 3,028-test passing coverage in three batches, interface/browser/strict gates; conservative raw fallback and explicit nonloopback qualification restrictions retained |
+| P1-M3c | Real-provider checks: Ollama, second endpoint, local LiteLLM proxy with key, blocked-network run | M2 | B | Implemented/verified (#95), owner Git pending: six passing modes across two matching-source captures, actual LiteLLM and separately owned Windows Ollama process; existing weights, temporary90s review, no data writes. Same vendor/cache, no remote/vendor coverage. [Guide](../MODEL_PROVIDER_QUALIFICATION.md) |
+| P1-B6 | Benchmark per profile + comparison report | B5, M1 | A+B | Implemented/verified (#96), owner Git pending: reported model-token usage, safe first-chat recovery and pinned saved-profile comparison. Broader measurements complete:54 observations/27 matching recorded pairs; each model4 passes/7 failures/10 timeouts/3 skips/3 gaps. Safe bounded failure metadata added;3,098-test regression/interface/strict gates passed. No performance winner or private-data acceptance. [Evidence](../../benchmarks/results/2026-11-17-b6-broader-matrix.md) |
+| P1-X | Phase 1 closeout: update phase table, `CURRENT_STATUS.md`, evidence links | all | — | Engineering closeout recorded (#97): all six exit criteria mapped to retained evidence; failures and qualification limits preserved. Owner Git pending. [Closeout](../PHASE_1_CLOSEOUT.md) |
 | Owner | PA1 capture election sources (data only); PA2 label 50–100 gold statements | — | — | Not started |
 
 Lanes A and B can run **in parallel** (different agents, different worktrees). They

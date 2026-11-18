@@ -173,6 +173,14 @@ def _source_paths(record):
     return paths
 
 
+def _with_data_cards(record):
+    """Pure response projection; reading history never rereads source data."""
+    if record is None:
+        return None
+    from geoagent_harness.data.discovery.cards import attach
+    return {**record, 'steps':[{**step, 'outcome':attach(step['outcome']) if isinstance(step.get('outcome'),dict) else step.get('outcome')} for step in record['steps']]}
+
+
 def _present_outputs(root, record):
     """Observe bounded local outputs only; never query a live database/service."""
     outputs=[]
@@ -254,7 +262,10 @@ class _Observer:
                     else:
                         step['finished_at'] = _now()
                     if outcome is not None:
-                        bounded = _bounded_outcome(fit_database_receipt(fit_table_preview(outcome)))
+                        # The card is a derived presentation, not a second stored
+                        # copy allowed to displace the original inspection facts.
+                        stored_outcome = {k:v for k,v in outcome.items() if k != 'data_card'} if isinstance(outcome,dict) else outcome
+                        bounded = _bounded_outcome(fit_database_receipt(fit_table_preview(stored_outcome)))
                         limit = 48000 if skill_id in {'validate_postgres_import','import_csv_to_postgres','inspect_postgres_table','export_postgres_to_csv'} else 128000 if isinstance(bounded,dict) and isinstance(bounded.get('table_analysis'),dict) else 16000 if isinstance(bounded,dict) and isinstance(bounded.get('discovery'),dict) else 6000
                         if isinstance(bounded, dict) and isinstance(bounded.get('spatial_preview'), dict) and bounded['spatial_preview'].get('kind') == 'wgs84_geometry':
                             from geoagent_harness.data.spatial.skills.inspect_vector.preview import fit_recorded_geometry
@@ -460,7 +471,7 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
     if request.action == 'latest':
         with _LOCK:
             record = _latest_scoped_run(directory, request, project_root=root)
-        return {'record':record,'execution_performed':False,'approval_performed':False}
+        return {'record':_with_data_cards(record),'execution_performed':False,'approval_performed':False}
     if request.action == 'execution_assistance':
         with _LOCK:
             record = _read(directory, request.run_id, project_root=root)
@@ -543,6 +554,8 @@ def run_action(request: RunRequest, *, project_root: Path, background=True, insp
                 if record['status'] not in TERMINAL - {'completed'}:
                     raise InterfaceApiError('Recovery is available only after a stopped or failed run')
                 return _recovery(root, record)
+            if request.action == 'read':
+                record = _with_data_cards(record)
             return record
         if request.workflow is None or request.workflow.action != 'execute_workflow' or not request.workflow.confirm_execution:
             raise InterfaceApiError('Starting a run requires an explicit exact execution request')

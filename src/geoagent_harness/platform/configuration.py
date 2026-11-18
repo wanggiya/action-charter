@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 # Existing request overrides retain one identity through all compatibility imports.
 selected_model: ContextVar[str | None] = ContextVar('selected_model', default=None)
 selected_reasoning: ContextVar[str | None] = ContextVar('selected_reasoning', default=None)
+selected_provider: ContextVar[object | None] = ContextVar('selected_provider', default=None)
 
 SETTING_NAMES = frozenset(name for name, _ in ROOT_ENVIRONMENT.values()) | frozenset({
     'GEOAGENT_CONTAINER_IMAGE', 'ENABLE_WRITE_TOOLS', 'ALLOW_OVERWRITE',
@@ -26,7 +27,7 @@ SETTING_NAMES = frozenset(name for name, _ in ROOT_ENVIRONMENT.values()) | froze
     'POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_DB', 'POSTGRES_USER', 'POSTGRES_PASSWORD_FILE',
     'GEOSERVER_BASE_URL', 'GEOSERVER_USER', 'GEOSERVER_PASSWORD_FILE',
     'MODEL_BASE_URL', 'MODEL_NAME', 'MODEL_TIMEOUT_SECONDS', 'MODEL_MAX_TOKENS',
-    'MODEL_REASONING_EFFORT', 'MODEL_RESPONSE_FORMAT',
+    'MODEL_REASONING_EFFORT', 'MODEL_RESPONSE_FORMAT', 'MODEL_DATA_ALLOWED',
     'GEOAGENT_MCP_URL', 'GEOAGENT_MCP_TIMEOUT_SECONDS',
 })
 
@@ -37,6 +38,8 @@ class PlatformConfiguration:
     _values: Mapping[str, str] = field(repr=False)
     _model_override: str | None = field(default=None, repr=False)
     _reasoning_override: str | None = field(default=None, repr=False)
+    _provider_binding: object | None = field(default=None, repr=False)
+    _project_profiles: bool = field(default=False, repr=False)
     # A composition seam, not an implemented server profile or a model-selected mode.
     deployment_profile: Literal['personal'] = field(default='personal', init=False)
 
@@ -51,6 +54,11 @@ class PlatformConfiguration:
 
     @property
     def model(self) -> ModelSettings:
+        if self._provider_binding is not None:
+            return self._provider_binding.settings()
+        if self._project_profiles:
+            from geoagent_harness.platform.model_gateway.profiles import capture
+            return capture(self.layout.project_root,self._values,self._model_override,self._reasoning_override).settings()
         from geoagent_harness.platform.model_settings import _parse_model_settings
         return _parse_model_settings(self._values, model_override=self._model_override,
                                      reasoning_override=self._reasoning_override)
@@ -82,4 +90,5 @@ def load_configuration(environ: Mapping[str, str] | None = None, *,
         active_layout = replace(active_layout, project_root=Path(project_root))
     return PlatformConfiguration(active_layout, values,
         selected_model.get() if environ is None else None,
-        selected_reasoning.get() if environ is None else None)
+        selected_reasoning.get() if environ is None else None,
+        selected_provider.get() if environ is None else None,environ is None)

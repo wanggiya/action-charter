@@ -51,12 +51,16 @@ def test_existing_serializer_origin_guard_and_logging_keep_their_ast():
 
 def test_route_paths_matching_order_and_post_allowlist_are_preserved():
     from geoagent_harness.apps.http.dispatch import GET_ROUTES, POST_ROUTES, POST_PATHS
-    assert [(kind, path) for kind, path, _ in GET_ROUTES] == [
+    added_get={'/api/v1/providers'}
+    added_post={'/api/v1/providers/save','/api/v1/providers/select','/api/v1/providers/check'}
+    assert [(kind,path) for kind,path,_ in GET_ROUTES if path in added_get]==[('exact','/api/v1/providers')]
+    assert [(kind, path) for kind, path, _ in GET_ROUTES if path not in added_get] == [
         (route['kind'], route['path']) for route in BASELINE['get_routes']]
-    assert len(GET_ROUTES) == 21
-    assert sorted(POST_ROUTES) == BASELINE['post_paths']
-    assert POST_PATHS == frozenset(BASELINE['post_paths'])
-    assert len(POST_PATHS) == 50
+    assert len(GET_ROUTES) == 22
+    assert sorted(set(POST_ROUTES)-added_post) == BASELINE['post_paths']
+    assert added_post<=POST_ROUTES.keys()
+    assert POST_PATHS == frozenset(BASELINE['post_paths'])|added_post
+    assert len(POST_PATHS) == 53
 
 
 def test_all_pre_extraction_request_and_error_responses_match():

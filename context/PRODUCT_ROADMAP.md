@@ -1,6 +1,6 @@
 # ActionCharter active roadmap
 
-Updated: 2026-11-13. Original consolidation: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
+Updated: 2026-11-18. Original consolidation: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
 
 This is the navigation and dependency map for future work, not a capability claim or
 execution instruction. [Working method](../docs/product-direction/WORKING_METHOD.md)
@@ -11,7 +11,7 @@ Older checkpoint labels identify history, not new delivery tasks.
 
 ## Current position and next action
 
-**Phase 0 closeout merged in PR #85; B1–B3 merged in PR #89; B4 implemented (#90), owner integration pending.** [Closeout and validation](../docs/P0_CLOSEOUT.md).
+**Phase 0 closeout merged in PR #85; B1–B3 merged in PR #89; B4/B5 merged in PR #92.** [Closeout and validation](../docs/P0_CLOSEOUT.md).
 
 | Task | Implemented scope / remaining gate | Evidence or specification |
 |---|---|---|
@@ -48,9 +48,40 @@ fixture workflows and automatic expiry/cleanup passed. This is fixture evidence,
 not a local-model baseline or owner/live-database acceptance; final gates are in
 [WORK_RESUME](WORK_RESUME.md). B5 (#91) fixture CI/reporting and the [development baseline](../benchmarks/results/README.md)
 are recorded: 23 fixture passes; real qwen3.5:9b 8 passed/11 failed/4 timed out,
-1 skip/3 gaps. No real Critic assessment completed. Full regression: 2,928 passed.
-Next: owner integration, then M1/M2 profiles/egress,
-M3c provider checks, B6 comparison and X closeout: five remaining P1 tasks after B5.
+1 skip/3 gaps. No real Critic assessment completed in B5. Full regression: 2,928 passed.
+M1 (#93) is implemented/verified; all 2,959 collected tests have passing coverage
+across the initial regression and corrected-guard completion batches. Interface,
+strict layers, isolated browser and real Ollama synthetic checks passed.
+M2 (#94) implements [trusted context tags and the shared pre-send gate](../docs/MODEL_EGRESS.md);
+all 3,028 tests have passing coverage across three batches, with interface, browser
+and strict gates passed. M3c (#95) adds a [repeatable synthetic qualification runner](../docs/MODEL_PROVIDER_QUALIFICATION.md):
+real planning/execution, auth/egress rejection and isolated-network execution observed;
+Managed local qualification now includes actual LiteLLM and a separate owned Windows
+Ollama process: six passing modes across two matching-source captures, temporary90s
+review, existing weights and no data outputs. Same vendor/cache; remote/vendor
+coverage unqualified. B6 (#96) is in progress: its first slice provides separate
+reported input/context and output-token figures over bounded retained diagnostics,
+with shared interface/CLI/export scopes and honest unknown/partial coverage.
+Its first-chat follow-up corrects negative database wording in CSV schema routing
+and retains visible failure reasons across refresh without replay.
+Saved-profile binding and read-only comparison are implemented/verified: all3094
+collected offline checks have passing coverage across two batches, with affected
+callers repeated after the prepared-profile correction. Four sequential real local
+observations cover two tasks; descriptive statistics passed on9B/4B, quality9B was
+policy rejected and4B reached deadline. The subsequent [broader measurements](../benchmarks/results/2026-11-17-b6-broader-matrix.md)
+account for all27 declarations per model and27 matching recorded pairs. Each model
+recorded4 passes/7 failures/10 timeouts/3 skips/3 gaps; seven deadlines preserve
+completed execution while Critic review was unfinished. Safe bounded failure findings
+retain unknown exact causes. Full3,098-test regression, interface and strict gates
+passed. B6 and [P1-X engineering closeout](../docs/PHASE_1_CLOSEOUT.md) are recorded;
+owner Git integration remains pending. Phase 2 is authorized: P2-D1 #98 implements
+the [shared Data Card foundation](../docs/DATA_CARDS.md), implemented/verified with
+all3,120 tests covered across full/completion runs, interface/browser/CLI/strict gates
+and bounded real-model context observations. Automatic freshness/reuse and efficiency gains are not yet claimed. The coding-session
+checkout and owner terminal both refuse Copied project identity: source/state
+inodes and owner match but device number changed after restart. Offline remount
+recovery remains unimplemented; ownership markers are unchanged. Manual frontend/data acceptance must use
+a valid project identity. [Current status](CURRENT_STATUS.md). [Usage and validation](../docs/REQUEST_DIAGNOSTICS.md).
 PA1/PA2 remains owner data-only work. No new agent role, processing capability or
 release publication is implied.
 
@@ -59,7 +90,8 @@ release publication is implied.
 These are concise reminders of the existing delivery plan, not a second task list.
 Each phase follows the previous exit gate unless the owner explicitly changes order.
 Use the [authoritative phase table](../docs/product-direction/WORKING_METHOD.md#delivery-steps-in-order)
-for the full criteria and status. Phase 1 is in progress; phases 2–8 have not started.
+for the full criteria and status. Phase 1 engineering closeout is recorded; Phase 2 D1 is in progress and phases 3–8
+have not started. [Phase 2 task dependencies](../docs/product-direction/PHASE_2_PLAN.md).
 
 | Phase | Work after preceding gate | Measurable acceptance focus |
 |---|---|---|

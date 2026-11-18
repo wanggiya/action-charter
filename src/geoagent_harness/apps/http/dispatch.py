@@ -17,6 +17,7 @@ GET_ROUTES = (
     ('exact', '/api/v1/write-policy', settings.get_1_write_policy),
     ('exact', '/api/v1/model-status', settings.get_2_model_status),
     ('exact', '/api/v1/models', settings.get_3_models),
+    ('exact', '/api/v1/providers', settings.get_providers),
     ('exact', '/api/v1/tasks', history.get_0_tasks),
     ('regex', '/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/context', history.get_task_match),
     ('regex', '/api/v1/tasks/(task-[a-z0-9][a-z0-9_-]{0,63})/relationships', history.get_relationship_match),
@@ -37,6 +38,9 @@ GET_ROUTES = (
 )
 
 POST_ROUTES = {
+    '/api/v1/providers/save': settings.post_provider,
+    '/api/v1/providers/select': settings.post_provider,
+    '/api/v1/providers/check': settings.post_provider,
     '/api/v1/models/select': settings.post_4_select,
     '/api/v1/models/reasoning': settings.post_5_reasoning,
     '/api/v1/models/review-timeout': settings.post_6_review_timeout,

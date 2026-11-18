@@ -62,6 +62,11 @@ def test_critic_summary_is_cached_and_never_reexecutes(project):
     assert assess_run(project,record['run_id'],model_client=model)==result
     assert len(model.calls)==1
     assert model.calls[0].timeout_seconds==15 and model.calls[0].response_schema
+    schema=model.calls[0].response_schema
+    assert schema['$defs']['MethodSuggestion']['properties']['operations']['items']['enum']==['handle_csv_missing','select_csv_columns']
+    assert json.loads(model.calls[0].messages[0].content)['required_json_schema']==schema
+    from geoagent_harness.contracts.outcome_assessment import OutcomeAssessment
+    assert 'enum' not in OutcomeAssessment.model_json_schema()['$defs']['MethodSuggestion']['properties']['operations']['items']
     assert len(list(_directory(project).glob('*.json')))==1
     source=json.loads(model.calls[0].messages[1].content)
     assert source['evidence_kind']=='recorded_run_observations'
@@ -92,9 +97,11 @@ def test_stopped_run_cannot_be_reported_as_supported_or_reusable(project):
     _,record=run(project)
     record.update(status='cancelled',result=None)
     _write(_directory(project),record)
-    result=assess_run(project,record['run_id'],model_client=Model(assessment(record)))
+    model=Model(assessment(record))
+    result=assess_run(project,record['run_id'],model_client=model)
     assert result['critic_review']['status']=='unavailable'
     assert result['status']=='cancelled'
+    assert model.calls[0].response_schema['properties']['reusable_method']['type']=='null'
 
 
 def test_interrupted_critic_read_never_makes_a_model_call(project):

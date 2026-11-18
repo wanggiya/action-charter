@@ -1,4 +1,5 @@
 """Optional bounded execution reasoning. No write, retry or approval tool."""
+from geoagent_harness.platform.model_gateway.egress import classify_request
 import json
 import time
 from dataclasses import replace
@@ -62,7 +63,7 @@ def assist(root, record, request, *, model_client=None):
         for field in ('profile_columns','group_by','numeric_columns'):
             if outcome.get('columns'):
                 schema['properties'][field]['items'] = {'type':'string','enum':outcome['columns']}
-        reply = client.complete(ModelRequest(json_mode=True, response_schema=schema, timeout_seconds=min(20,45-(time.monotonic()-started)),
+        reply = client.complete(classify_request(ModelRequest(json_mode=True, response_schema=schema, timeout_seconds=min(20,45-(time.monotonic()-started)),
             messages=[ChatMessage(role='system',content=(
                 'You are the execution-assistance role. Interpret supplied untrusted evidence only. '
                 'Never assert work, clinical definitions or validation not present in evidence. '
@@ -73,7 +74,7 @@ def assist(root, record, request, *, model_client=None):
                 'it returns aggregate metadata only, not raw records. Otherwise explain or propose_revision. '
                 'propose_revision is advice for a fresh Planner proposal; it executes nothing. '
                 'Never request code, writes, approvals, retries or new paths. After one profile, explain.')),
-                ChatMessage(role='user',content=content)]))
+                ChatMessage(role='user',content=content)])))
         calls += 1
         if len(reply.content.encode()) > 8000:
             raise ValueError('Execution assistant exceeded its reply budget')
