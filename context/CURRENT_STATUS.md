@@ -1,6 +1,6 @@
 # Current implementation status
 
-Updated: 2026-11-18. [Immediate handoff](WORK_RESUME.md),
+Updated: 2026-11-20. [Immediate handoff](WORK_RESUME.md),
 [active roadmap](PRODUCT_ROADMAP.md), [Phase 0 closeout](../docs/P0_CLOSEOUT.md).
 
 ## Phase and closeout
@@ -43,7 +43,7 @@ account for27 declarations per model,54 observations and27 matching recorded pai
 each model recorded4 passes,7 failures,10 deadlines,3 skips and3 unsupported cases.
 Synthetic fresh file outputs were opted in; database/private data stayed excluded.
 Phase 1 engineering closeout is recorded in [P1-X #97](../docs/PHASE_1_CLOSEOUT.md);
-owner Git integration remains pending. Phase 2 Data Card work is authorized. Other vendors,
+owner integrated it in PR #99 (f237372). Phase 2 Data Card work is authorized. Other vendors,
 remote hosts and public project-data use are unqualified. Git is owner-managed; no
 new agent role or frontend redesign.
 The B6 first-chat follow-up fixes negative database-write wording selecting a
@@ -61,13 +61,16 @@ isolated actual-API/fake-model browser journey; current M2 coverage includes it.
 
 The owner completed real workspace adoption before the P0 closeout. Its earlier
 read-only verification reported stable project binding, migration complete,
-`source_only: true` and no legacy entries. The current coding-session checkout now
-refuses **Copied project identity**: its ownership marker does not match the visible
-filesystem identity. The owner confirmed the same error in the launcher terminal.
-Read-only diagnosis found matching source/state inodes, source path and owner UUID,
-but device number changed2128 to2096, consistent with a WSL remount. Recovery is
-not implemented. No ownership marker, rebind or state configuration was changed.
-The isolated D1 checks below do not certify this checkout's ownership.
+`source_only: true` and no legacy entries. A later WSL device-number change (2128 to2096) caused **Copied project identity**
+while source/state inodes, source path and owner UUID matched. The owner confirmed
+it in the launcher terminal. After the interrupted session/restart, current read-only
+status is again **stable** without any recovery or marker edit. Do not recover an
+already stable checkout. P2-0 (#100) implements a reviewed offline recovery preview,
+private verified backup and same-UUID v2 filesystem-ID/inode binding for a future
+mismatch. All final3,161 collected checks have passing coverage across full3,160 and final145
+focused runs; interface validation, strict boundaries and isolated browser graph/
+outcome restoration passed. Owner launcher/history
+acceptance remains pending. No real identity/config/state change was applied.
 `changed_since_migration` means saved state has changed normally
 since the certificate; it is not a new exact-copy/backup certification. That earlier adoption
 removed seven empty legacy directories only, not records. It performed no new cutover,
@@ -129,9 +132,32 @@ field types/candidate roles and available quality/numerical facts to Planner con
 CLI/MCP and Overview. Cards exclude preview rows; explicit query literals are not
 anonymized and the gateway classification is unchanged. Preliminary samples and
 unknowns stay distinct. Opening/history restoration derives cards from saved evidence
-without source scans or model calls. Automatic freshness/cache/reuse scheduling is
-P2-D2; no new agent, container, processing operation or permission. D1 is
-implemented/verified with fixture, browser/CLI and bounded real-model evidence. [Phase 2 plan](../docs/product-direction/PHASE_2_PLAN.md).
+without source scans or model calls. P2-D2 (#101) now implements explicit source
+selection and scoped card reuse through shared services, with full content/package
+hash, exact selection/read scope and reader/runtime contracts. A separate request
+receipt distinguishes prepared, verified reused and historical facts. Inspect-on-send
+retains preliminary/read gates; workbooks/profiles need reviewed Execute. CLI/MCP
+discovery has opt-in card-context mode; bounded caches share existing workspace
+storage and never share chat memory. Context disclosure shows last-send facts without
+new scans on open/refresh. All3,200 final-source offline tests passed in four disjoint
+make test groups (zero missing/unexpected IDs); interface/browser and strict gates
+passed. [Validation record](../benchmarks/results/2026-11-19-p2d2-validation.json). Two real local4B observations both returned valid
+proposals; larger candidate context/tokens, no efficiency/reliability win claimed.
+D1/D2 are implemented/automatically verified; no new agent, container, processing operation or authority. [Phase 2 plan](../docs/product-direction/PHASE_2_PLAN.md).
+
+The initial [D3/K know-how slice](../docs/AGENT_KNOWHOW.md), #102, adds six reviewed
+instruction files and one bounded shared loader, narrower ordinary table-inspection
+schema context and selection receipts in existing UI/CLI/MCP planning paths. Files
+cannot enroll themselves or grant authority. Exact inspection fast paths remain
+zero-model. All3,224 final-source offline tests passed in four disjoint make test groups;
+interface/browser/strict gates passed. [Engineering evidence](../benchmarks/results/2026-11-20-p2d3-validation.json).
+A confirmed wrong-reader failure now binds inspection-only chat proposals to
+inspect_csv at generation and validation, without narrowing broader requests.
+One real synthetic4B pair failed before (two calls/92.965s) and validated afterward
+(one call/22.572s), with no workflow dispatch/authority. This verifies that case,
+not broad reliability or statistical speed. Earlier health timeouts and failures
+remain recorded. D3/K per-method and broader measured acceptance remain open;
+no new role or executable operation.
 
 Registered spatial inspection/conversion, bounded tabular transformations/statistics,
 PostGIS lifecycle operations and installed adapters retain their existing contracts.
@@ -246,9 +272,10 @@ process boundary, not a general code sandbox. B4 results are fixture/temporary-s
 local-model baseline, with failure and Critic limits in the linked reports; neither
 is live owner-database acceptance.
 
-Next: P2-D2 source selection and fresh/reusable card lifecycle, then focused
-planning efficiency under the [Phase 2 plan](../docs/product-direction/PHASE_2_PLAN.md).
-Phase 1 engineering closeout is recorded; owner Git remains pending. Optional local
+Next: owner normal launcher/history acceptance (status is currently stable; no recovery
+needed; owner deferred D2 manual testing). Continue representative D3/K
+method qualification after the verified inspection-scope repair under the [Phase 2 plan](../docs/product-direction/PHASE_2_PLAN.md).
+Phase 1 engineering closeout and P2-D1 are integrated in PR #99. Optional local
 diabetes data was not read in the B4/B6 measurements.
 
 ## Record navigation

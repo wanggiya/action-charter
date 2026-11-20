@@ -407,6 +407,16 @@ def test_all_mcp_ingress_callbacks_keep_the_twenty_seven_tool_schemas():
     server=create_mcp_server()
     actual=[tool.model_dump(mode='json') for tool in asyncio.run(server.list_tools())]
     expected=json.loads((ROOT/'tests/architecture/r12_mcp_tools.json').read_text())
+    # P2-D2 deliberately adds optional discovery arguments. Bind the new full
+    # schema while preserving every original tool/property in the R12 snapshot.
+    discovery=next(tool for tool in actual if tool['name']=='discover_dataset')
+    assert discovery==json.loads((ROOT/'tests/architecture/p2d2_discover_context.json').read_text())
+    import copy
+    actual=copy.deepcopy(actual)
+    legacy=next(tool for tool in actual if tool['name']=='discover_dataset')['inputSchema']
+    for name in ('card_context','source_options','filters','missing_values'):
+        legacy['properties'].pop(name)
+    legacy.pop('$defs')
     assert actual==expected and len(actual)==27
     for tool in actual:
         assert server._tool_manager.get_tool(tool['name']).fn.__task_entrypoint__ is True

@@ -3,7 +3,15 @@ from pathlib import Path
 from geoagent_harness.contracts.paths import relative_path
 
 
-def discover_dataset(root,path,delimiter=None):
+def discover_dataset(root,path,delimiter=None,*,card_context=False,options=None):
+    if card_context:
+        from geoagent_harness.data.discovery.context import prepare
+        if options is not None and (not isinstance(options, dict) or set(options) - {'source_options','filters','missing_values'}):
+            raise ValueError('Context options support source_options, filters and missing_values only')
+        return prepare(Path(root).resolve(strict=True), path, allow_read=True,
+                       delimiter=delimiter, **(options or {}))
+    if options:
+        raise ValueError('Context options require card_context')
     from geoagent_harness.workspaces.sandbox.inspection import bounded_read, probe_action, source_skill
     path=relative_path(path,'input')
     if source_skill(path) is None:raise ValueError('Unsupported discovery format')

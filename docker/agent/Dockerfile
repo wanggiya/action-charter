@@ -7,6 +7,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+COPY agent-skills ./agent-skills
 
 RUN python -m pip install --no-cache-dir ".[mcp]"
 

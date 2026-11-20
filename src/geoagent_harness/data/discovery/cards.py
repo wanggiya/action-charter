@@ -52,7 +52,7 @@ def _from_evidence(value):
         return None
     source_rows = _count(evidence.get('source_rows', evidence.get('row_count')))
     profile_rows = _count(evidence.get('matching_rows', evidence.get('row_count')))
-    scope = 'sample' if probe else 'driver_metadata' if kind != 'table' else descriptor.get('scope', discovery.get('statistics_scope', 'not_recorded'))
+    scope = ('sample' if kind == 'table' else 'driver_metadata') if probe else 'driver_metadata' if kind != 'table' else descriptor.get('scope', discovery.get('statistics_scope', 'not_recorded'))
     if dataset:
         scope = 'filtered_rows' if (evidence.get('query') or {}).get('filters') or profile_rows != source_rows else 'complete_parsed_file'
     if scope not in {'complete_parsed_file', 'complete_selected_table', 'filtered_rows', 'sample', 'driver_metadata'}:
@@ -63,7 +63,7 @@ def _from_evidence(value):
     if kind == 'table' and field_count is None and isinstance(evidence.get('columns'), list):
         field_count = len(names)
     card = dict(source=path, source_sha256=digest,
-        identity_basis=('package_manifest_sha256' if evidence.get('source_manifest') else 'file_sha256') if digest else 'pending' if probe or discovery.get('verification') == 'pending' else 'not_recorded',
+        identity_basis=('package_manifest_sha256' if evidence.get('source_manifest') or probe and value.get('discovery_kind') == 'streaming_spatial_v1' else 'file_sha256') if digest else 'pending' if probe or discovery.get('verification') == 'pending' else 'not_recorded',
         kind=kind, scope=scope, file_bytes=_count(value.get('bytes', discovery.get('file_bytes'))),
         source_rows=source_rows, profile_rows=profile_rows, field_count=field_count,
         fields=[], fields_omitted=field_count or 0)

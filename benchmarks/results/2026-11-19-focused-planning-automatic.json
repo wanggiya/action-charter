@@ -1,0 +1,117 @@
+{
+  "schema_version": "focused-planning-observation-v1",
+  "model": "qwen3:4b-instruct",
+  "reasoning_effort": "none",
+  "planning_scope": "automatic",
+  "timeout_seconds": 60,
+  "max_tokens": 512,
+  "call_limit_per_condition": 1,
+  "input_sha256": "85cfb5b81866ee50e058f2268636bd204d7b03fba2bd08cb200f36bef5e011f4",
+  "observations": [
+    {
+      "task": 0,
+      "message": "Profile facts.csv and check its structure and data quality. Prepare only.",
+      "condition": "before",
+      "python_source_sha256": "8470933ef5a76e44bc3d3b1511a0c274537a663896082150cf3bcead6e7a84c3",
+      "status": "failed",
+      "error_code": "comparison_call_limit",
+      "correct_inspection_proposal": false,
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 43.613,
+      "model_calls": [
+        {
+          "prompt_bytes": 32298,
+          "input_tokens": 7181,
+          "output_tokens": 186,
+          "schema_count": 8,
+          "knowhow_ids": [],
+          "seconds": 41.946
+        }
+      ]
+    },
+    {
+      "task": 0,
+      "message": "Profile facts.csv and check its structure and data quality. Prepare only.",
+      "condition": "after",
+      "python_source_sha256": "7a8878722d9466745228806ec8d769bc6cfc9fc34ccdffa0465d88da2cdb5893",
+      "status": "failed",
+      "error_code": "comparison_call_limit",
+      "correct_inspection_proposal": false,
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 26.214,
+      "model_calls": [
+        {
+          "prompt_bytes": 16143,
+          "input_tokens": 3582,
+          "output_tokens": 202,
+          "schema_count": 1,
+          "knowhow_ids": [
+            "table-analysis",
+            "health-table-analysis"
+          ],
+          "seconds": 25.173
+        }
+      ]
+    },
+    {
+      "task": 1,
+      "message": "Inspect facts.csv and suggest useful health-table analysis questions. Prepare only.",
+      "condition": "before",
+      "python_source_sha256": "8470933ef5a76e44bc3d3b1511a0c274537a663896082150cf3bcead6e7a84c3",
+      "status": "clarification",
+      "correct_inspection_proposal": false,
+      "context_statuses": [
+        "prepared"
+      ],
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 6.034,
+      "model_calls": [
+        {
+          "prompt_bytes": 13362,
+          "input_tokens": 2973,
+          "output_tokens": 31,
+          "schema_count": 1,
+          "knowhow_ids": [],
+          "seconds": 5.128
+        }
+      ]
+    },
+    {
+      "task": 1,
+      "message": "Inspect facts.csv and suggest useful health-table analysis questions. Prepare only.",
+      "condition": "after",
+      "python_source_sha256": "7a8878722d9466745228806ec8d769bc6cfc9fc34ccdffa0465d88da2cdb5893",
+      "status": "failed",
+      "error_code": "comparison_call_limit",
+      "correct_inspection_proposal": false,
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 39.1,
+      "model_calls": [
+        {
+          "prompt_bytes": 14454,
+          "input_tokens": 3172,
+          "output_tokens": 357,
+          "schema_count": 1,
+          "knowhow_ids": [
+            "table-analysis",
+            "health-table-analysis"
+          ],
+          "seconds": 38.187
+        }
+      ]
+    }
+  ],
+  "owner_settings_changed": false,
+  "workflow_execution_requested": false,
+  "limitations": [
+    "Two synthetic tasks; one call per task/condition; fixed before-then-after order.",
+    "Common guidance and synthetic source; candidate changes schema focus and instruction context together.",
+    "Returned question is not a demonstrated analysis or a correct inspection proposal.",
+    "Not per-skill reliability qualification, full benchmark, private-data analysis or a statistical speed result.",
+    "The capture allowed one provider call per condition. comparison_call_limit means the normal correction was requested but blocked by this harness cap, not a provider rejection. Current harness defaults to two calls for a future normal-runtime check; no such rerun is claimed."
+  ]
+}

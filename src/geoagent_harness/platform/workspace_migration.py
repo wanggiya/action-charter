@@ -11,7 +11,7 @@ import time
 import uuid
 
 from geoagent_harness.platform.workspace import CONFIG_NAME, OWNER_NAME, RUNTIME_FILES, RUNTIME_STORES, WorkspaceLayout, WorkspaceError, _no_links
-from geoagent_harness.platform.project_identity import IDENTITY_NAME, read_record, resolve_identity, owner_record, path_scope, _object
+from geoagent_harness.platform.project_identity import IDENTITY_NAME, read_record, resolve_identity, owner_record, path_scope, _object, _filesystem
 
 MANIFEST = '.actioncharter-migration.json'
 MAX_FILES = 200_000
@@ -248,8 +248,11 @@ def migrate(project_root, destination, *, offline=False, apply=False, archive_le
             # The verified destination is the only permissible new state binding.
             # A crash between metadata/config writes fails closed; the manifest
             # retains previous_identity for explicit offline recovery.
-            _json_write(project / IDENTITY_NAME, {**identity_record,
-                        'state_root': str(destination), 'state_object': _object(destination)})
+            updated = {**identity_record, 'state_root': str(destination),
+                       'state_object': _object(destination)}
+            if identity_record['version'] == 2:
+                updated['state_filesystem'] = _filesystem(destination)
+            _json_write(project / IDENTITY_NAME, updated)
         # Atomic config is the sole cutover. Old records stay in place by default.
         _json_write(config, {'version': 1, 'state_root': str(destination)})
         record['status'] = 'configured'

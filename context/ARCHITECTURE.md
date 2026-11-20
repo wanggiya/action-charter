@@ -47,7 +47,7 @@ The platform's fixed internal MCP client remains distinct from application MCP t
 
 R11 [compatibility retirement](../docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and moves maintained callers/launchers to native owners. The project now
-has 630 modules: 513 native implementations and 117 supported public/SDK/schema
+has 634 modules: 517 native implementations and 117 supported public/SDK/schema
 boundaries (60 package roots, 57 aliases). No ordinary native caller imports a
 compatibility module. The immutable R6 inventory and exhaustive R11 partition bind
 the boundary; source gates reject reintroduced adapters and hidden implementations.
@@ -78,6 +78,36 @@ unknowns and candidate roles stay explicit. The identity helper requires an
 independently obtained digest; automatic freshness/reuse scheduling is P2-D2.
 No new role, container, processing operation, authority or egress downgrade.
 [Contract, scope and validation](../docs/DATA_CARDS.md).
+
+## Source-bound context lifecycle (P2-D2)
+
+L0 CardUse separates request-time checks from historical DataCard facts. L1
+platform/storage/data_cards.py retains at most256 cards in the existing metadata
+repository, keyed by owner/source/selection/read scope/reader contract. Only this
+reconstructible cache is evicted; saved history and authority records are untouched.
+L2 data/discovery/context.py orchestrates the existing readers; source.py supplies
+full-content/package fingerprints through the fixed bounded worker. Runtime versions
+and reader/projection revision qualify reuse; stat observations are race checks.
+L5 inspection_policy and conversation resolve positive named/unique workflow inputs,
+retain read/selection gates and supply bounded facts to Planner. L6 CLI/MCP share
+opt-in discovery context. The existing context disclosure displays last-send receipts;
+no source read on opening/refresh, no new role, container or execution authority.
+[Behavior and limitations](../docs/DATA_CARDS.md#source-selection-and-lifecycle-p2-d2).
+
+## Reviewed Planner know-how (initial P2-D3/K slice)
+
+L3 capabilities/agent_skills.py reads only content-pinned built-in instruction files,
+with bounded no-follow access and validated headers/operation references. Selection
+uses request/metadata relevance and existing focused capabilities; it changes neither
+operation availability nor data-egress permission. L4 prompt/agent and L5 conversation
+share the loader; the latter stores a receipt shown by the existing context UI.
+Source Data Cards help existing schema focus omit unrelated descriptions; final
+policy and recipe provenance remain authoritative. For clearly inspection-only
+conversation requests, generation and post-parse checks also bind the requested
+reader; broader/current non-inspection workflows retain their existing scope.
+Deferred-schema correction remains available for broader requests.
+Instructions supply know-how, not new execution roles, tools or private memory.
+[Scope, authoring and qualification limits](../docs/AGENT_KNOWHOW.md).
 
 ## Model profiles (P1-M1)
 
@@ -169,6 +199,12 @@ Optional [stable project identity](../docs/PROJECT_IDENTITY.md) is owned by
 workspace access, task dispatch or audit. Write-owner leases use the stable scope;
 existing audit rows keep their original scope as provenance. Offline adoption and
 rename rebind use local leases; state cutover retains UUID and previous identity.
+P2-0 adds `platform/project_recovery.py`: reviewed offline v1 remount recovery,
+private verified backup and one atomic marker replacement. V2 binds filesystem ID
+and inode independently of transient device numbering. The shared workspace config
+validator is reused without bypassing normal identity guards. Legacy enrollment
+requires owner confirmation; copies, changed bindings and active leases are refused.
+No state payload, audit scope, execution authority or agent responsibility changes.
 Legacy projects remain path-bound. RunContext paths remain strict resource locators;
 no moved/copied project inherits fresh approval. Cross-filesystem source transfers
 and host/container aliases need future provisioning. No role or model changes.

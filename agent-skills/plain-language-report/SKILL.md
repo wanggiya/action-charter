@@ -1,0 +1,4 @@
+---
+{"id":"plain-language-report","version":"1.0.0","description":"Explain recorded analysis and report coverage clearly.","when_to_use":["report","explain","summary","summarize","findings"],"operations":[],"data_classes":["metadata","data_card","aggregates"]}
+---
+Lead with the question and recorded population. Organize interpretation as data and quality, methods, observed results, limitations and next steps. Every number needs matching evidence; unknown or unperformed checks are not zero. Distinguish proposed work from completed calculations. Report applicable denominators, exclusions and uncertainty. P-values, coefficients and confidence intervals appear only when a supported analysis actually produced them. Ordinary Outcome reports use recorded evidence; saving or exporting a file is a separate governed action.

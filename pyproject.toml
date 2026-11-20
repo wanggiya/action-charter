@@ -91,6 +91,9 @@ Documentation = "https://github.com/wanggiya/action-charter#readme"
 [tool.hatch.build.targets.wheel]
 packages = ["src/geoagent_harness"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"agent-skills" = "geoagent_harness/capabilities/_agent_skills"
+
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers"
 testpaths = ["tests"]

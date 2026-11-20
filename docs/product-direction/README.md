@@ -20,6 +20,7 @@ Read in this order:
 | 8 | [Server autonomy design](SERVER_AUTONOMY_DESIGN.md) | Server-first unattended operation: registered automations, three-part authorization, what can and cannot be automated, build-now vs later |
 | 9 | [Showcase workloads and editions](SHOWCASE_WORKLOADS.md) | Health, data engineering (SHP/DWG → PostGIS), 2026-midterm policy analysis demo, grid monitoring; Personal vs Platform editions; where each sits in the phases |
 | 10 | [Phase 1 plan](PHASE_1_PLAN.md) | Phase 0 closeout, benchmark + model providers: where code goes by layer, task list with lanes, how coding agents and product agents work |
+| 11 | [First public post plan](LAUNCH_POST_PLAN.md) | **Owner priority:** post by 2026-11-29; schedule, demo workspace, demo script, P2-DEMO task, security checklist, post outline |
 | 11 | [Phase 2 plan](PHASE_2_PLAN.md) | Data Card foundation, source freshness/reuse, focused planning, per-role routing and measured hero journey; Phase 1 engineering closeout is recorded |
 
 ## Latest decision (2026-11-02)
