@@ -3,7 +3,7 @@ import {dataCardSchema} from '../lib/data-card';
 const display=(value:unknown)=>value==null?'Not recorded':typeof value==='number'?value.toLocaleString(undefined,{maximumFractionDigits:5}):String(value).replaceAll('_',' ');
 
 /** Recorded facts only; mounting or expanding never fetches data or calls a model. */
-export function DataCard({value}:{value:unknown}) {
+export function DataCard({value,verifiedAt}:{value:unknown;verifiedAt?:string|null}) {
   const parsed=dataCardSchema.safeParse(value);
   if(!parsed.success)return null;
   const card=parsed.data;
@@ -17,6 +17,6 @@ export function DataCard({value}:{value:unknown}) {
     </dl>
     {card.fields.length>0&&<details><summary>Field facts · {card.fields.length} shown{card.fields_omitted?` · ${card.fields_omitted} omitted`:''}</summary><div className="data-card-table"><table><thead><tr><th>Field</th><th>Type / candidate role</th><th>Missing</th><th>Distinct</th><th>Mean</th><th>Min / max</th></tr></thead><tbody>{card.fields.map(field=><tr key={field.name}><th scope="row">{field.name}</th><td>{display(field.observed_type??field.storage_type)}<br/>{display(field.candidate_role)}</td><td>{display(field.missing_count)}</td><td>{display(field.distinct_count)}</td><td>{display(field.mean)}</td><td>{display(field.minimum)} / {display(field.maximum)}</td></tr>)}</tbody></table></div></details>}
     <details><summary>Identity, selection and quality scope</summary><p>SHA-256: {card.source_sha256??'Pending / not recorded'}</p><p>Missingness: {display(card.missingness)} · excess duplicate rows: {display(card.excess_duplicate_rows)}</p><pre>{JSON.stringify(card.selection,null,2)}</pre></details>
-    <small>Saved facts identify the recorded read; current file freshness is not checked. Unknown is not zero. Roles are candidates. No execution authority.</small>
+    <small>{verifiedAt?`Source digest checked for the request at ${verifiedAt}; this view does not recheck files.`:'Saved facts identify the recorded read; current file freshness is not checked.'} Unknown is not zero. Roles are candidates. No execution authority.</small>
   </section>;
 }

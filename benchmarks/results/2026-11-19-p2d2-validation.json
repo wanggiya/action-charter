@@ -1,0 +1,116 @@
+{
+  "schema_version": "p2d2-offline-validation-v1",
+  "date": "2026-11-19",
+  "evidence_kind": "offline fixtures and fake-model tests",
+  "source_test_sha256": "1afba607f36e86865cae2e05119150d49cabbc2f27ecddb2a1d3fabdff735699",
+  "collected": 3200,
+  "collected_ids_sha256": "a85c48f1a0f8fde83107d19ce9d1fbbcd67694169940fc7c259ff7b3a8037cfb",
+  "status": "passed",
+  "groups": [
+    {
+      "group": 0,
+      "files": 85,
+      "expected": 842,
+      "passed": 842,
+      "seconds": 225.538,
+      "exit_code": 0,
+      "passed_ids_sha256": "cf6f8fa512955b506019621860ec08e5c41affb646df622a47f1c48a5450a92d",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "cf6f8fa512955b506019621860ec08e5c41affb646df622a47f1c48a5450a92d"
+    },
+    {
+      "group": 1,
+      "files": 85,
+      "expected": 729,
+      "passed": 729,
+      "seconds": 251.616,
+      "exit_code": 0,
+      "passed_ids_sha256": "4ffed8e47b08c976e960087ead30209ee2767a1151bacb06b239be317a3b0253",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "4ffed8e47b08c976e960087ead30209ee2767a1151bacb06b239be317a3b0253"
+    },
+    {
+      "group": 2,
+      "files": 85,
+      "expected": 841,
+      "passed": 841,
+      "seconds": 330.809,
+      "exit_code": 0,
+      "passed_ids_sha256": "b8b1733d0fe80b708b95537bb95c82330396d64fd1084868e56eac11e6fedb73",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "b8b1733d0fe80b708b95537bb95c82330396d64fd1084868e56eac11e6fedb73"
+    },
+    {
+      "group": 3,
+      "files": 84,
+      "expected": 788,
+      "passed": 788,
+      "seconds": 396.006,
+      "exit_code": 0,
+      "passed_ids_sha256": "fa3001d2456cac82768ebd6c178c5c381a627a26f8b4a1e62409316ae99664dc",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "fa3001d2456cac82768ebd6c178c5c381a627a26f8b4a1e62409316ae99664dc"
+    }
+  ],
+  "limitations": [
+    "Complete suite partitioned into four disjoint file groups; not one uninterrupted invocation.",
+    "Does not establish real-model or private-domain-data reliability."
+  ],
+  "interface_validation": {
+    "status": "passed",
+    "date": "2026-11-19",
+    "command": "make interface-validate",
+    "vite_build_seconds": 7.12,
+    "limitation": "Existing large-chunk warning remains."
+  },
+  "browser": {
+    "status": "passed",
+    "date": "2026-11-18",
+    "evidence_kind": "actual API and bounded readers; fake model; fresh temporary profile",
+    "checks": [
+      "prepared",
+      "verified reuse",
+      "historical when reads off",
+      "changed source rebuilt",
+      "refresh without new reader/model calls"
+    ],
+    "page_errors": 0,
+    "workflow_dispatch_or_authorization": 0,
+    "limitation": "Prior-session log and inspected screenshot were cleared with temporary files; counts retained in conversation/handoff."
+  },
+  "architecture": {
+    "status": "passed",
+    "modules": 633,
+    "internal_import_occurrences": 3175,
+    "upward_dependencies": 0,
+    "native_modules": 516,
+    "retained_public_boundaries": 117,
+    "retired_adapters": 290
+  },
+  "passed": 3200,
+  "missing": 0,
+  "unexpected": 0,
+  "command": "make test",
+  "partition": "Sorted unique collected test-file paths; file index modulo four; no test exclusions.",
+  "python_source_test_files_compared": 975,
+  "final_source_matches_export": true,
+  "final_document_checks": {
+    "context_bounds_redaction_tests_passed": 15,
+    "local_markdown_targets": 486,
+    "missing_targets": 0,
+    "historical_status_suffix_unchanged": true,
+    "whitespace_check": "passed"
+  }
+}

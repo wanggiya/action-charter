@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from functools import wraps
 
 from typer.main import get_command
 from typer.testing import CliRunner
@@ -24,6 +25,20 @@ def original_app():
     # 150-command compatibility snapshot rather than replacing its golden hash.
     app = copy.copy(cli.app)
     app.registered_commands = [item for item in app.registered_commands if item.name != 'project-identity']
+    # Compare the frozen pre-D2 discover command, retaining every original
+    # parameter/help contract. Test the additive public options separately.
+    for index, item in enumerate(app.registered_commands):
+        if item.name == 'discover-dataset':
+            original = item.callback
+            @wraps(original)
+            def legacy_discover(*args, **kwargs):
+                return original(*args, **kwargs)
+            signature = inspect.signature(original)
+            legacy_discover.__signature__ = signature.replace(parameters=[
+                p for p in signature.parameters.values() if p.name not in {'card_context','options'}])
+            adapted = copy.copy(item)
+            adapted.callback = legacy_discover
+            app.registered_commands[index] = adapted
     # P1 adds benchmark/models groups; all original command/help snapshots stay frozen.
     app.registered_groups = [item for item in app.registered_groups if item.name not in {'benchmark','models'}]
     return app
@@ -72,6 +87,13 @@ def test_all_command_names_order_parameters_and_defaults_match_before_extraction
     digest = hashlib.sha256(json.dumps(contract, separators=(',', ':')).encode()).hexdigest()
     assert len(command.commands) == FIXTURE['top_level_command_count'] == 150
     assert digest == FIXTURE['command_contract_sha256']
+
+
+def test_card_context_options_are_explicit_additions_to_real_discovery_command():
+    command = get_command(cli.app).commands['discover-dataset']
+    options = {p.name:p for p in command.params}
+    assert options['card_context'].opts == ['--card-context'] and options['card_context'].default is False
+    assert options['options'].opts == ['--context-options'] and options['options'].default is None
 
 
 def test_every_help_screen_matches_before_extraction(monkeypatch):

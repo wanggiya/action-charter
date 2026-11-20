@@ -1,0 +1,67 @@
+{
+  "schema_version": "data-card-context-comparison-v1",
+  "baseline_ref": "f237372",
+  "model": "qwen3:4b-instruct",
+  "reasoning_effort": "none",
+  "max_tokens": 512,
+  "timeout_seconds": 60,
+  "model_call_limit_per_condition": 1,
+  "message": "Inspect facts.csv and prepare a read-only inspection workflow. Return row count and column names when executed. Do not execute yet.",
+  "order": [
+    "before",
+    "after"
+  ],
+  "input_sha256": "680beef6a6799ec16e820ca478ce0f7ccfd8f440356c226770f510c9c6321ce6",
+  "observations": [
+    {
+      "condition": "before",
+      "python_source_sha256": "0b241e470386023449461440461004b57224a1f8aee84e2d17bc083f86029b48",
+      "status": "proposal",
+      "correct_inspection_proposal": true,
+      "context_statuses": [],
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 23.041,
+      "model_calls": [
+        {
+          "prompt_bytes": 9627,
+          "input_tokens": 2087,
+          "output_tokens": 166,
+          "seconds": 21.48
+        }
+      ]
+    },
+    {
+      "condition": "after",
+      "python_source_sha256": "7bcde9b0bf434b81021839b157778a508c5d7c642dad58914393116ceda8f4b4",
+      "status": "proposal",
+      "correct_inspection_proposal": true,
+      "context_statuses": [
+        "prepared"
+      ],
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "seconds": 22.693,
+      "model_calls": [
+        {
+          "prompt_bytes": 11864,
+          "input_tokens": 2709,
+          "output_tokens": 214,
+          "seconds": 21.643
+        }
+      ],
+      "subsequent_context_check": {
+        "status": "verified_reused",
+        "reader_performed": false,
+        "seconds": 0.054
+      }
+    }
+  ],
+  "limitations": [
+    "One observation per condition, fixed before-then-after order; load/warmup may affect timing.",
+    "Identical current project guidance copied into both synthetic projects; only Python versions differ.",
+    "Not the full benchmark, a statistical reliability result, a speed claim or a domain-data test."
+  ],
+  "owner_state_changed": false,
+  "data_files_written_by_workflow": false
+}

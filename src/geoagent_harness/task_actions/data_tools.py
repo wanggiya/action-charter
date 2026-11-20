@@ -251,13 +251,13 @@ def health_check(
     )
 
 
-def discover_dataset(path:str,delimiter:str|None=None,settings:MCPSettings|None=None)->dict:
+def discover_dataset(path:str,delimiter:str|None=None,settings:MCPSettings|None=None,*,card_context:bool=False,options:dict|None=None)->dict:
     """Read bounded local CSV/vector/TIFF characteristics and complete identity."""
     from geoagent_harness.data.discovery.service import discover_dataset as discover
     active=effective(settings or load_settings())
     if active.input_root.resolve()!=(active.project_root/'data/input').resolve():
         raise ValueError('Discovery requires the project data/input root; legacy tools retain custom-root support')
-    return discover(active.project_root,path,delimiter)
+    return discover(active.project_root,path,delimiter,card_context=card_context,options=options)
 
 
 

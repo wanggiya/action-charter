@@ -1,0 +1,63 @@
+{
+  "schema_version": "focused-planning-observation-v1",
+  "model": "qwen3:4b-instruct",
+  "reasoning_effort": "none",
+  "planning_scope": "automatic",
+  "condition_selection": "after",
+  "timeout_seconds": 60,
+  "max_tokens": 512,
+  "call_limit_per_condition": 2,
+  "input_sha256": "85cfb5b81866ee50e058f2268636bd204d7b03fba2bd08cb200f36bef5e011f4",
+  "observations": [
+    {
+      "task": 0,
+      "message": "Profile facts.csv and check its structure and data quality. Prepare only.",
+      "condition": "after",
+      "python_source_sha256": "53606022b63d7148e73b19da5e432d35a16daa23ec3caf0c82579a774c241763",
+      "status": "failed",
+      "error_code": "PlannerAgentError",
+      "correct_inspection_proposal": false,
+      "workflow_dispatch": false,
+      "approval_performed": false,
+      "reason": null,
+      "schema_findings": [
+        "[unexpected field]: required field is missing",
+        "path: unexpected field is not allowed; remove properties not declared for this object in required_json_schema or operation_argument_schemas, preserving all required fields",
+        "[unexpected field]: unexpected field is not allowed; remove properties not declared for this object in required_json_schema or operation_argument_schemas, preserving all required fields",
+        "[unexpected field]: unexpected field is not allowed; remove properties not declared for this object in required_json_schema or operation_argument_schemas, preserving all required fields"
+      ],
+      "correction_attempted": true,
+      "seconds": 77.468,
+      "model_calls": [
+        {
+          "prompt_bytes": 14898,
+          "input_tokens": 3290,
+          "output_tokens": 333,
+          "schema_count": 1,
+          "knowhow_ids": [
+            "health-table-analysis"
+          ],
+          "seconds": 36.664
+        },
+        {
+          "prompt_bytes": 18257,
+          "input_tokens": 3988,
+          "output_tokens": 314,
+          "schema_count": 2,
+          "knowhow_ids": [
+            "health-table-analysis"
+          ],
+          "seconds": 37.822
+        }
+      ]
+    }
+  ],
+  "owner_settings_changed": false,
+  "workflow_execution_requested": false,
+  "limitations": [
+    "Fixed synthetic tasks and bounded calls; declared before-then-after order, or one explicitly selected diagnostic condition.",
+    "Common guidance and synthetic source; candidate changes schema focus and instruction context together.",
+    "Returned question is not a demonstrated analysis or a correct inspection proposal.",
+    "Not per-skill reliability qualification, full benchmark, private-data analysis or a statistical speed result."
+  ]
+}

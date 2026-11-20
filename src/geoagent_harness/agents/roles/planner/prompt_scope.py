@@ -28,9 +28,10 @@ def prune_definitions(schema):
     return result
 
 
-def schema_scope(message, available, existing=(), *, selected=False, acquisition=False):
+def schema_scope(message, available, existing=(), *, selected=False, acquisition=False, data_kinds=()):
     text=message.casefold()
     csv=bool(re.search(r'\.(?:csv|tsv|xlsx|jsonl|ndjson|json)\b|\bcsv\b|\bpandas\b|\btabular\b',text))
+    csv = csv or set(data_kinds)=={'table'}
     # Negative scope statements are not requests for spatial capabilities.
     # Only remove explicit lists of excluded operation families, not whole
     # sentences that might also request a spatial operation.
@@ -53,6 +54,14 @@ def schema_scope(message, available, existing=(), *, selected=False, acquisition
     from geoagent_harness.agents.roles.planner.request_coverage import requested_table_operations, requests_statistics
     table_requested=requested_table_operations(message,existing)
     from geoagent_harness.agents.roles.planner.request_coverage import requests_evidence_report
+    inspection_planning = (csv and not spatial and not calculation and not text_candidate
+        and not table_requested and not acquisition and set(existing).issubset({'inspect_csv'})
+        and re.search(r'\b(?:inspect|profile|analy[sz]e|summari[sz]e)\b',text)
+        and not requests_evidence_report(message)
+        and not re.search(r'\b(?:join|merge|decode|convert|export|save|persist|write|import|load|update|delete|restore|fill|impute|clean|snakemake|select|filter|transform|prepare\s+(?:a\s+)?sample)\b',spatial_text)
+        and not re.search(r'\bpostgres(?:ql)?\b|\bdatabase\b',spatial_text))
+    if inspection_planning:
+        return [skill for skill in available if skill=='inspect_csv']
     # Inspection plus advice still needs the table reader contract. Advice is
     # not a request to run all transforms. The final decoder/policy stay broad
     # and supply any deferred operation schema during the bounded correction.
@@ -148,6 +157,8 @@ def focus_table_inspection_instructions(system):
     for key in ('conversion_clarification_example','conversion_arguments_example','tabular_dataflow_example'):
         system.pop(key,None)
     system['prompt_profile']='table-inspection-focused-v1'
+    system.pop('deferred_operation_schema_ids',None)
+    system['schema_scope_note']='Other available operation schemas are supplied on correction if needed; the allowlist and policy remain unchanged.'
     system['mandatory_rules']=[
         'Return one JSON Reply matching required_json_schema. A plan is the complete revised workflow, not a patch. Use plan=null only for genuinely missing semantic inputs or unsupported work. Correct schema problems within the supplied correction, without asking permission.',
         'Compose the requested inspect_csv operation with actual typed arguments from operation_argument_schemas. Keep message, summary and purpose brief. Omit unused optional fields/defaults; do not enumerate every source column unless a selection was requested. Omitted profile_columns means all source fields, not a preview-only analysis.',
@@ -162,7 +173,8 @@ def focus_table_inspection_instructions(system):
         system['mandatory_rules'].append('This request supplies the metadata-only inspect_csv schema. Use only its declared fields; do not invent analysis parameters.')
     system['required_skill_arguments']={k:v for k,v in system.get('required_skill_arguments',{}).items() if k=='inspect_csv'}
     system['selected_skill_requirements']=[v for v in system.get('selected_skill_requirements',[]) if v['skill']=='inspect_csv']
-    system['reusable_recipes']=[v for v in system.get('reusable_recipes',[]) if set(v['skills']).issubset({'inspect_csv'})]
+    system['reusable_recipes']=[{key:v[key] for key in ('id','name','skills')}
+        for v in system.get('reusable_recipes',[]) if set(v['skills']).issubset({'inspect_csv'})]
 
 
 def focus_statistics_instructions(system):

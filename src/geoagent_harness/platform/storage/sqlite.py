@@ -20,6 +20,7 @@ _COLLECTIONS = {
     'method_memory_records': ('id', ('conversation_id',)),
     'capability_attempts': ('sha', ('conversation_id',)),
     'request_diagnostics_v1': ('id', ('conversation_id', 'kind', 'parent_id')),
+    'data_cards_v1': ('id', ('conversation_id',)),
 }
 _SETTINGS = {
     'model_selection': ('model', 'TEXT', True),

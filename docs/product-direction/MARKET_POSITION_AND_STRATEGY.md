@@ -109,6 +109,9 @@ When decided, record it here and update the step order in
 
 ## Public communication (LinkedIn, talks, posts)
 
+First post (four-month mark, due by 2026-11-29): schedule, demo script and checklist in
+[LAUNCH_POST_PLAN.md](LAUNCH_POST_PLAN.md).
+
 Recorded 2026-11-03. Another company working on a similar platform does not prevent
 posting; the work was done independently and the repository is public (Apache 2.0) with
 dated commits. Guidelines:

@@ -44,6 +44,43 @@ def _no_links(path: Path) -> None:
             raise WorkspaceError('Workspace storage is unsafe: symlink/symbolic links are not allowed')
 
 
+def _configured_state(project: Path) -> Path:
+    """Validate storage configuration without interpreting project ownership."""
+    config = project / CONFIG_NAME
+    if config.is_symlink():
+        raise WorkspaceError('Workspace configuration must not be a symbolic link')
+    if not config.exists():
+        return project
+    if not config.is_file() or config.stat().st_size > 4096 or config.stat().st_nlink != 1:
+        raise WorkspaceError('Workspace configuration exceeds its file contract')
+    try:
+        value = json.loads(config.read_text(encoding='utf-8'))
+    except (ValueError, UnicodeError) as error:
+        raise WorkspaceError('Workspace configuration is not valid JSON') from error
+    if (not isinstance(value, dict) or set(value) != {'version', 'state_root'}
+            or type(value['version']) is not int or value['version'] != 1
+            or not isinstance(value['state_root'], str) or not value['state_root'].strip() or '\x00' in value['state_root']):
+        raise WorkspaceError('Workspace configuration requires version=1 and a nonempty state_root')
+    configured = Path(value['state_root'])
+    if '..' in configured.parts:
+        raise WorkspaceError('Workspace state_root must not contain parent traversal')
+    target = configured if configured.is_absolute() else project / configured
+    _no_links(target)
+    target = target.resolve()
+    if target != project:
+        # Relocating state over source/data/secrets would mix trust boundaries.
+        if target in project.parents:
+            raise WorkspaceError('Workspace state_root must not contain the project')
+        if target.is_relative_to(project) and target.relative_to(project).parts[0] in ({
+            'src', 'interface', 'agents', 'skills', 'context', 'docs', 'scripts',
+            'tests', 'data', '.git', '.secrets', '.venv', 'examples', 'docker',
+        } | RUNTIME_STORES | RUNTIME_FILES):
+            raise WorkspaceError('Workspace state_root overlaps source, data, secrets or a runtime store')
+    if target.exists() and not target.is_dir():
+        raise WorkspaceError('Workspace state_root must be a directory')
+    return target
+
+
 @dataclass(frozen=True)
 class WorkspaceLayout:
     project_root: Path
@@ -52,41 +89,7 @@ class WorkspaceLayout:
     @classmethod
     def load(cls, project_root: Path):
         project = Path(project_root).resolve(strict=True)
-        config = project / CONFIG_NAME
-        if config.is_symlink():
-            raise WorkspaceError('Workspace configuration must not be a symbolic link')
-        if not config.exists():
-            from geoagent_harness.platform.project_identity import resolve_identity, ProjectIdentityError
-            try: resolve_identity(project, project)
-            except ProjectIdentityError as error: raise WorkspaceError(str(error)) from error
-            return cls(project, project)
-        if not config.is_file() or config.stat().st_size > 4096 or config.stat().st_nlink != 1:
-            raise WorkspaceError('Workspace configuration exceeds its file contract')
-        try:
-            value = json.loads(config.read_text(encoding='utf-8'))
-        except (ValueError, UnicodeError) as error:
-            raise WorkspaceError('Workspace configuration is not valid JSON') from error
-        if (not isinstance(value, dict) or set(value) != {'version', 'state_root'}
-                or type(value['version']) is not int or value['version'] != 1
-                or not isinstance(value['state_root'], str) or not value['state_root'].strip() or '\x00' in value['state_root']):
-            raise WorkspaceError('Workspace configuration requires version=1 and a nonempty state_root')
-        configured = Path(value['state_root'])
-        if '..' in configured.parts:
-            raise WorkspaceError('Workspace state_root must not contain parent traversal')
-        target = configured if configured.is_absolute() else project / configured
-        _no_links(target)
-        target = target.resolve()
-        if target != project:
-            # Relocating state over source/data/secrets would mix trust boundaries.
-            if target in project.parents:
-                raise WorkspaceError('Workspace state_root must not contain the project')
-            if target.is_relative_to(project) and target.relative_to(project).parts[0] in ({
-                'src', 'interface', 'agents', 'skills', 'context', 'docs', 'scripts',
-                'tests', 'data', '.git', '.secrets', '.venv', 'examples', 'docker',
-            } | RUNTIME_STORES | RUNTIME_FILES):
-                raise WorkspaceError('Workspace state_root overlaps source, data, secrets or a runtime store')
-        if target.exists() and not target.is_dir():
-            raise WorkspaceError('Workspace state_root must be a directory')
+        target = _configured_state(project)
         from geoagent_harness.platform.project_identity import resolve_identity, ProjectIdentityError, owner_record
         try: identity = resolve_identity(project, target)
         except ProjectIdentityError as error: raise WorkspaceError(str(error)) from error

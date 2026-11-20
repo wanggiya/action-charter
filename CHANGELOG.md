@@ -1,3 +1,58 @@
+# Inspection-only Planner scope repair (2026-11-20, P2-D3/K, #102)
+
+- Bind clearly inspection-only table proposals to the compatible inspector in both
+  generation and post-parse validation. Keep broader workflows and the global
+  operation allowlist intact; no execution authority changes.
+- Remove duplicate prompt prose instead of raising the existing size limits.
+- Reproduce the old wrong database-reader/CSV-argument mismatch with synthetic data;
+  retain the failed baseline and successful one-call local4B proposal. One pair is
+  regression evidence, not a broad reliability or speed result.
+- All3,224 offline tests passed in four disjoint make test groups, plus frontend/browser/strict checks; [scope and evidence](docs/AGENT_KNOWHOW.md#inspection-scope-repair-2026-11-20).
+
+# Focused planning and reviewed agent know-how (2026-11-19, P2-D3/K, #102)
+
+- Add six content-pinned instruction files and a bounded shared loader; reject unsafe,
+  changed or unlisted assets without expanding operations or data-egress permission.
+- Focus ordinary table inspection-planning schemas using request and Data Card hints;
+  retain current workflows, the full allowlist, correction and recipe validation.
+- Record selection provenance in chat context and standalone Planner warnings; show
+  selected names in the existing disclosure. History refresh never reloads or calls
+  models. Include assets in wheel/Docker source configuration.
+- All3,222 final-source offline tests passed in four disjoint make test groups;
+  frontend, isolated browser and strict gates passed. Retain initial prompt regressions,
+  limited-scope local-model comparisons and the health-advice timeout. Model-quality
+  qualification remains open; no general reliability or efficiency win claimed.
+  [Scope and validation](docs/AGENT_KNOWHOW.md).
+
+# Source-bound planning context and Data Card reuse (2026-11-18, P2-D2, #101)
+
+- Add bounded same-chat and explicit CLI/MCP context caches using existing workspace
+  storage. Full source/package digest, exact selection/read scope and reader/runtime
+  contract determine reuse; filenames/mtime alone do not.
+- Resolve explicit or unique current-workflow inputs; clarify missing/ambiguous
+  sources. Preserve inspection-on-send gates and reviewed workbook/profile handling.
+- Show last-send context receipts and facts in the existing disclosure; reopening
+  saved state never scans or calls a model. No new agent, execution authority or
+  cross-chat memory. CLI/MCP discovery gains an opt-in card-context mode.
+- Retain two bounded real local4B observations: both valid proposals, larger context
+  after the change; no workflow dispatch or efficiency/reliability win claimed.
+- All3,200 final-source offline tests passed in four disjoint make test groups;
+  frontend validation, isolated fixture browser journey and strict boundaries passed.
+  [Guide and acceptance](docs/DATA_CARDS.md), [validation record](benchmarks/results/2026-11-19-p2d2-validation.json).
+
+# Reviewed device-renumber recovery (2026-11-18, P2-0, #100)
+
+- Add read-only identity recovery preview and explicit offline recovery bound to its
+  reviewed digest, unchanged paths/inodes/owner, valid audit scopes and idle leases.
+- Verify a private active-state/metadata backup before publishing the same UUID with
+  a filesystem-ID/inode binding; later device renumbering alone remains valid.
+- Preserve strict legacy records, real-copy rejection, history, claims and exact
+  approval/session boundaries. No automatic recovery or renewed authority.
+- Full3,160 tests plus final145 affected checks cover all3,161 final collected cases;
+  interface, isolated browser restoration and strict boundaries passed. Owner status
+  is now stable without applying recovery; normal launcher/history acceptance remains.
+  [Guide and limitations](docs/PROJECT_IDENTITY.md#device-number-recovery-after-a-wsl-restart-p2-0-issue-100).
+
 # Data Card foundation and Phase 1 evidence closeout (2026-11-18, #97/#98)
 
 - Add one bounded typed projection over existing discovery/inspection evidence,

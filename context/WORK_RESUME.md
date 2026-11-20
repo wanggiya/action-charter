@@ -1,18 +1,113 @@
-# Work resume — Phase 2 plan updated: skills before code, targets, P2-0 first (2026-11-18)
+# Work resume — OWNER PRIORITY: first public post by 2026-11-29 (2026-11-20)
 
-Owner decisions recorded (docs only; no code, Git or data changes):
-[decision](../docs/decisions/2026-11-18-skills-before-code-and-phase-2-targets.md),
-[PHASE_2_PLAN.md](../docs/product-direction/PHASE_2_PLAN.md).
-- **Skills before code:** know-how goes into agent skill files (`agent-skills/<id>/SKILL.md`,
-  task P2-K); code only for new abilities, guarantees or benchmark-proven speed needs.
-  Existing `skills/<id>/` packages are operations, not agent skills.
-- **Targets vs B5:** ≥15/27 pass, timeouts halved, median <60 s, diabetes journey 4/5,
-  traceable plain-language report, clear refusals for safety tasks.
-- **Order:** P2-0 (identity check after WSL device-number change — blocks owner
-  testing; do not initialize/rebind/reset) → D2 → D3 + K → M3 → H + S → H2; E2 when
-  the DWG converter is chosen (DXF may start).
-- Still uncommitted on `main`: M1/M2/M3c/B6/P1-X/P2-D1 (#93–#98). Owner integrates via
-  one PR before new Phase 2 branches. Agents: commit locally on the task branch, do not push.
+Read [LAUNCH_POST_PLAN.md](../docs/product-direction/LAUNCH_POST_PLAN.md). Until the
+post, only two tasks run, in parallel and in separate worktrees:
+- **P2-DEMO** (due Wed 11-25): polish the demo path (Data Card → approval → report →
+  clear refusal); acceptance 5/5 real-model runs in a fresh demo clone. UI polish on
+  that path only; no new operations, agents or authority changes.
+- **P2-0**: identity check after WSL device-number change (see PHASE_2_PLAN.md).
+All other Phase 2 work waits until after the post. Commit locally on the task branch;
+do not push (owner integrates).
+
+# Work resume — P2-D3/K inspection-scope repair verified (2026-11-20, #102)
+
+Phase2. Owner authorized continuation; issue102 already open, no overlapping PR.
+Preserve all pending P2-0/D2/D3 changes. Git is owner-managed. No Git mutation,
+owner secrets/settings/identity edit, dependency/image installation or live DB/
+service write. Owner manual testing remains deferred. No new role or operation.
+
+Delivered: six pinned know-how files and one bounded L3 loader; focused descriptive
+schemas, receipts in existing UI/CLI/MCP and standalone Planner provenance. A real
+failed inspection exposed inspect_postgres_table chosen with CSV arguments. The
+conversation generation schema and post-parse/recipe checks now bind clearly
+inspection-only proposals to inspect_csv; broader requests/current mixed workflows
+retain scope and full global operation policy. Shared conversation paths are covered;
+legacy standalone Planner shares the loader but keeps its plan-only contract.
+Removed redundant scope prose after a12KB regression; no limit raised/exclusion.
+
+Verification: all3,224 final-source offline IDs passed across four disjoint make test
+file groups823/812/748/841, no exclusions/missing/unexpected IDs. Command durations
+329.039/191.256/226.591/236.838s, not summed wall time or one invocation. Durable
+coverage: benchmarks/results/2026-11-20-p2d3-validation.json. Source/tests/skill assets
+match frozen export/tmp/actioncharter-d3-final-rrdjg6w8. Full group logs/tmp/
+actioncharter-d3-batch{0,1,2,3}.log. Jobs completed; do not rerun them unnecessarily.
+Frontend typecheck/build passed (Vite4.34s, existing chunk warning); actual-API/
+fake-model browser valid plan, know-how receipt and refresh same plan/receipt with
+zero new calls/submissions/approval/execution/page errors. Screenshot inspected:
+/tmp/actioncharter-d3-context.png; log/tmp/actioncharter-d3-browser.log. Fresh profile,
+no user cache. Strict634 modules/3178 imports/zero debt; compatibility517 native/
+117 retained/290 retired. Final15 doc/context/bounds/redaction checks,507 local Markdown targets, preserved
+status-history suffix, whitespace and997 source/test/skill-asset comparisons pass;
+details are in the durable report.
+Actual wheel/image build remains unverified (optional build tooling unavailable).
+
+Real paired scope check: benchmarks/results/2026-11-20-inspection-scope.json.
+Pre-scope source53606022 matches retained diagnostic exactly; same common guidance,
+synthetic3-row input, existing local qwen3:4b-instruct, reasoningnone/60s/512 tokens.
+Before invalid after2 calls/92.965s; after valid inspect_csv proposal1 call/22.572s.
+Three actual provider calls, zero workflow dispatch/authorization. Private0600/tmp
+synthetic replies confirmed wrong reader; never add them to source. One fixed-order
+pair, uncontrolled warmup/load: no broad reliability or statistical speed claim.
+Older failures/timeouts/correction caps remain in benchmarks/results and guide.
+
+Next: representative D3/K method qualification (especially health analysis/report/
+refusal and broader requests), then M3 routing under docs/product-direction/
+PHASE_2_PLAN.md; do not claim the whole D3/K or Phase2 exit is met by this single
+regression. No blind repeats/full B6 matrix. Skills-first, code for demonstrated
+missing guarantees/abilities. Owner-deferred acceptance guide: docs/AGENT_KNOWHOW.md.
+No owner diabetic-data read or live PostGIS test occurred in this slice.
+
+---
+
+# Work resume — P2-0 implemented and automatically verified (2026-11-18, #100)
+
+Owner merged PR #99 (f237372). P2-0 issue#100 created with approval. Git remains
+owner-managed. No branch/stage/commit/push, real identity/config/state edit, secret
+change, download, model call or live database/service write.
+
+Delivered: platform/project_recovery.py + thin project-identity CLI options
+--preview-recovery / --recover-device / --backup-root / --expected-digest / --offline.
+Private verified active-state + original-metadata backup precedes one atomic marker
+replacement. UUID/legacy scope/history/claims/config/owner stay unchanged. Strict v1
+remains until reviewed recovery; v2 uses kernel filesystem ID + inode, not transient
+device number. New adoption uses v2 where usable, strict v1 otherwise. Existing
+migration/rename/rollback stay compatible. Original-volume confirmation is necessary
+for legacy enrollment; no clone-proof, cross-filesystem or remote guarantee.
+
+Verification COMPLETE; full/focused/browser jobs exited0:
+- Full make test:3,160 passed,13 existing spatial warnings,935.56s. Disposable
+  source-only export/tmp/actioncharter-p20-validation-lmggmvo0; log/tmp/actioncharter-
+  p20-full.log. Interrupted earlier full job lost its /tmp files; no result claimed.
+- Final145 affected identity/recovery/workspace/compatibility checks passed59.09s;
+  /tmp/actioncharter-p20-final-focused.log. Full export preceded only the final
+  backup-parent fsync guard + added fault case. Full3160 plus final145 (144 overlap)
+  cover all final3,161 collected IDs,0 missing/unexpected. Not one uninterrupted
+  final-source invocation. Coverage/tmp/actioncharter-p20-coverage.json. Final
+  source/test bytes match synchronized isolated export; no CI/test exclusions changed.
+- make interface-validate passed (build4.64s, existing chunk warning). Final isolated
+  actual-API/synthetic-CSV browser passed restored graph/outcome + refresh, same
+  run,0 page errors,0 planning/dispatch/authorization calls. Log/tmp/actioncharter-
+  p20-final-browser.log; fixture/tmp/actioncharter-p20-browser-6oBeBf. No user cache.
+- Strict631 modules/3144 imports/zero debt; compatibility514 native/117 retained/
+  290 retired/zero errors. Final context12 passed0.47s after final doc sync;
+  log/tmp/actioncharter-p20-final-context.log. Local Markdown file targets
+  and whitespace checks passed. Temporary files may disappear on reboot; keep
+  these evidence totals and docs/PROJECT_IDENTITY.md as the durable record.
+
+IMPORTANT owner state: earlier pure preview found matching paths/inodes and1,446
+files/26,480,480 bytes during the device-number mismatch. On resume, read-only
+project-identity status is now STABLE without recovery or any marker edit, consistent
+with device numbering returning after restart. Do NOT recover a stable checkout.
+Owner launcher/history acceptance is still pending: start normally, reopen a saved
+chat/graph/outcome and refresh without regeneration. Recovery commands in the guide
+apply only to a reviewed future mismatch; never initialize/rebind/reset this history.
+
+Next: owner startup/history check, then P2-D2 source selection + freshness/reuse before
+planning -> D3 + K focused context/agent know-how -> M3 routing -> H + S -> H2.
+Phase2 targets/skills-before-code decision are in docs/product-direction/PHASE_2_PLAN.md.
+P2-0 is platform enforcement; no new agent/skill/model execution role was added.
+
+---
 
 # Work resume — P1-X and P2-D1 implemented/verified (2026-11-18, #97/#98)
 

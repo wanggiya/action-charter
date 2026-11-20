@@ -17,6 +17,12 @@ def main():
     from geoagent_harness.contracts.paths import relative_path
     request = json.loads(sys.stdin.buffer.read(16385))
     path = relative_path(request['path'], 'input')
+    if request['action'] == 'source_fingerprint':
+        from geoagent_harness.data.discovery.source import fingerprint
+        print(json.dumps(fingerprint(Path(request['root']), path,
+                                     expected_identity=request.get('source_identity'),
+                                     max_bytes=request.get('max_input_bytes') if request.get('max_input_bytes') is not None else 1024**3)))
+        return
     if request['action']=='dataset_profile':
         from geoagent_harness.data.tabular.dataset_profile import inspect_dataset
         result=inspect_dataset(Path(request['root']),path,request.get('analysis'),delimiter=request['delimiter'])

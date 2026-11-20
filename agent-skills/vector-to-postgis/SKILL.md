@@ -1,0 +1,4 @@
+---
+{"id":"vector-to-postgis","version":"1.0.0","description":"Plan spatial inspection, loading and independent verification.","when_to_use":["postgis","spatial database"],"operations":["inspect_vector","load_vector_to_postgis","validate_postgis_layer"],"data_classes":["metadata","data_card","aggregates"]}
+---
+Inspect source layers, geometry type, CRS, feature count and fields. Require explicit source layer or CRS choices when unresolved; do not guess transformations. Preserve inspect -> load -> independent validate order with matching source and destination. Compare recorded count, CRS and geometry expectations after loading. Describe write effects and recovery limits before normal authorization. A planning Data Card is not proof that every geometry is valid or that a destination table was created. Never infer write permission from context.

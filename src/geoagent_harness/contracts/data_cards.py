@@ -70,3 +70,30 @@ class DataCard(CardModel):
         if len(self.model_dump_json().encode()) > 8000:
             raise ValueError('Data Card exceeds its 8 KB contract')
         return self
+
+
+class CardUse(CardModel):
+    """A check performed for one request, separate from historical card facts."""
+    schema_version: Literal['data-card-use-v1'] = 'data-card-use-v1'
+    source: str = Field(min_length=1, max_length=960)
+    status: Literal['prepared', 'verified_reused', 'historical', 'read_not_permitted',
+                    'review_required', 'unavailable']
+    card: DataCard | None = None
+    source_checked: bool = False
+    reader_performed: bool = False
+    checked_at: str | None = None
+    reader_contract: str = Field(min_length=1, max_length=64)
+    requested_selection: dict = Field(default_factory=dict)
+    finding: str = Field(max_length=500)
+    execution_authority: Literal[False] = False
+
+    @model_validator(mode='after')
+    def check_receipt(self):
+        if self.status in {'prepared', 'verified_reused'}:
+            if not self.source_checked or self.checked_at is None or self.card is None or not self.card.source_sha256:
+                raise ValueError('Current-context receipts require checked source identity')
+        if self.card is not None and self.card.source != self.source:
+            raise ValueError('Card receipt source differs')
+        if self.status == 'verified_reused' and self.reader_performed:
+            raise ValueError('Reuse cannot claim a new inspection')
+        return self
