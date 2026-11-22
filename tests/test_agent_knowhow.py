@@ -163,3 +163,20 @@ def test_inspection_generation_and_validation_exclude_unrequested_operations(tmp
         assert set(system['operation_argument_schemas'])=={'inspect_csv'}
     assert len(result['planner_result']['plan']['steps'])==1
     assert not result['execution_performed'] and not result['approval_performed']
+
+
+def test_package_installing_images_include_reviewed_instruction_assets():
+    import tomllib
+
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    includes = config["tool"]["hatch"]["build"]["targets"]["wheel"]["force-include"]
+    assert "agent-skills" in includes
+    checked = []
+    for path in sorted((ROOT / "docker").glob("*/Dockerfile")):
+        text = path.read_text()
+        if "COPY pyproject.toml README.md LICENSE ./" not in text:
+            continue
+        checked.append(path.parent.name)
+        install = text.index("RUN python")
+        assert "COPY agent-skills ./agent-skills" in text[:install], str(path)
+    assert set(checked) == {"agent", "gis-tools", "skill-test-runner", "workflow-runner"}

@@ -1,3 +1,12 @@
+# Container packaging fix (2026-11-22, PR #103)
+
+- Copy the required reviewed `agent-skills` assets before package installation in
+  GIS tools, skill-test-runner and workflow-runner images. The missing forced wheel
+  include caused the first two CI image builds to fail; the agent image already
+  included it. Add a regression check covering all four package-installing images.
+- No runtime authority, dependency or model change. Actual image rebuilds remain
+  to be confirmed by CI after the owner pushes the fix.
+
 # Inspection-only Planner scope repair (2026-11-20, P2-D3/K, #102)
 
 - Bind clearly inspection-only table proposals to the compatible inspector in both
