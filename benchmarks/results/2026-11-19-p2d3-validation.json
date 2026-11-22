@@ -1,0 +1,108 @@
+{
+  "schema_version": "p2d3-offline-validation-v1",
+  "date": "2026-11-19",
+  "evidence_kind": "offline fixtures and fake-model tests",
+  "source_test_sha256": "41785771ce7b8743c09907fb93452364e60182532064395eaad3a21527df9291",
+  "collected": 3222,
+  "collected_ids_sha256": "7ca0fbf93fae2caf806224d37e8a0b4f37491f7d2c64de3d8bd85638a3f51cbb",
+  "status": "passed",
+  "groups": [
+    {
+      "group": 0,
+      "files": 85,
+      "expected": 823,
+      "passed": 823,
+      "seconds": 334.433,
+      "exit_code": 0,
+      "passed_ids_sha256": "2819a885621dbd219ffa21fa96c5c192f973947077744de6353b74701c1fd3c8",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "2819a885621dbd219ffa21fa96c5c192f973947077744de6353b74701c1fd3c8"
+    },
+    {
+      "group": 1,
+      "files": 85,
+      "expected": 812,
+      "passed": 812,
+      "seconds": 197.59,
+      "exit_code": 0,
+      "passed_ids_sha256": "1939388092e7b5c3ade57428f67599dd7271c3c17345849324a14004c7cb55da",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "1939388092e7b5c3ade57428f67599dd7271c3c17345849324a14004c7cb55da"
+    },
+    {
+      "group": 2,
+      "files": 85,
+      "expected": 746,
+      "passed": 746,
+      "seconds": 210.89,
+      "exit_code": 0,
+      "passed_ids_sha256": "441bb2311511fe0b99e2eaa494191c1a39a2267673085ee877133a141f8585e1",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "441bb2311511fe0b99e2eaa494191c1a39a2267673085ee877133a141f8585e1"
+    },
+    {
+      "group": 3,
+      "files": 85,
+      "expected": 841,
+      "passed": 841,
+      "seconds": 252.527,
+      "exit_code": 0,
+      "passed_ids_sha256": "b8b1733d0fe80b708b95537bb95c82330396d64fd1084868e56eac11e6fedb73",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed",
+      "expected_ids_sha256": "b8b1733d0fe80b708b95537bb95c82330396d64fd1084868e56eac11e6fedb73"
+    }
+  ],
+  "limitations": [
+    "Complete suite partitioned into four disjoint file groups; not one uninterrupted invocation.",
+    "Does not establish real-model or private-domain-data reliability."
+  ],
+  "passed": 3222,
+  "missing": 0,
+  "unexpected": 0,
+  "command": "make test",
+  "partition": "All collected files, sorted and assigned by file-index modulo four; no exclusions.",
+  "verified_files": 997,
+  "source_assets_match_export": true,
+  "interface": {
+    "status": "passed",
+    "vite_build_seconds": 4.7,
+    "limitation": "Existing large-chunk warning remains."
+  },
+  "browser": {
+    "status": "passed",
+    "evidence": "Actual API/fake model; fresh temporary browser profile",
+    "selected_method_visible": true,
+    "specific_method_omission_parsed": true,
+    "refresh_new_calls": 0,
+    "refresh_new_submissions": 0,
+    "authorization_or_execution": 0,
+    "page_errors": 0
+  },
+  "architecture": {
+    "status": "passed",
+    "modules": 634,
+    "native_modules": 517,
+    "retained_public": 117,
+    "retired_adapters": 290,
+    "internal_imports": 3178,
+    "upward_dependencies": 0
+  },
+  "initial_inventory": "2026-11-19-p2d3-validation-initial.json",
+  "packaging": {
+    "wheel_layout": "fixture-tested",
+    "wheel_build": "not run: hatchling unavailable",
+    "image_build": "not run: no installation/download authorized"
+  }
+}

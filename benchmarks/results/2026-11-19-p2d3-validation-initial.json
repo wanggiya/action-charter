@@ -1,0 +1,69 @@
+{
+  "schema_version": "p2d3-offline-validation-v1",
+  "date": "2026-11-19",
+  "evidence_kind": "offline fixtures and fake-model tests",
+  "source_test_sha256": "5afda2cd1e88e55369cef78bfe3c1180cf13f9b99d98e2ca6954d57171139cc3",
+  "collected": 3222,
+  "collected_ids_sha256": "7ca0fbf93fae2caf806224d37e8a0b4f37491f7d2c64de3d8bd85638a3f51cbb",
+  "status": "partial_initial_inventory",
+  "groups": [
+    {
+      "group": 0,
+      "files": 85,
+      "expected": 823,
+      "passed": 821,
+      "seconds": 318.674,
+      "exit_code": 2,
+      "passed_ids_sha256": "9f87d0c5c900505e3267bc1dac6a8b77806289b88e1b34c5fc86d13f2aedd0b4",
+      "missing": 2,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "failed"
+    },
+    {
+      "group": 1,
+      "files": 85,
+      "expected": 812,
+      "passed": 812,
+      "seconds": 212.647,
+      "exit_code": 0,
+      "passed_ids_sha256": "1939388092e7b5c3ade57428f67599dd7271c3c17345849324a14004c7cb55da",
+      "missing": 0,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "passed"
+    },
+    {
+      "group": 2,
+      "files": 85,
+      "expected": 746,
+      "passed": 740,
+      "seconds": 221.69,
+      "exit_code": 2,
+      "passed_ids_sha256": "416fc329e4c5113a7af8a3c9127bbf7f4553768e6fb64b6f2c4f3a8e61270f94",
+      "missing": 6,
+      "unexpected": 0,
+      "source_unchanged": true,
+      "status": "failed"
+    },
+    {
+      "group": 3,
+      "files": 85,
+      "expected": 841,
+      "status": "pending"
+    }
+  ],
+  "limitations": [
+    "Complete suite partitioned into four disjoint file groups; not one uninterrupted invocation.",
+    "Does not establish real-model or private-domain-data reliability."
+  ],
+  "interrupted_attempts": [
+    {
+      "group": 0,
+      "exit_code": 143,
+      "completed_coverage_claimed": false,
+      "finding": "External SIGTERM without a pytest failure summary; sender unknown. Retry uses an independent process session."
+    }
+  ],
+  "finding": "Eight assertions failed in completed groups: six prompt-size regressions and two obsolete schema-focus expectations. Fourth group was not run before repairs. Retained without a full-suite completion claim."
+}

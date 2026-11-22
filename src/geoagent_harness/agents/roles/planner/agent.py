@@ -189,5 +189,8 @@ def run_planner_agent(
             for reference in context_pack.context_references
         ],
         plan=plan,
-        warnings=[*context_pack.warnings, *([f"Planner proposal required one {correction_kind} correction; the fresh plan passed schema and deterministic policy validation."] if correction_used else [])],
+        warnings=[*context_pack.warnings,
+            *[f"Reviewed agent know-how: {item['id']}@{item['version']} sha256:{item['sha256']} (advisory only)."
+              for item in json.loads(request.messages[0].content).get('agent_knowhow_sources',{}).get('selected',[])],
+            *([f"Planner proposal required one {correction_kind} correction; the fresh plan passed schema and deterministic policy validation."] if correction_used else [])],
     )

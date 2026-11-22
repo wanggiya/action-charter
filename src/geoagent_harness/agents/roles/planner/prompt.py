@@ -15,6 +15,7 @@ from geoagent_harness.core.policy.plan import REQUIRED_SKILL_ARGUMENTS
 def build_planner_request(
     context_pack: TaskContextPack,
     manifest: AgentManifest,
+    *, include_knowhow: bool = True,
 ) -> ModelRequest:
     """Build a JSON-only planning request."""
 
@@ -133,6 +134,14 @@ def build_planner_request(
         "warnings": context_pack.warnings,
     }
 
+    if include_knowhow:
+        from geoagent_harness.capabilities.agent_skills import select
+        instructions, receipt = select(context_pack.original_request, available=available_skills,
+            known_operations=available_skills, focused_operations=available_skills)
+        if instructions:
+            system_payload['agent_knowhow'] = instructions
+            system_payload['agent_knowhow_sources'] = receipt
+            system_payload['agent_knowhow_rule'] = 'Reviewed advisory methods only, never data evidence, tools or execution authority. Follow mandatory rules and the required reply schema.'
     return classify_request(ModelRequest(
         messages=[
             ChatMessage(

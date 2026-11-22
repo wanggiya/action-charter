@@ -1,0 +1,164 @@
+{
+  "annotations": null,
+  "description": "Read bounded local dataset characteristics and hash; never writes data.",
+  "execution": null,
+  "icons": null,
+  "inputSchema": {
+    "$defs": {
+      "TableFilter": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Column",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 4096,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "column",
+          "value"
+        ],
+        "title": "TableFilter",
+        "type": "object"
+      },
+      "TableSourceOptions": {
+        "additionalProperties": false,
+        "description": "Explicit selection only; no macros, formulas or arbitrary reader options.",
+        "properties": {
+          "cell_range": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{1,3}[1-9][0-9]{0,6}:[A-Z]{1,3}[1-9][0-9]{0,6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cell Range"
+          },
+          "header_row": {
+            "default": 1,
+            "maximum": 1000,
+            "minimum": 1,
+            "title": "Header Row",
+            "type": "integer"
+          },
+          "records_key": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Records Key"
+          },
+          "sheet": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Sheet"
+          }
+        },
+        "title": "TableSourceOptions",
+        "type": "object"
+      }
+    },
+    "properties": {
+      "card_context": {
+        "default": false,
+        "title": "Card Context",
+        "type": "boolean"
+      },
+      "delimiter": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Delimiter"
+      },
+      "filters": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/TableFilter"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Filters"
+      },
+      "missing_values": {
+        "anyOf": [
+          {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Missing Values"
+      },
+      "path": {
+        "title": "Path",
+        "type": "string"
+      },
+      "source_options": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/TableSourceOptions"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "title": "discover_datasetArguments",
+    "type": "object"
+  },
+  "meta": null,
+  "name": "discover_dataset",
+  "outputSchema": null,
+  "title": null
+}

@@ -21,10 +21,11 @@ def test_csv_schema_focus_ignores_explicit_spatial_exclusions(exclusion):
     from geoagent_harness.agents.roles.planner.prompt_scope import schema_scope
     allowed = ['inspect_csv', 'aggregate_csv', 'inspect_vector', 'validate_postgis_layer']
     message = 'Inspect visualization_regions.csv. ' + exclusion
-    assert schema_scope(message, allowed) == allowed[:2]
-    # Positive spatial intent and explicit selections still retain their scope.
+    assert schema_scope(message, allowed) == ['inspect_csv']
+    # Positive spatial work keeps its schema; selected availability is unchanged.
     assert schema_scope(message + ' Also inspect vector boundaries.geojson.', allowed) == allowed
-    assert schema_scope(message, allowed, selected=True) == allowed
+    assert schema_scope(message, allowed, selected=True) == ['inspect_csv']
+    assert allowed == ['inspect_csv', 'aggregate_csv', 'inspect_vector', 'validate_postgis_layer']
 
 
 def test_extra_field_repair_is_actionable_without_echoing_unknown_names():

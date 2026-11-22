@@ -1,6 +1,6 @@
 # ActionCharter active roadmap
 
-Updated: 2026-11-18. Original consolidation: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
+Updated: 2026-11-20. Original consolidation: [P0-7, issue #64](https://github.com/wanggiya/action-charter/issues/64).
 
 This is the navigation and dependency map for future work, not a capability claim or
 execution instruction. [Working method](../docs/product-direction/WORKING_METHOD.md)
@@ -12,6 +12,19 @@ Older checkpoint labels identify history, not new delivery tasks.
 ## Current position and next action
 
 **Phase 0 closeout merged in PR #85; B1–B3 merged in PR #89; B4/B5 merged in PR #92.** [Closeout and validation](../docs/P0_CLOSEOUT.md).
+
+PR #99 integrates Phase 1 provider/benchmark closeout and P2-D1. P2-0 (#100) is the
+reviewed offline device-renumber recovery preserving UUID and history, with a
+verified private backup. Automatically verified (final3,161-test passing coverage,
+interface/browser/strict gates). Owner status is now stable without applying recovery;
+normal launcher/history acceptance remains pending. P2-D2 (#101) source freshness/
+reuse is implemented/automatically verified (all3,200 final-source tests in four
+disjoint groups, plus interface/browser/strict gates); then P2-D3 + K focused
+context/agent know-how (#102, engineering and inspection-scope repair verified by
+3,224 tests plus interface/browser/strict gates). A real4B paired wrong-reader case
+now passes; broader/per-method model qualification remains open. Earlier correction
+caps, failed normal-runtime comparisons and health timeout remain recorded.
+Routing and hero acceptance follow measured focused-planning acceptance.
 
 | Task | Implemented scope / remaining gate | Evidence or specification |
 |---|---|---|
@@ -77,11 +90,14 @@ passed. B6 and [P1-X engineering closeout](../docs/PHASE_1_CLOSEOUT.md) are reco
 owner Git integration remains pending. Phase 2 is authorized: P2-D1 #98 implements
 the [shared Data Card foundation](../docs/DATA_CARDS.md), implemented/verified with
 all3,120 tests covered across full/completion runs, interface/browser/CLI/strict gates
-and bounded real-model context observations. Automatic freshness/reuse and efficiency gains are not yet claimed. The coding-session
-checkout and owner terminal both refuse Copied project identity: source/state
-inodes and owner match but device number changed after restart. Offline remount
-recovery remains unimplemented; ownership markers are unchanged. Manual frontend/data acceptance must use
-a valid project identity. [Current status](CURRENT_STATUS.md). [Usage and validation](../docs/REQUEST_DIAGNOSTICS.md).
+and bounded real-model context observations. P2-D2 (#101) now supplies scoped
+source/selection/reader-bound context reuse and last-send receipts under existing
+read policy; all3,200 final-source offline tests passed across four disjoint groups,
+with no missing IDs; interface/browser/strict gates passed. Bounded real4B before/after observations both returned valid proposals;
+added context/tokens, no efficiency/reliability gain. P2-0 recovery is implemented/
+automatically verified; owner status is stable without applying recovery. Start
+normally and check saved-state continuity. [Current status](CURRENT_STATUS.md),
+[Data Card scope/validation](../docs/DATA_CARDS.md).
 PA1/PA2 remains owner data-only work. No new agent role, processing capability or
 release publication is implied.
 
@@ -90,7 +106,7 @@ release publication is implied.
 These are concise reminders of the existing delivery plan, not a second task list.
 Each phase follows the previous exit gate unless the owner explicitly changes order.
 Use the [authoritative phase table](../docs/product-direction/WORKING_METHOD.md#delivery-steps-in-order)
-for the full criteria and status. Phase 1 engineering closeout is recorded; Phase 2 D1 is in progress and phases 3–8
+for the full criteria and status. Phase 1 engineering closeout is recorded; Phase 2 D1 is delivered, D2 verification is in progress and phases 3–8
 have not started. [Phase 2 task dependencies](../docs/product-direction/PHASE_2_PLAN.md).
 
 | Phase | Work after preceding gate | Measurable acceptance focus |

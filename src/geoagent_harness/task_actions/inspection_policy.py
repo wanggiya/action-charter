@@ -14,6 +14,105 @@ from geoagent_harness.contracts.inspection_formats import INSPECTOR_SUFFIXES, so
 active_inspection = ContextVar('submitted_inspection', default=None)
 planning_discovery = ContextVar('submitted_discovery_facts', default=None)
 
+
+def planning_sources(root, message, base=None):
+    """Resolve positive inspection planning requests, without reading content."""
+    import re
+    from geoagent_harness.data.discovery.input import input_references
+    from geoagent_harness.contracts.paths import relative_path
+    from geoagent_harness.agents.roles.planner.request_coverage import metadata_request_text
+    if not re.match(r'\s*(?:please\s+)?(?:inspect|profile|analy[sz]e|read|summari[sz]e)\b', metadata_request_text(message), re.I):
+        return [], None
+    refs = input_references(message, root)
+    if refs['unsafe_input_reference']:
+        from geoagent_harness.core.policy.plan import PlannerPolicyError
+        raise PlannerPolicyError('Read refused: input paths must remain under data/input. Absolute paths and parent traversal are not permitted.')
+    if refs['missing_supplied_paths']:
+        return [], 'Which existing file under data/input should I use? The requested input is unavailable or unsafe; no source was read.'
+    paths = refs['existing_supplied_paths']
+    if not paths and re.search(r'\b(?:it|(?:this|that|current|same|the current|the same)\s+(?:dataset|file|table|source))\b', message, re.I):
+        for step in base.plan.steps if base else []:
+            for key in ('path', 'right_path'):
+                value = step.arguments.get(key)
+                if not isinstance(value, str):
+                    continue
+                try:
+                    value = relative_path(value, 'input')
+                except ValueError:
+                    continue
+                if value.startswith('data/input/') and value not in paths:
+                    paths.append(value)
+        if len(paths) != 1:
+            return [], 'Which input file should I use? Name one under data/input; the current workflow has no unique source.'
+        from geoagent_harness.data.discovery.input import check_task_input
+        try:
+            check_task_input(project_root=root, input_path=paths[0])
+        except ValueError:
+            return [], 'Which existing input file should I use? The current workflow source is unavailable or unsafe.'
+    if len(paths) > 4:
+        return [], 'Which inputs should I use first? Choose at most four explicit sources under data/input.'
+    if any(source_skill(path) is None for path in paths):
+        return [], 'Which supported input should I use? Select an uncompressed file with a registered table, vector or raster reader.'
+    return paths, None
+
+
+def prepare_planning_cards(root, message, base, conversation_id, paths, available=None):
+    """Policy adapter: only an explicit submit option permits new source reads."""
+    import re
+    from geoagent_harness.data.discovery.context import prepare, reader_contract
+    from geoagent_harness.contracts.data_cards import CardUse
+    from geoagent_harness.contracts.errors import InterfaceApiError
+    from geoagent_harness.contracts.skill_registry import SkillAccess
+    from geoagent_harness.platform.skill_registry import load_skill_registry
+    from geoagent_harness.agents.roles.planner.request_coverage import requested_source_options
+    discovery = planning_discovery.get() or {}
+    if discovery.get('metadata') and 'planning_read_permitted' not in discovery:
+        return []  # Preserve existing explicitly supplied same-turn reader facts.
+    allowed = discovery.get('planning_read_permitted') is True
+    options = requested_source_options(message)
+    uses = []
+    remaining_bytes = 1024**3
+    registry = load_skill_registry(root)
+    for path in paths:
+        arguments = next((step.arguments for step in base.plan.steps
+                          if step.skill.startswith('inspect_') and step.arguments.get('path') == path), {}) if base else {}
+        analysis = arguments.get('analysis') or {}
+        # A new named source starts with its own default selection. Current
+        # selection is inherited only for pronoun-based follow-ups.
+        from geoagent_harness.data.discovery.input import input_references
+        explicit = path in input_references(message, root)['existing_supplied_paths']
+        if explicit:
+            analysis = {}
+        chosen = options or analysis.get('source_options')
+        try:
+            # Natural-language selection changes are left to typed planning, not
+            # used to certify an older/default population as the requested one.
+            gate = registry.get_skill(source_skill(path))
+            if gate.access != SkillAccess.READ_ONLY or gate.approval_required:
+                use = CardUse(source=path, status='review_required', reader_contract=reader_contract(path),
+                              finding='The current operation registry requires reviewed handling; no source context was read.').model_dump(mode='json')
+            elif available is not None and source_skill(path) not in available:
+                use = CardUse(source=path, status='review_required', reader_contract=reader_contract(path),
+                              finding='Include the compatible inspector in the selected skills before reading source context.').model_dump(mode='json')
+            elif remaining_bytes <= 0:
+                use = CardUse(source=path, status='unavailable', reader_contract=reader_contract(path),
+                              finding='The request reached its 1 GiB aggregate context budget; choose fewer inputs.').model_dump(mode='json')
+            elif re.search(r'\b(?:filter|where|worksheet|cell range)\b', message, re.I) and not options:
+                use = CardUse(source=path, status='review_required', reader_contract=reader_contract(path),
+                              finding='A selection change needs typed arguments and reviewed Execute; no card certifies the requested population.').model_dump(mode='json')
+            else:
+                use = prepare(root, path, owner=conversation_id, allow_read=allowed, preliminary=True,
+                              delimiter=arguments.get('delimiter') if not explicit else None,
+                              source_options=chosen, filters=analysis.get('filters'), missing_values=analysis.get('missing_values'),
+                              max_input_bytes=remaining_bytes)
+            if use['source_checked']:
+                remaining_bytes -= (use['card'] or {}).get('file_bytes') or 0
+            uses.append(use)
+        except (ValueError, OSError, InterfaceApiError):
+            uses.append(CardUse(source=path, status='unavailable', reader_contract=reader_contract(path),
+                                finding='Dataset context could not be safely verified. Saved evidence is unchanged; inspect source scope and reader limits.').model_dump(mode='json'))
+    return uses
+
 # Reader exports preserve legacy callers; eligibility and execution scope stay here.
 from geoagent_harness.workspaces.sandbox.inspection import INSPECTION_CONTRACTS, bounded_read, source_skill, probe_action
 

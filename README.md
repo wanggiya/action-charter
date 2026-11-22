@@ -5,11 +5,24 @@ whole-row duplicate checks and basic numerical summaries when computed. Older ru
 show their saved facts and identify unperformed checks; downloads never rerun data.
 [Scope, limits and validation](docs/INSPECTION_QUALITY_REPORTS.md).
 
+Reviewed [agent know-how](docs/AGENT_KNOWHOW.md) now supplies bounded method guidance
+for relevant Planner requests. These files guide reasoning without adding tools or
+authority. Inspection-only chat proposals now bind to the table reader; a bounded
+local-model regression passed, while broader method quality remains under qualification.
+
+Data Cards now support opt-in source checks and verified reuse before planning.
+The Planner context disclosure distinguishes prepared, reused and historical facts;
+reopening saved results performs no scan. CLI/MCP share the same bounded lifecycle.
+[Scope and validation](docs/DATA_CARDS.md#source-selection-and-lifecycle-p2-d2).
+
 Workspace storage consolidation now covers workflow approvals, recipes, execution
 evidence, reports/Critic records/local release evidence, write-policy state and governed
 task history. Project ownership stays stable
-across storage changes; references and session checks are preserved. Real
-record migration remains unfinished; existing users need no storage changes.
+across storage changes; references and session checks are preserved. Existing
+legacy projects need no storage changes. Stable identities support an explicit
+offline recovery after mount device renumbering, with a reviewed digest and verified
+private backup; copied directories remain blocked. Recovery preserves history and
+does not renew write approval. [Recovery and limits](docs/PROJECT_IDENTITY.md#device-number-recovery-after-a-wsl-restart-p2-0-issue-100).
 [Storage scope and validation](docs/WORKSPACE_STORAGE.md).
 
 Inspection filename questions now remain readable in the frontend and saved receipts.
@@ -162,9 +175,9 @@ share endpoints when needed, and disabled/save controls explain their requiremen
 [Data Cards](docs/DATA_CARDS.md) now present bounded source identity, scope, field
 types/candidate roles and recorded quality in the existing Overview and CLI/MCP
 results. Opening a card does not scan again. Preliminary samples and unknowns remain
-explicit; automatic freshness/reuse scheduling is still planned. Phase 1
-[engineering closeout](docs/PHASE_1_CLOSEOUT.md) is recorded; owner Git integration
-remains pending.
+explicit. Opt-in planning checks support verified reuse; saved history stays a
+recorded view. Phase 1 [engineering closeout](docs/PHASE_1_CLOSEOUT.md) was integrated
+in PR #99. Phase 2 planning-efficiency and hero-journey acceptance remain.
 
 [Compatibility consolidation](docs/R11_COMPATIBILITY.md) removes 290 obsolete
 adapters and directs maintained callers to native services. The 117 documented

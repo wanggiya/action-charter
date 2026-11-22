@@ -153,7 +153,12 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
         if followup and followup.get('message'):
             metadata_message=followup['message']
             metadata_expectation=plan_for_followup(followup,['inspect_csv','inspect_vector','inspect_raster'])
+        source_question = None
         if request.inspect_on_send:
+            from geoagent_harness.task_actions.inspection_policy import planning_sources
+            _, source_question = planning_sources(root, metadata_message, active)
+            refusal = source_question
+        if request.inspect_on_send and not source_question:
             try:
                 from geoagent_harness.task_actions.inspection_planning import plan_for_request
                 exact=metadata_expectation or plan_for_request(metadata_message, ['inspect_csv','inspect_vector','inspect_raster'])
@@ -183,12 +188,20 @@ def _submission_action(request: SubmissionRequest, *, project_root: Path, model_
                 if record.get('discovery'):record['discovery']['status']='incomplete'
                 refusal = 'The source could not be safely bounded or snapshotted. Review the proposal; ordinary reader limits also apply to Execute.'
         from geoagent_harness.task_actions.inspection_policy import planning_discovery
-        discovery_token=planning_discovery.set(source or {'routing':'explicit_submit'})
+        discovery_token=planning_discovery.set({**(source or {}), 'routing':'explicit_submit',
+                                               'planning_read_permitted':request.inspect_on_send})
         try:
             response = conversation_turn(turn, project_root=root, model_client=model_client)
         finally:
             planning_discovery.reset(discovery_token)
         record['conversation'] = response
+        context_reads = [item for item in (response.get('context_usage') or {}).get('dataset_context', []) if item['source_checked']]
+        if context_reads and not record.get('discovery'):
+            record['discovery'] = {'sources':[item['source'] for item in context_reads],
+                'source':context_reads[0]['source'], 'scope':'planning_context_only',
+                'sha256_complete':True, 'status':'ready',
+                'completed_sources':len(context_reads), 'requested_sources':len(context_reads),
+                'file_bytes':sum((item.get('card') or {}).get('file_bytes') or 0 for item in context_reads)}
         record['status'] = 'proposal_only'
         record['finding'] = refusal or ('Proposal saved after preliminary metadata discovery. No workflow run executed; use Execute when ready.' if record.get('discovery') else 'Proposal saved. Nothing executed; use Execute when ready.')
         if (response.get('context_usage') or {}).get('model_request',{}).get('stage')=='inspection_clarification':

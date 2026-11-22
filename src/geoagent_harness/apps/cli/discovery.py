@@ -74,12 +74,17 @@ def register(app):
 
     @app.command('discover-dataset')
     def discover(path:str=typer.Argument(),project_root:Path=typer.Option(Path('.'),'--project-root'),
-                 delimiter:str|None=typer.Option(None,'--delimiter')):
+                 delimiter:str|None=typer.Option(None,'--delimiter'),
+                 card_context:bool=typer.Option(False,'--card-context'),
+                 options:Path|None=typer.Option(None,'--context-options')):
         """Read characteristics and complete identity; no model or write authority."""
         from geoagent_harness.data.discovery.service import discover_dataset
         from geoagent_harness.contracts.errors import InterfaceApiError
         try:
-            result=discover_dataset(project_root,path,delimiter)
+            if options and options.stat().st_size > 16000:
+                raise ValueError('Context options exceed 16 KiB')
+            selected = json.loads(options.read_text()) if options else None
+            result=discover_dataset(project_root,path,delimiter,card_context=card_context,options=selected)
             typer.echo(json.dumps(result,indent=2,allow_nan=False))
         except (ValueError,OSError,InterfaceApiError):
             typer.echo('Error: discovery failed; check format, source changes and documented budgets. Nothing was written to the dataset.',err=True)

@@ -1,0 +1,4 @@
+---
+{"id":"csv-to-postgres","version":"1.0.0","description":"Plan a verified fresh-table CSV import.","when_to_use":["postgres","postgresql","database"],"operations":["inspect_csv","import_csv_to_postgres","validate_postgres_import"],"data_classes":["metadata","data_card","aggregates"]}
+---
+Inspect the source and agree the row grain, explicit column types, null policy and fresh destination table before proposing import. Bind the configured connection and source identity through existing contracts, never invented digests or SQL. Preserve inspection -> import -> independent validation dependencies. Verify row and mapping expectations and report partial failures. Import requires normal exact authorization; preparation, prior success and installed dependencies cannot authorize it. Existing-table replacement and schema creation are not this recipe.

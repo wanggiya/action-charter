@@ -1,5 +1,54 @@
 # Phase 1 baseline evidence
 
+## P2-D3/K inspection-scope repair — 2026-11-20
+
+[Paired real local-model observation](2026-11-20-inspection-scope.json) uses matching
+pre-scope source, common guidance, synthetic input and qwen3:4b-instruct settings.
+Before selected a PostgreSQL reader with CSV arguments and failed after two calls
+(92.965s); after returned a validated CSV inspection proposal in one call (22.572s).
+No workflow dispatch or authority. One pair verifies this case; fixed order and
+uncontrolled load prevent a broad reliability or statistical speed claim. All
+older failures remain below. Private synthetic reply bodies stay outside source.
+
+[Final-source offline verification](2026-11-20-p2d3-validation.json):3,224 passed in
+four disjoint make test groups with exact ID coverage; frontend/browser/strict
+gates passed. This is fixture evidence, separate from the model observation.
+Broader/per-method D3/K and the diabetes hero journey remain unqualified.
+
+## Initial P2-D3/K engineering verification
+
+[Final-source offline coverage](2026-11-19-p2d3-validation.json):3,222 passed in four
+disjoint groups with exact ID hashes, plus interface/browser/strict checks.
+[Initial partial inventory](2026-11-19-p2d3-validation-initial.json) retains repaired
+prompt-bound and expected-scope failures; no exclusions or raised limits.
+
+## Initial P2-D3/K observations — 2026-11-19
+
+[Restricted-scope capture](2026-11-19-focused-planning.json) retains one health-advice
+timeout. [Automatic selection](2026-11-19-focused-planning-automatic.json) shows an
+8-to-1 schema/32,298-to-16,143-byte reduction for one request, but correction was
+blocked by the comparison's one-call cap on both sides. No normal-runtime correctness,
+speed or method-quality win is claimed. [Interpretation and next gate](../../docs/AGENT_KNOWHOW.md#retained-real-local-model-observations).
+
+## P2-D2 offline validation — 2026-11-19
+
+[Validation record](2026-11-19-p2d2-validation.json) retains status, source/test
+identity, collected test count and exact per-group passing-ID hashes. The complete
+offline suite is partitioned into four disjoint file groups; this is separate from
+the real-model observation below and makes no model-efficiency claim.
+
+## P2-D2 bounded context lifecycle observation — 2026-11-18
+
+[Capture](2026-11-18-p2d2-context-lifecycle.json), [scope](../../docs/DATA_CARDS.md#bounded-real-local-model-observation).
+Pre-D2 f237372 Python vs candidate Python, common guidance, identical synthetic CSV
+and request. Installed qwen3:4b-instruct, reasoningnone/60s/512 tokens, one model
+call/condition; both returned validated inspection proposals, no workflow dispatch
+or authority. Before23.041s,2087 input/166 output; after22.693s,2709 input/214 output.
+Subsequent candidate context reuse0.054s, no new inspection. Single before/after order,
+uncontrolled load/cache; no efficiency/reliability win. D2 adds context; D3 owns
+focused reduction. Final runtime/source-routing/prompt hardening followed measurement;
+fixture validation covers it, no final-source model rerun claimed.
+
 ## P2-D1 synthetic context observations — 2026-11-18
 
 [Recorded observations](2026-11-18-p2d1-card-context.json) use installed

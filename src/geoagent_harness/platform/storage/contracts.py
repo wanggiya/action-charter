@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 Collection = Literal['conversations', 'tasks', 'memories', 'inspection_submissions_v1',
     'chat_history_blobs_v1', 'chat_history_v1', 'method_memory_records',
-    'dataset_views_v1', 'capability_attempts', 'request_diagnostics_v1']
+    'dataset_views_v1', 'capability_attempts', 'request_diagnostics_v1', 'data_cards_v1']
 Setting = Literal['model_selection', 'model_reasoning_selection', 'outcome_review_settings',
     'method_memory_settings', 'method_helper_settings']
 

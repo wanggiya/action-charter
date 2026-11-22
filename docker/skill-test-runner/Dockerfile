@@ -7,6 +7,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+COPY agent-skills ./agent-skills
 COPY docker/skill-test-runner/run_candidate_tests.py \
     /app/run_candidate_tests.py
 

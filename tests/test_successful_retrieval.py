@@ -81,7 +81,8 @@ def test_schema_focus_preserves_allowlist_and_property_named_title():
     assert result['properties']['title']=={'type':'string'}
     assert result['required']==['title']
     allowed=['inspect_csv','select_csv_columns','inspect_vector']
-    assert schema_scope('Inspect x.csv',allowed)==allowed[:2]
+    assert schema_scope('Inspect x.csv',allowed)==['inspect_csv']
+    assert allowed==['inspect_csv','select_csv_columns','inspect_vector']
     assert schema_scope('Inspect x.csv',allowed,['inspect_vector'])==allowed
     assert schema_scope('Inspect vector and CSV',allowed)==allowed
 

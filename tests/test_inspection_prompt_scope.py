@@ -39,5 +39,10 @@ def test_actual_model_request_keeps_analysis_and_timeout_is_not_retried(project)
     system=json.loads(requests[0].messages[0].content)
     assert set(system['operation_argument_schemas'])=={'inspect_csv'}
     assert 'analysis' in system['operation_argument_schemas']['inspect_csv']['properties']
-    assert 'select_csv_columns' in system['deferred_operation_schema_ids']
+    assert 'select_csv_columns' in system['available_skills']
+    assert 'select_csv_columns' not in system['operation_argument_schemas']
+    if 'deferred_operation_schema_ids' in system:
+        assert 'select_csv_columns' in system['deferred_operation_schema_ids']
+    else:
+        assert 'correction' in system['schema_scope_note']
     assert not (project/'approvals').exists()

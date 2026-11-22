@@ -34,6 +34,26 @@ def _object(path):
     return [info.st_dev, info.st_ino]
 
 
+def _filesystem(path):
+    """Kernel filesystem ID, independent of a mount's transient device number.
+
+    Unsupported/zero IDs cannot establish a remount binding. This is local
+    filesystem identity, not authentication or protection against cloned volumes.
+    """
+    value = getattr(os.statvfs(path), 'f_fsid', 0)
+    if type(value) is not int or value <= 0:
+        raise ProjectIdentityError('Filesystem has no usable stable ID; device recovery is unavailable')
+    return value
+
+
+def _matches(record, prefix, path):
+    current = _object(path)
+    expected = record[prefix + '_object']
+    if record['version'] == 1:
+        return current == expected
+    return current[1] == expected[1] and _filesystem(path) == record[prefix + '_filesystem']
+
+
 def read_record(project):
     path = Path(project) / IDENTITY_NAME
     if not path.exists() and not path.is_symlink():
@@ -46,7 +66,14 @@ def read_record(project):
         value = json.loads(path.read_text())
         fields = {'version', 'project_id', 'source_root', 'state_root',
                   'source_object', 'state_object', 'legacy_scope'}
-        if not isinstance(value, dict) or set(value) != fields or type(value['version']) is not int or value['version'] != 1:
+        if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] not in (1, 2):
+            raise ValueError()
+        if value['version'] == 2:
+            fields |= {'source_filesystem', 'state_filesystem'}
+            if any(type(value.get(key)) is not int or value[key] <= 0
+                   for key in ('source_filesystem', 'state_filesystem')):
+                raise ValueError()
+        if set(value) != fields:
             raise ValueError()
         if str(UUID(value['project_id'])) != value['project_id']:
             raise ValueError()
@@ -82,12 +109,13 @@ def resolve_identity(project, state_root=None):
     record = read_record(project)
     if record is None:
         return None
-    if _object(project) != record['source_object']:
-        raise ProjectIdentityError('Copied project identity: initialize an independent project with fresh state')
+    if not _matches(record, 'source', project):
+        raise ProjectIdentityError('Copied project identity or changed filesystem binding; inspect project-identity '
+                                   '--preview-recovery offline before any recovery. Do not reset existing state')
     if str(project) != record['source_root']:
         raise ProjectIdentityError('Project moved; stop all processes and explicitly rebind its identity offline')
     state = Path(record['state_root']) if state_root is None else Path(state_root)
-    if str(state) != record['state_root'] or _object(state) != record['state_object']:
+    if str(state) != record['state_root'] or not _matches(record, 'state', state):
         raise ProjectIdentityError('Project state binding changed; verified offline transition required')
     return ProjectIdentity(record['project_id'], record['legacy_scope'])
 
@@ -127,6 +155,13 @@ def initialize(project, *, offline=False):
     record = {'version': 1, 'project_id': str(uuid4()), 'source_root': str(layout.project_root),
               'state_root': str(layout.state_root), 'source_object': _object(layout.project_root),
               'state_object': _object(layout.state_root), 'legacy_scope': path_scope(layout.project_root)}
+    try:
+        filesystems = {'source_filesystem': _filesystem(layout.project_root),
+                       'state_filesystem': _filesystem(layout.state_root)}
+    except (AttributeError, OSError, ProjectIdentityError):
+        pass  # Existing strict device/inode behavior on unsupported platforms.
+    else:
+        record.update(version=2, **filesystems)
     # Hold both the old path key and new ID key until publication finishes. Any
     # error leaves existing payloads intact; partial owner publication fails closed.
     from geoagent_harness.core.policy.write_policy import _owner_fd
@@ -187,11 +222,11 @@ def rebind(project, *, offline=False):
     old = Path(record['source_root'])
     if old == project or old.exists() or old.is_symlink():
         raise ProjectIdentityError('Old source location must be absent; copies cannot rebind ownership')
-    if _object(project) != record['source_object']:
+    if not _matches(record, 'source', project):
         raise ProjectIdentityError('Source filesystem object differs; copied identities cannot be rebound')
     old_state = Path(record['state_root'])
     state = project / old_state.relative_to(old) if old_state.is_relative_to(old) else old_state
-    if _object(state) != record['state_object']:
+    if not _matches(record, 'state', state):
         raise ProjectIdentityError('State filesystem object differs; cross-filesystem copies require separate provisioning')
     # Check the config at the new location without invoking the deliberately
     # failing normal resolver. Absolute old paths are never silently rewritten.

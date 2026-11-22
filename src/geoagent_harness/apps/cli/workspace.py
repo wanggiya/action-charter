@@ -84,12 +84,28 @@ def register_workspace_commands(app):
     def identity(project_root: Path = typer.Option(Path('.'), '--project-root'),
                  initialize: bool = typer.Option(False, '--initialize'),
                  rebind: bool = typer.Option(False, '--rebind'),
+                 preview_recovery: bool = typer.Option(False, '--preview-recovery'),
+                 recover_device: bool = typer.Option(False, '--recover-device'),
+                 backup_root: Path | None = typer.Option(None, '--backup-root'),
+                 expected_digest: str | None = typer.Option(None, '--expected-digest'),
                  offline: bool = typer.Option(False, '--offline')):
-        """Read identity; opt in or verify a filesystem rename explicitly offline."""
+        """Read identity; adopt, rebind or recover reviewed ownership explicitly offline."""
         from geoagent_harness.platform import project_identity
         def checked():
-            if initialize and rebind:
-                raise WorkspaceError('Choose either --initialize or --rebind')
+            if sum((initialize, rebind, preview_recovery, recover_device)) > 1:
+                raise WorkspaceError('Choose only one identity action')
+            if preview_recovery or recover_device:
+                from geoagent_harness.platform import project_recovery
+                if backup_root is None:
+                    raise WorkspaceError('Recovery requires --backup-root outside the source and state')
+                if recover_device:
+                    return project_recovery.recover(project_root, backup_root,
+                                                    expected_digest=expected_digest, offline=offline)
+                if expected_digest is not None:
+                    raise WorkspaceError('--expected-digest applies only to --recover-device')
+                return project_recovery.preview(project_root, backup_root)
+            if backup_root is not None or expected_digest is not None:
+                raise WorkspaceError('Recovery options require a recovery action')
             action = project_identity.initialize if initialize else project_identity.rebind if rebind else None
             return action(project_root, offline=offline) if action else project_identity.status(project_root)
         emit(checked)

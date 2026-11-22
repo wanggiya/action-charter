@@ -86,16 +86,17 @@ def test_cancel_batch_skips_queued_steps_and_retains_first_result(project,monkey
     assert result['run']['steps'][0]['outcome']['row_count']==6
 
 
-def test_missing_second_source_records_probe_but_never_executes_prefix(project):
-    from geoagent_harness.contracts.errors import InterfaceApiError
+def test_missing_second_source_clarifies_before_any_probe_or_prefix_execution(project,monkeypatch):
     from geoagent_harness.task_actions.planner_submission import SubmissionRequest
+    from geoagent_harness.task_actions import planner_submission
+    monkeypatch.setattr(planner_submission,'bounded_read',lambda *a,**k:pytest.fail('Known missing batch must not probe a prefix'))
     turn=request();turn.turn.message='Inspect sample_orders.csv and missing.tif. Return metadata. No writes.'
-    with pytest.raises(InterfaceApiError,match='available regular file'):
-        submission_action(turn,project_root=project,model_client=NoModel(),background=False)
+    first=submission_action(turn,project_root=project,model_client=NoModel(),background=False)
+    assert first['conversation']['context_usage']['model_request']['stage']=='inspection_clarification'
+    assert first['conversation']['planner_result'] is None
     result=submission_action(SubmissionRequest(action='read',submission_id=turn.submission_id,conversation_id=CHAT),project_root=project)
-    assert result['run'] is None and result['discovery_performed']
-    assert result['submission']['discovery']['status']=='incomplete'
-    assert result['submission']['discovery']['completed_sources']==1
+    assert result['run'] is None and not result['discovery_performed']
+    assert result['submission']['discovery'] is None
 
 
 def test_batch_aggregate_budget_prevents_execution(project,monkeypatch):

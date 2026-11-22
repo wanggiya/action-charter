@@ -5,7 +5,7 @@ from geoagent_harness.contracts.postgres import ImportCSV
 from geoagent_harness.workspaces.sandbox.contracts import DatasetOptions
 from geoagent_harness.data.tabular.dataset_views import DatasetViewRequest
 from typing import Any, Literal
-from geoagent_harness.contracts.analysis_options import AnalysisOptions, TableSourceOptions
+from geoagent_harness.contracts.analysis_options import AnalysisOptions, TableSourceOptions, TableFilter
 
 from mcp.server.fastmcp import FastMCP
 from functools import wraps
@@ -145,9 +145,18 @@ def create_mcp_server(
         return tools.table_statistics(path,{'methods':['linear_regression'],'regression':specification.model_dump(mode='json'),'missing_policy':missing_policy},missing_values,source_options=source_options.model_dump(mode='json') if source_options else None)
 
     @server.tool()
-    def discover_dataset(path:str,delimiter:str|None=None)->dict:
+    def discover_dataset(path:str,delimiter:str|None=None,card_context:bool=False,
+                         source_options:TableSourceOptions|None=None,filters:list[TableFilter]|None=None,
+                         missing_values:dict[str,list[str]]|None=None)->dict:
         """Read bounded local dataset characteristics and hash; never writes data."""
-        return tools.discover_dataset(path,delimiter)
+        options = {}
+        if source_options is not None:
+            options['source_options'] = source_options.model_dump(mode='json')
+        if filters:
+            options['filters'] = [item.model_dump(mode='json') for item in filters]
+        if missing_values:
+            options['missing_values'] = missing_values
+        return tools.discover_dataset(path,delimiter,card_context=card_context,options=options or None)
 
     @server.tool()
     def inspect_vector_dataset(

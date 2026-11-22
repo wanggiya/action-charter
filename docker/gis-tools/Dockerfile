@@ -8,6 +8,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+COPY agent-skills ./agent-skills
 # RUN python3 -m pip install --break-system-packages --no-cache-dir ".[gis]"
 RUN python3 -m pip install \
     --break-system-packages \

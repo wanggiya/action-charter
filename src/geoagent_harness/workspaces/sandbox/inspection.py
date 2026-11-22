@@ -21,7 +21,7 @@ def source_skill(path):
     return source_inspector(path)
 
 
-def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', preview_rows=5, checkpoint=None, timeout=30, view_options=None, source_identity=None, on_metadata=None, analysis=None, max_seconds=None):
+def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', preview_rows=5, checkpoint=None, timeout=30, view_options=None, source_identity=None, on_metadata=None, analysis=None, max_seconds=None, max_input_bytes=None):
     from geoagent_harness.contracts.errors import InterfaceApiError
     if sys.platform != 'linux':
         raise InterfaceApiError('Inspection on send currently requires the Linux bounded reader; use reviewed Execute')
@@ -33,7 +33,7 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
            'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
     import time
     import os
-    if action in {'csv_discover','spatial_discover','dataset_profile'}:
+    if action in {'csv_discover','spatial_discover','dataset_profile','source_fingerprint'}:
         timeout = 120
     if max_seconds is not None:
         timeout = min(timeout, max_seconds)
@@ -58,7 +58,7 @@ def bounded_read(root, *, action, path, source_sha256=None, delimiter=',', previ
                 on_metadata(json.loads(line))
     payload=json.dumps(dict(root=str(root), action=action, path=path, source_sha256=source_sha256,
         source_identity=source_identity, delimiter=delimiter, preview_rows=preview_rows,
-        view_options=view_options, progress_fd=progress_write, analysis=analysis)).encode()
+        view_options=view_options, progress_fd=progress_write, analysis=analysis, max_input_bytes=max_input_bytes)).encode()
     if len(payload) > (16000 if analysis is not None else 4096):
         if progress_read is not None:
             os.close(progress_read);os.close(progress_write)
